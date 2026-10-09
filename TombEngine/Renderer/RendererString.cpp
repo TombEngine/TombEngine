@@ -217,6 +217,14 @@ namespace TEN::Renderer
 		if (_stringsToDraw.empty())
 			return;
 
+		if (Next::g_NextRenderer.IsActive())
+		{
+			int firstText = (int)_nextUi.Texts.size();
+			GetResolvedStrings(_nextUi.Texts);
+			for (int i = firstText; i < (int)_nextUi.Texts.size(); i++)
+				AddNextUiLayer(Next::OverlayLayerType::Texts, i);
+		}
+
 		SetBlendMode(BlendMode::AlphaBlend);
 
 		float shadowOffset = 1.5f / (REFERENCE_FONT_SIZE / _gameFont->GetLineSpacing());

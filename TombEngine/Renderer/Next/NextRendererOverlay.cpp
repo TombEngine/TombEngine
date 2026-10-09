@@ -1,10 +1,8 @@
 #include "framework.h"
 #include "Renderer/Next/NextRenderer.h"
 
-#include "Renderer/RenderView.h"
 #include "Renderer/RHI/ShaderLibrary.h"
 #include "Renderer/Structures/RendererSprite.h"
-#include "Renderer/Structures/RendererSprite2D.h"
 #include "Specific/trutils.h"
 
 using namespace TEN::Renderer::RHI;
@@ -184,45 +182,30 @@ namespace TEN::Renderer::Next
         AddOverlayCorners(texture, corners, uvs, color, blendMode);
     }
 
-    // Legacy DrawDisplaySprites: sprites rotated about their center in the 800x600 display space, 180 degrees turned
-    // for +Y down, with their aspect correction; negative priorities are drawn before the strings.
-    void NextRenderer::AddDisplaySprites(const RenderView& view, bool isPositivePriority)
+    // Display sprite of the legacy DrawDisplaySprites, from the 800x600 display space.
+    void NextRenderer::AddOverlaySprite(const OverlaySprite& sprite)
     {
         constexpr auto DISPLAY_WIDTH = 800.0f;
         constexpr auto DISPLAY_HEIGHT = 600.0f;
 
-        const auto& desc = _colorTarget->GetDesc();
+        auto* texture = GetSpriteTexture(sprite.Sprite);
+        if (texture == nullptr)
+            return;
+
+        const auto& desc = _finalTarget->GetDesc();
         auto displayToTarget = Vector2(desc.Width / DISPLAY_WIDTH, desc.Height / DISPLAY_HEIGHT);
-        for (const auto& sprite : view.DisplaySpritesToDraw)
-        {
-            if ((sprite.Priority >= 0) != isPositivePriority)
-                continue;
+        Vector2 corners[4] = {};
+        for (int i = 0; i < 4; i++)
+            corners[i] = sprite.Corners[i] * displayToTarget;
 
-            auto* texture = GetSpriteTexture(sprite.SpritePtr);
-            if (texture == nullptr)
-                continue;
-
-            Vector2 corners[4] =
-            {
-                sprite.Size / 2.0f,
-                Vector2(-sprite.Size.x, sprite.Size.y) / 2.0f,
-                -sprite.Size / 2.0f,
-                Vector2(sprite.Size.x, -sprite.Size.y) / 2.0f
-            };
-
-            auto rotation = Matrix::CreateRotationZ(TO_RAD(sprite.Orientation + ANGLE(180.0f)));
-            for (auto& corner : corners)
-                corner = (Vector2::Transform(corner, rotation) * sprite.AspectCorrection + sprite.Position) * displayToTarget;
-
-            AddOverlayCorners(texture, corners, sprite.SpritePtr->UV, sprite.Color, sprite.BlendMode);
-        }
+        AddOverlayCorners(texture, corners, sprite.Sprite->UV, sprite.Color, sprite.BlendMode);
     }
 
     // Legacy DrawOverlays: additive lightning flash, then the binocular or laser sight sprite fitted to the screen
     // with the red aiming point of the laser sight.
-    void NextRenderer::AddScreenOverlays(const FrameEnvironment& environment)
+    void NextRenderer::AddScreenOverlays(const UiFrame& environment)
     {
-        const auto& desc = _colorTarget->GetDesc();
+        const auto& desc = _finalTarget->GetDesc();
         auto targetSize = Vector2((float)desc.Width, (float)desc.Height);
 
         if (environment.FlashColor != Vector3::Zero)
@@ -321,7 +304,7 @@ namespace TEN::Renderer::Next
         if (borderTexture == nullptr || innerTexture == nullptr)
             return;
 
-        const auto& desc = _colorTarget->GetDesc();
+        const auto& desc = _finalTarget->GetDesc();
         float aspect = (float)desc.Width / (float)desc.Height;
         auto scale = Vector2::One;
         auto sourcePivot = bar.Position;
@@ -385,45 +368,95 @@ namespace TEN::Renderer::Next
         addQuad(innerTexture, innerUniforms, bar.Position, bar.Position + bar.Size, Vector2::Zero, Vector2::One);
     }
 
-    // 2D layer of the frame, in the legacy order: bars, screen overlays, display sprites of negative priority,
-    // strings, then the other display sprites. Legacy string coordinates are in its own screen resolution.
-    void NextRenderer::CollectOverlay(const RenderView& view, const FrameEnvironment& environment)
+    // Image files of the legacy 2D layer are decoded on first use and kept for the session.
+    void NextRenderer::LoadOverlayImages(const UiFrame& ui)
+    {
+        for (const auto& image : ui.Images)
+        {
+            if (_overlayImages.find(image.Path) != _overlayImages.end())
+                continue;
+
+            auto file = std::ifstream(image.Path, std::ios::binary);
+            auto data = std::vector<unsigned char>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+            // No mips: averaging straight alpha texels brightens transparent edges, unlike the legacy sprite batch.
+            auto texture = CreateLevelTexture(data, "Overlay.Image", false);
+            if (texture == nullptr)
+                TENLog("Next renderer: cannot load image " + image.Path, LogLevel::Warning);
+
+            _overlayImages[image.Path] = std::move(texture);
+        }
+    }
+
+    // Presented frame: the last scene faded as the legacy menu backgrounds, then the 2D layer in the legacy draw
+    // order. Legacy string coordinates are in its own screen resolution.
+    void NextRenderer::CollectOverlay(const UiFrame& ui)
     {
         _overlayVertexData.clear();
         _overlayDraws.clear();
 
-        if (environment.Texts == nullptr || environment.ScreenWidth <= 0 || environment.ScreenHeight <= 0 || _colorTarget == nullptr)
-            return;
-
-        if (environment.Bars != nullptr)
+        const auto& desc = _finalTarget->GetDesc();
+        auto targetSize = Vector2((float)desc.Width, (float)desc.Height);
+        if (_hasScene && ui.BackgroundFade > 0.0f)
         {
-            for (const auto& bar : *environment.Bars)
-                AddOverlayBar(bar);
+            auto color = Vector4(ui.BackgroundFade, ui.BackgroundFade, ui.BackgroundFade, 1.0f);
+            AddOverlayQuad(_colorTarget.get(), Vector2::Zero, targetSize, Vector2::Zero, Vector2::One, color, BlendMode::Opaque);
         }
 
-        AddScreenOverlays(environment);
-        AddDisplaySprites(view, false);
+        if (ui.ScreenWidth <= 0 || ui.ScreenHeight <= 0)
+            return;
 
-        const auto& desc = _colorTarget->GetDesc();
-        auto scale = Vector2((float)desc.Width / environment.ScreenWidth, (float)desc.Height / environment.ScreenHeight);
-        for (const auto& text : *environment.Texts)
-            AddOverlayText(text, scale);
+        auto textScale = Vector2(targetSize.x / ui.ScreenWidth, targetSize.y / ui.ScreenHeight);
+        for (const auto& layer : ui.Layers)
+        {
+            int end = layer.First + layer.Count;
+            switch (layer.Type)
+            {
+            case OverlayLayerType::Texts:
+                for (int i = layer.First; i < end && i < (int)ui.Texts.size(); i++)
+                    AddOverlayText(ui.Texts[i], textScale);
 
-        AddDisplaySprites(view, true);
+                break;
+
+            case OverlayLayerType::Bars:
+                for (int i = layer.First; i < end && i < (int)ui.Bars.size(); i++)
+                    AddOverlayBar(ui.Bars[i]);
+
+                break;
+
+            case OverlayLayerType::Sprites:
+                for (int i = layer.First; i < end && i < (int)ui.Sprites.size(); i++)
+                    AddOverlaySprite(ui.Sprites[i]);
+
+                break;
+
+            case OverlayLayerType::Images:
+                for (int i = layer.First; i < end && i < (int)ui.Images.size(); i++)
+                {
+                    const auto& image = ui.Images[i];
+                    auto it = _overlayImages.find(image.Path);
+                    if (it != _overlayImages.end() && it->second != nullptr)
+                        AddOverlayQuad(it->second.get(), image.Min * targetSize, (image.Max - image.Min) * targetSize, image.UVMin, image.UVMax, image.Color, image.BlendMode);
+                }
+
+                break;
+
+            case OverlayLayerType::ScreenOverlays:
+                AddScreenOverlays(ui);
+                break;
+            }
+        }
     }
 
     void NextRenderer::RenderOverlay(ICommandBuffer& commandBuffer)
     {
-        if (_overlayDraws.empty())
-            return;
-
-        const auto& desc = _colorTarget->GetDesc();
+        const auto& desc = _finalTarget->GetDesc();
         auto uniforms = OverlayUniforms{ Vector2(1.0f / desc.Width, 1.0f / desc.Height) };
         commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 0, &uniforms, sizeof(uniforms));
 
         auto colorTarget = ColorTargetInfo{};
-        colorTarget.Texture = _colorTarget.get();
-        colorTarget.Load = LoadOp::Load;
+        colorTarget.Texture = _finalTarget.get();
+        colorTarget.Load = LoadOp::Clear;
+        colorTarget.ClearColor[3] = 1.0f;
 
         commandBuffer.PushDebugGroup("Overlay");
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);

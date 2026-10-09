@@ -1322,7 +1322,8 @@ namespace TEN::Renderer
 			DrawFullScreenImage(texture.get(), Smoothstep(currentFade), _backBuffer->GetRenderTarget(), _backBuffer->GetDepthTarget());
 			Synchronize();
 
-			_graphicsDevice->Present();
+			_nextUi.BackgroundFade = 0.0f;
+			PresentFrame();
 			_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 		}
 	}
@@ -1396,6 +1397,7 @@ namespace TEN::Renderer
 	void Renderer::RenderInventoryScene(IRenderSurface2D* renderTarget, ITextureBase* background, float backgroundFade)
 	{
 		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
+		_nextUi.BackgroundFade = (background != nullptr) ? backgroundFade : 0.0f;
 
 		// Set basic render states
 		SetBlendMode(BlendMode::Opaque, true);
@@ -1468,6 +1470,8 @@ namespace TEN::Renderer
 
 				_spriteBatch->Begin(SpriteSortingMode::BackToFront, BlendMode::AlphaBlend);
 				_spriteBatch->Draw(_logo.get(), rect, color * ScreenFadeCurrent);
+				AddNextUiImage(_logo.get(), Vector2((float)rect.Left / screenW, (float)rect.Top / screenH), Vector2((float)rect.Right / screenW, (float)rect.Bottom / screenH),
+					Vector2::Zero, Vector2::One, color * ScreenFadeCurrent, BlendMode::AlphaBlend);
 
 				_spriteBatch->End();
 			}
@@ -1569,7 +1573,7 @@ namespace TEN::Renderer
 		ClearScene();
 
 		_graphicsDevice->ClearState();
-		_graphicsDevice->Present();
+		PresentFrame();
 	}
 
 	void Renderer::RenderLoadingScreen(float percentage)
@@ -1604,7 +1608,8 @@ namespace TEN::Renderer
 			if (ScreenFadeCurrent && percentage > 0.0f && percentage < 100.0f)
 				DrawLoadingBar(percentage);
 
-			_graphicsDevice->Present();
+			_nextUi.BackgroundFade = (_loadingScreenTexture == nullptr) ? ScreenFadeCurrent : 0.0f;
+			PresentFrame();
 			_graphicsDevice->ClearState();
 
 			Synchronize();
@@ -1636,7 +1641,7 @@ namespace TEN::Renderer
 
 		RenderInventoryScene(_backBuffer.get(), _dumpScreenRenderTarget->GetRenderTarget(), 0.5f);
 
-		_graphicsDevice->Present();
+		PresentFrame();
 	}
 
 	void Renderer::RenderTitle(float interpFactor)
@@ -1649,7 +1654,7 @@ namespace TEN::Renderer
 
 		RenderInventoryScene(_backBuffer.get(), _dumpScreenRenderTarget->GetRenderTarget(), 1.0f);
 		
-		_graphicsDevice->Present();
+		PresentFrame();
 	}
 
 	void Renderer::UpdateDumpScreenRenderTarget()

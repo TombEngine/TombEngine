@@ -1948,7 +1948,6 @@ namespace TEN::Renderer
 		_lines3DToDraw.clear();
 		_triangles3DToDraw.clear();
 		_stringsToDraw.clear();
-		_nextBars.clear();
 
 		_currentCausticsFrame++;
 		_currentCausticsFrame %= 32;
@@ -2309,7 +2308,7 @@ namespace TEN::Renderer
 
 		CollectFrameStats(view);
 
-		if (Next::g_NextRenderer.IsActive() && renderMode == SceneRenderMode::Full)
+		if (Next::g_NextRenderer.IsActive())
 		{
 			auto environment = Next::FrameEnvironment{};
 			environment.CameraPosition = Vector3(cameraConstantBuffer.CamPositionWS.x, cameraConstantBuffer.CamPositionWS.y, cameraConstantBuffer.CamPositionWS.z);
@@ -2356,20 +2355,6 @@ namespace TEN::Renderer
 				_nextSkySprites.push_back(sunSprite);
 
 			environment.SkySprites = &_nextSkySprites;
-
-			// The title level draws its strings in the menu pass, as in the legacy renderer.
-			auto overlayTexts = std::vector<Next::OverlayText>{};
-			if (CurrentLevel != 0)
-				GetResolvedStrings(overlayTexts);
-
-			auto screenResolution = GetScreenResolution();
-			environment.ScreenWidth = screenResolution.x;
-			environment.ScreenHeight = screenResolution.y;
-			environment.Texts = &overlayTexts;
-			environment.Bars = &_nextBars;
-			environment.FlashColor = Weather.FlashColor();
-			environment.OpticSprite = GetOpticOverlaySprite();
-			environment.IsLaserSight = Lara.Control.Look.IsUsingLasersight;
 
 			if (_atmosphericSkySettings.Enabled)
 			{
@@ -2433,7 +2418,8 @@ namespace TEN::Renderer
 		ClearScene();
 
 		_graphicsDevice->ClearState();
-		_graphicsDevice->Present();
+		_nextUi.BackgroundFade = 0.0f;
+		PresentFrame();
 	}
 
 	void Renderer::DumpGameScene(SceneRenderMode renderMode, float blur)
@@ -3890,9 +3876,61 @@ namespace TEN::Renderer
 
 		auto presentStartTime = std::chrono::steady_clock::now();
 		_graphicsDevice->ClearState();
-		_graphicsDevice->Present(); // 1 0
+		PresentFrame();
 
 		RecordBenchmarkFrame(renderStartTime, presentStartTime);
+	}
+
+	// Extends the last layer of the next renderer 2D layer when the element follows it, or starts a new layer.
+	void Renderer::AddNextUiLayer(Next::OverlayLayerType type, int first)
+	{
+		auto& layers = _nextUi.Layers;
+		if (!layers.empty() && layers.back().Type == type && layers.back().First + layers.back().Count == first && type != Next::OverlayLayerType::ScreenOverlays)
+		{
+			layers.back().Count++;
+			return;
+		}
+
+		layers.push_back(Next::OverlayLayer{ type, first, 1 });
+	}
+
+	// Image files drawn by the 2D layer; other textures (render targets, generated ones) have no file and are skipped.
+	void Renderer::AddNextUiImage(const ITextureBase* texture, const Vector2& min, const Vector2& max, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color, BlendMode blendMode)
+	{
+		if (!Next::g_NextRenderer.IsActive())
+			return;
+
+		auto it = _nextImagePaths.find(texture);
+		if (it == _nextImagePaths.end())
+			return;
+
+		_nextUi.Images.push_back(Next::OverlayImage{ it->second, min, max, uvMin, uvMax, color, blendMode });
+		AddNextUiLayer(Next::OverlayLayerType::Images, (int)_nextUi.Images.size() - 1);
+	}
+
+	// Every legacy present goes through here: the next renderer composes its frame from the recorded 2D layer.
+	void Renderer::PresentFrame()
+	{
+		if (Next::g_NextRenderer.IsActive())
+		{
+			auto screenResolution = GetScreenResolution();
+			_nextUi.ScreenWidth = screenResolution.x;
+			_nextUi.ScreenHeight = screenResolution.y;
+			Next::g_NextRenderer.FinishFrame(_nextUi);
+		}
+
+		// Vectors keep their capacity across frames.
+		_nextUi.BackgroundFade = 1.0f;
+		_nextUi.Texts.clear();
+		_nextUi.Bars.clear();
+		_nextUi.Sprites.clear();
+		_nextUi.Images.clear();
+		_nextUi.Layers.clear();
+		_nextUi.FlashColor = Vector3::Zero;
+		_nextUi.OpticSprite = nullptr;
+		_nextUi.IsLaserSight = false;
+
+		_graphicsDevice->Present();
 	}
 
 	void Renderer::DrawMesh(RendererItem* itemToDraw, RendererMesh* mesh, RendererObjectType type, int boneIndex, bool skinned, RenderView& view, RendererPass rendererPass)

@@ -84,17 +84,6 @@ namespace TEN::Renderer::Next
         const void*  AtmosphericSkyUniforms     = nullptr;
         int          AtmosphericSkyUniformsSize = 0;
 
-        // 2D layer of the legacy renderer, in its screen resolution.
-        int                             ScreenWidth  = 0;
-        int                             ScreenHeight = 0;
-        const std::vector<OverlayText>* Texts        = nullptr;
-        const std::vector<OverlayBar>*  Bars         = nullptr;
-
-        // Screen overlays of the legacy DrawOverlays: lightning flash and binocular or laser sight sprite.
-        Vector3                           FlashColor  = Vector3::Zero;
-        const Structures::RendererSprite* OpticSprite = nullptr;
-        bool                              IsLaserSight = false;
-
         // Stars, meteors and sun sprite of the classic sky, drawn additively between the sky layers and horizons.
         const std::vector<Structures::RendererSpriteToDraw>* SkySprites = nullptr;
 
@@ -424,6 +413,7 @@ namespace TEN::Renderer::Next
         RHI::GraphicsPipelineDesc               _overlayPipelineDesc        = {};
         std::vector<unsigned char>              _overlayVertexData          = {};
         std::vector<OverlayDraw>                _overlayDraws               = {};
+        std::unordered_map<std::string, std::unique_ptr<RHI::ITexture>> _overlayImages = {}; // By file path, null when not decodable.
         int                                     _atmosphericSkyUniformsSize = 0;
 
         // Shadow map (NextRendererShadows.cpp).
@@ -525,8 +515,11 @@ namespace TEN::Renderer::Next
         NextFrameStats                _frameStats          = {};
         bool                          _isLevelLoaded    = false;
 
-        // Offscreen frame handed from the render thread to the window thread.
+        // Scene frame in _colorTarget; with the 2D layer in _finalTarget, handed from the render thread to the window thread.
         std::unique_ptr<RHI::ITexture> _colorTarget  = nullptr;
+        std::unique_ptr<RHI::ITexture> _finalTarget  = nullptr;
+        bool                           _hasScene     = false;
+        bool                           _isFramePending = false; // Scene rendered and not yet finished: stats add up.
         std::unique_ptr<RHI::ITexture> _depthTarget  = nullptr;
         std::mutex                     _frameMutex   = {};
         std::atomic<bool>              _isFrameReady = false;
@@ -536,7 +529,8 @@ namespace TEN::Renderer::Next
 
         bool CreatePipelines();
         bool EnsureRenderTargets(int width, int height);
-        std::unique_ptr<RHI::ITexture> CreateLevelTexture(const std::vector<unsigned char>& encodedData, const std::string& name);
+        std::unique_ptr<RHI::ITexture> CreateLevelTexture(const std::vector<unsigned char>& encodedData, const std::string& name, bool allowMips = true);
+        void LoadOverlayImages(const UiFrame& ui);
         std::unique_ptr<RHI::ITexture> CreateSolidTexture(const unsigned char color[4], const std::string& name);
         void UploadTexture(RHI::ITexture* texture, const void* data, int size);
         void CollectMaterials(float interpolationFactor);
@@ -598,10 +592,10 @@ namespace TEN::Renderer::Next
         void AddOverlayQuad(RHI::ITexture* texture, const Vector2& position, const Vector2& size, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color,
                             BlendMode blendMode = BlendMode::PremultipliedAlphaBlend);
         void AddOverlayCorners(RHI::ITexture* texture, const Vector2* corners, const Vector2* uvs, const Vector4& color, BlendMode blendMode);
-        void AddDisplaySprites(const RenderView& view, bool isPositivePriority);
-        void AddScreenOverlays(const FrameEnvironment& environment);
+        void AddOverlaySprite(const OverlaySprite& sprite);
+        void AddScreenOverlays(const UiFrame& ui);
         RHI::IGraphicsPipeline* GetOverlayPipeline(BlendMode blendMode);
-        void CollectOverlay(const RenderView& view, const FrameEnvironment& environment);
+        void CollectOverlay(const UiFrame& ui);
         void AddOverlayText(const OverlayText& text, const Vector2& scale);
         void AddOverlayBar(const OverlayBar& bar);
         void RenderOverlay(RHI::ICommandBuffer& commandBuffer);
@@ -670,6 +664,7 @@ namespace TEN::Renderer::Next
 
         void LoadLevel(const LegacyLevelGeometry& geometry);
         void RenderFrame(const RenderView& view, const FrameEnvironment& environment);
+        void FinishFrame(const UiFrame& ui);
         void PresentOnWindowThread();
         void RequestScreenshot(const std::string& path);
 

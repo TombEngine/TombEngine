@@ -12,6 +12,7 @@
 #include "Math/Math.h"
 #include "Objects/game_object_ids.h"
 #include "Objects/Utils/object_helper.h"
+#include "Renderer/Next/NextRenderer.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
@@ -152,8 +153,12 @@ namespace TEN::Renderer
 		if (!CheckIfSlotExists(ID_BAR_BORDER_GRAPHICS, "Bar rendering"))
 			return;
 
-		_nextBars.push_back(Next::OverlayBar{ bar.Position, bar.VerticalPosition, bar.Size, percent, &_sprites[Objects[ID_BAR_BORDER_GRAPHICS].meshIndex],
-			&_sprites[Objects[textureSlot].meshIndex], isPoisoned, frame });
+		if (Next::g_NextRenderer.IsActive())
+		{
+			_nextUi.Bars.push_back(Next::OverlayBar{ bar.Position, bar.VerticalPosition, bar.Size, percent, &_sprites[Objects[ID_BAR_BORDER_GRAPHICS].meshIndex],
+				&_sprites[Objects[textureSlot].meshIndex], isPoisoned, frame });
+			AddNextUiLayer(Next::OverlayLayerType::Bars, (int)_nextUi.Bars.size() - 1);
+		}
 
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
 		
@@ -288,6 +293,14 @@ namespace TEN::Renderer
 
 	void Renderer::DrawOverlays(RenderView& view)
 	{
+		if (Next::g_NextRenderer.IsActive())
+		{
+			_nextUi.FlashColor = Weather.FlashColor();
+			_nextUi.OpticSprite = GetOpticOverlaySprite();
+			_nextUi.IsLaserSight = Lara.Control.Look.IsUsingLasersight;
+			AddNextUiLayer(Next::OverlayLayerType::ScreenOverlays, 0);
+		}
+
 		auto flashColor = Weather.FlashColor();
 		if (flashColor != Vector3::Zero)
 		{
@@ -379,6 +392,7 @@ namespace TEN::Renderer
 		if (renderView.DisplaySpritesToDraw.empty())
 			return;
 
+		bool isNextActive = Next::g_NextRenderer.IsActive();
 		ITexture2D* texture2DPtr = nullptr;
 		for (const auto& spriteToDraw : renderView.DisplaySpritesToDraw)
 		{
@@ -418,8 +432,11 @@ namespace TEN::Renderer
 			// Transform vertices.
 			// NOTE: Must rotate 180 degrees to account for +Y being down.
 			auto rotMatrix = Matrix::CreateRotationZ(TO_RAD(spriteToDraw.Orientation + ANGLE(180.0f)));
-			for (auto& vertex : vertices)
+			auto nextSprite = Next::OverlaySprite{ spriteToDraw.SpritePtr, {}, spriteToDraw.Color, spriteToDraw.BlendMode };
+			for (int i = 0; i < VERTEX_COUNT; i++)
 			{
+				auto& vertex = vertices[i];
+
 				// Rotate.
 				vertex = Vector2::Transform(vertex, rotMatrix);
 
@@ -428,7 +445,14 @@ namespace TEN::Renderer
 
 				// Offset to position and convert to NDC.
 				vertex += spriteToDraw.Position;
+				nextSprite.Corners[i] = vertex;
 				vertex = TEN::Utils::Convert2DPositionToNDC(vertex);
+			}
+
+			if (isNextActive)
+			{
+				_nextUi.Sprites.push_back(nextSprite);
+				AddNextUiLayer(Next::OverlayLayerType::Sprites, (int)_nextUi.Sprites.size() - 1);
 			}
 
 			// Define renderer vertices.
@@ -478,6 +502,7 @@ namespace TEN::Renderer
 
 		auto vertices = std::array<Vertex, VERTEX_COUNT>{};
 		auto colorVec4 = Vector4(color.x, color.y, color.z, 1.0f);
+		AddNextUiImage(texture, Vector2::Zero, Vector2::One, uvStart, uvEnd, colorVec4, _lastBlendMode);
 
 		vertices[0].Position = Vector3(-1.0f, 1.0f, 0.0f);
 		vertices[0].UV.x = uvStart.x;

@@ -97,6 +97,7 @@ namespace TEN::Renderer::Next
         _roomVertexBuffer = nullptr;
         _roomIndexBuffer = nullptr;
         _colorTarget = nullptr;
+        _finalTarget = nullptr;
         _depthTarget = nullptr;
         _roomsVertexShader = nullptr;
         _roomsPixelShader = nullptr;
@@ -156,6 +157,7 @@ namespace TEN::Renderer::Next
         _overlayVertexShader = nullptr;
         _overlayPixelShader = nullptr;
         _overlayVertexBuffer = {};
+        _overlayImages.clear();
         _font = {};
         _atmosphericSkyVertexShader = nullptr;
         _atmosphericSkyPixelShader = nullptr;
@@ -507,6 +509,10 @@ namespace TEN::Renderer::Next
         colorDesc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler;
         colorDesc.Name = "Frame.Color";
         _colorTarget = _device->CreateTexture(colorDesc);
+        _hasScene = false;
+
+        colorDesc.Name = "Frame.Final";
+        _finalTarget = _device->CreateTexture(colorDesc);
 
         colorDesc.Name = "Scene.Color";
         _sceneTarget = _device->CreateTexture(colorDesc);
@@ -533,7 +539,7 @@ namespace TEN::Renderer::Next
         depthDesc.Name = "Scene.Depth";
         _depthTarget = _device->CreateTexture(depthDesc);
 
-        bool isCreated = (_colorTarget != nullptr && _sceneTarget != nullptr && _sceneDepthCopy != nullptr && _distortionTarget != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height) && EnsureGlowTargets(width, height) && EnsureDOFTargets(width, height) && EnsureSMAATargets(width, height));
+        bool isCreated = (_colorTarget != nullptr && _finalTarget != nullptr && _sceneTarget != nullptr && _sceneDepthCopy != nullptr && _distortionTarget != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height) && EnsureGlowTargets(width, height) && EnsureDOFTargets(width, height) && EnsureSMAATargets(width, height));
         if (isCreated)
             ClearSampledTargets();
 
@@ -554,14 +560,14 @@ namespace TEN::Renderer::Next
         _device->WaitIdle();
     }
 
-    std::unique_ptr<ITexture> NextRenderer::CreateLevelTexture(const std::vector<unsigned char>& encodedData, const std::string& name)
+    std::unique_ptr<ITexture> NextRenderer::CreateLevelTexture(const std::vector<unsigned char>& encodedData, const std::string& name, bool allowMips)
     {
         auto image = DecodedImage{};
         if (encodedData.empty() || !DecodeImage(encodedData, image))
             return nullptr;
 
         // Single-level images get their mip chain generated on the GPU, which needs a color target.
-        bool generateMips = (image.MipLevels == 1);
+        bool generateMips = (image.MipLevels == 1 && allowMips);
 
         auto desc = TextureDesc{};
         desc.Width = image.Width;
@@ -1446,7 +1452,6 @@ namespace TEN::Renderer::Next
         UploadFrameStorage(*copyPass, _debrisVertexBuffer, _debrisVertexData, (int)sizeof(Vertex), BufferUsage::Vertex, "Frame.DebrisVertices");
         UploadFrameStorage(*copyPass, _debrisInstanceBuffer, _debrisInstanceData, (int)sizeof(unsigned int), BufferUsage::Vertex, "Frame.DebrisInstances");
         UploadVideoFrame(*copyPass, environment);
-        UploadFrameStorage(*copyPass, _overlayVertexBuffer, _overlayVertexData, (int)sizeof(OverlayVertex), BufferUsage::Vertex, "Frame.OverlayVertices");
 
         commandBuffer.EndCopyPass();
         commandBuffer.PopDebugGroup();
@@ -2090,7 +2095,6 @@ namespace TEN::Renderer::Next
         CollectObjects(view, environment.InterpolationFactor);
         CollectSprites(view);
         CollectSkySprites(view, environment);
-        CollectOverlay(view, environment);
         CollectSortedFaces(view, environment.InterpolationFactor);
         CollectMirroredSorted(view);
 
@@ -2169,28 +2173,16 @@ namespace TEN::Renderer::Next
 
         RenderPostProcess(*commandBuffer, environment);
 
-        RenderOverlay(*commandBuffer);
-
-        if (!_device->RequiresWindowThreadPresent())
-        {
-            auto* swapchainTexture = commandBuffer->AcquireSwapchainTexture();
-            if (swapchainTexture != nullptr)
-                commandBuffer->BlitTexture(_colorTarget.get(), swapchainTexture);
-        }
-
         commandBuffer->PopDebugGroup();
-
-        // Submit is excluded: on DX11 it also presents and may wait for vsync.
         _frameStats.CpuTime = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - startTime).count();
         commandBuffer->Submit();
+        _hasScene = true;
+        _isFramePending = true;
 
         if (!_screenshotPath.empty())
         {
             TENLog(fmt::format("Next renderer environment: fog color ({:.2f}, {:.2f}, {:.2f}), fog {:.1f}-{:.1f}, frame {}.",
                 environment.FogColor.x, environment.FogColor.y, environment.FogColor.z, environment.FogMinDistance, environment.FogMaxDistance, environment.Frame), LogLevel::Info);
-
-            bool saved = SaveTextureToPng(*_device, _colorTarget.get(), _screenshotPath);
-            TENLog("Next renderer screenshot " + _screenshotPath + (saved ? " saved." : " failed."), LogLevel::Info);
 
             if (_isAmbientOcclusionActive)
             {
@@ -2206,6 +2198,64 @@ namespace TEN::Renderer::Next
                     SaveTextureToPng(*_device, _shadowMap.get(), shadowPath, face);
                 }
             }
+        }
+    }
+
+    // Composes the presented frame: the last scene frame faded by the UI, then the 2D layer recorded by the legacy
+    // renderer. Menu frames that render no scene reuse the last one as their background.
+    void NextRenderer::FinishFrame(const UiFrame& ui)
+    {
+        if (_device == nullptr)
+            return;
+
+        int width = _windowWidth;
+        int height = _windowHeight;
+        if (width <= 0 || height <= 0)
+            return;
+
+        auto lock = std::lock_guard<std::mutex>(_frameMutex);
+        if (!EnsureRenderTargets(width, height))
+            return;
+
+        // Image files load before the frame command buffer: their upload waits for the device.
+        LoadOverlayImages(ui);
+
+        auto startTime = std::chrono::steady_clock::now();
+        auto* commandBuffer = _device->AcquireCommandBuffer();
+        if (commandBuffer == nullptr)
+            return;
+
+        if (!_isFramePending)
+            _frameStats = NextFrameStats{};
+
+        _isFramePending = false;
+
+        commandBuffer->PushDebugGroup("Finish frame");
+        CollectOverlay(ui);
+
+        auto* copyPass = commandBuffer->BeginCopyPass();
+        UploadFrameStorage(*copyPass, _overlayVertexBuffer, _overlayVertexData, (int)sizeof(OverlayVertex), BufferUsage::Vertex, "Frame.OverlayVertices");
+        commandBuffer->EndCopyPass();
+
+        RenderOverlay(*commandBuffer);
+
+        if (!_device->RequiresWindowThreadPresent())
+        {
+            auto* swapchainTexture = commandBuffer->AcquireSwapchainTexture();
+            if (swapchainTexture != nullptr)
+                commandBuffer->BlitTexture(_finalTarget.get(), swapchainTexture);
+        }
+
+        commandBuffer->PopDebugGroup();
+
+        // Submit is excluded: on DX11 it also presents and may wait for vsync.
+        _frameStats.CpuTime += std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - startTime).count();
+        commandBuffer->Submit();
+
+        if (!_screenshotPath.empty())
+        {
+            bool saved = SaveTextureToPng(*_device, _finalTarget.get(), _screenshotPath);
+            TENLog("Next renderer screenshot " + _screenshotPath + (saved ? " saved." : " failed."), LogLevel::Info);
             _screenshotPath.clear();
         }
 
@@ -2245,8 +2295,8 @@ namespace TEN::Renderer::Next
         auto lock = std::lock_guard<std::mutex>(_frameMutex);
         if (swapchainTexture != nullptr)
         {
-            if (_colorTarget != nullptr)
-                commandBuffer->BlitTexture(_colorTarget.get(), swapchainTexture);
+            if (_finalTarget != nullptr)
+                commandBuffer->BlitTexture(_finalTarget.get(), swapchainTexture);
 
             _isFrameReady = false;
         }

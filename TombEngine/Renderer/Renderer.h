@@ -477,7 +477,11 @@ namespace TEN::Renderer
 		void DrawAllStrings();
 		void GetResolvedStrings(std::vector<Next::OverlayText>& texts);
 		const RendererSprite* GetOpticOverlaySprite() const;
-		std::vector<Next::OverlayBar> _nextBars = {}; // Bars drawn this frame, for the next renderer.
+		Next::UiFrame _nextUi = {}; // 2D layer recorded for the next renderer until the frame is presented.
+		std::unordered_map<const ITextureBase*, std::string> _nextImagePaths = {}; // Files of the textures loaded by SetTextureOrDefault.
+		void AddNextUiLayer(Next::OverlayLayerType type, int first);
+		void AddNextUiImage(const ITextureBase* texture, const Vector2& min, const Vector2& max, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color, BlendMode blendMode);
+		void PresentFrame();
 		void PrepareDynamicLight(RendererLight& light);
 		void PrepareLaserBarriers(RenderView& view);
 		void PrepareSingleLaserBeam(RenderView& view);

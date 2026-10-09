@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Renderer/RendererEnums.h"
+
 // 2D layer data that the legacy renderer resolves and the next renderer draws.
 
 namespace TEN::Renderer::Structures
@@ -29,5 +31,62 @@ namespace TEN::Renderer::Next
         const Structures::RendererSprite* Inner            = nullptr;
         bool                              IsPoisoned       = false;
         int                               Frame            = 0;
+    };
+
+    // Display sprite of the legacy 2D layer, with its corners transformed into the 800x600 display space.
+    struct OverlaySprite
+    {
+        const Structures::RendererSprite* Sprite     = nullptr;
+        Vector2                           Corners[4] = {};
+        Vector4                           Color      = Vector4::Zero;
+        BlendMode                         BlendMode  = BlendMode::AlphaBlend;
+    };
+
+    // Image file drawn by the legacy 2D layer (title logo, loading screen, intro image), in normalized screen space.
+    struct OverlayImage
+    {
+        std::string Path      = {};
+        Vector2     Min       = Vector2::Zero;
+        Vector2     Max       = Vector2::One;
+        Vector2     UVMin     = Vector2::Zero;
+        Vector2     UVMax     = Vector2::One;
+        Vector4     Color     = Vector4::One;
+        BlendMode   BlendMode = BlendMode::Opaque;
+    };
+
+    enum class OverlayLayerType
+    {
+        Texts,
+        Bars,
+        Sprites,
+        Images,
+        ScreenOverlays
+    };
+
+    // Run of consecutive overlay elements of one type, in the legacy draw order.
+    struct OverlayLayer
+    {
+        OverlayLayerType Type  = OverlayLayerType::Texts;
+        int              First = 0;
+        int              Count = 0;
+    };
+
+    // 2D layer of one presented frame, recorded by the legacy renderer in its draw order, for game and menu frames.
+    struct UiFrame
+    {
+        int   ScreenWidth    = 0; // Legacy screen resolution of the string positions.
+        int   ScreenHeight   = 0;
+        float BackgroundFade = 1.0f; // Brightness of the last rendered scene behind the 2D layer, 0 for none.
+
+        std::vector<OverlayText>   Texts   = {};
+        std::vector<OverlayBar>    Bars    = {};
+        std::vector<OverlaySprite> Sprites = {};
+        std::vector<OverlayImage>  Images  = {};
+        std::vector<OverlayLayer>  Layers  = {};
+
+        // Screen overlays of the legacy DrawOverlays: lightning flash and binocular or laser sight sprite.
+        Vector3                           FlashColor   = Vector3::Zero;
+        const Structures::RendererSprite* OpticSprite  = nullptr;
+        bool                              IsLaserSight = false;
     };
 }

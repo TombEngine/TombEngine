@@ -44,6 +44,8 @@ namespace TEN::Renderer
 		if (std::filesystem::is_regular_file(path))
 		{
 			texture = _graphicsDevice->CreateTexture2DFromFile(path);
+			if (texture != nullptr)
+				_nextImagePaths[texture.get()] = path;
 		}
 		else if (!path.empty()) // Loading default texture without path may be intentional.
 		{
