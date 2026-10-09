@@ -106,6 +106,8 @@ namespace TEN::Renderer::Next
         _blackTexture = nullptr;
         _materialBuffer = {};
         _decalBuffer = {};
+        _debrisVertexBuffer = {};
+        _debrisInstanceBuffer = {};
         _skyTexture = nullptr;
         _skyVertexBuffer = nullptr;
         _skyIndexBuffer = nullptr;
@@ -311,26 +313,30 @@ namespace TEN::Renderer::Next
         bool isSprites = (shader == SceneShader::Sprites);
         bool isPrepass = (shader == SceneShader::RoomsPrepass || shader == SceneShader::ObjectsPrepass);
         bool isShadow = (shader == SceneShader::ObjectsShadow);
-        isObjects = isObjects || isShadow;
+        bool isDebris = (shader == SceneShader::ObjectsDebris);
+        isObjects = isObjects || isShadow || isDebris;
 
         IShader* vertexShaders[(int)SceneShader::Count] =
         {
             _roomsVertexShader.get(), _objectsVertexShader.get(), _skyVertexShader.get(), _spritesVertexShader.get(),
-            _roomsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get()
+            _roomsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get()
         };
         IShader* pixelShaders[(int)SceneShader::Count] =
         {
             _roomsPixelShader.get(), _objectsPixelShader.get(), _skyPixelShader.get(), _spritesPixelShader.get(),
-            _roomsPrepassPixelShader.get(), _objectsPrepassPixelShader.get(), _objectsShadowPixelShader.get()
+            _roomsPrepassPixelShader.get(), _objectsPrepassPixelShader.get(), _objectsShadowPixelShader.get(), _objectsPixelShader.get()
         };
-        const char* names[(int)SceneShader::Count] = { "Rooms", "Objects", "Sky", "Sprites", "RoomsPrepass", "ObjectsPrepass", "ObjectsShadow" };
+        const char* names[(int)SceneShader::Count] = { "Rooms", "Objects", "Sky", "Sprites", "RoomsPrepass", "ObjectsPrepass", "ObjectsShadow", "ObjectsDebris" };
 
         auto desc = GraphicsPipelineDesc{};
         desc.VertexShader = vertexShaders[(int)shader];
         desc.PixelShader = pixelShaders[(int)shader];
         desc.Layout.NumBuffers = (isObjects || isSprites) ? 2 : 1;
         desc.Layout.Buffers[0] = VertexBufferLayout{ 0, isSprites ? (int)sizeof(unsigned int) : (int)sizeof(Vertex), VertexInputRate::Vertex };
-        desc.Layout.Buffers[1] = VertexBufferLayout{ 1, (int)sizeof(unsigned int), VertexInputRate::Instance };
+        // Debris has one instance per triangle, so its instance index comes from a per vertex stream.
+        desc.Layout.Buffers[1] = VertexBufferLayout{ 1, (int)sizeof(unsigned int), isDebris ? VertexInputRate::Vertex : VertexInputRate::Instance };
+        if (isDebris)
+            desc.Rasterizer.Cull = RHI::CullMode::None;
 
         auto& attributes = desc.Layout.Attributes;
         attributes[0] = VertexAttribute{ 0, 0, VertexElementFormat::Float3, (int)offsetof(Vertex, Position) };
@@ -1038,6 +1044,7 @@ namespace TEN::Renderer::Next
 
         CollectPlayer(interpolationFactor);
         CollectEffectMeshes(view, interpolationFactor);
+        CollectDebris(interpolationFactor);
     }
 
     int NextRenderer::AddInstance(const Matrix& world, const Vector4& color, const Vector4& ambientLight, LightMode lightMode, int lightOffset, int lightCount, int boneOffset, int skinningMode)
@@ -1245,6 +1252,8 @@ namespace TEN::Renderer::Next
         UploadFrameStorage(*copyPass, _spriteBuffer, _spriteData, (int)sizeof(GpuSprite), BufferUsage::GraphicsStorageRead, "Frame.Sprites");
         UploadFrameStorage(*copyPass, _materialBuffer, _materialData, (int)sizeof(GpuMaterial), BufferUsage::GraphicsStorageRead, "Frame.Materials");
         UploadFrameStorage(*copyPass, _decalBuffer, _decalData, (int)sizeof(GpuDecal), BufferUsage::GraphicsStorageRead, "Frame.Decals");
+        UploadFrameStorage(*copyPass, _debrisVertexBuffer, _debrisVertexData, (int)sizeof(Vertex), BufferUsage::Vertex, "Frame.DebrisVertices");
+        UploadFrameStorage(*copyPass, _debrisInstanceBuffer, _debrisInstanceData, (int)sizeof(unsigned int), BufferUsage::Vertex, "Frame.DebrisInstances");
 
         commandBuffer.EndCopyPass();
         commandBuffer.PopDebugGroup();
@@ -1865,12 +1874,15 @@ namespace TEN::Renderer::Next
         DrawSky(*commandBuffer, *renderPass, view, environment.InterpolationFactor);
         DrawRooms(*commandBuffer, *renderPass, view, ScenePass::Opaque);
         DrawObjects(*commandBuffer, *renderPass, ScenePass::Opaque);
+        DrawDebris(*commandBuffer, *renderPass, DebrisPass::Opaque);
         DrawRooms(*commandBuffer, *renderPass, view, ScenePass::AlphaEdges);
         DrawObjects(*commandBuffer, *renderPass, ScenePass::AlphaEdges);
         DrawRooms(*commandBuffer, *renderPass, view, ScenePass::Additive);
         DrawObjects(*commandBuffer, *renderPass, ScenePass::Additive);
+        DrawDebris(*commandBuffer, *renderPass, DebrisPass::Additive);
         DrawSprites(*commandBuffer, *renderPass);
         DrawSortedFaces(*commandBuffer, *renderPass);
+        DrawDebris(*commandBuffer, *renderPass, DebrisPass::Blended);
         commandBuffer->EndRenderPass();
         commandBuffer->PopDebugGroup();
 

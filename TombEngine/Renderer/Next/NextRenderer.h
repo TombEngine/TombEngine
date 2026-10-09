@@ -106,6 +106,23 @@ namespace TEN::Renderer::Next
             GpuObjectInstance               Instance = {};
         };
 
+        enum class DebrisPass
+        {
+            Opaque,
+            Additive,
+            Blended
+        };
+
+        // Debris triangles sharing texture page and blend mode.
+        struct DebrisDraw
+        {
+            const std::vector<RoomTexture>* Pages       = nullptr;
+            int                             Page        = 0;
+            BlendMode                       BlendMode   = BlendMode::Opaque;
+            int                             FirstVertex = 0;
+            int                             VertexCount = 0;
+        };
+
         // Per draw values of bucket draws: room state for room buckets, animated set override for objects.
         struct BucketDrawInfo
         {
@@ -159,6 +176,7 @@ namespace TEN::Renderer::Next
             RoomsPrepass,
             ObjectsPrepass,
             ObjectsShadow,
+            ObjectsDebris,
 
             Count
         };
@@ -291,6 +309,11 @@ namespace TEN::Renderer::Next
         std::vector<ObjectDraw>       _objectDraws         = {};
         std::vector<QueuedMeshInstance> _queuedMeshInstances = {};
         FrameStorageBuffer            _decalBuffer         = {};
+        FrameStorageBuffer            _debrisVertexBuffer   = {};
+        FrameStorageBuffer            _debrisInstanceBuffer = {};
+        std::vector<unsigned char>    _debrisVertexData     = {};
+        std::vector<unsigned char>    _debrisInstanceData   = {};
+        std::vector<DebrisDraw>       _debrisDraws          = {};
         std::vector<unsigned char>    _decalData           = {};
         std::unordered_map<int, std::pair<int, int>> _roomDecalSlices = {};
         std::vector<std::pair<int, int>> _roomLightSlices    = {};
@@ -350,6 +373,10 @@ namespace TEN::Renderer::Next
                                LightMode lightMode, int lightOffset, int lightCount);
         void FlushMeshInstances();
         void CollectEffectMeshes(const RenderView& view, float interpolationFactor);
+
+        // Debris (NextRendererDebris.cpp).
+        void CollectDebris(float interpolationFactor);
+        void DrawDebris(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, DebrisPass pass);
         int  AddLights(const std::vector<Structures::RendererLight*>& lights, float interpolationFactor, int roomNumber, int prevRoomNumber, float fade, int& lightOffset);
         static GpuLight ToGpuLight(const Structures::RendererLight& light, float interpolationFactor, float fade);
         void UploadFrameStorage(RHI::ICopyPass& copyPass, FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, unsigned int usage, const char* name);
