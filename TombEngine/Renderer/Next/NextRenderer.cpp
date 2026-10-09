@@ -1184,6 +1184,9 @@ namespace TEN::Renderer::Next
                 if (!IsBucketInPass(bucket, pass) || (GetAlphaThreshold(bucket, roomInfo) != 0.0f) != isAlphaTested)
                     continue;
 
+                if (!IsRoomBucketVisible(bucket))
+                    continue;
+
                 BindBucket(commandBuffer, renderPass, bucket, _roomTextures, bucket.BlendMode, (unsigned int)_roomLightCount, roomInfo, state);
                 DrawBucket(renderPass, MeshSource::Rooms, bucket, 1, 0);
             }
@@ -2291,6 +2294,7 @@ namespace TEN::Renderer::Next
         _viewProjection = frameVertexUniforms.ViewProjection;
         _view = view.Camera.View;
         _projection = projection;
+        _frustum.Update(view.Camera.View, projection);
         _atmosphericSkyUniforms = environment.AtmosphericSkyUniforms;
         _atmosphericSkyUniformsSize = environment.AtmosphericSkyUniformsSize;
         frameVertexUniforms.CameraPosition = environment.CameraPosition;

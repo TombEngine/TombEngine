@@ -209,7 +209,7 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
   - effetti + indice nel poligono + frame animato + hash impacchettati.
   La normale di faccia, oggi nel vertice, va in un buffer per poligono letto con `SV_PrimitiveID`, oppure resta nel vertice se serve a pochi shader (da misurare).
 - [x] **Un unico VB e un unico IB** per tutta la geometria del livello (stanze, statiche, moveable), in memoria GPU-only. Solo i vertici di pelle e capelli di Lara restano in un buffer aggiornabile. *(sezioni stanze, statiche e moveable con base vertex e base index; i vertici moveable si ricaricano quando cambia la pelle del giocatore, prima il renderer nuovo li ignorava)*
-- [ ] Per bucket: range di indici, AABB e bounding sphere calcolati una volta.
+- [x] Per bucket: range di indici, AABB e bounding sphere calcolati una volta. *(AABB in `RendererBucket` dal caricamento legacy: spazio mondo per le stanze, spazio oggetto per le mesh; la sfera si ricava dal box)*
 - [x] Centri dei poligoni trasparenti calcolati una volta (in world space per le stanze, in object space per le mesh), riusati dal sort a ogni frame. *(nel caricamento legacy, riusati dal sort)*
 - [ ] Saldature di pelle e capelli di Lara: algoritmo con griglia spaziale o hash delle posizioni invece di O(n^2), cosi' il costo di caricamento scende senza cambiare il formato.
 - [ ] Lettura del file in blocco (`ReadBytes`) invece che per elemento in `LoadStaticRoomData`; scartare le binormali senza salvarle.
@@ -236,7 +236,7 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 ### 8.2 Culling (CPU)
 - [ ] Portal culling come oggi, con clip rect per stanza.
 - [ ] Frustum culling per istanza (sfera o AABB) senza allocazioni, vettorizzabile; correggere il bug della virgola (2.6).
-- [ ] Culling per bucket dentro le stanze grandi (AABB del bucket contro il frustum), gratis con i dati calcolati al caricamento.
+- [x] Culling per bucket dentro le stanze grandi (AABB del bucket contro il frustum), gratis con i dati calcolati al caricamento. *(con il frustum della proiezione dell'anteprima e un margine per gli effetti di vertice; coastal da 482 a 470 draw call)*
 
 ### 8.3 Illuminazione (semplice)
 - [ ] Un `Lights[]` unico per frame e **liste di indici di luci** per stanza e per oggetto, calcolate sulla CPU in Prepare (come oggi in sostanza, ma una volta per frame e senza copie). Lo shader legge le luci tramite indice.

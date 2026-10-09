@@ -147,6 +147,15 @@ namespace TEN::Renderer::Next
         renderPass.BindIndexBuffer(BufferBinding{ _geometry.Indices.get(), 0 }, IndexSize::Bits32);
     }
 
+    // Room buckets outside the view are skipped. Vertex effects move room vertices up to 128 units, hence the margin.
+    bool NextRenderer::IsRoomBucketVisible(const RendererBucket& bucket) const
+    {
+        constexpr auto VERTEX_EFFECT_MARGIN = 128.0f;
+
+        auto margin = Vector3(VERTEX_EFFECT_MARGIN);
+        return _frustum.AABBInFrustum(bucket.BoundsMin - margin, bucket.BoundsMax + margin);
+    }
+
     void NextRenderer::DrawBucket(IRenderPass& renderPass, MeshSource source, const RendererBucket& bucket, int instanceCount, int firstInstance)
     {
         const auto& section = _geometrySections[(int)source];

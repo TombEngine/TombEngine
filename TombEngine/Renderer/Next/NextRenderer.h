@@ -3,6 +3,7 @@
 #include <mutex>
 
 #include "Objects/game_object_ids.h"
+#include "Renderer/Frustum.h"
 #include "Renderer/Graphics/Vertices/Vertex.h"
 #include "Renderer/Next/GpuTypes.h"
 #include "Renderer/Next/OverlayTypes.h"
@@ -384,6 +385,7 @@ namespace TEN::Renderer::Next
         Matrix                                  _viewProjection          = Matrix::Identity;
         Matrix                                  _view                    = Matrix::Identity;
         Matrix                                  _projection              = Matrix::Identity;
+        Frustum                                 _frustum                 = {}; // Of the preview projection, which may differ in aspect from the legacy one.
         std::unique_ptr<RHI::IShader>           _atmosphericSkyVertexShader = nullptr;
         std::unique_ptr<RHI::IShader>           _atmosphericSkyPixelShader  = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _atmosphericSkyPipeline     = nullptr;
@@ -614,6 +616,7 @@ namespace TEN::Renderer::Next
         bool CreateLevelGeometry(const LegacyLevelGeometry& geometry);
         void BindLevelGeometry(RHI::IRenderPass& renderPass, MeshSource source, bool hasInstanceStream);
         void DrawBucket(RHI::IRenderPass& renderPass, MeshSource source, const Structures::RendererBucket& bucket, int instanceCount, int firstInstance);
+        bool IsRoomBucketVisible(const Structures::RendererBucket& bucket) const;
         void CollectObjects(const RenderView& view, float interpolationFactor);
         void CollectPlayer(float interpolationFactor);
         void CollectPlayerHair(const Structures::RendererItem& item, const Vector4& ambientLight, int lightOffset, int lightCount, float interpolationFactor);

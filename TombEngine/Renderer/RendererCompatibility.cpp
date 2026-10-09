@@ -441,6 +441,8 @@ namespace TEN::Renderer
 				bucket.NumVertices += levelBucket.numQuads * 4 + levelBucket.numTriangles * 3;
 				bucket.NumIndices += levelBucket.numQuads * 6 + levelBucket.numTriangles * 3;
 				bucket.Centre = Vector3::Zero;
+				bucket.BoundsMin = Vector3(FLT_MAX);
+				bucket.BoundsMax = Vector3(-FLT_MAX);
 
 				for (auto& poly : levelBucket.polygons)
 				{
@@ -475,6 +477,8 @@ namespace TEN::Renderer
 						vertex->Position.z = room.Position.z + room.positions[index].z;
 
 						bucket.Centre += vertex->Position;
+						bucket.BoundsMin = Vector3::Min(bucket.BoundsMin, vertex->Position);
+						bucket.BoundsMax = Vector3::Max(bucket.BoundsMax, vertex->Position);
 
 						vertex->Normal = PackVector3(poly.normals[k]);
 						vertex->UV = poly.textureCoordinates[k];
@@ -944,6 +948,8 @@ namespace TEN::Renderer
 			bucket.StartIndex = *lastIndex;
 			bucket.NumVertices = levelBucket->numQuads * 4 + levelBucket->numTriangles * 3;
 			bucket.NumIndices = levelBucket->numQuads * 6 + levelBucket->numTriangles * 3;
+			bucket.BoundsMin = Vector3(FLT_MAX);
+			bucket.BoundsMax = Vector3(-FLT_MAX);
 
 			for (int p = 0; p < (int)levelBucket->polygons.size(); p++)
 			{
@@ -966,6 +972,8 @@ namespace TEN::Renderer
 					vertex.Position.x = meshPtr->positions[v].x;
 					vertex.Position.y = meshPtr->positions[v].y;
 					vertex.Position.z = meshPtr->positions[v].z;
+					bucket.BoundsMin = Vector3::Min(bucket.BoundsMin, vertex.Position);
+					bucket.BoundsMax = Vector3::Max(bucket.BoundsMax, vertex.Position);
 					 
 					vertex.Normal = PackVector3(Vector3(poly->normals[k].x, poly->normals[k].y, poly->normals[k].z));
 					vertex.Tangent = PackVector3(Vector3(poly->tangents[k].x, poly->tangents[k].y, poly->tangents[k].z));
