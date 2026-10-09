@@ -1027,6 +1027,8 @@ namespace TEN::Renderer
 		_stObjects.Objects[0].AmbientLight = g_DrawItems.GetAmbientLight();;
 		_stObjects.Skinned = (int)skinMode;
 
+		BeginNextUiObject(hudCamera.ViewProjection, color, g_DrawItems.GetAmbientLight(), hudCamera.Frame, hudCamera.InterpolatedFrame, true);
+
 		if (skinMode == SkinningMode::Full && object.skinIndex >= 0)
 		{
 			_stObjects.Objects[0].World = worldMatrix;
@@ -1043,6 +1045,7 @@ namespace TEN::Renderer
 
 			// Draw the skin mesh.
 			const auto skinMesh = GetMesh(object.skinIndex);
+			AddNextUiObjectMesh(skinMesh, worldMatrix, _stObjects.Bones, (int)moveableObject->AnimationTransforms.size());
 
 			for (int animated = 0; animated < 2; animated++)
 			{
@@ -1098,6 +1101,7 @@ namespace TEN::Renderer
 
 
 			const auto& mesh = *moveableObject->ObjectMeshes[i];
+			AddNextUiObjectMesh(&mesh, _stObjects.Objects[0].World);
 
 			for (int animated = 0; animated < 2; animated++)
 			{		
@@ -1195,6 +1199,8 @@ namespace TEN::Renderer
 		_stObjects.Objects[0].AmbientLight = g_DrawItems.GetAmbientLight();
 		_stObjects.Skinned = (int)skinMode;
 
+		BeginNextUiObject(hudCamera.ViewProjection, color, g_DrawItems.GetAmbientLight(), hudCamera.Frame, hudCamera.InterpolatedFrame, false);
+
 		if (skinMode == SkinningMode::Full && object.skinIndex >= 0)
 		{
 			_stObjects.Objects[0].World = worldMatrix;
@@ -1211,6 +1217,7 @@ namespace TEN::Renderer
 
 			// Get skin mesh.
 			const auto* skinMesh = GetMesh(object.skinIndex);
+			AddNextUiObjectMesh(skinMesh, worldMatrix, _stObjects.Bones, (int)moveableObject->AnimationTransforms.size());
 
 			for (int animated = 0; animated < 2; animated++)
 			{
@@ -1265,6 +1272,7 @@ namespace TEN::Renderer
 			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
 			const auto& mesh = *moveableObject->ObjectMeshes[i];
+			AddNextUiObjectMesh(&mesh, _stObjects.Objects[0].World);
 
 			for (int animated = 0; animated < 2; animated++)
 			{

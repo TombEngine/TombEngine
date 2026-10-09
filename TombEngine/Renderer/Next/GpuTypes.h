@@ -40,8 +40,8 @@ namespace TEN::Renderer::Next
         Vector3 CameraPosition           = Vector3::Zero;
         float   AmbientOcclusionExponent = 0.0f;
         Vector3 CameraDirection          = Vector3::Zero;
-        float   Padding0                 = 0.0f;
-        Matrix  View                     = Matrix::Identity;
+        float   Gamma                    = 1.0f; // Overlay objects only: the scene applies gamma in the post-process.
+        Matrix  View                    = Matrix::Identity;
         Vector2 InverseViewportSize      = Vector2::Zero;
         Vector2 CausticsStartUV          = Vector2::Zero;
         Vector2 CausticsSize             = Vector2::Zero;

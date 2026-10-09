@@ -158,6 +158,13 @@ namespace TEN::Renderer::Next
         _overlayPixelShader = nullptr;
         _overlayVertexBuffer = {};
         _overlayImages.clear();
+        _overlayObjectDraws.clear();
+        _overlayInstanceData.clear();
+        _overlayBoneData.clear();
+        _overlayInstanceBuffer = {};
+        _overlayBoneBuffer = {};
+        _inventoryVertexShader = nullptr;
+        _inventoryPixelShader = nullptr;
         _font = {};
         _atmosphericSkyVertexShader = nullptr;
         _atmosphericSkyPixelShader = nullptr;
@@ -213,6 +220,11 @@ namespace TEN::Renderer::Next
         _objectsVertexShader = LoadShader(*_device, _shaderDirectory, "Objects", "VS");
         _objectsPixelShader = LoadShader(*_device, _shaderDirectory, "Objects", "PS");
         if (_objectsVertexShader == nullptr || _objectsPixelShader == nullptr)
+            return false;
+
+        _inventoryVertexShader = LoadShader(*_device, _shaderDirectory, "Objects", "VSInventory");
+        _inventoryPixelShader = LoadShader(*_device, _shaderDirectory, "Objects", "PSInventory");
+        if (_inventoryVertexShader == nullptr || _inventoryPixelShader == nullptr)
             return false;
 
         _skyVertexShader = LoadShader(*_device, _shaderDirectory, "Sky", "VS");
@@ -374,23 +386,24 @@ namespace TEN::Renderer::Next
         bool isShadow = (shader == SceneShader::ObjectsShadow);
         bool isDebris = (shader == SceneShader::ObjectsDebris);
         bool isMirrored = (shader == SceneShader::ObjectsMirrored);
-        isObjects = isObjects || isShadow || isDebris || isMirrored;
+        bool isInventory = (shader == SceneShader::Inventory);
+        isObjects = isObjects || isShadow || isDebris || isMirrored || isInventory;
 
         IShader* vertexShaders[(int)SceneShader::Count] =
         {
             _roomsVertexShader.get(), _objectsVertexShader.get(), _skyVertexShader.get(), _spritesVertexShader.get(),
             _roomsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(),
-            _skyVertexShader.get()
+            _skyVertexShader.get(), _inventoryVertexShader.get()
         };
         IShader* pixelShaders[(int)SceneShader::Count] =
         {
             _roomsPixelShader.get(), _objectsPixelShader.get(), _skyPixelShader.get(), _spritesPixelShader.get(),
             _roomsPrepassPixelShader.get(), _objectsPrepassPixelShader.get(), _objectsShadowPixelShader.get(), _objectsPixelShader.get(), _objectsPixelShader.get(),
-            _skyPixelShader.get()
+            _skyPixelShader.get(), _inventoryPixelShader.get()
         };
         const char* names[(int)SceneShader::Count] =
         {
-            "Rooms", "Objects", "Sky", "Sprites", "RoomsPrepass", "ObjectsPrepass", "ObjectsShadow", "ObjectsDebris", "ObjectsMirrored", "SkyParaboloid"
+            "Rooms", "Objects", "Sky", "Sprites", "RoomsPrepass", "ObjectsPrepass", "ObjectsShadow", "ObjectsDebris", "ObjectsMirrored", "SkyParaboloid", "Inventory"
         };
 
         auto desc = GraphicsPipelineDesc{};
@@ -451,7 +464,7 @@ namespace TEN::Renderer::Next
         desc.ColorTargets[1].Blend = GetBlendState(BlendMode::Opaque);
         // Distortion accumulates in a half resolution target without depth; the post-process rejects occluded texels.
         bool isDistortion = (modeIndex == (int)BlendMode::Distortion);
-        desc.DepthStencil.EnableDepthWrite = (modeIndex == (int)BlendMode::Opaque) && !isSky && !isSprites;
+        desc.DepthStencil.EnableDepthWrite = ((modeIndex == (int)BlendMode::Opaque) && !isSky) || isInventory;
         desc.DepthStencil.EnableDepthTest = !isSky && !isDistortion;
         desc.DepthFormat = (isDistortion || isParaboloid) ? PixelFormat::Unknown : PixelFormat::D32Float;
         desc.Name = std::string(names[(int)shader]) + ".BlendMode" + std::to_string(modeIndex);
@@ -919,6 +932,8 @@ namespace TEN::Renderer::Next
         pixelUniforms.BlendMode = (unsigned int)blendMode;
         if (room.IsForcedAlphaTest)
             pixelUniforms.AlphaThreshold = ALPHA_TEST_THRESHOLD;
+        else if (room.IsAlphaTestDisabled)
+            pixelUniforms.AlphaThreshold = 0.0f;
 
         if (room.IsAlphaEdgePass)
         {
@@ -1150,19 +1165,28 @@ namespace TEN::Renderer::Next
 
             const auto* mesh = object->ObjectMeshes[0];
             int firstInstance = (int)(_instanceData.size() / sizeof(GpuObjectInstance));
+            int instanceCount = 0;
             for (const auto* staticMesh : statics)
             {
+                // Fading statics are drawn with the sorted faces only, as in the legacy DrawStatics.
+                if (staticMesh->Color.w < ALPHA_BLEND_THRESHOLD)
+                    continue;
+
                 _currentOrigin = InstanceOrigin{ staticMesh->RoomNumber, InstanceCategory::Static };
+                instanceCount++;
 
                 int lightOffset = 0;
                 int lightCount = AddLights(staticMesh->LightsToDraw, interpolationFactor, NO_VALUE, NO_VALUE, 1.0f, lightOffset);
                 AddInstance(staticMesh->World, staticMesh->Color, staticMesh->AmbientLight, mesh->LightMode, lightOffset, lightCount, 0, SKINNING_NONE);
             }
 
+            if (instanceCount == 0)
+                continue;
+
             for (const auto& bucket : mesh->Buckets)
             {
                 if (bucket.NumIndices > 0)
-                    _objectDraws.push_back(ObjectDraw{ MeshSource::Statics, &bucket, firstInstance, (int)statics.size() });
+                    _objectDraws.push_back(ObjectDraw{ MeshSource::Statics, &bucket, firstInstance, instanceCount });
             }
         }
 
@@ -1228,6 +1252,8 @@ namespace TEN::Renderer::Next
 
                 if (IsShadowCaster(item->ObjectID))
                     MarkShadowCasterDraws(firstDraw);
+
+                RemoveFadedDraws(firstDraw, item->Color.w);
             }
         }
 
@@ -1267,6 +1293,22 @@ namespace TEN::Renderer::Next
         const auto* bytes = (const unsigned char*)bones;
         _boneData.insert(_boneData.end(), bytes, bytes + (count * sizeof(Matrix)));
         return offset;
+    }
+
+    // Legacy GetBlendModeFromAlpha: opaque buckets of a fading object turn alpha blended and are drawn with the
+    // sorted faces only. Shadow casters are marked before, as the legacy shadow map draws every bucket.
+    void NextRenderer::RemoveFadedDraws(int firstDraw, float alpha)
+    {
+        if (alpha >= ALPHA_BLEND_THRESHOLD)
+            return;
+
+        auto isFaded = [](const ObjectDraw& draw)
+        {
+            auto blendMode = draw.Bucket->BlendMode;
+            return (blendMode == BlendMode::Opaque || blendMode == BlendMode::AlphaTest || blendMode == BlendMode::FastAlphaBlend);
+        };
+
+        _objectDraws.erase(std::remove_if(_objectDraws.begin() + firstDraw, _objectDraws.end(), isFaded), _objectDraws.end());
     }
 
     void NextRenderer::AddMeshDraws(const RendererMesh& mesh, int firstInstance, int instanceCount)
@@ -1359,6 +1401,8 @@ namespace TEN::Renderer::Next
 
         if (IsShadowCaster(ID_LARA))
             MarkShadowCasterDraws(firstDraw);
+
+        RemoveFadedDraws(firstDraw, item->Color.w);
     }
 
     // Hair units use their own bone palette: the head attachment followed by one matrix per simulated
@@ -1668,6 +1712,7 @@ namespace TEN::Renderer::Next
             draw.IsRoom = (object.ObjectType == RendererObjectType::Room);
             draw.IsWaterRoom = draw.IsRoom && (g_Level.Rooms[object.Room->RoomNumber].flags & ENV_FLAG_WATER);
             draw.IsCausticsRoom = draw.IsRoom && IsCausticsRoom(object.Room->RoomNumber);
+            draw.IsForcedAlphaTest = (object.ObjectType == RendererObjectType::MoveableAsStatic);
             draw.Bucket = object.Bucket;
             draw.BlendMode = object.BlendMode;
             draw.FirstIndex = firstIndex;
@@ -1739,6 +1784,7 @@ namespace TEN::Renderer::Next
             const auto& pages = draw.IsRoom ? _roomTextures : ((draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures);
             // Decals are not drawn on sorted faces, as in the legacy renderer.
             auto roomInfo = BucketDrawInfo{ draw.IsWaterRoom ? 1u : 0u, draw.IsCausticsRoom ? 1u : 0u };
+            roomInfo.IsForcedAlphaTest = draw.IsForcedAlphaTest;
             BindBucket(commandBuffer, renderPass, bucket, pages, draw.BlendMode, draw.IsRoom ? (unsigned int)_roomLightCount : 0, roomInfo, state);
 
             _frameStats.DrawCalls++;
@@ -2147,12 +2193,14 @@ namespace TEN::Renderer::Next
         DrawRooms(*commandBuffer, *renderPass, view, ScenePass::AlphaEdges);
         DrawObjects(*commandBuffer, *renderPass, ScenePass::AlphaEdges);
         DrawObjects(*commandBuffer, *renderPass, ScenePass::AlphaEdges, true);
+        DrawSprites(*commandBuffer, *renderPass, ScenePass::Opaque);
+        DrawSprites(*commandBuffer, *renderPass, ScenePass::Opaque, true);
         DrawRooms(*commandBuffer, *renderPass, view, ScenePass::Additive);
         DrawObjects(*commandBuffer, *renderPass, ScenePass::Additive);
         DrawObjects(*commandBuffer, *renderPass, ScenePass::Additive, true);
         DrawDebris(*commandBuffer, *renderPass, DebrisPass::Additive);
-        DrawSprites(*commandBuffer, *renderPass, false);
-        DrawSprites(*commandBuffer, *renderPass, false, true);
+        DrawSprites(*commandBuffer, *renderPass, ScenePass::Additive);
+        DrawSprites(*commandBuffer, *renderPass, ScenePass::Additive, true);
         DrawSortedFaces(*commandBuffer, *renderPass);
         DrawSortedFaces(*commandBuffer, *renderPass, true);
         DrawDebris(*commandBuffer, *renderPass, DebrisPass::Blended);
@@ -2239,10 +2287,10 @@ namespace TEN::Renderer::Next
             UploadVideoFrame(*copyPass, ui.VideoFrame, ui.VideoWidth, ui.VideoHeight);
 
         CollectOverlay(ui);
-        UploadFrameStorage(*copyPass, _overlayVertexBuffer, _overlayVertexData, (int)sizeof(OverlayVertex), BufferUsage::Vertex, "Frame.OverlayVertices");
+        UploadOverlayData(*copyPass, hasScene);
         commandBuffer->EndCopyPass();
 
-        RenderOverlay(*commandBuffer);
+        RenderOverlay(*commandBuffer, ui);
 
         if (!_device->RequiresWindowThreadPresent())
         {

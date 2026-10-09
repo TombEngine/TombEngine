@@ -6,6 +6,7 @@
 
 namespace TEN::Renderer::Structures
 {
+    struct RendererMesh;
     struct RendererSprite;
 }
 
@@ -57,13 +58,36 @@ namespace TEN::Renderer::Next
         BlendMode   BlendMode = BlendMode::Opaque;
     };
 
+    // Moveable mesh of an overlay object; skin meshes use bind pose corrected bones from UiFrame::ObjectBones.
+    struct OverlayObjectMesh
+    {
+        const Structures::RendererMesh* Mesh      = nullptr;
+        Matrix                          World     = Matrix::Identity;
+        int                             FirstBone = 0;
+        int                             BoneCount = 0;
+    };
+
+    // Moveable drawn by the legacy 2D layer with the Inventory shader: inventory, examine, pickups and display items.
+    struct OverlayObject
+    {
+        Matrix       ViewProjection    = Matrix::Identity;
+        Vector4      Color             = Vector4::One;
+        Vector4      AmbientLight      = Vector4::One;
+        unsigned int Frame             = 0;
+        float        InterpolatedFrame = 0.0f;
+        bool         IsAlphaTested     = false; // Alpha tested buckets keep their alpha test, as in the 2D space draws.
+        int          FirstMesh         = 0;
+        int          MeshCount         = 0;
+    };
+
     enum class OverlayLayerType
     {
         Texts,
         Bars,
         Sprites,
         Images,
-        ScreenOverlays
+        ScreenOverlays,
+        Objects
     };
 
     // Run of consecutive overlay elements of one type, in the legacy draw order.
@@ -86,6 +110,11 @@ namespace TEN::Renderer::Next
         std::vector<OverlaySprite> Sprites = {};
         std::vector<OverlayImage>  Images  = {};
         std::vector<OverlayLayer>  Layers  = {};
+
+        std::vector<OverlayObject>     Objects      = {};
+        std::vector<OverlayObjectMesh> ObjectMeshes = {};
+        std::vector<Matrix>            ObjectBones  = {};
+        float                          Gamma        = 1.0f; // Gamma of the overlay objects.
 
         // Video frame of the legacy video handler (BGRA8), null when no video plays.
         const unsigned char* VideoFrame  = nullptr;

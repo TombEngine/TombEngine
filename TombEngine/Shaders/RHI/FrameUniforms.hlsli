@@ -30,7 +30,7 @@ TEN_PS_UNIFORMS(FramePixelUniforms, 0)
     float3   PixelCameraPosition;
     float    AmbientOcclusionExponent; // Zero when ambient occlusion is disabled.
     float3   CameraDirection;
-    float    FramePixelPadding0;
+    float    Gamma; // Overlay objects only: the scene applies gamma in the post-process.
     float4x4 View;
     float2   InverseViewportSize;
     float2   CausticsStartUV;      // Current caustics frame in its sprite atlas page.

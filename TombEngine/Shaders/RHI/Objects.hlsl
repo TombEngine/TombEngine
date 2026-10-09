@@ -2,6 +2,8 @@
 // TEN_SHADER: Pixel PS samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3
 // TEN_SHADER: Pixel PSDepthNormal samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3
 // TEN_SHADER: Pixel PSShadow samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3
+// TEN_SHADER: Vertex VSInventory samplers=0 storage_textures=0 storage_buffers=4 uniform_buffers=4
+// TEN_SHADER: Pixel PSInventory samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3
 
 // Static meshes and rigid moveable meshes. Every draw is instanced: the instance index stream
 // selects the per-instance world matrix, colors and light mode from a storage buffer.
@@ -189,6 +191,39 @@ PrepassOutput PSDepthNormal(PixelInput input)
     float3 normal = SampleSurfaceNormal(Materials[MaterialIndex], ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition,
                                         PixelCameraPosition, input.Normal, input.Tangent, input.Binormal, input.FaceNormal, emissive);
     return GetPrepassOutput(EncodeViewNormal(normal, View), emissive, input.Fog);
+}
+
+// Objects of the 2D layer (inventory, pickups, display items), as the legacy Inventory shader: the instance color
+// replaces the vertex color, lit by a fixed sun tinted by the ambient light, without scene lights and fog.
+PixelInput VSInventory(VertexInput input)
+{
+    PixelInput output = VS(input);
+    output.Color = Instances[input.InstanceIndex].Color;
+    return output;
+}
+
+float4 PSInventory(PixelInput input) : SV_TARGET
+{
+    float2 uv = ApplyUVScroll(input.UV, input.UVScroll);
+    float4 texel = ColorMap.Sample(ColorMapSampler, uv);
+    float4 color = float4(texel.rgb * input.Color.rgb * COLOR_MODULATION_SCALE, texel.a * input.Color.a);
+    ApplyAlphaTest(color.a, AlphaThreshold);
+
+    float4 orsh = ORSHMap.Sample(ORSHMapSampler, uv);
+    float3 emissive = EmissiveMap.Sample(EmissiveMapSampler, uv).rgb * GetEmissiveIntensity(Materials[MaterialIndex]);
+    float3x3 tangentFrame = float3x3(input.Tangent, input.Binormal, input.Normal);
+    float3 normal = normalize(mul(UnpackNormalMap(NormalMap.Sample(NormalMapSampler, uv)), tangentFrame));
+
+    GpuLight light = (GpuLight)0;
+    light.Type = LT_SUN;
+    light.Intensity = 0.3f;
+    light.Direction = normalize(float3(-1.0f, -0.707f, -0.5f));
+    light.Color = input.AmbientLight * COLOR_MODULATION_SCALE;
+
+    float3 lighting = DoDirectionalLight(normal, light) + DoSpecularSun(normal, CameraDirection, light, input.Sheen, orsh.z, orsh.y) + emissive;
+    color.rgb = saturate(color.rgb + lighting * color.a);
+    color.rgb = saturate(pow(color.rgb, 1.0f / max(Gamma, 0.01f)));
+    return color;
 }
 
 // Shadow map pass: writes the light space depth; the alpha test keeps cut-out geometry out of the shadow.

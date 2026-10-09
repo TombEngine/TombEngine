@@ -481,6 +481,8 @@ namespace TEN::Renderer
 		std::unordered_map<const ITextureBase*, std::string> _nextImagePaths = {}; // Files of the textures loaded by SetTextureOrDefault.
 		void AddNextUiLayer(Next::OverlayLayerType type, int first);
 		void AddNextUiImage(const ITextureBase* texture, const Vector2& min, const Vector2& max, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color, BlendMode blendMode);
+		void BeginNextUiObject(const Matrix& viewProjection, const Vector4& color, const Vector4& ambientLight, unsigned int frame, float interpolatedFrame, bool isAlphaTested);
+		void AddNextUiObjectMesh(const RendererMesh* mesh, const Matrix& world, const Matrix* bones = nullptr, int boneCount = 0);
 		void PresentFrame();
 		void PrepareDynamicLight(RendererLight& light);
 		void PrepareLaserBarriers(RenderView& view);

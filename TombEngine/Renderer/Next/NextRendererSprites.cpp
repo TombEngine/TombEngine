@@ -252,19 +252,23 @@ namespace TEN::Renderer::Next
         renderPass.Draw(6, draw.SpriteCount, 0, draw.FirstSprite);
     }
 
-    void NextRenderer::DrawSprites(ICommandBuffer& commandBuffer, IRenderPass& renderPass, bool isDistortion, bool isMirrored)
+    // Opaque and alpha test sprites belong to the legacy opaque pass, where they also write depth.
+    void NextRenderer::DrawSprites(ICommandBuffer& commandBuffer, IRenderPass& renderPass, ScenePass pass, bool isMirrored)
     {
+        constexpr const char* GROUP_NAMES[] = { "Sprites prepass", "Opaque sprites", "Sprites alpha edges", "Additive sprites", "Distortion sprites" };
+
         const auto& draws = isMirrored ? _mirrorSpriteDraws : _spriteDraws;
         if (draws.empty())
             return;
 
-        commandBuffer.PushDebugGroup(isDistortion ? "Distortion sprites" : "Sprites");
+        commandBuffer.PushDebugGroup(GROUP_NAMES[(int)pass]);
 
         const IGraphicsPipeline* lastPipeline = nullptr;
         const ITexture* lastTexture = nullptr;
         for (const auto& draw : draws)
         {
-            if ((draw.BlendMode == BlendMode::Distortion) == isDistortion)
+            bool isOpaque = (draw.BlendMode == BlendMode::Opaque || draw.BlendMode == BlendMode::AlphaTest);
+            if (isOpaque ? (pass == ScenePass::Opaque) : (GetPassBlendMode(pass) == draw.BlendMode))
                 DrawSpriteRun(commandBuffer, renderPass, draw, lastPipeline, lastTexture);
         }
 

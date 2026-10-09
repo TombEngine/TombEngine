@@ -3908,6 +3908,30 @@ namespace TEN::Renderer
 		AddNextUiLayer(Next::OverlayLayerType::Images, (int)_nextUi.Images.size() - 1);
 	}
 
+	// Moveable drawn with the Inventory shader; its meshes follow with AddNextUiObjectMesh.
+	void Renderer::BeginNextUiObject(const Matrix& viewProjection, const Vector4& color, const Vector4& ambientLight, unsigned int frame, float interpolatedFrame, bool isAlphaTested)
+	{
+		if (!Next::g_NextRenderer.IsActive())
+			return;
+
+		auto object = Next::OverlayObject{ viewProjection, color, ambientLight, frame, interpolatedFrame, isAlphaTested, (int)_nextUi.ObjectMeshes.size(), 0 };
+		_nextUi.Objects.push_back(object);
+		AddNextUiLayer(Next::OverlayLayerType::Objects, (int)_nextUi.Objects.size() - 1);
+	}
+
+	void Renderer::AddNextUiObjectMesh(const RendererMesh* mesh, const Matrix& world, const Matrix* bones, int boneCount)
+	{
+		if (!Next::g_NextRenderer.IsActive() || _nextUi.Objects.empty())
+			return;
+
+		int firstBone = (int)_nextUi.ObjectBones.size();
+		if (bones != nullptr)
+			_nextUi.ObjectBones.insert(_nextUi.ObjectBones.end(), bones, bones + boneCount);
+
+		_nextUi.ObjectMeshes.push_back(Next::OverlayObjectMesh{ mesh, world, firstBone, (bones != nullptr) ? boneCount : 0 });
+		_nextUi.Objects.back().MeshCount++;
+	}
+
 	// Every legacy present goes through here: the next renderer composes its frame from the recorded 2D layer.
 	void Renderer::PresentFrame()
 	{
@@ -3916,6 +3940,7 @@ namespace TEN::Renderer
 			auto screenResolution = GetScreenResolution();
 			_nextUi.ScreenWidth = screenResolution.x;
 			_nextUi.ScreenHeight = screenResolution.y;
+			_nextUi.Gamma = g_Configuration.Gamma;
 			if (_videoSprite.Texture != nullptr && _videoSprite.Texture->IsValid())
 			{
 				auto videoSize = TEN::Video::g_VideoPlayer.GetFrameSize();
@@ -3934,6 +3959,9 @@ namespace TEN::Renderer
 		_nextUi.Sprites.clear();
 		_nextUi.Images.clear();
 		_nextUi.Layers.clear();
+		_nextUi.Objects.clear();
+		_nextUi.ObjectMeshes.clear();
+		_nextUi.ObjectBones.clear();
 		_nextUi.VideoFrame = nullptr;
 		_nextUi.FlashColor = Vector3::Zero;
 		_nextUi.OpticSprite = nullptr;

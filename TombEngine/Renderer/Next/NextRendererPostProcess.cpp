@@ -110,8 +110,8 @@ namespace TEN::Renderer::Next
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
         DrawRooms(commandBuffer, *renderPass, view, ScenePass::Distortion);
         DrawObjects(commandBuffer, *renderPass, ScenePass::Distortion);
-        DrawSprites(commandBuffer, *renderPass, true);
-        DrawSprites(commandBuffer, *renderPass, true, true);
+        DrawSprites(commandBuffer, *renderPass, ScenePass::Distortion);
+        DrawSprites(commandBuffer, *renderPass, ScenePass::Distortion, true);
         commandBuffer.EndRenderPass();
         commandBuffer.PopDebugGroup();
     }

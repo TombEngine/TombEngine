@@ -2,6 +2,8 @@
 #include "Renderer/Next/NextRenderer.h"
 
 #include "Renderer/RHI/ShaderLibrary.h"
+#include "Renderer/Structures/RendererBucket.h"
+#include "Renderer/Structures/RendererMesh.h"
 #include "Renderer/Structures/RendererSprite.h"
 #include "Specific/trutils.h"
 
@@ -16,6 +18,18 @@ namespace TEN::Renderer::Next
         Vector2 InverseTargetSize = Vector2::Zero;
         Vector2 Padding           = Vector2::Zero;
     };
+
+    // Legacy 2D and 3D space object draws blend alpha tested buckets, and every bucket of a fading object.
+    static BlendMode GetOverlayObjectBlendMode(BlendMode blendMode, float alpha)
+    {
+        if (blendMode == BlendMode::AlphaTest)
+            return BlendMode::AlphaBlend;
+
+        if (alpha < ALPHA_BLEND_THRESHOLD && (blendMode == BlendMode::Opaque || blendMode == BlendMode::FastAlphaBlend))
+            return BlendMode::AlphaBlend;
+
+        return blendMode;
+    }
 
     static unsigned int PackOverlayColor(const Vector4& color)
     {
@@ -402,6 +416,9 @@ namespace TEN::Renderer::Next
     {
         _overlayVertexData.clear();
         _overlayDraws.clear();
+        _overlayObjectDraws.clear();
+        _overlayInstanceData.clear();
+        _overlayBoneData.clear();
 
         const auto& desc = _finalTarget->GetDesc();
         auto targetSize = Vector2((float)desc.Width, (float)desc.Height);
@@ -452,28 +469,124 @@ namespace TEN::Renderer::Next
             case OverlayLayerType::ScreenOverlays:
                 AddScreenOverlays(ui);
                 break;
+
+            case OverlayLayerType::Objects:
+                AddOverlayObjects(ui, layer);
+                break;
             }
         }
     }
 
-    void NextRenderer::RenderOverlay(ICommandBuffer& commandBuffer)
+    // Objects of one layer share a depth buffer cleared before them, as the legacy depth clear before menus and
+    // display items. Buckets follow the legacy order: per mesh, static buckets before animated ones.
+    void NextRenderer::AddOverlayObjects(const UiFrame& ui, const OverlayLayer& layer)
     {
+        if (!_isLevelLoaded)
+            return;
+
+        int firstDraw = (int)_overlayObjectDraws.size();
+        int end = std::min(layer.First + layer.Count, (int)ui.Objects.size());
+        for (int objectIndex = layer.First; objectIndex < end; objectIndex++)
+        {
+            const auto& object = ui.Objects[objectIndex];
+            int meshEnd = std::min(object.FirstMesh + object.MeshCount, (int)ui.ObjectMeshes.size());
+            for (int meshIndex = object.FirstMesh; meshIndex < meshEnd; meshIndex++)
+            {
+                const auto& mesh = ui.ObjectMeshes[meshIndex];
+                if (mesh.Mesh == nullptr)
+                    continue;
+
+                int boneOffset = (int)(_overlayBoneData.size() / sizeof(Matrix));
+                int boneCount = std::clamp((int)ui.ObjectBones.size() - mesh.FirstBone, 0, mesh.BoneCount);
+                if (boneCount > 0)
+                {
+                    const auto* bones = (const unsigned char*)(ui.ObjectBones.data() + mesh.FirstBone);
+                    _overlayBoneData.insert(_overlayBoneData.end(), bones, bones + (boneCount * sizeof(Matrix)));
+                }
+
+                auto instance = GpuObjectInstance{};
+                instance.World = mesh.World;
+                instance.Color = object.Color;
+                instance.AmbientLight = object.AmbientLight;
+                instance.Skinning = ((unsigned int)boneOffset & 0xFFFFFF) | ((unsigned int)((boneCount > 0) ? SKINNING_FULL : SKINNING_NONE) << 24);
+
+                int instanceIndex = (int)(_overlayInstanceData.size() / sizeof(GpuObjectInstance));
+                const auto* bytes = (const unsigned char*)&instance;
+                _overlayInstanceData.insert(_overlayInstanceData.end(), bytes, bytes + sizeof(instance));
+
+                for (int animated = 0; animated < 2; animated++)
+                {
+                    for (const auto& bucket : mesh.Mesh->Buckets)
+                    {
+                        if (bucket.Animated != (animated == 1) || bucket.NumIndices <= 0)
+                            continue;
+
+                        bool isAlphaTested = object.IsAlphaTested && (bucket.BlendMode == BlendMode::AlphaTest);
+                        _overlayObjectDraws.push_back(OverlayObjectDraw{ &bucket, instanceIndex, objectIndex, GetOverlayObjectBlendMode(bucket.BlendMode, object.Color.w), isAlphaTested });
+                    }
+                }
+            }
+        }
+
+        int drawCount = (int)_overlayObjectDraws.size() - firstDraw;
+        if (drawCount == 0)
+            return;
+
+        auto draw = OverlayDraw{};
+        draw.FirstVertex = firstDraw;
+        draw.VertexCount = drawCount;
+        draw.IsObjects = true;
+        _overlayDraws.push_back(draw);
+    }
+
+    // Object draws read the material, light and decal buffers of the scene; frames without a scene fill them here.
+    void NextRenderer::UploadOverlayData(ICopyPass& copyPass, bool hasScene)
+    {
+        UploadFrameStorage(copyPass, _overlayVertexBuffer, _overlayVertexData, (int)sizeof(OverlayVertex), BufferUsage::Vertex, "Frame.OverlayVertices");
+        if (_overlayObjectDraws.empty())
+            return;
+
+        UploadFrameStorage(copyPass, _overlayInstanceBuffer, _overlayInstanceData, (int)sizeof(GpuObjectInstance), BufferUsage::GraphicsStorageRead, "Frame.OverlayInstances");
+        UploadFrameStorage(copyPass, _overlayBoneBuffer, _overlayBoneData, (int)sizeof(Matrix), BufferUsage::GraphicsStorageRead, "Frame.OverlayBones");
+        if (hasScene)
+            return;
+
+        CollectMaterials(0.0f);
+        UploadFrameStorage(copyPass, _materialBuffer, _materialData, (int)sizeof(GpuMaterial), BufferUsage::GraphicsStorageRead, "Frame.Materials");
+
+        // Created empty if no scene was rendered yet.
+        auto noData = std::vector<unsigned char>{};
+        if (_lightBuffer.Buffer == nullptr)
+            UploadFrameStorage(copyPass, _lightBuffer, noData, (int)sizeof(GpuLight), BufferUsage::GraphicsStorageRead, "Frame.Lights");
+
+        if (_decalBuffer.Buffer == nullptr)
+            UploadFrameStorage(copyPass, _decalBuffer, noData, (int)sizeof(GpuDecal), BufferUsage::GraphicsStorageRead, "Frame.Decals");
+    }
+
+    // Quad runs up to the next object range, in one pass; returns the index of the first draw not drawn.
+    int NextRenderer::DrawOverlayQuads(ICommandBuffer& commandBuffer, int firstDraw, bool isFirstPass)
+    {
+        // Object passes overwrite vertex slot 0.
         const auto& desc = _finalTarget->GetDesc();
         auto uniforms = OverlayUniforms{ Vector2(1.0f / desc.Width, 1.0f / desc.Height) };
         commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 0, &uniforms, sizeof(uniforms));
 
         auto colorTarget = ColorTargetInfo{};
         colorTarget.Texture = _finalTarget.get();
-        colorTarget.Load = LoadOp::Clear;
+        colorTarget.Load = isFirstPass ? LoadOp::Clear : LoadOp::Load;
         colorTarget.ClearColor[3] = 1.0f;
 
-        commandBuffer.PushDebugGroup("Overlay");
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
         auto vertexBinding = BufferBinding{ _overlayVertexBuffer.Buffer.get(), 0 };
 
         const IGraphicsPipeline* lastPipeline = nullptr;
-        for (const auto& draw : _overlayDraws)
+        int drawIndex = firstDraw;
+        for (; drawIndex < (int)_overlayDraws.size(); drawIndex++)
         {
+            const auto& draw = _overlayDraws[drawIndex];
+            if (draw.IsObjects)
+                break;
+
             auto* pipeline = draw.IsBar ? _overlayBarPipeline.get() : GetOverlayPipeline(draw.BlendMode);
             if (pipeline != lastPipeline)
             {
@@ -493,6 +606,116 @@ namespace TEN::Renderer::Next
         }
 
         commandBuffer.EndRenderPass();
+        return drawIndex;
+    }
+
+    // Object range in its own pass over the final target, with the scene depth target reused as a cleared depth buffer.
+    void NextRenderer::DrawOverlayObjects(ICommandBuffer& commandBuffer, const UiFrame& ui, const OverlayDraw& draw, bool isFirstPass)
+    {
+        const auto& desc = _finalTarget->GetDesc();
+
+        // Every uniform slot of the object shaders holds data before the first draw, as in RenderFrame.
+        auto drawVertexUniforms = DrawVertexUniforms{ NO_VALUE };
+        auto skyVertexUniforms = SkyVertexUniforms{};
+        auto fogBulbUniforms = FogBulbUniforms{};
+        auto drawPixelUniforms = DrawPixelUniforms{};
+        auto framePixelUniforms = FramePixelUniforms{};
+        framePixelUniforms.CameraDirection = -Vector3::UnitZ;
+        framePixelUniforms.Gamma = ui.Gamma;
+        framePixelUniforms.InverseViewportSize = Vector2(1.0f / desc.Width, 1.0f / desc.Height);
+        commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &drawVertexUniforms, sizeof(drawVertexUniforms));
+        commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 2, &skyVertexUniforms, sizeof(skyVertexUniforms));
+        commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 3, &fogBulbUniforms, sizeof(fogBulbUniforms));
+        commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 0, &framePixelUniforms, sizeof(framePixelUniforms));
+        commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 1, &drawPixelUniforms, sizeof(drawPixelUniforms));
+        commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
+
+        auto colorTarget = ColorTargetInfo{};
+        colorTarget.Texture = _finalTarget.get();
+        colorTarget.Load = isFirstPass ? LoadOp::Clear : LoadOp::Load;
+        colorTarget.ClearColor[3] = 1.0f;
+
+        auto depthTarget = DepthTargetInfo{};
+        depthTarget.Texture = _depthTarget.get();
+        depthTarget.Load = LoadOp::Clear;
+        depthTarget.Store = StoreOp::DontCare;
+        depthTarget.ClearDepth = 1.0f;
+
+        commandBuffer.PushDebugGroup("Overlay objects");
+        auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, &depthTarget);
+
+        IBuffer* storageBuffers[4] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _overlayInstanceBuffer.Buffer.get(), _overlayBoneBuffer.Buffer.get() };
+        BufferBinding vertexBindings[2] = { { _moveableGeometry.Vertices.get(), 0 }, { _instanceIndexBuffer.get(), 0 } };
+
+        const IGraphicsPipeline* lastPipeline = nullptr;
+        int lastObject = NO_VALUE;
+        auto state = BucketBindState{};
+
+        for (int i = draw.FirstVertex; i < draw.FirstVertex + draw.VertexCount; i++)
+        {
+            const auto& objectDraw = _overlayObjectDraws[i];
+            const auto& object = ui.Objects[objectDraw.Object];
+
+            auto* pipeline = GetScenePipeline(SceneShader::Inventory, objectDraw.BlendMode);
+            if (pipeline == nullptr)
+                continue;
+
+            if (pipeline != lastPipeline)
+            {
+                renderPass->BindPipeline(pipeline);
+                renderPass->BindVertexStorageBuffers(0, storageBuffers, 4);
+                BindScenePixelStorage(*renderPass);
+                renderPass->BindVertexBuffers(0, vertexBindings, 2);
+                renderPass->BindIndexBuffer(BufferBinding{ _moveableGeometry.Indices.get(), 0 }, IndexSize::Bits32);
+                lastPipeline = pipeline;
+                state = BucketBindState{};
+            }
+
+            if (objectDraw.Object != lastObject)
+            {
+                auto frameVertexUniforms = FrameVertexUniforms{};
+                frameVertexUniforms.ViewProjection = object.ViewProjection;
+                frameVertexUniforms.Frame = object.Frame;
+                frameVertexUniforms.InterpolatedFrame = object.InterpolatedFrame;
+                commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 0, &frameVertexUniforms, sizeof(frameVertexUniforms));
+                lastObject = objectDraw.Object;
+            }
+
+            auto drawInfo = BucketDrawInfo{};
+            drawInfo.IsAlphaTestDisabled = !objectDraw.IsAlphaTested;
+            BindBucket(commandBuffer, *renderPass, *objectDraw.Bucket, _moveableTextures, objectDraw.BlendMode, 0, drawInfo, state);
+
+            _frameStats.DrawCalls++;
+            renderPass->DrawIndexed(objectDraw.Bucket->NumIndices, 1, objectDraw.Bucket->StartIndex, 0, objectDraw.Instance);
+        }
+
+        commandBuffer.EndRenderPass();
+        commandBuffer.PopDebugGroup();
+    }
+
+    // Quad runs and object ranges in the legacy order; the first pass clears the final target.
+    void NextRenderer::RenderOverlay(ICommandBuffer& commandBuffer, const UiFrame& ui)
+    {
+        commandBuffer.PushDebugGroup("Overlay");
+
+        int drawIndex = 0;
+        bool isFirstPass = true;
+        do
+        {
+            if (drawIndex < (int)_overlayDraws.size() && _overlayDraws[drawIndex].IsObjects)
+            {
+                DrawOverlayObjects(commandBuffer, ui, _overlayDraws[drawIndex], isFirstPass);
+                drawIndex++;
+            }
+            else
+            {
+                drawIndex = DrawOverlayQuads(commandBuffer, drawIndex, isFirstPass);
+            }
+
+            isFirstPass = false;
+        }
+        while (drawIndex < (int)_overlayDraws.size());
+
         commandBuffer.PopDebugGroup();
     }
 }

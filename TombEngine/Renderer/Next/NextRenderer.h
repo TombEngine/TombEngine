@@ -165,6 +165,7 @@ namespace TEN::Renderer::Next
             int          AnimatedSetOverride = NO_VALUE;
             bool         IsAlphaEdgePass     = false;
             bool         IsForcedAlphaTest   = false;
+            bool         IsAlphaTestDisabled = false;
         };
 
         // Draw state of consecutive bucket draws; pushes and binds are skipped when unchanged.
@@ -227,6 +228,7 @@ namespace TEN::Renderer::Next
             ObjectsDebris,
             ObjectsMirrored, // Reflected by a mirror plane: inverted culling.
             SkyParaboloid,   // Sky into the dual paraboloid map of skybox reflective materials.
+            Inventory,       // Objects of the 2D layer: depth written by every blend mode, as in the legacy menus.
 
             Count
         };
@@ -260,6 +262,7 @@ namespace TEN::Renderer::Next
             bool                              IsSprite   = false;
             bool                              IsWaterRoom = false;
             bool                              IsCausticsRoom = false;
+            bool                              IsForcedAlphaTest = false; // Legacy DrawMoveableAsStaticSorted.
             const Structures::RendererBucket* Bucket     = nullptr;
             BlendMode                         BlendMode  = BlendMode::AlphaBlend;
             int                               FirstIndex = 0;
@@ -393,6 +396,8 @@ namespace TEN::Renderer::Next
             float        Padding      = 0.0f;
         };
 
+        // Quad run, or with IsObjects a range of object draws rendered in their own pass with depth: FirstVertex and
+        // VertexCount then index _overlayObjectDraws.
         struct OverlayDraw
         {
             RHI::ITexture*     Texture     = nullptr;
@@ -401,6 +406,16 @@ namespace TEN::Renderer::Next
             bool               IsBar       = false;
             OverlayBarUniforms Bar         = {};
             BlendMode          BlendMode   = BlendMode::PremultipliedAlphaBlend;
+            bool               IsObjects   = false;
+        };
+
+        struct OverlayObjectDraw
+        {
+            const Structures::RendererBucket* Bucket        = nullptr;
+            int                               Instance      = 0;
+            int                               Object        = 0; // Index in UiFrame::Objects.
+            BlendMode                         BlendMode     = BlendMode::Opaque;
+            bool                              IsAlphaTested = false;
         };
 
         FontData                                _font                       = {};
@@ -413,6 +428,11 @@ namespace TEN::Renderer::Next
         RHI::GraphicsPipelineDesc               _overlayPipelineDesc        = {};
         std::vector<unsigned char>              _overlayVertexData          = {};
         std::vector<OverlayDraw>                _overlayDraws               = {};
+        std::vector<OverlayObjectDraw>          _overlayObjectDraws         = {};
+        std::vector<unsigned char>              _overlayInstanceData        = {};
+        std::vector<unsigned char>              _overlayBoneData            = {};
+        std::unique_ptr<RHI::IShader>           _inventoryVertexShader      = nullptr;
+        std::unique_ptr<RHI::IShader>           _inventoryPixelShader       = nullptr;
         std::unordered_map<std::string, std::unique_ptr<RHI::ITexture>> _overlayImages = {}; // By file path, null when not decodable.
         int                                     _atmosphericSkyUniformsSize = 0;
 
@@ -486,6 +506,8 @@ namespace TEN::Renderer::Next
         FrameStorageBuffer            _decalBuffer         = {};
         FrameStorageBuffer            _debrisVertexBuffer   = {};
         FrameStorageBuffer            _overlayVertexBuffer  = {};
+        FrameStorageBuffer            _overlayInstanceBuffer = {};
+        FrameStorageBuffer            _overlayBoneBuffer    = {};
         FrameStorageBuffer            _debrisInstanceBuffer = {};
         std::vector<unsigned char>    _debrisVertexData     = {};
         std::vector<unsigned char>    _debrisInstanceData   = {};
@@ -555,6 +577,7 @@ namespace TEN::Renderer::Next
         int  AddInstance(const Matrix& world, const Vector4& color, const Vector4& ambientLight, LightMode lightMode, int lightOffset, int lightCount, int boneOffset, int skinningMode);
         int  AddBones(const Matrix* bones, int count);
         void AddMeshDraws(const Structures::RendererMesh& mesh, int firstInstance, int instanceCount = 1);
+        void RemoveFadedDraws(int firstDraw, float alpha);
 
         // Mesh effects, gun shells and swarms (NextRendererEffects.cpp).
         void GetRoomLightSlice(int roomNumber, float interpolationFactor, int& lightOffset, int& lightCount);
@@ -599,7 +622,11 @@ namespace TEN::Renderer::Next
         void CollectOverlay(const UiFrame& ui);
         void AddOverlayText(const OverlayText& text, const Vector2& scale);
         void AddOverlayBar(const OverlayBar& bar);
-        void RenderOverlay(RHI::ICommandBuffer& commandBuffer);
+        void AddOverlayObjects(const UiFrame& ui, const OverlayLayer& layer);
+        void UploadOverlayData(RHI::ICopyPass& copyPass, bool hasScene);
+        int  DrawOverlayQuads(RHI::ICommandBuffer& commandBuffer, int firstDraw, bool isFirstPass);
+        void DrawOverlayObjects(RHI::ICommandBuffer& commandBuffer, const UiFrame& ui, const OverlayDraw& draw, bool isFirstPass);
+        void RenderOverlay(RHI::ICommandBuffer& commandBuffer, const UiFrame& ui);
         void DrawAtmosphericSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
         void RenderSkyReflections(RHI::ICommandBuffer& commandBuffer, const RenderView& view, float interpolationFactor);
         void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
@@ -655,7 +682,7 @@ namespace TEN::Renderer::Next
         bool           AddSprite(const Structures::RendererSpriteToDraw& sprite, const RenderView& view, const Structures::RendererMirror* mirror = nullptr);
         void           CollectSprites(const RenderView& view);
         void           DrawSpriteRun(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const SpriteDraw& draw, const RHI::IGraphicsPipeline*& lastPipeline, const RHI::ITexture*& lastTexture);
-        void           DrawSprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, bool isDistortion, bool isMirrored = false);
+        void           DrawSprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
         void DrawRooms(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, ScenePass pass);
 
     public:
