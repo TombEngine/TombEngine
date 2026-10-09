@@ -1,6 +1,12 @@
 #include "framework.h"
 #include "Renderer/Next/TextureLoader.h"
 
+// JPEG decoding only: PNG goes through SDL and DDS is read directly.
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_ONLY_JPEG
+#define STBI_NO_STDIO
+#include <stb/stb_image.h>
+
 using namespace TEN::Renderer::RHI;
 
 namespace TEN::Renderer::Next
@@ -172,6 +178,33 @@ namespace TEN::Renderer::Next
         return (encodedData.size() >= DDS_MAGIC_SIZE && memcmp(encodedData.data(), "DDS ", DDS_MAGIC_SIZE) == 0);
     }
 
+    // JPEG files start with the start of image marker followed by another marker.
+    static bool IsJPEG(const std::vector<unsigned char>& encodedData)
+    {
+        return (encodedData.size() >= 3 && encodedData[0] == 0xFF && encodedData[1] == 0xD8 && encodedData[2] == 0xFF);
+    }
+
+    static bool DecodeJPEG(const std::vector<unsigned char>& encodedData, DecodedImage& image)
+    {
+        int width = 0;
+        int height = 0;
+        int channels = 0;
+        auto* pixels = stbi_load_from_memory(encodedData.data(), (int)encodedData.size(), &width, &height, &channels, 4);
+        if (pixels == nullptr)
+        {
+            TENLog(std::string("Cannot decode JPEG image: ") + stbi_failure_reason(), LogLevel::Warning);
+            return false;
+        }
+
+        image.Width = width;
+        image.Height = height;
+        image.Format = PixelFormat::RGBA8Unorm;
+        image.MipLevels = 1;
+        image.Data.assign(pixels, pixels + (width * height * 4));
+        stbi_image_free(pixels);
+        return true;
+    }
+
     // PNG: 8 byte signature, then the IHDR chunk with big endian width and height.
     bool ReadImageInfo(const std::vector<unsigned char>& encodedData, ImageInfo& info)
     {
@@ -180,6 +213,14 @@ namespace TEN::Renderer::Next
 
         if (IsDDS(encodedData))
             return (ReadDDSHeader(encodedData, info) != NO_VALUE);
+
+        if (IsJPEG(encodedData))
+        {
+            int channels = 0;
+            info.Format = PixelFormat::RGBA8Unorm;
+            info.MipLevels = 1;
+            return (stbi_info_from_memory(encodedData.data(), (int)encodedData.size(), &info.Width, &info.Height, &channels) != 0);
+        }
 
         if (encodedData.size() < PNG_HEADER_SIZE)
             return false;
@@ -201,6 +242,9 @@ namespace TEN::Renderer::Next
     {
         if (IsDDS(encodedData))
             return DecodeDDS(encodedData, image);
+
+        if (IsJPEG(encodedData))
+            return DecodeJPEG(encodedData, image);
 
         return DecodePNG(encodedData, image);
     }

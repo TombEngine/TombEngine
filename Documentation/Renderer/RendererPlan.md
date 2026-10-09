@@ -347,7 +347,7 @@ Il renderer nuovo gira in una seconda finestra accanto a quello vecchio, sugli s
 - [x] Texture array con pagine di dimensioni diverse: array separati per dimensione o padding (dipende dai livelli reali, da misurare). *(scelto: array separati per dimensione e formato)*
 - [x] Normale di faccia nel vertice o in un buffer per poligono. *(scelto: resta nel vertice, il vertice compresso e' 40 B per le stanze e 48 B per gli oggetti; un buffer per poligono richiede `SV_PrimitiveID` e un indice per draw, per 4 B per vertice)*
 - [ ] Coordinamento con Tomo sul porting di cielo e nuvole.
-- [x] Dipendenze nuove (DXC dal Vulkan SDK, solo per la build): licenze e dimensione della distribuzione. *(DXC serve solo alla build per lo SPIR-V, licenza NCSA/MIT; la distribuzione contiene solo i binari degli shader. Da decidere invece un decoder JPEG per le schermate di caricamento: oggi il renderer nuovo legge solo PNG e DDS)*
+- [x] Dipendenze nuove (DXC dal Vulkan SDK, solo per la build): licenze e dimensione della distribuzione. *(DXC serve solo alla build per lo SPIR-V, licenza NCSA/MIT; la distribuzione contiene solo i binari degli shader. Per le schermate di caricamento in JPEG il renderer nuovo usa `stb_image` (pubblico dominio, `Libs/stb`), solo per i JPEG)*
 
 ---
 

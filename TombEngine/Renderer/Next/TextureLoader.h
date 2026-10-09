@@ -24,7 +24,7 @@ namespace TEN::Renderer::Next
 
     bool ReadImageInfo(const std::vector<unsigned char>& encodedData, ImageInfo& info);
 
-    // Decodes an encoded level texture (PNG or DDS) into GPU-ready pixels. PNG yields a single RGBA8 level,
+    // Decodes an encoded level texture (PNG, JPEG or DDS) into GPU-ready pixels. PNG and JPEG yield a single RGBA8 level,
     // whose mips are generated on the GPU; DDS keeps its stored format and mip chain.
     bool DecodeImage(const std::vector<unsigned char>& encodedData, DecodedImage& image);
 
