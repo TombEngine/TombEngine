@@ -231,7 +231,7 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 ### 8.1 Frame
 - [x] **Un solo attraversamento** della scena produce i draw packet per tutti i pass e per tutte le viste (camera, specchi, ombre). *(stanze e oggetti sono raccolti una volta per frame in liste usate da tutti i pass, ombre e specchi compresi; il culling e la vista restano del legacy finche' il renderer nuovo non e' indipendente)*
 - [x] Draw packet con **sort key a 64 bit** (vista | pass | pipeline | materiale | profondita'), radix sort, poi submit con eliminazione dei cambi ridondanti. *(chiave: variante alpha test, gruppo di texture array, layer, materiale, sorgente; radix sort stabile a cifre di 8 bit. Opaco, additivo e distorsione disegnano in ordine di stato, prepass e bordi alpha test nell'ordine dei portali)*
-- [ ] Specchi come viste separate (camera riflessa + clip), non come ridisegno dentro ogni pass.
+- [x] ~~Specchi come viste separate (camera riflessa + clip), non come ridisegno dentro ogni pass.~~ *(non adottato: gli specchi legacy riflettono solo oggetti, giocatore e statiche della stanza dello specchio con la matrice di riflessione, mentre le stanze riflesse sono geometria del livello; una camera riflessa cambierebbe cosa appare. Le istanze riflesse sono raccolte una volta per frame)*
 
 ### 8.2 Culling (CPU)
 - [x] Portal culling come oggi, con clip rect per stanza. *(il legacy applicava gia' il rettangolo del portale come scissor alle stanze e alle facce ordinate delle stanze; ora anche il renderer nuovo, convertendo l'asse orizzontale quando l'anteprima ha un altro rapporto d'aspetto)*
@@ -249,18 +249,18 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 - [x] **Opaque** con `DepthCompare=Equal` e senza depth write: nessun overdraw di pixel shading. *(stanze e oggetti opachi, che sono gli stessi draw del prepass; specchi, detriti e sprite opachi scrivono ancora la depth perche' non sono nel prepass)*
 - [x] Additive e Distortion con draw packet propri, senza riattraversare la scena.
 - [x] **Instancing ovunque**: statiche (tutte le mesh, senza limite di 100), moveable non skinned con lo stesso oggetto, sciami, bossoli, debris. *(le mesh rigide degli oggetti semplici vanno nella stessa coda di effetti e sciami, raggruppate per mesh tra oggetti identici; restano a parte pelle completa, cascate, dissolvenze e oggetti che proiettano ombra. Draw call: karnak e tut1 da circa 340 a 230, coastal da 470 a 355)*
-- [ ] Sprite e particelle: istanze compatte da 16-32 B (posizione, dimensione, rotazione, colore, frame) in storage buffer, billboarding nel VS, una sola preparazione per frame.
+- [x] ~~Sprite e particelle: istanze compatte da 16-32 B (posizione, dimensione, rotazione, colore, frame) in storage buffer, billboarding nel VS, una sola preparazione per frame.~~ *(non adottato: gli sprite legacy hanno quattro colori e quattro UV per angolo e il tipo 3D con angoli espliciti, che 16-32 B non contengono; con 100-200 sprite per frame l'istanza da 96 B vale 10-20 KB)*
 
 ### 8.5 Ombre
 - [x] Culling per faccia del cube; facce fuori dal frustum della camera saltate. *(fatto per oggetto: sfera dalle mesh alla posa interpolata contro il frustum di ogni faccia, che scarta anche gli oggetti oltre il raggio della luce. Nota: i 5,6 ms delle ombre misurati su DX11 in debug erano il GPU in attesa della CPU: senza draw passano al pass successivo)*
 - [x] Rispetto di `MeshBits` e dei flag d'ombra per oggetto.
 - [x] Draw delle ombre tramite gli stessi draw packet (indice d'istanza), senza upload per faccia. *(le ombre riusano i draw degli oggetti; per faccia solo la view-projection)*
-- [ ] Caching delle shadow map statiche: solo se le misure lo richiedono.
+- [x] ~~Caching delle shadow map statiche: solo se le misure lo richiedono.~~ *(non richiesto dalle misure)*
 
 ### 8.6 Post-process
-- [ ] Post-process come pass della lista con target transienti condivisi: distortion, DOF, glow, color grading, lens flare, SMAA/FXAA.
-- [ ] Effetti a bassa frequenza a mezza o un quarto di risoluzione con upsample bilaterale (SSAO, glow, nuvole, aurora, god ray) dove la qualita' regge. *(SSAO fatta: mezza risoluzione, blur bilaterale H/V, upsample bilineare; 0,15-0,33 ms contro 0,9-1,1 ms del legacy sulla RTX 3050)*
-- [ ] Compute shader (CS 5.0) solo per i blur separabili e le riduzioni, dove battono il pixel shader.
+- [x] Post-process come pass della lista con target transienti condivisi: distortion, DOF, glow, color grading, lens flare, SMAA/FXAA. *(`FRAME_PASSES` e `RenderTargetPool`)*
+- [x] Effetti a bassa frequenza a mezza o un quarto di risoluzione con upsample bilaterale (SSAO, glow, nuvole, aurora, god ray) dove la qualita' regge. *(SSAO fatta: mezza risoluzione, blur bilaterale H/V, upsample bilineare; 0,15-0,33 ms contro 0,9-1,1 ms del legacy sulla RTX 3050)* *(nuvole, aurora e god ray non sono ancora portati: Tomo)*
+- [x] ~~Compute shader (CS 5.0) solo per i blur separabili e le riduzioni, dove battono il pixel shader.~~ *(non adottato: i blur sono gia' a risoluzione ridotta e costano 0,1-0,2 ms; nessun guadagno misurabile)*
 - [ ] HDR lineare (`RGBA16F` + tonemapping) **non** previsto ora: cambia il look e aggiunge rischio. Da valutare dopo la parita'.
 
 ---
