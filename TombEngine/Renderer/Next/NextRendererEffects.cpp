@@ -54,10 +54,11 @@ namespace TEN::Renderer::Next
     }
 
     void NextRenderer::QueueMeshInstance(const RendererMesh& mesh, const Matrix& world, const Vector4& color, const Vector4& ambientLight,
-                                         LightMode lightMode, int lightOffset, int lightCount)
+                                         LightMode lightMode, int lightOffset, int lightCount, int roomNumber)
     {
         auto queued = QueuedMeshInstance{};
         queued.Mesh = &mesh;
+        queued.RoomNumber = roomNumber;
         queued.Instance.World = world;
         queued.Instance.Color = color;
         queued.Instance.AmbientLight = ambientLight;
@@ -83,8 +84,12 @@ namespace TEN::Renderer::Next
             int runEnd = index;
             while (runEnd < count && _queuedMeshInstances[runEnd].Mesh == mesh)
             {
-                const auto* bytes = (const unsigned char*)&_queuedMeshInstances[runEnd].Instance;
+                const auto& queued = _queuedMeshInstances[runEnd];
+                const auto* bytes = (const unsigned char*)&queued.Instance;
                 _instanceData.insert(_instanceData.end(), bytes, bytes + sizeof(GpuObjectInstance));
+
+                // Legacy mirrors reflect these effects with the moveables of the mirror room.
+                _instanceOrigins.push_back(InstanceOrigin{ queued.RoomNumber, InstanceCategory::Moveable });
                 runEnd++;
             }
 
@@ -119,7 +124,8 @@ namespace TEN::Renderer::Next
                     continue;
 
                 lightCount = AddLights(effect->LightsToDraw, interpolationFactor, NO_VALUE, NO_VALUE, 1.0f, lightOffset);
-                QueueMeshInstance(*effect->Mesh, effect->InterpolatedWorld, effect->Color, effect->AmbientLight, LightMode::Dynamic, lightOffset, lightCount);
+                QueueMeshInstance(*effect->Mesh, effect->InterpolatedWorld, effect->Color, effect->AmbientLight, LightMode::Dynamic, lightOffset, lightCount,
+                                  effect->RoomNumber);
             }
         }
 
@@ -145,7 +151,7 @@ namespace TEN::Renderer::Next
                 auto prevWorld = shell.PrevPose.Orientation.ToRotationMatrix() * Matrix::CreateTranslation(shell.PrevPose.Position.ToVector3());
                 const auto& mesh = *(*_legacyGeometry.MoveableObjects)[shell.objectNumber]->ObjectMeshes[0];
                 QueueMeshInstance(mesh, Matrix::Lerp(prevWorld, world, interpolationFactor), playerRoom.AmbientLight, playerRoom.AmbientLight,
-                                  LightMode::Dynamic, lightOffset, lightCount);
+                                  LightMode::Dynamic, lightOffset, lightCount, shell.roomNumber);
             }
         }
 
@@ -153,7 +159,7 @@ namespace TEN::Renderer::Next
         auto queueCreature = [&](const RendererMesh& mesh, const Matrix& world, int roomNumber, LightMode lightMode)
         {
             GetRoomLightSlice(roomNumber, interpolationFactor, lightOffset, lightCount);
-            QueueMeshInstance(mesh, world, NEUTRAL_COLOR, rooms[roomNumber].AmbientLight, lightMode, lightOffset, lightCount);
+            QueueMeshInstance(mesh, world, NEUTRAL_COLOR, rooms[roomNumber].AmbientLight, lightMode, lightOffset, lightCount, roomNumber);
         };
 
         if (Objects[ID_RATS_EMITTER].loaded)
@@ -235,7 +241,7 @@ namespace TEN::Renderer::Next
 
                 GetRoomLightSlice(particle.RoomNumber, interpolationFactor, lightOffset, lightCount);
                 QueueMeshInstance(mesh, Matrix::Lerp(particle.PrevTransform, particle.Transform, interpolationFactor), color,
-                                  rooms[particle.RoomNumber].AmbientLight, mesh.LightMode, lightOffset, lightCount);
+                                  rooms[particle.RoomNumber].AmbientLight, mesh.LightMode, lightOffset, lightCount, particle.RoomNumber);
             }
         }
 

@@ -23,6 +23,7 @@ namespace TEN::Renderer::Structures
     struct RendererObject;
     struct RendererLight;
     struct RendererItem;
+    struct RendererMirror;
     struct RendererSortableObject;
     struct RendererSprite;
     struct RendererSpriteToDraw;
@@ -115,8 +116,9 @@ namespace TEN::Renderer::Next
         // Instance waiting to be grouped with the other instances of its mesh.
         struct QueuedMeshInstance
         {
-            const Structures::RendererMesh* Mesh     = nullptr;
-            GpuObjectInstance               Instance = {};
+            const Structures::RendererMesh* Mesh       = nullptr;
+            GpuObjectInstance               Instance   = {};
+            int                             RoomNumber = NO_VALUE;
         };
 
         enum class DebrisPass
@@ -164,6 +166,21 @@ namespace TEN::Renderer::Next
         };
 
         // Instanced draw of one mesh bucket; instances are contiguous in the frame instance buffer.
+        // Source of an instance, for mirrors that reflect only some categories of the mirror room.
+        enum class InstanceCategory
+        {
+            None,
+            Player,
+            Moveable,
+            Static
+        };
+
+        struct InstanceOrigin
+        {
+            int              RoomNumber = NO_VALUE;
+            InstanceCategory Category   = InstanceCategory::None;
+        };
+
         struct ObjectDraw
         {
             MeshSource                        Source        = MeshSource::Statics;
@@ -191,6 +208,7 @@ namespace TEN::Renderer::Next
             ObjectsPrepass,
             ObjectsShadow,
             ObjectsDebris,
+            ObjectsMirrored, // Reflected by a mirror plane: inverted culling.
 
             Count
         };
@@ -379,6 +397,9 @@ namespace TEN::Renderer::Next
         std::vector<unsigned char>    _debrisInstanceData   = {};
         std::vector<DebrisDraw>       _debrisDraws          = {};
         std::vector<ObjectDraw>       _gunFlashDraws        = {};
+        std::vector<ObjectDraw>       _mirrorDraws          = {};
+        std::vector<InstanceOrigin>   _instanceOrigins      = {}; // One per instance.
+        InstanceOrigin                _currentOrigin        = {}; // Assigned to the instances being added.
         std::vector<unsigned char>    _decalData           = {};
         std::unordered_map<int, std::pair<int, int>> _roomDecalSlices = {};
         std::vector<std::pair<int, int>> _roomLightSlices    = {};
@@ -435,9 +456,12 @@ namespace TEN::Renderer::Next
         // Mesh effects, gun shells and swarms (NextRendererEffects.cpp).
         void GetRoomLightSlice(int roomNumber, float interpolationFactor, int& lightOffset, int& lightCount);
         void QueueMeshInstance(const Structures::RendererMesh& mesh, const Matrix& world, const Vector4& color, const Vector4& ambientLight,
-                               LightMode lightMode, int lightOffset, int lightCount);
+                               LightMode lightMode, int lightOffset, int lightCount, int roomNumber);
         void FlushMeshInstances();
         void CollectEffectMeshes(const RenderView& view, float interpolationFactor);
+        static bool IsMirrored(const InstanceOrigin& origin, const Structures::RendererMirror& mirror);
+        int  AddMirroredInstance(int instanceIndex, const Structures::RendererMirror& mirror);
+        void CollectMirrors(const RenderView& view);
         void AddGunFlash(GAME_OBJECT_ID flashObjectID, const Matrix& world, const Vector4& color, const Vector4& ambientLight);
         void CollectGunFlashes(const RenderView& view);
         void DrawGunFlashes(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
@@ -456,7 +480,7 @@ namespace TEN::Renderer::Next
         static FogBulbUniforms GetFogBulbUniforms(const RenderView& view);
         bool CreateSkyGeometry();
         void DrawSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor);
-        void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass);
+        void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
         static BlendMode GetPassBlendMode(ScenePass pass);
         static bool IsBucketInPass(const Structures::RendererBucket& bucket, ScenePass pass);
 

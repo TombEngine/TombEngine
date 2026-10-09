@@ -352,19 +352,20 @@ namespace TEN::Renderer::Next
         bool isPrepass = (shader == SceneShader::RoomsPrepass || shader == SceneShader::ObjectsPrepass);
         bool isShadow = (shader == SceneShader::ObjectsShadow);
         bool isDebris = (shader == SceneShader::ObjectsDebris);
-        isObjects = isObjects || isShadow || isDebris;
+        bool isMirrored = (shader == SceneShader::ObjectsMirrored);
+        isObjects = isObjects || isShadow || isDebris || isMirrored;
 
         IShader* vertexShaders[(int)SceneShader::Count] =
         {
             _roomsVertexShader.get(), _objectsVertexShader.get(), _skyVertexShader.get(), _spritesVertexShader.get(),
-            _roomsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get()
+            _roomsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get()
         };
         IShader* pixelShaders[(int)SceneShader::Count] =
         {
             _roomsPixelShader.get(), _objectsPixelShader.get(), _skyPixelShader.get(), _spritesPixelShader.get(),
-            _roomsPrepassPixelShader.get(), _objectsPrepassPixelShader.get(), _objectsShadowPixelShader.get(), _objectsPixelShader.get()
+            _roomsPrepassPixelShader.get(), _objectsPrepassPixelShader.get(), _objectsShadowPixelShader.get(), _objectsPixelShader.get(), _objectsPixelShader.get()
         };
-        const char* names[(int)SceneShader::Count] = { "Rooms", "Objects", "Sky", "Sprites", "RoomsPrepass", "ObjectsPrepass", "ObjectsShadow", "ObjectsDebris" };
+        const char* names[(int)SceneShader::Count] = { "Rooms", "Objects", "Sky", "Sprites", "RoomsPrepass", "ObjectsPrepass", "ObjectsShadow", "ObjectsDebris", "ObjectsMirrored" };
 
         auto desc = GraphicsPipelineDesc{};
         desc.VertexShader = vertexShaders[(int)shader];
@@ -375,6 +376,8 @@ namespace TEN::Renderer::Next
         desc.Layout.Buffers[1] = VertexBufferLayout{ 1, (int)sizeof(unsigned int), isDebris ? VertexInputRate::Vertex : VertexInputRate::Instance };
         if (isDebris)
             desc.Rasterizer.Cull = RHI::CullMode::None;
+        else if (isMirrored)
+            desc.Rasterizer.Cull = RHI::CullMode::Front;
 
         auto& attributes = desc.Layout.Attributes;
         attributes[0] = VertexAttribute{ 0, 0, VertexElementFormat::Float3, (int)offsetof(Vertex, Position) };
@@ -1034,6 +1037,7 @@ namespace TEN::Renderer::Next
     void NextRenderer::CollectObjects(const RenderView& view, float interpolationFactor)
     {
         _instanceData.clear();
+        _instanceOrigins.clear();
         _lightData.clear();
         _objectDraws.clear();
         _shadowDraws.clear();
@@ -1061,6 +1065,8 @@ namespace TEN::Renderer::Next
             int firstInstance = (int)(_instanceData.size() / sizeof(GpuObjectInstance));
             for (const auto* staticMesh : statics)
             {
+                _currentOrigin = InstanceOrigin{ staticMesh->RoomNumber, InstanceCategory::Static };
+
                 int lightOffset = 0;
                 int lightCount = AddLights(staticMesh->LightsToDraw, interpolationFactor, NO_VALUE, NO_VALUE, 1.0f, lightOffset);
                 AddInstance(staticMesh->World, staticMesh->Color, staticMesh->AmbientLight, mesh->LightMode, lightOffset, lightCount, 0, SKINNING_NONE);
@@ -1086,6 +1092,10 @@ namespace TEN::Renderer::Next
                     continue;
 
                 const auto& nativeItem = g_Level.Items[item->ItemNumber];
+
+                // Legacy mirrors skip items with cleared bodies.
+                bool isReflectable = !(nativeItem.Flags & IFLAG_CLEAR_BODY);
+                _currentOrigin = InstanceOrigin{ item->RoomNumber, isReflectable ? InstanceCategory::Moveable : InstanceCategory::None };
 
                 int lightOffset = 0;
                 int lightCount = AddLights(item->LightsToDraw, interpolationFactor, item->RoomNumber, item->PrevRoomNumber, item->LightFade, lightOffset);
@@ -1134,8 +1144,14 @@ namespace TEN::Renderer::Next
             }
         }
 
+        if (LaraItem != nullptr)
+            _currentOrigin = InstanceOrigin{ LaraItem->RoomNumber, InstanceCategory::Player };
+
         CollectPlayer(interpolationFactor);
+        _currentOrigin = InstanceOrigin{};
+
         CollectEffectMeshes(view, interpolationFactor);
+        CollectMirrors(view);
         CollectDebris(interpolationFactor);
         CollectGunFlashes(view);
     }
@@ -1154,6 +1170,7 @@ namespace TEN::Renderer::Next
         int index = (int)(_instanceData.size() / sizeof(GpuObjectInstance));
         const auto* bytes = (const unsigned char*)&instance;
         _instanceData.insert(_instanceData.end(), bytes, bytes + sizeof(instance));
+        _instanceOrigins.push_back(_currentOrigin);
         return index;
     }
 
@@ -1352,18 +1369,18 @@ namespace TEN::Renderer::Next
         commandBuffer.PopDebugGroup();
     }
 
-    void NextRenderer::DrawObjects(ICommandBuffer& commandBuffer, IRenderPass& renderPass, ScenePass pass)
+    void NextRenderer::DrawObjects(ICommandBuffer& commandBuffer, IRenderPass& renderPass, ScenePass pass, bool isMirrored)
     {
         constexpr const char* GROUP_NAMES[] = { "Objects prepass", "Objects opaque", "Objects alpha edges", "Objects additive", "Objects distortion" };
 
-        if (_objectDraws.empty() || _instanceBuffer.Buffer == nullptr)
+        const auto& draws = isMirrored ? _mirrorDraws : _objectDraws;
+        if (draws.empty() || _instanceBuffer.Buffer == nullptr)
             return;
 
-        bool additive = (pass == ScenePass::Additive);
         bool isAlphaEdges = (pass == ScenePass::AlphaEdges);
-        commandBuffer.PushDebugGroup(GROUP_NAMES[(int)pass]);
+        commandBuffer.PushDebugGroup(isMirrored ? "Mirrored objects" : GROUP_NAMES[(int)pass]);
 
-        auto shader = (pass == ScenePass::Prepass) ? SceneShader::ObjectsPrepass : SceneShader::Objects;
+        auto shader = (pass == ScenePass::Prepass) ? SceneShader::ObjectsPrepass : (isMirrored ? SceneShader::ObjectsMirrored : SceneShader::Objects);
         renderPass.BindPipeline(GetScenePipeline(shader, GetPassBlendMode(pass)));
 
         IBuffer* storageBuffers[4] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _instanceBuffer.Buffer.get(), _boneBuffer.Buffer.get() };
@@ -1374,7 +1391,7 @@ namespace TEN::Renderer::Next
         auto lastSource = (MeshSource)-1;
         auto state = BucketBindState{};
 
-        for (const auto& draw : _objectDraws)
+        for (const auto& draw : draws)
         {
             const auto& bucket = *draw.Bucket;
             if (!IsBucketInPass(bucket, pass))
@@ -1977,11 +1994,14 @@ namespace TEN::Renderer::Next
         DrawSky(*commandBuffer, *renderPass, view, environment.InterpolationFactor);
         DrawRooms(*commandBuffer, *renderPass, view, ScenePass::Opaque);
         DrawObjects(*commandBuffer, *renderPass, ScenePass::Opaque);
+        DrawObjects(*commandBuffer, *renderPass, ScenePass::Opaque, true);
         DrawDebris(*commandBuffer, *renderPass, DebrisPass::Opaque);
         DrawRooms(*commandBuffer, *renderPass, view, ScenePass::AlphaEdges);
         DrawObjects(*commandBuffer, *renderPass, ScenePass::AlphaEdges);
+        DrawObjects(*commandBuffer, *renderPass, ScenePass::AlphaEdges, true);
         DrawRooms(*commandBuffer, *renderPass, view, ScenePass::Additive);
         DrawObjects(*commandBuffer, *renderPass, ScenePass::Additive);
+        DrawObjects(*commandBuffer, *renderPass, ScenePass::Additive, true);
         DrawDebris(*commandBuffer, *renderPass, DebrisPass::Additive);
         DrawSprites(*commandBuffer, *renderPass, false);
         DrawSortedFaces(*commandBuffer, *renderPass);
