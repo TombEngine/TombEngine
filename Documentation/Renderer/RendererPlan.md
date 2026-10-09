@@ -287,7 +287,7 @@ L'algoritmo di develop_performance (bucket come unita', entry compatte, radix so
 - [ ] Ordine di porting: UI/HUD/2D -> post-process -> cielo, nuvole, aurora, god ray, dust storm (coordinarsi con Tomo) -> stanze -> statiche -> moveable e Lara (pelle, capelli) -> sprite ed effetti -> ombre -> trasparenti -> specchi -> inventario e menu.
 - [ ] Il renderer vecchio resta compilato dietro un flag finche' il nuovo non raggiunge la parita'.
 - [ ] **Test di parita' visiva** automatici con l'harness headless: screenshot dello stesso frame (vecchio renderer, nuovo DX11, nuovo Vulkan), diff con soglia, su tutti i livelli di benchmark.
-- [ ] Zero errori di validation Vulkan e del debug layer D3D11.
+- [ ] Zero errori di validation Vulkan e del debug layer D3D11. *(renderer nuovo: zero sui livelli di benchmark; il debug layer D3D11 e la validazione Vulkan finiscono nel log o in stderr)*
 - [ ] Rimozione del renderer vecchio e di `IGraphicsDevice`.
 
 ---
@@ -313,11 +313,15 @@ Il renderer nuovo gira in una seconda finestra accanto a quello vecchio, sugli s
 - [x] Cielo classico (due strati) e orizzonte.
 - [x] Sprite istanziati e ordinati (un'istanza da 96 B per sprite, un draw per run).
 - [x] Effetti di vertice (Move/Glow/Wibble) e rifrazione delle stanze d'acqua.
-- [ ] Soft particle, sprite laser, distorsione, specchi.
+- [ ] Soft particle, sprite laser, detriti, vampate delle armi, oggetti skinned diversi dal giocatore, specchi.
 - [ ] Cielo atmosferico, nuvole, aurora, sole e stelle (Tomo).
 - [x] Materiali: normal map, ORSH, emissive, parallax, specular e sheen.
 - [x] SSAO a mezza risoluzione con prepass depth + normali.
-- [ ] Riflessi (materiali riflettenti), caustiche, decal, ombre, fog bulb.
+- [x] Ombre (cubemap della luce ombreggiante in 6 layer R32F, PCF 5x5) e ombre blob.
+- [x] Fog bulb per vertice, caustiche nelle stanze d'acqua, decal delle stanze.
+- [x] Post-process in un solo pass: schemi colore, dissolvenza, bande cinematiche, tinta, gamma.
+- [x] Zero errori di validazione Vulkan sui livelli di benchmark (layout std140 degli uniform corretti).
+- [ ] Riflessi (materiali riflettenti), alpha test a due passate del legacy, lens flare, distorsione, glow/DOF, FXAA/SMAA.
 - [ ] Post-process, HUD, 2D, inventario e menu.
 
 ## 12. Decisioni prese
