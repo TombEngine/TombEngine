@@ -1,5 +1,6 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=4
 // TEN_SHADER: Pixel PS samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
+// TEN_SHADER: Pixel PSHorizonMask samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
 
 // Classic sky layers and horizon meshes: texture tinted by the layer color, no lighting or depth. The paraboloid
 // mode draws them into one hemisphere of the dual paraboloid map of skybox reflective materials (legacy VSSky in
@@ -24,6 +25,8 @@ TEN_VS_STORAGE_BUFFER(GpuAnimatedFrame, AnimatedFrames, 0);
 TEN_VS_STORAGE_BUFFER(GpuAnimatedSet, AnimatedSets, 1);
 
 TEN_PS_TEXTURE(Texture2DArray, ColorMap, 0); // Sky texture or horizon page; TextureLayer selects the layer.
+
+#define HORIZON_MASK_ALPHA_THRESHOLD 0.5f // Legacy ALPHA_TEST_THRESHOLD.
 
 struct VertexInput
 {
@@ -91,4 +94,12 @@ float4 PS(PixelInput input) : SV_TARGET
     float4 color = ColorMap.Sample(ColorMapSampler, float3(ApplyUVScroll(input.UV, input.UVScroll), TextureLayer));
     float3 light = saturate(SkyColor.rgb - input.FogBulbs.w * 1.4f);
     return float4(color.rgb * light + saturate(input.FogBulbs.rgb), color.a * SkyColor.a);
+}
+
+// Horizon silhouette for the god rays, as the legacy PSHorizonMask: white where the texel passes the alpha test.
+float4 PSHorizonMask(PixelInput input) : SV_TARGET
+{
+    float4 color = ColorMap.Sample(ColorMapSampler, float3(ApplyUVScroll(input.UV, input.UVScroll), TextureLayer));
+    clip(color.a - HORIZON_MASK_ALPHA_THRESHOLD);
+    return float4(1.0f, 1.0f, 1.0f, 1.0f);
 }

@@ -484,6 +484,9 @@ namespace TEN::Renderer
 		if (_stGodRay.SunScreenPos.x < -5.0f)
 			return;
 
+		_nextGodRays.IsDrawn = true;
+		_nextGodRays.Uniforms = _stGodRay;
+
 		// Render horizon mesh silhouette for additional occlusion in PSGodRay.
 		DrawHorizonMask(renderView);
 

@@ -103,6 +103,7 @@ namespace TEN::Renderer::Next
         const std::vector<CloudLayerDraw>* CloudDraws = nullptr;
         CloudNoiseData                     CloudNoise = {};
         SkyEffectFlags                     SkyEffects = {};
+        GodRayDraw                         GodRays    = {};
 
         // Depth of field of the legacy renderer (DOFState).
         int          DofMode             = 0;
@@ -295,6 +296,7 @@ namespace TEN::Renderer::Next
             ObjectsMirrored, // Reflected by a mirror plane: inverted culling.
             SkyParaboloid,   // Sky into the dual paraboloid map of skybox reflective materials.
             Inventory,       // Objects of the 2D layer: depth written by every blend mode, as in the legacy menus.
+            SkyHorizonMask,  // Horizon silhouette of the god rays.
 
             Count
         };
@@ -373,6 +375,7 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IShader>           _objectsPixelShader  = nullptr;
         std::unique_ptr<RHI::IShader>           _skyVertexShader     = nullptr;
         std::unique_ptr<RHI::IShader>           _skyPixelShader      = nullptr;
+        std::unique_ptr<RHI::IShader>           _horizonMaskPixelShader = nullptr;
         std::unique_ptr<RHI::IBuffer>           _skyVertexBuffer     = nullptr;
         std::unique_ptr<RHI::IBuffer>           _skyIndexBuffer      = nullptr;
         TexturePage                             _skyPage             = {};
@@ -677,6 +680,11 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::ITexture>          _cloudWorley2D                         = nullptr;
         std::unique_ptr<RHI::ITexture>          _cloudTargets[CLOUD_LAYER_COUNT]        = {};
         std::unique_ptr<RHI::ITexture>          _cloudHistoryTargets[CLOUD_LAYER_COUNT] = {};
+        std::unique_ptr<RHI::IShader>           _godRayVertexShader                    = nullptr;
+        std::unique_ptr<RHI::IShader>           _godRayPixelShader                     = nullptr;
+        std::unique_ptr<RHI::IShader>           _godRayCompositePixelShader            = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _godRayPipeline                        = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _godRayCompositePipeline               = nullptr;
         std::vector<const Structures::RendererSpriteToDraw*> _spriteSources = {}; // One per frame sprite.
         std::unordered_map<const void*, int> _sortedInstances = {};
         std::array<int, 2>            _hairInstances       = { NO_VALUE, NO_VALUE }; // Primary and secondary hair unit instances.
@@ -797,6 +805,7 @@ namespace TEN::Renderer::Next
         void DrawSkyBackground(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, int hemisphere);
         void DrawSkySprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const std::vector<SpriteDraw>& draws);
         void DrawSkyHorizons(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere);
+        void DrawHorizonMeshes(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere, bool isMask);
 
         // Sky pass (NextRendererSky.cpp).
         bool CreateCloudResources();
@@ -807,6 +816,8 @@ namespace TEN::Renderer::Next
         void DrawCloudLayers(RHI::ICommandBuffer& commandBuffer, bool isAfterHorizons);
         void RaymarchCloudLayer(RHI::ICommandBuffer& commandBuffer, const CloudLayerDraw& draw);
         void CompositeCloudLayer(RHI::ICommandBuffer& commandBuffer, int layer);
+        bool CreateGodRayResources();
+        void DrawGodRays(RHI::ICommandBuffer& commandBuffer);
         RHI::IRenderPass* BeginSkyRenderPass(RHI::ICommandBuffer& commandBuffer, RHI::LoadOp load);
         void RenderSkyPass(RHI::ICommandBuffer& commandBuffer);
         bool CreateSkyReflectionResources();

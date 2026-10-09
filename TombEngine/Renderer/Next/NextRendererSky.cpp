@@ -229,6 +229,98 @@ namespace TEN::Renderer::Next
         _targetPool.Release(sceneCopy);
     }
 
+    bool NextRenderer::CreateGodRayResources()
+    {
+        _godRayVertexShader = LoadShader(*_device, _shaderDirectory, "GodRay", "VS");
+        _godRayPixelShader = LoadShader(*_device, _shaderDirectory, "GodRay", "PSGodRay");
+        _godRayCompositePixelShader = LoadShader(*_device, _shaderDirectory, "GodRay", "PSGodRayComposite");
+        if (_godRayVertexShader == nullptr || _godRayPixelShader == nullptr || _godRayCompositePixelShader == nullptr)
+            return false;
+
+        auto desc = GraphicsPipelineDesc{};
+        desc.VertexShader = _godRayVertexShader.get();
+        desc.PixelShader = _godRayPixelShader.get();
+        desc.Rasterizer.Cull = RHI::CullMode::None;
+        desc.DepthStencil.EnableDepthTest = false;
+        desc.DepthStencil.EnableDepthWrite = false;
+        desc.NumColorTargets = 1;
+        desc.ColorTargets[0].Format = PixelFormat::R11G11B10Float;
+        desc.Name = "GodRays.Blur";
+        _godRayPipeline = _device->CreateGraphicsPipeline(desc);
+
+        desc.PixelShader = _godRayCompositePixelShader.get();
+        desc.ColorTargets[0].Format = _device->GetSwapchainFormat();
+        desc.ColorTargets[0].Blend = GetBlendState(BlendMode::Additive);
+        desc.Name = "GodRays.Composite";
+        _godRayCompositePipeline = _device->CreateGraphicsPipeline(desc);
+
+        return (_godRayPipeline != nullptr && _godRayCompositePipeline != nullptr);
+    }
+
+    // Legacy DrawGodRays: a horizon silhouette and a radial blur at half resolution, then an additive composite. The blur
+    // reads both cloud layers, the silhouette and a copy of the sky.
+    void NextRenderer::DrawGodRays(ICommandBuffer& commandBuffer)
+    {
+        const auto& godRays = _frameEnvironment->GodRays;
+        if (!godRays.IsDrawn)
+            return;
+
+        // The underwater shafts draw without cloud layers, which then read as transparent.
+        const auto& sceneDesc = _sceneTarget->GetDesc();
+        if (_cloudTargets[0] == nullptr && !EnsureCloudTargets(commandBuffer, std::max(sceneDesc.Width / 4, 1), std::max(sceneDesc.Height / 4, 1)))
+            return;
+
+        auto desc = TextureDesc{};
+        desc.Width = std::max(sceneDesc.Width / 2, 1);
+        desc.Height = std::max(sceneDesc.Height / 2, 1);
+        desc.Format = PixelFormat::R11G11B10Float;
+        desc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler;
+        desc.Name = "Sky.HorizonMask";
+        auto* maskTarget = _targetPool.Acquire(desc);
+        desc.Name = "Sky.GodRays";
+        auto* rayTarget = _targetPool.Acquire(desc);
+        auto* sceneCopy = _targetPool.Acquire(sceneDesc);
+        if (maskTarget != nullptr && rayTarget != nullptr && sceneCopy != nullptr)
+        {
+            commandBuffer.PushDebugGroup("God rays");
+            commandBuffer.BlitTexture(_sceneTarget.get(), sceneCopy);
+
+            auto colorTarget = ColorTargetInfo{};
+            colorTarget.Texture = maskTarget;
+            auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
+            DrawHorizonMeshes(commandBuffer, *renderPass, *_frameView, _frameEnvironment->InterpolationFactor, 0, true);
+            commandBuffer.EndRenderPass();
+
+            commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &godRays.Uniforms, sizeof(godRays.Uniforms));
+            colorTarget.Texture = rayTarget;
+            renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
+            renderPass->BindPipeline(_godRayPipeline.get());
+
+            TextureSamplerBinding bindings[4] =
+            {
+                { _cloudTargets[0].get(), _linearClampSampler.get() },
+                { _cloudTargets[1].get(), _linearClampSampler.get() },
+                { maskTarget, _linearClampSampler.get() },
+                { sceneCopy, _linearClampSampler.get() }
+            };
+            renderPass->BindPixelSamplers(0, bindings, 4);
+            _frameStats.DrawCalls++;
+            renderPass->Draw(3, 1, 0, 0);
+            commandBuffer.EndRenderPass();
+
+            colorTarget.Texture = _sceneTarget.get();
+            colorTarget.Load = LoadOp::Load;
+            renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
+            DrawFullscreen(*renderPass, _godRayCompositePipeline.get(), TextureSamplerBinding{ rayTarget, _linearClampSampler.get() });
+            commandBuffer.EndRenderPass();
+            commandBuffer.PopDebugGroup();
+        }
+
+        _targetPool.Release(maskTarget);
+        _targetPool.Release(rayTarget);
+        _targetPool.Release(sceneCopy);
+    }
+
     // Scene target with the depth of the prepass, which the sky pipelines neither test nor write.
     IRenderPass* NextRenderer::BeginSkyRenderPass(ICommandBuffer& commandBuffer, LoadOp load)
     {
@@ -278,5 +370,7 @@ namespace TEN::Renderer::Next
 
         if (HasCloudDraws(true))
             DrawCloudLayers(commandBuffer, true);
+
+        DrawGodRays(commandBuffer);
     }
 }

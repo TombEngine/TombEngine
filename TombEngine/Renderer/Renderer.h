@@ -307,6 +307,7 @@ namespace TEN::Renderer
 		RendererSpriteToDraw								   _nextSunSprite  = {}; // Classic sun sprite passed to the next renderer.
 		std::vector<Next::CloudLayerDraw>					   _nextCloudDraws = {}; // Cloud layer draws of the frame, replayed by the next renderer.
 		Next::SkyEffectFlags								   _nextSkyEffects = {}; // Atmospheric sky passes of the frame, replayed by the next renderer.
+		Next::GodRayDraw									   _nextGodRays    = {}; // God rays of the frame, replayed by the next renderer.
 
 		Matrix _playerWorldMatrix;
 

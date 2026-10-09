@@ -2358,6 +2358,7 @@ namespace TEN::Renderer
 			environment.CloudNoise = Next::CloudNoiseData{ _cloudNoiseTextures.Noise3DData.data(), _cloudNoiseTextures.Noise3DResolution, _cloudNoiseTextures.Worley2DData.data(), _cloudNoiseTextures.Worley2DResolution };
 
 			environment.SkyEffects = _nextSkyEffects;
+			environment.GodRays = _nextGodRays;
 			if (_nextSkyEffects.IsDomeDrawn || _nextSkyEffects.IsSunMoonDiscDrawn || _nextSkyEffects.IsAuroraDrawn)
 			{
 				environment.AtmosphericSkyUniforms = &_stAtmosphericSky;
@@ -3263,6 +3264,7 @@ namespace TEN::Renderer
 		{
 			_nextCloudDraws.clear();
 			_nextSkyEffects = {};
+			_nextGodRays = {};
 		}
 
 		bool anyOutsideRooms = false;

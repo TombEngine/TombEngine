@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Renderer/ConstantBuffers/GodRayBuffer.h"
 #include "Renderer/ConstantBuffers/VolumetricCloudBuffer.h"
 
 // Sky effect draws that the legacy renderer records and the next renderer replays.
@@ -27,6 +28,13 @@ namespace TEN::Renderer::Next
         bool IsSunMoonDiscDrawn     = false;
         bool IsAuroraDrawn          = false;
         bool IsAuroraHalfResolution = false; // Low sky quality: the aurora is drawn at half resolution and upscaled.
+    };
+
+    // God rays of the legacy DrawGodRays, drawn after the sky when IsDrawn is set.
+    struct GodRayDraw
+    {
+        bool                           IsDrawn  = false;
+        ConstantBuffers::CGodRayBuffer Uniforms = {};
     };
 
     // Tileable cloud noise generated once by the legacy renderer: 3D RGBA8 noise and 2D RG8 Worley noise.

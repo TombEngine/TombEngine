@@ -114,6 +114,11 @@ namespace TEN::Renderer::Next
         _debrisVertexBuffer = {};
         _debrisInstanceBuffer = {};
         _debugVertexBuffer = {};
+        _godRayPipeline = nullptr;
+        _godRayCompositePipeline = nullptr;
+        _godRayVertexShader = nullptr;
+        _godRayPixelShader = nullptr;
+        _godRayCompositePixelShader = nullptr;
         _cloudRaymarchPipeline = nullptr;
         _cloudCompositePipeline = nullptr;
         _cloudVertexShader = nullptr;
@@ -142,6 +147,7 @@ namespace TEN::Renderer::Next
         _skyIndexBuffer = nullptr;
         _skyVertexShader = nullptr;
         _skyPixelShader = nullptr;
+        _horizonMaskPixelShader = nullptr;
         _objectsShadowPixelShader = nullptr;
         _shadowMap = nullptr;
         _dummyShadowMap = nullptr;
@@ -359,12 +365,13 @@ namespace TEN::Renderer::Next
 
         _skyVertexShader = LoadShader(*_device, _shaderDirectory, "Sky", "VS");
         _skyPixelShader = LoadShader(*_device, _shaderDirectory, "Sky", "PS");
-        if (_skyVertexShader == nullptr || _skyPixelShader == nullptr || !CreateSkyGeometry())
+        _horizonMaskPixelShader = LoadShader(*_device, _shaderDirectory, "Sky", "PSHorizonMask");
+        if (_skyVertexShader == nullptr || _skyPixelShader == nullptr || _horizonMaskPixelShader == nullptr || !CreateSkyGeometry())
             return false;
 
         if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources() || !CreateDOFResources() || !CreateSMAAResources() ||
             !CreateSkyReflectionResources() || !CreateAtmosphereResources() || !CreateOverlayResources(TEN::Renderer::Utils::GetAssetPath("Textures/Font.spritefont")) ||
-            !CreateDebugPrimitiveResources() || !CreateCloudResources())
+            !CreateDebugPrimitiveResources() || !CreateCloudResources() || !CreateGodRayResources())
             return false;
 
         if (!LoadNoAlphaTestShaders())
@@ -553,8 +560,9 @@ namespace TEN::Renderer::Next
             return pipeline.get();
 
         bool isObjects = (shader == SceneShader::Objects || shader == SceneShader::ObjectsPrepass);
+        bool isHorizonMask = (shader == SceneShader::SkyHorizonMask);
         bool isParaboloid = (shader == SceneShader::SkyParaboloid);
-        bool isSky = (shader == SceneShader::Sky) || isParaboloid;
+        bool isSky = (shader == SceneShader::Sky) || isParaboloid || isHorizonMask;
         bool isSprites = (shader == SceneShader::Sprites);
         bool isPrepass = (shader == SceneShader::RoomsPrepass || shader == SceneShader::ObjectsPrepass);
         bool isShadow = (shader == SceneShader::ObjectsShadow);
@@ -567,17 +575,17 @@ namespace TEN::Renderer::Next
         {
             _roomsVertexShader.get(), _objectsVertexShader.get(), _skyVertexShader.get(), _spritesVertexShader.get(),
             _roomsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(),
-            _skyVertexShader.get(), _inventoryVertexShader.get()
+            _skyVertexShader.get(), _inventoryVertexShader.get(), _skyVertexShader.get()
         };
         IShader* pixelShaders[(int)SceneShader::Count] =
         {
             _roomsPixelShader.get(), _objectsPixelShader.get(), _skyPixelShader.get(), _spritesPixelShader.get(),
             _roomsPrepassPixelShader.get(), _objectsPrepassPixelShader.get(), _objectsShadowPixelShader.get(), _objectsPixelShader.get(), _objectsPixelShader.get(),
-            _skyPixelShader.get(), _inventoryPixelShader.get()
+            _skyPixelShader.get(), _inventoryPixelShader.get(), _horizonMaskPixelShader.get()
         };
         const char* names[(int)SceneShader::Count] =
         {
-            "Rooms", "Objects", "Sky", "Sprites", "RoomsPrepass", "ObjectsPrepass", "ObjectsShadow", "ObjectsDebris", "ObjectsMirrored", "SkyParaboloid", "Inventory"
+            "Rooms", "Objects", "Sky", "Sprites", "RoomsPrepass", "ObjectsPrepass", "ObjectsShadow", "ObjectsDebris", "ObjectsMirrored", "SkyParaboloid", "Inventory", "SkyHorizonMask"
         };
 
         auto desc = GraphicsPipelineDesc{};
@@ -625,7 +633,8 @@ namespace TEN::Renderer::Next
 
         // The prepass writes view normals and emissive, the inventory color and emissive.
         desc.NumColorTargets = (isPrepass || isInventory) ? 2 : 1;
-        desc.ColorTargets[0].Format = (isPrepass || isParaboloid) ? PixelFormat::RGBA8Unorm : (isShadow ? PixelFormat::R32Float : _device->GetSwapchainFormat());
+        desc.ColorTargets[0].Format = (isPrepass || isParaboloid) ? PixelFormat::RGBA8Unorm :
+            (isShadow ? PixelFormat::R32Float : (isHorizonMask ? PixelFormat::R11G11B10Float : _device->GetSwapchainFormat()));
         desc.ColorTargets[0].Blend = GetBlendState((isPrepass || isShadow) ? BlendMode::Opaque : (BlendMode)modeIndex);
         desc.ColorTargets[1].Format = PixelFormat::RGBA8Unorm;
         desc.ColorTargets[1].Blend = GetBlendState(BlendMode::Opaque);
@@ -642,7 +651,7 @@ namespace TEN::Renderer::Next
             desc.DepthStencil.DepthCompare = CompareOp::Equal;
         }
 
-        desc.DepthFormat = (isDistortion || isParaboloid) ? PixelFormat::Unknown : PixelFormat::D32Float;
+        desc.DepthFormat = (isDistortion || isParaboloid || isHorizonMask) ? PixelFormat::Unknown : PixelFormat::D32Float;
         desc.Name = std::string(names[(int)shader]) + ".BlendMode" + std::to_string(modeIndex) + ((variant == 0) ? ".NoAlphaTest" : "");
 
         pipeline = _device->CreateGraphicsPipeline(desc);
@@ -2217,14 +2226,18 @@ namespace TEN::Renderer::Next
     // Sun sprite and horizon meshes: what the legacy renderer draws after the clouds, sun and moon discs and aurora.
     void NextRenderer::DrawSkyHorizons(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere)
     {
-        bool isParaboloid = (hemisphere != 0);
-        auto shader = isParaboloid ? SceneShader::SkyParaboloid : SceneShader::Sky;
-        IBuffer* storageBuffers[2] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get() };
-
-        if (!isParaboloid)
+        if (hemisphere == 0)
             DrawSkySprites(commandBuffer, renderPass, _skySunDraws);
 
-        // Horizon meshes.
+        DrawHorizonMeshes(commandBuffer, renderPass, view, interpolationFactor, hemisphere, false);
+    }
+
+    // Horizon meshes of the level. The god ray mask draws them opaque and without fog bulbs, as a silhouette.
+    void NextRenderer::DrawHorizonMeshes(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere, bool isMask)
+    {
+        auto shader = isMask ? SceneShader::SkyHorizonMask : ((hemisphere != 0) ? SceneShader::SkyParaboloid : SceneShader::Sky);
+        IBuffer* storageBuffers[2] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get() };
+
         auto* level = g_GameFlow->GetLevel(CurrentLevel);
         for (int layer = 0; layer < 2; layer++)
         {
@@ -2239,9 +2252,9 @@ namespace TEN::Renderer::Next
             auto position = Vector3::Lerp(level->GetHorizonPrevPosition(layer), level->GetHorizonPosition(layer), interpolationFactor);
             auto orientation = EulerAngles::Lerp(level->GetHorizonPrevOrientation(layer), level->GetHorizonOrientation(layer), interpolationFactor);
             auto world = orientation.ToRotationMatrix() * Matrix::CreateTranslation(position) * Matrix::CreateTranslation(view.Camera.WorldPosition);
-            auto color = Vector4(1.0f, 1.0f, 1.0f, alpha);
+            auto color = Vector4(1.0f, 1.0f, 1.0f, isMask ? 1.0f : alpha);
 
-            auto skyUniforms = GetSkyVertexUniforms(world, true, view, hemisphere);
+            auto skyUniforms = GetSkyVertexUniforms(world, !isMask, view, hemisphere);
             commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 2, &skyUniforms, sizeof(skyUniforms));
             commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &color, sizeof(color));
 
@@ -2257,7 +2270,7 @@ namespace TEN::Renderer::Next
 
                     // Horizons always blend; alpha test buckets blend as alpha.
                     auto blendMode = (bucket.BlendMode == BlendMode::AlphaTest || bucket.BlendMode == BlendMode::Opaque) ? BlendMode::AlphaBlend : bucket.BlendMode;
-                    renderPass.BindPipeline(GetScenePipeline(shader, blendMode));
+                    renderPass.BindPipeline(GetScenePipeline(shader, isMask ? BlendMode::Opaque : blendMode));
                     renderPass.BindVertexStorageBuffers(0, storageBuffers, 2);
 
                     int animatedSet = bucket.Animated ? bucket.Texture : NO_VALUE;

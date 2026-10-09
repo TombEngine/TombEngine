@@ -6,7 +6,11 @@
 #ifndef CB_GOD_RAY_HLSLI
 #define CB_GOD_RAY_HLSLI
 
+#ifdef TEN_GOD_RAY_BLOCK
+TEN_GOD_RAY_BLOCK
+#else
 cbuffer CBGodRay : register(b12)
+#endif
 {
     // Row 0 — Sun position and ray parameters
     float2 GodRaySunScreenPos;    // Projected sun UV [0,1]x[0,1].
