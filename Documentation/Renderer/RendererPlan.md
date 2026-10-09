@@ -316,8 +316,8 @@ Il renderer nuovo gira in una seconda finestra accanto a quello vecchio, sugli s
 - [x] Soft particle, sprite laser, detriti, vampate delle armi, oggetti skinned diversi dal giocatore.
 - [x] Specchi: giocatore, moveable, statiche, effetti mesh, sprite e facce ordinate riflessi con culling invertito.
 - [x] Stelle, meteore e sprite del sole del cielo classico (helper condivisi col legacy).
-- [x] Cupola del cielo atmosferico (stesso blocco uniform del legacy). Il legacy non la disegna nel test di benchmark: da verificare.
-- [ ] Nuvole volumetriche, aurora, disco di sole e luna, god rays, tempesta di sabbia, cielo subacqueo (Tomo).
+- [x] Cupola del cielo atmosferico (stesso blocco uniform del legacy). *(verificata: il nero del legacy nel test veniva da binari vecchi nella cache `Shaders/Bin`, che il legacy ricompila solo se cambia il `.hlsl` e non gli `.hlsli` inclusi)*
+- [x] Nuvole volumetriche, aurora, disco di sole e luna, god rays, tempesta di sabbia, cielo subacqueo. *(il cielo ha un pass suo prima della scena; gli shader del legacy sono divisi in un core `.hlsli` condiviso dai due renderer; il legacy registra uniform e flag dei suoi draw (`SkyTypes.h`) e il renderer nuovo li ripete, cosi' lo stato animato resta uno solo; la maschera outdoor della tempesta e' l'alpha delle normali del prepass; stelle e meteore coperte da nuvole e luna. Non riprodotto un difetto del legacy: il bleed overlay sopra gli orizzonti legge una texture di cronologia rimasta legata, opzione a 0 in tutti i preset)*
 - [x] Materiali: normal map, ORSH, emissive, parallax, specular e sheen.
 - [x] SSAO a mezza risoluzione con prepass depth + normali.
 - [x] Ombre (cubemap della luce ombreggiante in 6 layer R32F, PCF 5x5) e ombre blob.
@@ -346,7 +346,7 @@ Il renderer nuovo gira in una seconda finestra accanto a quello vecchio, sugli s
 
 - [x] Texture array con pagine di dimensioni diverse: array separati per dimensione o padding (dipende dai livelli reali, da misurare). *(scelto: array separati per dimensione e formato)*
 - [x] Normale di faccia nel vertice o in un buffer per poligono. *(scelto: resta nel vertice, il vertice compresso e' 40 B per le stanze e 48 B per gli oggetti; un buffer per poligono richiede `SV_PrimitiveID` e un indice per draw, per 4 B per vertice)*
-- [ ] Coordinamento con Tomo sul porting di cielo e nuvole.
+- [x] Coordinamento con Tomo sul porting di cielo e nuvole. *(portati senza attendere, su richiesta; il codice del cielo legacy resta il riferimento e gli shader sono condivisi, quindi le modifiche di Tomo valgono per entrambi i renderer)*
 - [x] Dipendenze nuove (DXC dal Vulkan SDK, solo per la build): licenze e dimensione della distribuzione. *(DXC serve solo alla build per lo SPIR-V, licenza NCSA/MIT; la distribuzione contiene solo i binari degli shader. Per le schermate di caricamento in JPEG il renderer nuovo usa `stb_image` (pubblico dominio, `Libs/stb`), solo per i JPEG)*
 
 ---
