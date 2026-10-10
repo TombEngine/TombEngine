@@ -54,6 +54,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Removed [FIRE_PENDULUM](https://tombengine.com/asset/traps/fire-pendulum/) fog effect if OCB value is 0.
 
 ### Bug fixes
+
 * Fixed original bug with bridge objects blocking monkeyswing and ladder flags in the bottom room.
 * Fixed original bug with inactive SQUISHY_BLOCK_VERTICAL killing player.
 * Fixed incorrect application of LARA_DOUBLE damage after using medipacks.
@@ -85,8 +86,10 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed interaction highlighter appearing for underwater pushable objects.
 * Fixed clipping into underwater pushable objects while swimming upwards from the bottom.
 * Fixed running jumps being stopped when platforming near steep slopes.
+* Fixed incorrect slide directions and projectile physics around steep slopes.
 * Fixed pickup of underwater items in vertically narrow passages.
 * Fixed pickup of items placed on a pedestal (OCB 4) while Lara is underwater.
+* Fixed pickups taking priority over binocular mode.
 * Fixed flares being selected from inventory whilst riding the kayak.
 * Fixed kayak paddle and minecart wrench not being drawn when starting a level.
 * Fixed slow turning on parallel bars while holding the left or right key.
@@ -148,6 +151,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Moveable:GetProperty`, `Moveable:SetProperty` and `Moveable:HasInstanceProperty` functions.
 * Added `Static:GetProperty`, `Static:SetProperty` and `Static:HasInstanceProperty` functions.
 * Added `CustomDiary:UnlockPage` function to unlock individual pages in the order the function is called. The unlock mode is detected automatically on the first unlock call.
+* Added optional `area` parameter for text entries in the `CustomDiary` module to enable automatic word wrapping.
 * Updated `EmitLight()`, `EmitSpotLight()` and `EmitFogBulb()` to accept fractional values, allowing smooth scaling of radius/falloff/distance.
 * Removed `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
 * Renamed `ENTER`, `INSIDE` and `LEAVE` entries in `Logic.EventType` enum to `VOLUME_ENTER`, `VOLUME_INSIDE` and `VOLUME_LEAVE`.
@@ -158,7 +162,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed `View.DisplayString` not working in the title level.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 * Fixed notification display bug in `CustomDiary` class.
-* Added optional `area` parameter for text entries in the `CustomDiary` module to enable automatic word wrapping.
 
 ## [Version 1.11.1]
 
