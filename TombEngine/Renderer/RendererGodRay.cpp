@@ -37,31 +37,6 @@ namespace TEN::Renderer
 	// Initialization
 	// ========================================================================
 
-	void Renderer::InitializeGodRays()
-	{
-		_cbGodRay = CreateConstantBuffer<CGodRayBuffer>();
-
-		int w = std::max(1, (int)(_graphicsDevice->GetScreenWidth()  * GOD_RAY_RESOLUTION_SCALE));
-		int h = std::max(1, (int)(_graphicsDevice->GetScreenHeight() * GOD_RAY_RESOLUTION_SCALE));
-
-		SAFE_DELETE(_godRayRenderTarget);
-		SAFE_DELETE(_horizonMaskRenderTarget);
-
-		_godRayRenderTarget = _graphicsDevice->CreateRenderSurface2D(
-			w, h,
-			SurfaceFormat::SF_R11G11B10_Float,   // Lightweight HDR, no alpha needed.
-			false,
-			DepthFormat::None);
-
-		// Binary horizon silhouette mask (1=opaque horizon, 0=sky/transparent).
-		// Same resolution as the god ray RT so PSGodRay can sample it in the march loop.
-		_horizonMaskRenderTarget = _graphicsDevice->CreateRenderSurface2D(
-			w, h,
-			SurfaceFormat::SF_R11G11B10_Float,
-			false,
-			DepthFormat::None);
-	}
-
 	// ========================================================================
 	// Auto-strength computation
 	// ========================================================================
@@ -309,8 +284,8 @@ namespace TEN::Renderer
 		_stGodRay.SunColor      = rayColor;
 		_stGodRay.Softness      = raySoftness;
 
-		_stGodRay.ViewSize      = Vector2((float)_graphicsDevice->GetScreenWidth(), (float)_graphicsDevice->GetScreenHeight());
-		_stGodRay.InvViewSize   = Vector2(1.0f / (float)_graphicsDevice->GetScreenWidth(), 1.0f / (float)_graphicsDevice->GetScreenHeight());
+		_stGodRay.ViewSize      = Vector2((float)_screenWidth, (float)_screenHeight);
+		_stGodRay.InvViewSize   = Vector2(1.0f / (float)_screenWidth, 1.0f / (float)_screenHeight);
 
 		// Underwater shaft mode: when the underwater sky is visible, drive the god
 		// ray shader with a procedural wave mask instead of the (empty) cloud RT.
@@ -348,7 +323,6 @@ namespace TEN::Renderer
 			_stGodRay.UnderwaterSampleCount     = 8;
 		}
 
-		UpdateConstantBuffer(&_stGodRay, _cbGodRay.get());
 	}
 
 	// ========================================================================

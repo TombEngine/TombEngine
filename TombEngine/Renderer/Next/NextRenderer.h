@@ -3,6 +3,7 @@
 #include <mutex>
 
 #include "Objects/game_object_ids.h"
+#include "Renderer/Font.h"
 #include "Renderer/Frustum.h"
 #include "Renderer/Graphics/Vertices/Vertex.h"
 #include "Renderer/Next/DrawSort.h"
@@ -90,6 +91,7 @@ namespace TEN::Renderer::Next
         int                                  VideoWidth  = 0;
         int                                  VideoHeight = 0;
         const Structures::RendererSprite*    VideoSprite = nullptr; // Legacy sprite of particles showing the video.
+        const Structures::RendererSprite*    WhiteSprite = nullptr; // Sprite of the colored quads, drawn untextured.
 
         // Uniform block of the legacy atmospheric sky dome (CAtmosphericSkyBuffer), null when the dome is disabled.
         const void*  AtmosphericSkyUniforms     = nullptr;
@@ -561,25 +563,11 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IGraphicsPipeline> _auroraUpscalePipeline      = nullptr;
         const void*                             _atmosphericSkyUniforms     = nullptr;
 
-        // Same layout as the glyphs of a DirectXTK .spritefont file.
-        struct FontGlyph
-        {
-            unsigned int Character = 0;
-            int          Left      = 0;
-            int          Top       = 0;
-            int          Right     = 0;
-            int          Bottom    = 0;
-            float        XOffset   = 0.0f;
-            float        YOffset   = 0.0f;
-            float        XAdvance  = 0.0f;
-        };
-
+        // Glyphs of the game font and their texture.
         struct FontData
         {
-            std::unordered_map<unsigned int, FontGlyph> Glyphs           = {};
-            float                                        LineSpacing      = 0.0f;
-            unsigned int                                 DefaultCharacter = 0;
-            std::unique_ptr<RHI::ITexture>               Texture          = nullptr;
+            Font                           Metrics = {};
+            std::unique_ptr<RHI::ITexture> Texture = nullptr;
         };
 
         // Debug line and triangle vertex in world space.
@@ -696,6 +684,7 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::ITexture>    _videoArrayTexture = nullptr; // Copy of the video frame as a one layer array, bound in place of animated pages.
         bool                              _isVideoActive = false;
         const Structures::RendererSprite* _videoSprite   = nullptr;
+        const Structures::RendererSprite* _whiteSprite   = nullptr;
         RHI::UploadRing                   _uploadRing    = {}; // Per-frame uploads of every copy pass.
         RHI::TextureReadback              _readback      = {}; // Screenshots, written when the GPU has rendered them.
 

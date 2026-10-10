@@ -204,7 +204,6 @@ void InitDefaultConfiguration()
 	g_Configuration.Bindings = {};
 
 	g_Configuration.SupportedScreenResolutions = GetAllSupportedScreenResolutions();
-	g_Configuration.AdapterName = g_Renderer.GetDefaultAdapterName();
 
 	g_Configuration.SupportedSoundDevices = Sound_ListDevices();
 }

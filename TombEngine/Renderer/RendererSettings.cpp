@@ -3,60 +3,42 @@
 
 #include <filesystem>
 
+#include "Renderer/Next/TextureLoader.h"
 #include "Specific/EngineMain.h"
 
 namespace TEN::Renderer 
 {
 	void Renderer::ChangeScreenResolution(int width, int height, bool windowed, bool resyncWindow)
 	{
-		_graphicsDevice->UnbindAllRenderTargets();
-		_graphicsDevice->Flush();
-		_graphicsDevice->ClearState();
-		_graphicsDevice->ResizeSwapChain(width, height);
-
 		_isWindowed = windowed;
-
 		InitializeScreen(width, height, true, resyncWindow);
-
-		// Recreate resolution-dependent render targets that are NOT owned by InitializeScreen.
-		// These were allocated at startup with the old screen dimensions and must be resized
-		// so that subsequent draw passes use correctly-sized buffers.
-		InitializeAtmosphericSky();       // recreates _auroraHalfResRenderTarget at new half-res
-		InitializeGodRays();              // recreates _godRayRenderTarget at new half-res
-		ResizeVolumetricCloudTargets();   // recreates _cloudRenderTarget / _cloudOcclusionTarget (layer A)
-		ResizeDualCloudTargets();         // recreates _cloudRenderTargetB / _cloudOcclusionTargetB (layer B)
 	}
 
-	std::string Renderer::GetDefaultAdapterName()
+	// Image files are decoded by the next renderer; only their size is read here, for layouts.
+	RendererImage Renderer::LoadImage(const std::string& path)
 	{
-		return _graphicsDevice->GetDefaultAdapterName();
-	}
+		auto image = RendererImage{};
+		if (path.empty())
+			return image;
 
-	const AdapterInfo& Renderer::GetAdapterInfo() const
-	{
-		return _adapterInfo;
-	}
-
-	std::unique_ptr<ITexture2D> Renderer::SetTextureOrDefault(std::string path)
-	{
-		std::unique_ptr<ITexture2D> texture;
-
-		if (std::filesystem::is_regular_file(path))
+		if (!std::filesystem::is_regular_file(path))
 		{
-			texture = _graphicsDevice->CreateTexture2DFromFile(path);
-			if (texture != nullptr)
-				_nextImagePaths[texture.get()] = path;
-		}
-		else if (!path.empty()) // Loading default texture without path may be intentional.
-		{
-			texture = _graphicsDevice->CreateTexture2D(1, 1, SurfaceFormat::SF_RGBA8_Unorm, nullptr);
 			TENLog("Texture file not found: " + path, LogLevel::Warning);
-		}
-		else
-		{
-			texture = _graphicsDevice->CreateTexture2D(1, 1, SurfaceFormat::SF_RGBA8_Unorm, nullptr);
+			return image;
 		}
 
-		return texture;
+		auto file = std::ifstream(path, std::ios::binary);
+		auto data = std::vector<unsigned char>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+		auto info = Next::ImageInfo{};
+		if (!Next::ReadImageInfo(data, info))
+		{
+			TENLog("Unsupported image file: " + path, LogLevel::Warning);
+			return image;
+		}
+
+		image.Path = path;
+		image.Width = info.Width;
+		image.Height = info.Height;
+		return image;
 	}
 }

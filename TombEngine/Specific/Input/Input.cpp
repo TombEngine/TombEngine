@@ -689,8 +689,6 @@ namespace TEN::Input
 		if (KeyMap[SDL_SCANCODE_F9] && dbReloadShaders)
 		{
 			g_Renderer.ReloadShaders();
-			if (TEN::Renderer::Next::g_NextRenderer.IsActive())
-				TEN::Renderer::Next::g_NextRenderer.ReloadShaders();
 		}
 
 		dbReloadShaders = !KeyMap[SDL_SCANCODE_F9];

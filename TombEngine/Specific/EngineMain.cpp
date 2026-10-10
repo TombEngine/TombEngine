@@ -294,7 +294,6 @@ int main(int argc, char* argv[])
 	auto rhiTestBackend = std::string();
 	bool isOnLowPowerGpu = false;
 	auto nextBackend = std::string();
-	SDL_Window* legacyWindow = nullptr;
 
 	for (int i = 1; i < argc; ++i)
 	{
@@ -433,7 +432,6 @@ int main(int argc, char* argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	g_Renderer.Create();
 	g_Bindings.Initialize();
 
 	// Load configuration and optionally show setup dialog.
@@ -491,12 +489,9 @@ int main(int argc, char* argv[])
 		Sound_Init(GameDirectory);
 
 		// Initialize renderer.
-		// The next renderer draws the main window; the legacy renderer still prepares every frame in a hidden window.
+		// The next renderer draws the main window from the frames the renderer frontend prepares.
 		if (!StartNextRenderer(sdlWindow, nextBackend, isOnLowPowerGpu))
 			throw std::runtime_error("No renderer backend could be started.");
-
-		legacyWindow = SDL_CreateWindow("TombEngine - legacy renderer", width, height, SDL_WINDOW_HIDDEN);
-		g_Renderer.SetSwapchainWindow(legacyWindow, false);
 
 		g_Renderer.Initialize(GameDirectory, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight, g_Configuration.EnableWindowedMode);
 
@@ -626,9 +621,6 @@ int main(int argc, char* argv[])
 	TEN::Renderer::ImGuiShutdown();
 
 	TEN::Renderer::Next::g_NextRenderer.Shutdown();
-
-	if (legacyWindow != nullptr)
-		SDL_DestroyWindow(legacyWindow);
 
 	SDL_DestroyWindow(sdlWindow);
 	EngineClose();

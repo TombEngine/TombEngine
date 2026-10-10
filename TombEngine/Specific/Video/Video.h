@@ -1,10 +1,8 @@
 #pragma once
 
 #include "Sound/sound.h"
-#include "Renderer/Graphics/IGraphicsDevice.h"
 
 using namespace TEN::Math;
-using namespace TEN::Renderer::Graphics;
 
 namespace TEN::Video
 {
@@ -39,11 +37,9 @@ namespace TEN::Video
 		bool _starting		 = false;
 		bool _deInitializing = false;
 
-		// Renderer Resources
+		// Decoded BGRA8 frame, uploaded by the renderer.
 
-		std::vector<char>			_frameBuffer	= {};
-		std::unique_ptr<ITexture2D>	_videoTexture	= nullptr;
-		IGraphicsDevice*			_device			= nullptr;
+		std::vector<char> _frameBuffer = {};
 
 	public:
 		// Constructors
@@ -73,7 +69,7 @@ namespace TEN::Video
 
 		// Utilties
 
-		void Initialize(const std::string& gameDir, IGraphicsDevice* device);
+		void Initialize(const std::string& gameDir);
 		void DeInitialize();
 		bool Play(const std::string& filename, VideoPlaybackMode mode = VideoPlaybackMode::Exclusive, bool silent = false, bool looped = false);
 		bool Pause();

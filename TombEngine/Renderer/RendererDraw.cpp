@@ -172,8 +172,6 @@ namespace TEN::Renderer
 		if (!Objects[ID_RATS_EMITTER].loaded)
 			return;
 
-		_stObjects.Skinned = (int)SkinningMode::Static;
-
 		for (int i = 0; i < NUM_RATS; i++)
 		{
 			auto* rat = &Rats[i];
@@ -212,8 +210,6 @@ namespace TEN::Renderer
 		if (!Objects[ID_FISH_EMITTER].loaded)
 			return;
 
-		_stObjects.Skinned = (int)SkinningMode::Static;
-
 		for (const auto& fish : FishSwarm)
 		{
 			if (fish.Life <= 0.0f)
@@ -243,8 +239,6 @@ namespace TEN::Renderer
 	void Renderer::DrawParticleGroupMeshes(RenderView& view, RendererPass rendererPass)
 	{
 		using namespace TEN::Effects::ParticleGroups;
-
-		_stObjects.Skinned = (int)SkinningMode::Static;
 
 		for (const auto& group : ParticleGroupList)
 		{
@@ -314,8 +308,6 @@ namespace TEN::Renderer
 		if (!Objects[ID_BATS_EMITTER].loaded)
 			return;
 
-		_stObjects.Skinned = (int)SkinningMode::Static;
-
 		auto& mesh = *GetMesh(Objects[ID_BATS_EMITTER].meshIndex + (GlobalCounter & 3));
 
 		for (const auto& bat : Bats)
@@ -351,8 +343,6 @@ namespace TEN::Renderer
 		if (!Objects[ID_LITTLE_BEETLE].loaded)
 			return;
 
-		_stObjects.Skinned = (int)SkinningMode::Static;
-
 		auto& mesh = *GetMesh(Objects[ID_LITTLE_BEETLE].meshIndex + ((Wibble >> 2) % 2));
 
 		for (const auto& beetle : TEN::Entities::TR4::BeetleSwarm)
@@ -387,8 +377,6 @@ namespace TEN::Renderer
 	{
 		if (!Objects[ID_LOCUSTS].loaded)
 			return;
-
-		_stObjects.Skinned = (int)SkinningMode::Static;
 
 		auto* obj = &Objects[ID_LOCUSTS];
 		auto& moveableObj = *_moveableObjects[ID_LOCUSTS];
@@ -1001,7 +989,7 @@ namespace TEN::Renderer
 
 	// CPU frontend of the frame: culls the view, updates animations, lights, sprites, sky effects and sorted faces,
 	// records the HUD and 2D layer, and passes everything to the next renderer.
-	void Renderer::RenderScene(IRenderSurface2D* renderTarget, RenderView& view, SceneRenderMode renderMode)
+	void Renderer::RenderScene(RenderView& view, SceneRenderMode renderMode)
 	{
 		using ns = std::chrono::nanoseconds;
 		using ms = std::chrono::duration<float, std::milli>;
@@ -1180,7 +1168,8 @@ namespace TEN::Renderer
 
 		// Background video, shown by video animated sets and sprites while it plays.
 		environment.VideoSprite = &_videoSprite;
-		if (_videoSprite.Texture != nullptr && _videoSprite.Texture->IsValid())
+		environment.WhiteSprite = &_whiteSprite;
+		if (IsVideoSpriteActive())
 		{
 			auto videoSize = TEN::Video::g_VideoPlayer.GetFrameSize();
 			environment.VideoFrame = (const unsigned char*)TEN::Video::g_VideoPlayer.GetFrameData();
@@ -1241,18 +1230,11 @@ namespace TEN::Renderer
 		Next::g_NextRenderer.RenderFrame(view, environment);
 	}
 
-	void Renderer::RenderSimpleSceneToParaboloid(IRenderTarget2D* renderTarget, Vector3 position, int hemisphere)
+	// Exclusive video playback: the current frame of the video handler over the whole screen.
+	void Renderer::RenderVideoFrame(float aspect)
 	{
-		// TODO: Update the horizon draw code here once paraboloids are required. TrainWreck Feb 2, 2025.
-	}
-
-	void Renderer::RenderFullScreenTexture(ITextureBase* texture, float aspect)
-	{
-		if (texture == nullptr)
-			return;
-
-		// Draw full screen background.
-		DrawFullScreenQuad(texture, Vector3::One, true, aspect);
+		auto video = RendererImage{ Next::OVERLAY_VIDEO_PATH, _videoSprite.Width, _videoSprite.Height };
+		DrawFullScreenQuad(video, Vector3::One, true, aspect);
 
 		ClearScene();
 
@@ -1265,7 +1247,7 @@ namespace TEN::Renderer
 		if (blur > EPSILON)
 			SetDOF({ DOFMode::Full, 0, 0, blur }, false);
 
-		RenderScene(_dumpScreenRenderTarget.get(), _gameCamera, renderMode);
+		RenderScene(_gameCamera, renderMode);
 
 		if (blur > EPSILON)
 			RestoreDOF();
@@ -1336,9 +1318,7 @@ namespace TEN::Renderer
 
 	void Renderer::DrawStatics(RenderView& view, RendererPass rendererPass)
 	{
-		_stObjects.Skinned = (int)SkinningMode::Static;
-
-		if (_staticTextures.size() == 0 || view.SortedStaticsToDraw.size() == 0)
+		if (view.SortedStaticsToDraw.empty())
 			return;
 
 		// Collect sorted blend modes faces ordered by room if doing transparent pass.
@@ -1516,7 +1496,7 @@ namespace TEN::Renderer
 
 		InterpolateCamera(interpFactor);
 
-		RenderScene(_backBuffer.get(), _gameCamera);
+		RenderScene(_gameCamera);
 
 		// ImGui debug window, shown while a debug page is active. Drawn after RenderScene, so it is on top, and before Present.
 		ImGuiSetOverlayVisible(DebugMode && _debugPage != RendererDebugPage::None);
@@ -1547,16 +1527,12 @@ namespace TEN::Renderer
 	}
 
 	// Image files drawn by the 2D layer; other textures (render targets, generated ones) have no file and are skipped.
-	void Renderer::AddNextUiImage(const ITextureBase* texture, const Vector2& min, const Vector2& max, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color, BlendMode blendMode)
+	void Renderer::AddNextUiImage(const std::string& path, const Vector2& min, const Vector2& max, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color, BlendMode blendMode)
 	{
-		if (!Next::g_NextRenderer.IsActive())
+		if (path.empty())
 			return;
 
-		auto it = _nextImagePaths.find(texture);
-		if (it == _nextImagePaths.end())
-			return;
-
-		_nextUi.Images.push_back(Next::OverlayImage{ it->second, min, max, uvMin, uvMax, color, blendMode });
+		_nextUi.Images.push_back(Next::OverlayImage{ path, min, max, uvMin, uvMax, color, blendMode });
 		AddNextUiLayer(Next::OverlayLayerType::Images, (int)_nextUi.Images.size() - 1);
 	}
 
@@ -1594,7 +1570,7 @@ namespace TEN::Renderer
 			_nextUi.ScreenHeight = screenResolution.y;
 			_nextUi.Gamma = g_Configuration.Gamma;
 			_nextUi.AntialiasingMode = (int)g_Configuration.AntialiasingMode;
-			if (_videoSprite.Texture != nullptr && _videoSprite.Texture->IsValid())
+			if (IsVideoSpriteActive())
 			{
 				auto videoSize = TEN::Video::g_VideoPlayer.GetFrameSize();
 				_nextUi.VideoFrame = (const unsigned char*)TEN::Video::g_VideoPlayer.GetFrameData();

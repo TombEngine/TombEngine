@@ -103,7 +103,7 @@ namespace TEN::Renderer
 		AddStatRow("Control phase time", "%d", ControlPhaseTime);
 		AddStatRow("Legacy frame time", "%d ms", _timeFrame);
 		AddStatRow("Legacy adapter", "%s", g_Configuration.AdapterName.c_str());
-		AddStatRow("Screen resolution", "%d x %d", _graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
+		AddStatRow("Screen resolution", "%d x %d", _screenWidth, _screenHeight);
 		AddStatRow("Windowed", YesNo(g_Configuration.EnableWindowedMode));
 		constexpr const char* ANTIALIASING_NAMES[] = { "none", "low (FXAA)", "medium (SMAA)", "high (SMAA)" };
 		constexpr const char* SHADOW_NAMES[] = { "none", "player", "all" };

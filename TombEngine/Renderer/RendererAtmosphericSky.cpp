@@ -37,18 +37,6 @@ namespace TEN::Renderer
 	// Initialization
 	// ========================================================================
 
-	void Renderer::InitializeAtmosphericSky()
-	{
-		_cbAtmosphericSky = CreateConstantBuffer<CAtmosphericSkyBuffer>();
-
-		int w = std::max(1, _graphicsDevice->GetScreenWidth()  / 2);
-		int h = std::max(1, _graphicsDevice->GetScreenHeight() / 2);
-
-		SAFE_DELETE(_auroraHalfResRenderTarget);
-		_auroraHalfResRenderTarget = _graphicsDevice->CreateRenderSurface2D(
-			w, h, SurfaceFormat::SF_RGBA16_Float, false, DepthFormat::None);
-	}
-
 	// ========================================================================
 	// Day/night blend computation
 	// ========================================================================
@@ -207,8 +195,8 @@ namespace TEN::Renderer
 		_stAtmosphericSky.TwilightOffset        = settings.TwilightOffset;
 		_stAtmosphericSky.NightBlendSpeed       = settings.NightBlendSpeed;
 
-		_stAtmosphericSky.ViewSize     = Vector2((float)_graphicsDevice->GetScreenWidth(), (float)_graphicsDevice->GetScreenHeight());
-		_stAtmosphericSky.InvViewSize  = Vector2(1.0f / (float)_graphicsDevice->GetScreenWidth(), 1.0f / (float)_graphicsDevice->GetScreenHeight());
+		_stAtmosphericSky.ViewSize     = Vector2((float)_screenWidth, (float)_screenHeight);
+		_stAtmosphericSky.InvViewSize  = Vector2(1.0f / (float)_screenWidth, 1.0f / (float)_screenHeight);
 
 		_stAtmosphericSky.SunElevationRampSpeed = settings.SunElevationRampSpeed;
 		_stAtmosphericSky.SunWarmInfluence      = settings.SunWarmInfluence;
@@ -365,7 +353,6 @@ namespace TEN::Renderer
 			_stAtmosphericSky.UnderwaterShaftSharpness  = uw.ShaftSharpness;
 		}
 
-		UpdateConstantBuffer(&_stAtmosphericSky, _cbAtmosphericSky.get());
 	}
 
 	// ========================================================================

@@ -38,68 +38,8 @@ namespace TEN::Renderer
 
 	void Renderer::InitializeVolumetricClouds()
 	{
-		// Create the constant buffer.
-		_cbVolumetricCloud = CreateConstantBuffer<CVolumetricCloudBuffer>();
-
-		// Render targets are created/resized in ResizeVolumetricCloudTargets().
-		ResizeVolumetricCloudTargets();
-
 		// Generate tileable 3D/2D noise textures for the cloud shader.
-		_cloudNoiseTextures.Initialize(_graphicsDevice.get());
-
-		// Initialize dual volumetric cloud layer B targets.
-		InitializeDualVolumetricClouds();
-	}
-
-	void Renderer::ResizeVolumetricCloudTargets()
-	{
-		// Determine cloud render resolution based on current quality settings.
-		float scale = _cloudState.ActiveQuality.RenderResolutionScale;
-		int w = std::max(1, (int)(_graphicsDevice->GetScreenWidth() * scale));
-		int h = std::max(1, (int)(_graphicsDevice->GetScreenHeight() * scale));
-
-		// Release previous targets/buffers before recreation.
-		SAFE_DELETE(_cloudRenderTarget);
-		SAFE_DELETE(_cloudPrevFrameRT);
-		SAFE_DELETE(_cloudOcclusionTarget);
-		SAFE_DELETE(_cloudOcclusionReadback);
-		SAFE_DELETE(_scenePreCloudBackup);
-
-		// Half-res RGBA16F target for cloud color + opacity.
-		_cloudRenderTarget = _graphicsDevice->CreateRenderSurface2D(
-			w, h,
-			SurfaceFormat::SF_RGBA16_Float,
-			false,   // not typeless
-			DepthFormat::None);  // no depth
-
-		// Previous frame's cloud result for temporal checkerboard reprojection.
-		// Same size/format as the main cloud RT; holds last frame's fully-resolved
-		// half-res cloud image so the shader can reuse it for skipped checkerboard pixels.
-		_cloudPrevFrameRT = _graphicsDevice->CreateRenderSurface2D(
-			w, h,
-			SurfaceFormat::SF_RGBA16_Float,
-			false,   // not typeless
-			DepthFormat::None);  // no depth
-
-		// 1x1 target for lens flare occlusion transmittance readback.
-		_cloudOcclusionTarget = _graphicsDevice->CreateRenderSurface2D(
-			1, 1,
-			SurfaceFormat::SF_R16_Float,
-			false,
-			DepthFormat::None);
-
-		// Async readback buffer paired with the occlusion target.
-		_cloudOcclusionReadback = _graphicsDevice->CreateGpuReadbackBuffer(
-			1, 1, SurfaceFormat::SF_R16_Float);
-
-		// Full-res backup of the scene (sky) before cloud compositing.
-		// Needed so the cloud composite shader can read the background
-		// and compute hybrid screen/alpha blending in-shader.
-		_scenePreCloudBackup = _graphicsDevice->CreateRenderSurface2D(
-			_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(),
-			SurfaceFormat::SF_RGBA8_Unorm,
-			false,
-			DepthFormat::None);
+		_cloudNoiseTextures.Initialize();
 	}
 
 	// ========================================================================
@@ -234,8 +174,8 @@ namespace TEN::Renderer
 		_stVolumetricCloud.DebugView          = (int)runtimeState.DebugView;
 
 		float scale = q.RenderResolutionScale;
-		float w = (float)std::max(1, (int)(_graphicsDevice->GetScreenWidth() * scale));
-		float h = (float)std::max(1, (int)(_graphicsDevice->GetScreenHeight() * scale));
+		float w = (float)std::max(1, (int)(_screenWidth * scale));
+		float h = (float)std::max(1, (int)(_screenHeight * scale));
 		_stVolumetricCloud.CloudRenderSize    = Vector2(w, h);
 		_stVolumetricCloud.InvCloudRenderSize = Vector2(1.0f / w, 1.0f / h);
 
@@ -574,7 +514,6 @@ namespace TEN::Renderer
 				}
 			}
 		}
-		UpdateConstantBuffer(&_stVolumetricCloud, _cbVolumetricCloud.get());
 	}
 
 	// ========================================================================

@@ -36,11 +36,6 @@ namespace TEN::Renderer
 	static constexpr float DUST_STORM_BLEED_TOP_RATIO  = 0.2f;
 	static constexpr int   DUST_STORM_MAX_BLEED_VOLUMES = 4;
 
-	void Renderer::InitializeDustStorm()
-	{
-		_cbDustStorm = CreateConstantBuffer<CDustStormBuffer>();
-	}
-
 	// Returns true if a room is currently considered "outdoor".
 	// Mirrors the rain / snow eligibility convention.
 	static bool IsRoomOutdoor(int roomIdx)
@@ -207,8 +202,8 @@ namespace TEN::Renderer
 		}
 
 		// Camera and viewport.
-		_stDustStorm.ViewSize    = Vector2((float)_graphicsDevice->GetScreenWidth(), (float)_graphicsDevice->GetScreenHeight());
-		_stDustStorm.InvViewSize = Vector2(1.0f / _graphicsDevice->GetScreenWidth(), 1.0f / _graphicsDevice->GetScreenHeight());
+		_stDustStorm.ViewSize    = Vector2((float)_screenWidth, (float)_screenHeight);
+		_stDustStorm.InvViewSize = Vector2(1.0f / _screenWidth, 1.0f / _screenHeight);
 		_stDustStorm.CameraPos   = view.Camera.WorldPosition;
 		_stDustStorm.FarPlane    = view.Camera.FarPlane;
 
@@ -302,7 +297,6 @@ namespace TEN::Renderer
 			}
 		}
 
-		UpdateConstantBuffer(&_stDustStorm, _cbDustStorm.get());
 	}
 
 }

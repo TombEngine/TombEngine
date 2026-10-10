@@ -830,6 +830,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\ConstantBuffers\DustStormBuffer.h" />
     <ClInclude Include="Renderer\AtmosphericSky\AtmosphericSkySettings.h" />
     <ClInclude Include="Renderer\Frustum.h" />
+    <ClInclude Include="Renderer\Font.h" />
     <ClInclude Include="Renderer\Graphics\IRenderSurface2D.h" />
     <ClInclude Include="Renderer\Graphics\AdapterInfo.h" />
     <ClInclude Include="Renderer\Graphics\IDepthTarget.h" />
@@ -901,6 +902,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Structures\RendererEffect.h" />
     <ClInclude Include="Renderer\Structures\RendererFogBulb.h" />
     <ClInclude Include="Renderer\Structures\RendererHudBar.h" />
+    <ClInclude Include="Renderer\Structures\RendererImage.h" />
     <ClInclude Include="Renderer\Structures\RendererItem.h" />
     <ClInclude Include="Renderer\Structures\RendererLensFlare.h" />
     <ClInclude Include="Renderer\Structures\RendererLight.h" />
@@ -911,7 +913,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Structures\RendererPolygon.h" />
     <ClInclude Include="Renderer\Structures\RendererRectangle.h" />
     <ClInclude Include="Renderer\Structures\RendererRoom.h" />
-    <ClInclude Include="Renderer\Structures\RendererRoomAmbientMap.h" />
     <ClInclude Include="Renderer\Structures\RendererRoomNode.h" />
     <ClInclude Include="Renderer\Structures\RendererSortableObject.h" />
     <ClInclude Include="Renderer\Structures\RendererSortedBatch.h" />
@@ -1475,6 +1476,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Physics\Objects\CollisionMesh.cpp" />
     <ClCompile Include="Physics\Objects\CollisionMeshDesc.cpp" />
     <ClCompile Include="Renderer\Frustum.cpp" />
+    <ClCompile Include="Renderer\Font.cpp" />
     <ClCompile Include="Renderer\Graphics\VRAMTracker.cpp" />
     <ClCompile Include="Renderer\Graphics\VRAMAllocation.cpp" />
     <ClCompile Include="Renderer\Native\DirectX11\DX11ErrorHelper.cpp" />
@@ -1500,7 +1502,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\RendererDraw2D.cpp" />
     <ClCompile Include="Renderer\RendererDrawEffect.cpp" />
     <ClCompile Include="Renderer\RendererDrawMenu.cpp" />
-    <ClCompile Include="Renderer\RendererDualClouds.cpp" />
     <ClCompile Include="Renderer\RendererFrame.cpp" />
     <ClCompile Include="Renderer\RendererHelper.cpp" />
     <ClCompile Include="Renderer\RendererInit.cpp" />

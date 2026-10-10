@@ -100,6 +100,9 @@ namespace TEN::Renderer::Next
         if (sprite == _videoSprite)
             return _isVideoActive ? _videoTexture.get() : nullptr;
 
+        if (sprite == _whiteSprite)
+            return _whiteTexture.get();
+
         int spriteIndex = (int)(sprite - _legacyGeometry.Sprites->data());
         if (spriteIndex < 0 || spriteIndex >= (int)g_Level.Sprites.size())
             return nullptr;

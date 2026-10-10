@@ -81,13 +81,6 @@ namespace TEN::Renderer
 		auto now = std::chrono::steady_clock::now();
 		_frameStats.CpuRenderTime = ms(presentStartTime - renderStartTime).count();
 		_frameStats.PresentTime = ms(now - presentStartTime).count();
-		_frameStats.GpuPassNames = GPU_TIMING_SCOPE_NAMES;
-		_frameStats.GpuPassCount = (int)GpuTimingScope::Count;
-		for (int i = 0; i < _frameStats.GpuPassCount; i++)
-		{
-			_frameStats.GpuPassTimes[i] = _graphicsDevice->GetGpuTime((GpuTimingScope)i);
-			_frameStats.CpuPassTimes[i] = _graphicsDevice->GetCpuTime((GpuTimingScope)i);
-		}
 		_frameStats.CpuFrameTime = (_lastPresentTime.time_since_epoch().count() == 0) ? 0.0f : ms(now - _lastPresentTime).count();
 		_lastPresentTime = now;
 

@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/ImGuiIntegration.h"
+#include "Renderer/Next/NextRenderer.h"
 #include "Game/camera.h"
 #include "Game/effects/tomb4fx.h"
 #include "Math/Math.h"
@@ -39,11 +40,6 @@ namespace TEN::Renderer
 		_staticObjects.clear();
 		_sprites.resize(0);
 		_rooms.resize(0);
-		_roomTextures.resize(0);
-		_moveablesTextures.resize(0);
-		_staticTextures.resize(0);
-		_spritesTextures.resize(0);
-		_animatedTextures.resize(0);
 		_animatedTextureSets.resize(0);
 
 		_shadowLight = nullptr;
@@ -56,19 +52,6 @@ namespace TEN::Renderer
 			delete mesh;
 		_meshes.resize(0);
 
-		SAFE_DELETE(_roomsVertexBuffer);
-		SAFE_DELETE(_roomsIndexBuffer);
-		SAFE_DELETE(_moveablesVertexBuffer);
-		SAFE_DELETE(_moveablesIndexBuffer);
-		SAFE_DELETE(_staticsVertexBuffer);
-		SAFE_DELETE(_staticsIndexBuffer);
-
-		_roomTextures.clear();
-		_moveablesTextures.clear();
-		_staticTextures.clear();
-		_spritesTextures.clear();
-		_animatedTextures.clear();
-
 		_videoSprite = {};
 	}
 
@@ -77,42 +60,31 @@ namespace TEN::Renderer
 		_isLocked = true;
 	}
 
-	void Renderer::UpdateVideoTexture(ITexture2D* texture)
+	// Video frames fill the whole sprite; the next renderer uploads the frame of the video handler.
+	void Renderer::UpdateVideoSprite(int width, int height)
 	{
 		_videoSprite.X = _videoSprite.Y = 0;
-		_videoSprite.Width = texture->GetWidth();
-		_videoSprite.Height = texture->GetHeight();
-		_videoSprite.UV[0] = Vector2(0,0);
-		_videoSprite.UV[1] = Vector2(1,0);
-		_videoSprite.UV[2] = Vector2(1,1);
-		_videoSprite.UV[3] = Vector2(0,1);
-		_videoSprite.Texture = texture;
-		_nextImagePaths[texture] = Next::OVERLAY_VIDEO_PATH;
+		_videoSprite.Width = width;
+		_videoSprite.Height = height;
+		_videoSprite.UV[0] = Vector2(0.0f, 0.0f);
+		_videoSprite.UV[1] = Vector2(1.0f, 0.0f);
+		_videoSprite.UV[2] = Vector2(1.0f, 1.0f);
+		_videoSprite.UV[3] = Vector2(0.0f, 1.0f);
 	}
 
-	void Renderer::ClearVideoTexture()
+	void Renderer::ClearVideoSprite()
 	{
-		_nextImagePaths.erase(_videoSprite.Texture);
 		_videoSprite = {};
 	}
 
-	// With the next renderer as main renderer, the legacy renderer draws into a hidden window and does not present.
-	void Renderer::SetSwapchainWindow(SDL_Window* window, bool isPresented)
+	bool Renderer::IsVideoSpriteActive() const
 	{
-		_swapchainWindow = window;
-		_isPresented = isPresented;
+		return (_videoSprite.Width > 0);
 	}
 
-	void Renderer::ReloadShaders(bool recompileAAShaders)
+	void Renderer::ReloadShaders()
 	{
-		try
-		{
-			_shaders.LoadShaders(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(), recompileAAShaders);
-		}
-		catch (const std::exception& e)
-		{
-			TENLog("An exception occured during shader reload: " + std::string(e.what()), LogLevel::Error);
-		}
+		Next::g_NextRenderer.ReloadShaders();
 	}
 
 	int Renderer::Synchronize()

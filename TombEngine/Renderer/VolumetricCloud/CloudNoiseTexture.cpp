@@ -10,7 +10,6 @@
 
 #include "framework.h"
 #include "Renderer/VolumetricCloud/CloudNoiseTexture.h"
-#include "Renderer/Graphics/IGraphicsDevice.h"
 #include "Renderer/RendererEnums.h"
 
 #include <cmath>
@@ -30,10 +29,6 @@ namespace TEN::Renderer::VolumetricCloud
 	static constexpr int NOISE_TILE     = 16;    // Noise cells per UV tile.
 	static constexpr int WORLEY_2D_RES  = 256;   // Texels per axis for 2D Worley.
 	static constexpr int WORLEY_TILE    = 16;    // Worley cells per UV tile.
-
-	// Cloud noise binding slots (re-used during the cloud pass).
-	static constexpr TextureRegister      NOISE_3D_REGISTER  = TextureRegister::Hud;              // t5
-	static constexpr TextureRegister      WORLEY_2D_REGISTER = TextureRegister::GBufferDepthMap;  // t6
 
 	// ========================================================================
 	// Math helpers
@@ -211,7 +206,7 @@ namespace TEN::Renderer::VolumetricCloud
 	// Texture generation
 	// ========================================================================
 
-	void CloudNoiseTextures::Initialize(IGraphicsDevice* device)
+	void CloudNoiseTextures::Initialize()
 	{
 		// ----------------------------------------------------------------
 		// 1) Generate 3D noise data (128^3, RGBA8).
@@ -251,9 +246,6 @@ namespace TEN::Renderer::VolumetricCloud
 			data3D[idx + 3] = (uint8_t)(std::clamp(curlZ * 0.5f + 0.5f, 0.0f, 1.0f) * 255.0f + 0.5f);
 		}
 
-		Noise3D = device->CreateTexture3D(res3, res3, res3,
-			SurfaceFormat::SF_RGBA8_Unorm, data3D.data());
-
 		// ----------------------------------------------------------------
 		// 2) Generate 2D Worley data (256^2, RG8).
 		// ----------------------------------------------------------------
@@ -278,20 +270,5 @@ namespace TEN::Renderer::VolumetricCloud
 			data2D[idx + 0] = (uint8_t)(std::clamp(w1, 0.0f, 1.0f) * 255.0f + 0.5f);
 			data2D[idx + 1] = (uint8_t)(std::clamp(w2, 0.0f, 1.0f) * 255.0f + 0.5f);
 		}
-
-		Worley2D = device->CreateTexture2D(res2, res2,
-			SurfaceFormat::SF_RG8_Unorm, data2D.data(), false);
-	}
-
-	void CloudNoiseTextures::Bind(IGraphicsDevice* device) const
-	{
-		device->BindTexture(NOISE_3D_REGISTER,  Noise3D.get());
-		device->BindTexture(WORLEY_2D_REGISTER, Worley2D.get());
-	}
-
-	void CloudNoiseTextures::Unbind(IGraphicsDevice* device) const
-	{
-		device->BindTexture(NOISE_3D_REGISTER,  nullptr);
-		device->BindTexture(WORLEY_2D_REGISTER, nullptr);
 	}
 }

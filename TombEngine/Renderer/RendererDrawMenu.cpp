@@ -126,25 +126,15 @@ namespace TEN::Renderer
 
 	void Renderer::InitializeMenuBars(int y)
 	{
-		static const auto soundSettingColors = std::array<Vector4, RendererHudBar::COLOR_COUNT>
-		{
-			// Top
-			Vector4(0.18f, 0.3f, 0.72f, 1.0f),
-			Vector4(0.18f, 0.3f, 0.72f, 1.0f),
-
-			// Center
-			Vector4(0.18f, 0.3f, 0.72f, 1.0f),
-
-			// Bottom
-			Vector4(0.18f, 0.3f, 0.72f, 1.0f),
-			Vector4(0.18f, 0.3f, 0.72f, 1.0f)
-		};
-
 		int shift = MenuVerticalLineSpacing / 2;
 
-		g_MusicVolumeBar = new RendererHudBar(_graphicsDevice.get(), Vector2(MenuRightSideEntry, y + shift), RendererHudBar::SIZE_DEFAULT, 1, soundSettingColors);
+		// Called every frame of the sound menu.
+		delete g_MusicVolumeBar;
+		delete g_SFXVolumeBar;
+
+		g_MusicVolumeBar = new RendererHudBar(Vector2(MenuRightSideEntry, y + shift), RendererHudBar::SIZE_DEFAULT);
 		GetNextLinePosition(&y);
-		g_SFXVolumeBar = new RendererHudBar(_graphicsDevice.get(), Vector2(MenuRightSideEntry, y + shift), RendererHudBar::SIZE_DEFAULT, 1, soundSettingColors);
+		g_SFXVolumeBar = new RendererHudBar(Vector2(MenuRightSideEntry, y + shift), RendererHudBar::SIZE_DEFAULT);
 	}
 
 	void Renderer::RenderOptionsMenu(Menu menu, int initialY)
@@ -1109,8 +1099,8 @@ namespace TEN::Renderer
 
 	void Renderer::RenderTitleImage()
 	{
-		auto texture = SetTextureOrDefault(g_GameFlow->GetGameDir() + g_GameFlow->IntroImagePath.c_str());
-		if (texture == nullptr || !texture->IsValid())
+		auto image = LoadImage(g_GameFlow->GetGameDir() + g_GameFlow->IntroImagePath);
+		if (!image.IsValid())
 			return;
 
 		int timeout = 20;
@@ -1134,7 +1124,7 @@ namespace TEN::Renderer
 				currentFade = std::clamp(currentFade -= FADE_FACTOR, 0.0f, 1.0f);
 			}
 
-			DrawFullScreenImage(texture.get(), Smoothstep(currentFade));
+			DrawFullScreenImage(image, Smoothstep(currentFade));
 			Synchronize();
 
 			_nextUi.BackgroundFade = 0.0f;
@@ -1249,14 +1239,14 @@ namespace TEN::Renderer
 	// The logo keeps its aspect ratio and is anchored at a percentage of the window, across any aspect ratio.
 	void Renderer::AddTitleLogo()
 	{
-		if (_logo == nullptr)
+		if (!_logo.IsValid())
 			return;
 
 		auto screenRes = GetScreenResolution();
 		float sizeScale = std::min(screenRes.x / DISPLAY_SPACE_RES.x, screenRes.y / DISPLAY_SPACE_RES.y);
 
 		const auto& settings = g_GameFlow->GetSettings()->UI;
-		auto halfSize = Vector2((float)_logo->GetWidth(), (float)_logo->GetHeight()) * settings.TitleLogoScale * sizeScale * 0.5f;
+		auto halfSize = Vector2((float)_logo.Width, (float)_logo.Height) * settings.TitleLogoScale * sizeScale * 0.5f;
 		auto center = Vector2(settings.TitleLogoPosition.x / 100.0f * screenRes.x, settings.TitleLogoPosition.y / 100.0f * screenRes.y);
 
 		// HACK: Color range slippage. Remove in fix color range PR.
@@ -1270,12 +1260,12 @@ namespace TEN::Renderer
 		auto screenSize = screenRes.ToVector2();
 		auto min = Vector2(std::trunc(center.x - halfSize.x), std::trunc(center.y - halfSize.y)) / screenSize;
 		auto max = Vector2(std::trunc(center.x + halfSize.x), std::trunc(center.y + halfSize.y)) / screenSize;
-		AddNextUiImage(_logo.get(), min, max, Vector2::Zero, Vector2::One, color * ScreenFadeCurrent, BlendMode::AlphaBlend);
+		AddNextUiImage(_logo.Path, min, max, Vector2::Zero, Vector2::One, color * ScreenFadeCurrent, BlendMode::AlphaBlend);
 	}
 
 	void Renderer::SetLoadingScreen(const std::string& fileName)
 	{
-		_loadingScreenTexture = SetTextureOrDefault(fileName);
+		_loadingScreenTexture = LoadImage(fileName);
 	}
 
 	void Renderer::RenderFreezeMode(float interpFactor, bool staticBackground)
@@ -1292,7 +1282,7 @@ namespace TEN::Renderer
 		else
 		{
 			InterpolateCamera(interpFactor);
-			RenderScene(_backBuffer.get(), _gameCamera, SceneRenderMode::NoHud);
+			RenderScene(_gameCamera, SceneRenderMode::NoHud);
 		}
 
 		// Display sprites sorted by priority.
@@ -1311,13 +1301,13 @@ namespace TEN::Renderer
 		do
 		{
 			// Loading screen image, or the last scene when there is none.
-			if (_loadingScreenTexture)
-				DrawFullScreenQuad(_loadingScreenTexture.get(), Vector3(ScreenFadeCurrent));
+			if (_loadingScreenTexture.IsValid())
+				DrawFullScreenQuad(_loadingScreenTexture, Vector3(ScreenFadeCurrent));
 
 			if (ScreenFadeCurrent && percentage > 0.0f && percentage < 100.0f)
 				DrawLoadingBar(percentage);
 
-			_nextUi.BackgroundFade = (_loadingScreenTexture == nullptr) ? ScreenFadeCurrent : 0.0f;
+			_nextUi.BackgroundFade = _loadingScreenTexture.IsValid() ? 0.0f : ScreenFadeCurrent;
 			PresentFrame();
 
 			Synchronize();

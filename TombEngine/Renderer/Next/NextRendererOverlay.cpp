@@ -30,61 +30,22 @@ namespace TEN::Renderer::Next
         return toByte(color.x) | (toByte(color.y) << 8) | (toByte(color.z) << 16) | (toByte(color.w) << 24);
     }
 
-    // DirectXTK .spritefont: "DXTKfont", glyphs (character, subrect, offsets, advance), line spacing, default
-    // character and one texture, as written by MakeSpriteFont and read by the legacy DX11SpriteFont.
+    // The game font, read by the shared parser; its texture is RGBA8, BC2 or BC3.
     bool NextRenderer::LoadFont(const std::string& path)
     {
-        auto file = std::ifstream(path, std::ios::binary);
-        auto data = std::vector<unsigned char>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-        auto read = [&](size_t offset, void* destination, size_t size)
-        {
-            if (offset + size > data.size())
-                return false;
-
-            memcpy(destination, data.data() + offset, size);
-            return true;
-        };
-
-        unsigned int glyphCount = 0;
-        if (data.size() < 12 || memcmp(data.data(), "DXTKfont", 8) != 0 || !read(8, &glyphCount, 4))
-        {
-            TENLog("Next renderer: invalid font " + path, LogLevel::Error);
-            return false;
-        }
-
         _font = FontData{};
-        size_t offset = 12;
-        for (unsigned int i = 0; i < glyphCount; i++, offset += sizeof(FontGlyph))
-        {
-            auto glyph = FontGlyph{};
-            if (!read(offset, &glyph, sizeof(glyph)))
-                return false;
-
-            _font.Glyphs[glyph.Character] = glyph;
-        }
-
-        unsigned int header[7] = {};
-        if (!read(offset, header, sizeof(header)))
+        if (!_font.Metrics.Load(path))
             return false;
 
-        memcpy(&_font.LineSpacing, &header[0], sizeof(float));
-        _font.DefaultCharacter = header[1];
-        int width = (int)header[2];
-        int height = (int)header[3];
-        unsigned int dxgiFormat = header[4];
-        int textureSize = (int)(header[5] * header[6]);
-        offset += sizeof(header);
-
-        constexpr auto DXGI_FORMAT_RGBA8 = 28u;
-        constexpr auto DXGI_FORMAT_BC2 = 74u;
-        constexpr auto DXGI_FORMAT_BC3 = 77u;
-
+        const auto& metrics = _font.Metrics;
         auto desc = TextureDesc{};
-        desc.Width = width;
-        desc.Height = height;
-        desc.Format = (dxgiFormat == DXGI_FORMAT_BC2) ? PixelFormat::BC2Unorm : ((dxgiFormat == DXGI_FORMAT_BC3) ? PixelFormat::BC3Unorm : PixelFormat::RGBA8Unorm);
+        desc.Width = metrics.TextureWidth;
+        desc.Height = metrics.TextureHeight;
+        desc.Format = (metrics.TextureFormat == Font::TEXTURE_FORMAT_BC2) ? PixelFormat::BC2Unorm :
+            ((metrics.TextureFormat == Font::TEXTURE_FORMAT_BC3) ? PixelFormat::BC3Unorm : PixelFormat::RGBA8Unorm);
         desc.Name = "Font";
-        if ((dxgiFormat != DXGI_FORMAT_RGBA8 && dxgiFormat != DXGI_FORMAT_BC2 && dxgiFormat != DXGI_FORMAT_BC3) || offset + textureSize > data.size())
+        if (metrics.TextureFormat != Font::TEXTURE_FORMAT_RGBA8 && metrics.TextureFormat != Font::TEXTURE_FORMAT_BC2 &&
+            metrics.TextureFormat != Font::TEXTURE_FORMAT_BC3)
         {
             TENLog("Next renderer: unsupported font texture in " + path, LogLevel::Error);
             return false;
@@ -94,7 +55,7 @@ namespace TEN::Renderer::Next
         if (_font.Texture == nullptr)
             return false;
 
-        UploadTexture(_font.Texture.get(), data.data() + offset, textureSize);
+        UploadTexture(_font.Texture.get(), metrics.TextureData.data(), (int)metrics.TextureData.size());
         return true;
     }
 
@@ -252,12 +213,12 @@ namespace TEN::Renderer::Next
     // only advances and new lines restart at the line spacing.
     void NextRenderer::AddOverlayText(const OverlayText& text, const Vector2& scale)
     {
-        const auto& font = _font;
-        if (font.Texture == nullptr)
+        if (_font.Texture == nullptr)
             return;
 
-        float inverseWidth = 1.0f / font.Texture->GetDesc().Width;
-        float inverseHeight = 1.0f / font.Texture->GetDesc().Height;
+        const auto& font = _font.Metrics;
+        float inverseWidth = 1.0f / font.TextureWidth;
+        float inverseHeight = 1.0f / font.TextureHeight;
 
         float x = 0.0f;
         float y = 0.0f;
@@ -273,14 +234,11 @@ namespace TEN::Renderer::Next
                 continue;
             }
 
-            auto it = font.Glyphs.find((unsigned int)character);
-            if (it == font.Glyphs.end())
-                it = font.Glyphs.find(font.DefaultCharacter);
-
-            if (it == font.Glyphs.end())
+            const auto* glyphPointer = font.FindGlyph(character);
+            if (glyphPointer == nullptr)
                 continue;
 
-            const auto& glyph = it->second;
+            const auto& glyph = *glyphPointer;
             x = std::max(x + glyph.XOffset, 0.0f);
 
             float width = (float)(glyph.Right - glyph.Left);
@@ -289,7 +247,7 @@ namespace TEN::Renderer::Next
             {
                 auto position = Vector2(text.Position.x * scale.x + x * text.Scale * scale.y, (text.Position.y + (y + glyph.YOffset) * text.Scale) * scale.y);
                 auto size = Vector2(width, height) * text.Scale * scale.y;
-                AddOverlayQuad(font.Texture.get(), position, size, Vector2(glyph.Left * inverseWidth, glyph.Top * inverseHeight),
+                AddOverlayQuad(_font.Texture.get(), position, size, Vector2(glyph.Left * inverseWidth, glyph.Top * inverseHeight),
                     Vector2(glyph.Right * inverseWidth, glyph.Bottom * inverseHeight), text.Color);
             }
 

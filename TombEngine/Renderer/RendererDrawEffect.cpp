@@ -632,7 +632,7 @@ namespace TEN::Renderer
 				}
 				
 				// If sprite is a video texture, bypass it if texture is inactive.
-				if (particle.SpriteID == VIDEO_SPRITE_ID && (_videoSprite.Texture == nullptr || !_videoSprite.Texture->IsValid()))
+				if (particle.SpriteID == VIDEO_SPRITE_ID && !IsVideoSpriteActive())
 					continue;
 
 				// If sprite is not a video texture and no sprites present, bypass it.
@@ -1497,11 +1497,6 @@ namespace TEN::Renderer
 				}
 			}
 		}
-	}
-
-	std::unique_ptr<ITexture2D> Renderer::CreateDefaultTexture(std::vector<unsigned char> color)
-	{
-		return _graphicsDevice->CreateTexture2D(1, 1, SurfaceFormat::SF_RGBA8_Unorm, color.data());
 	}
 
 	void Renderer::DrawEffects(RenderView& view, RendererPass rendererPass)

@@ -2513,6 +2513,7 @@ namespace TEN::Renderer::Next
         _isShadowMapActive = environment.IsShadowMapEnabled && (environment.ShadowLight != nullptr);
         _isPlayerShadowOnly = environment.IsPlayerShadowOnly;
         _videoSprite = environment.VideoSprite;
+        _whiteSprite = environment.WhiteSprite;
 
         auto frameVertexUniforms = FrameVertexUniforms{};
         frameVertexUniforms.ViewProjection = view.Camera.View * projection;

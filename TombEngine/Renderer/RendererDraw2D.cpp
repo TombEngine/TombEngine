@@ -47,81 +47,11 @@ namespace TEN::Renderer
 
 	void Renderer::InitializeGameBars()
 	{
-		static const auto AIR_BAR_COLORS = std::array<Vector4, RendererHudBar::COLOR_COUNT>
-		{
-			// Top
-			Vector4(0.0f, 0.0f, 0.35f, 1.0f),
-			Vector4(0.0f, 0.18f, 0.38f, 1.0f),
-
-			// Center
-			Vector4(0.0f, 0.15f, 0.6f, 1.0f),
-
-			// Bottom
-			Vector4(0.0f, 0.0f, 0.35f, 1.0f),
-			Vector4(0.0f, 0.18f, 0.38f, 1.0f)
-		};
-		
-		static const auto EXPOSURE_BAR_COLORS = std::array<Vector4, RendererHudBar::COLOR_COUNT>
-		{
-			// Top
-			Vector4(0.18f, 0.3f, 0.72f, 1.0f),
-			Vector4(0.18f, 0.3f, 0.72f, 1.0f),
-
-			// Center
-			Vector4(0.18f, 0.3f, 0.72f, 1.0f),
-
-			// Bottom
-			Vector4(0.18f, 0.3f, 0.72f, 1.0f),
-			Vector4(0.18f, 0.3f, 0.72f, 1.0f)
-		};
-
-		static const auto HEALTH_BAR_COLORS = std::array<Vector4, RendererHudBar::COLOR_COUNT>
-		{
-			// Top
-			Vector4(0.32f, 0.0f, 0.0f, 1.0f),
-			Vector4(0.0f, 0.32f, 0.0f, 1.0f),
-
-			// Center
-			Vector4(0.3f, 0.32f, 0.0f, 1.0f),
-
-			// Bottom
-			Vector4(0.32f, 0.0f, 0.0f, 1.0f),
-			Vector4(0.0f, 0.32f, 0.0f, 1.0f)
-		};
-		
-		static const auto STAMINA_BAR_COLORS = std::array<Vector4, RendererHudBar::COLOR_COUNT>
-		{
-			// Top
-			Vector4(0.3f, 0.02f, 0.0f, 1.0f),
-			Vector4(0.55f, 0.45f, 0.02f, 1.0f),
-
-			// Center
-			Vector4(0.95f, 0.45f, 0.09f, 1.0f),
-
-			// Bottom
-			Vector4(0.3f, 0.02f, 0.0f, 1.0f),
-			Vector4(0.55f, 0.45f, 0.02f, 1.0f)
-		};
-
-		static const auto LOADING_BAR_COLORS = std::array<Vector4, RendererHudBar::COLOR_COUNT>
-		{
-			// Top
-			Vector4(0.0f, 0.0f, 0.35f, 1.0f),
-			Vector4(0.0f, 0.18f, 0.38f, 1.0f),
-
-			// Center
-			Vector4(0.0f, 0.15f, 0.6f, 1.0f),
-
-			// Bottom
-			Vector4(0.0f, 0.0f, 0.35f, 1.0f),
-			Vector4(0.0f, 0.18f, 0.38f, 1.0f)
-		};
-
-		g_AirBar = new RendererHudBar(_graphicsDevice.get(), AIR_BAR_POS, AIR_BAR_VERT_POS, RendererHudBar::SIZE_DEFAULT, 1, AIR_BAR_COLORS);
-		g_ExposureBar = new RendererHudBar(_graphicsDevice.get(), EXPOSURE_BAR_POS, EXPOSURE_BAR_VERT_POS, RendererHudBar::SIZE_DEFAULT, 1, EXPOSURE_BAR_COLORS);
-		g_HealthBar = new RendererHudBar(_graphicsDevice.get(), HEALTH_BAR_POS, HEALTH_BAR_VERT_POS, RendererHudBar::SIZE_DEFAULT, 1, HEALTH_BAR_COLORS);
-		g_StaminaBar = new RendererHudBar(_graphicsDevice.get(), STAMINA_BAR_POS, STAMINA_BAR_VERT_POS, RendererHudBar::SIZE_DEFAULT, 1, STAMINA_BAR_COLORS);
-		g_LoadingBar = new RendererHudBar(_graphicsDevice.get(), LOADING_BAR_POS, LOADING_BAR_VERT_POS, RendererHudBar::SIZE_DEFAULT, 1, LOADING_BAR_COLORS);
+		g_AirBar = new RendererHudBar(AIR_BAR_POS, AIR_BAR_VERT_POS, RendererHudBar::SIZE_DEFAULT);
+		g_ExposureBar = new RendererHudBar(EXPOSURE_BAR_POS, EXPOSURE_BAR_VERT_POS, RendererHudBar::SIZE_DEFAULT);
+		g_HealthBar = new RendererHudBar(HEALTH_BAR_POS, HEALTH_BAR_VERT_POS, RendererHudBar::SIZE_DEFAULT);
+		g_StaminaBar = new RendererHudBar(STAMINA_BAR_POS, STAMINA_BAR_VERT_POS, RendererHudBar::SIZE_DEFAULT);
+		g_LoadingBar = new RendererHudBar(LOADING_BAR_POS, LOADING_BAR_VERT_POS, RendererHudBar::SIZE_DEFAULT);
 	}
 
 	void Renderer::DrawBar(float percent, const RendererHudBar& bar, GAME_OBJECT_ID textureSlot, int frame, bool isPoisoned)
@@ -140,15 +70,13 @@ namespace TEN::Renderer
 			return;
 
 		// The loading bar images were loaded from files; missing files leave no bar.
-		auto border = _nextImagePaths.find(_loadingBarBorder.get());
-		auto inner = _nextImagePaths.find(_loadingBarInner.get());
-		if (border == _nextImagePaths.end() || inner == _nextImagePaths.end())
+		if (!_loadingBarBorder.IsValid() || !_loadingBarInner.IsValid())
 			return;
 
 		const auto& bar = *g_LoadingBar;
 		auto nextBar = Next::OverlayBar{ bar.Position, bar.VerticalPosition, bar.Size, percentage / 100.0f };
-		nextBar.BorderPath = border->second;
-		nextBar.InnerPath = inner->second;
+		nextBar.BorderPath = _loadingBarBorder.Path;
+		nextBar.InnerPath = _loadingBarInner.Path;
 		_nextUi.Bars.push_back(nextBar);
 		AddNextUiLayer(Next::OverlayLayerType::Bars, (int)_nextUi.Bars.size() - 1);
 	}
@@ -183,9 +111,9 @@ namespace TEN::Renderer
 		AddNextUiLayer(Next::OverlayLayerType::ScreenOverlays, 0);
 	}
 
-	void Renderer::DrawFullScreenImage(ITextureBase* texture, float fade)
+	void Renderer::DrawFullScreenImage(const RendererImage& image, float fade)
 	{
-		DrawFullScreenQuad(texture, Vector3(fade), true);
+		DrawFullScreenQuad(image, Vector3(fade), true);
 	}
 
 	void Renderer::DrawDisplaySprites(RenderView& renderView, bool negativePriority)
@@ -217,7 +145,7 @@ namespace TEN::Renderer
 	}
 
 	// Opaque image over the whole screen; fitted images keep their aspect and are cropped.
-	void Renderer::DrawFullScreenQuad(ITextureBase* texture, Vector3 color, bool fit, float customAspect)
+	void Renderer::DrawFullScreenQuad(const RendererImage& image, Vector3 color, bool fit, float customAspect)
 	{
 		auto uvStart = Vector2::Zero;
 		auto uvEnd = Vector2::One;
@@ -226,7 +154,7 @@ namespace TEN::Renderer
 		{
 			auto screenResolution = GetScreenResolution();
 			float screenAspect = (float)screenResolution.x / (float)screenResolution.y;
-			float imageAspect = (customAspect == 0.0f) ? ((float)texture->GetWidth() / (float)texture->GetHeight()) : customAspect;
+			float imageAspect = (customAspect == 0.0f) ? ((float)image.Width / (float)image.Height) : customAspect;
 
 			if (screenAspect > imageAspect)
 			{
@@ -242,7 +170,7 @@ namespace TEN::Renderer
 			}
 		}
 
-		AddNextUiImage(texture, Vector2::Zero, Vector2::One, uvStart, uvEnd, Vector4(color.x, color.y, color.z, 1.0f), BlendMode::Opaque);
+		AddNextUiImage(image.Path, Vector2::Zero, Vector2::One, uvStart, uvEnd, Vector4(color.x, color.y, color.z, 1.0f), BlendMode::Opaque);
 	}
 
 	void Renderer::AddDisplaySprite(const RendererSprite& sprite, const Vector2& pos2D, short orient, const Vector2& size, const Vector4& color,
@@ -274,7 +202,7 @@ namespace TEN::Renderer
 		for (const auto& displaySprite : DisplaySprites)
 		{
 			// If sprite is a video texture, bypass it if texture is inactive.
-			if (displaySprite.SpriteID == VIDEO_SPRITE_ID && (_videoSprite.Texture == nullptr || !_videoSprite.Texture->IsValid()))
+			if (displaySprite.SpriteID == VIDEO_SPRITE_ID && !IsVideoSpriteActive())
 				continue;
 
 			// If sprite is not a video texture and no sprites present, bypass it.

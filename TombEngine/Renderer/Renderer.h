@@ -35,19 +35,22 @@
 #include "Renderer/Moon/MoonSettings.h"
 #include "Renderer/VolumetricCloud/VolumetricCloud.h"
 #include "Renderer/VolumetricCloud/CloudNoiseTexture.h"
+#include "Renderer/Font.h"
 #include "Renderer/Frustum.h"
-#include "Renderer/Graphics/IGraphicsDevice.h"
+#include "Renderer/Graphics/Vertices/Vertex.h"
 #include "Renderer/Graphics/Vertices/PostProcessVertex.h"
 #include "Renderer/Next/OverlayTypes.h"
 #include "Renderer/Next/SkyTypes.h"
 #include "Renderer/RendererEnums.h"
+#include "Renderer/RendererUtils.h"
 #include "Renderer/RenderView.h"
-#include "Renderer/ShaderManager/ShaderManager.h"
 #include "Renderer/Structures/RendererBone.h"
 #include "Renderer/Structures/RendererDoor.h"
 #include "Renderer/Structures/RendererDofMode.h"
 #include "Renderer/Structures/RendererStringToDraw.h"
 #include "Renderer/Structures/RendererRoom.h"
+#include "Renderer/Structures/RendererRectangle.h"
+#include "Renderer/Structures/RendererViewport.h"
 #include "Renderer/Structures/RendererSprite.h"
 #include "Renderer/Structures/RendererAnimatedTexture.h"
 #include "Renderer/Structures/RendererAnimatedTextureSet.h"
@@ -61,7 +64,7 @@
 #include "Renderer/Structures/RendererLight.h"
 #include "Renderer/Structures/RendererLine2D.h"
 #include "Renderer/Structures/RendererHudBar.h"
-#include "Renderer/Structures/RendererRoomAmbientMap.h"
+#include "Renderer/Structures/RendererImage.h"
 #include "Renderer/Structures/RendererObject.h"
 #include "Renderer/Structures/RendererSortedBatch.h"
 #include "Renderer/Structures/RendererStar.h"
@@ -90,100 +93,31 @@ namespace TEN::Renderer
 	using namespace TEN::Hud;
 	using namespace TEN::Renderer::ConstantBuffers;
 	using namespace TEN::Renderer::Graphics;
+	using namespace TEN::Renderer::Graphics::Vertices;
 	using namespace TEN::Renderer::Structures;
 	using namespace TEN::Renderer::Utils;
 	using namespace DirectX::SimpleMath;
 
-	using AtlasTexturesSet = std::tuple<
-		std::unique_ptr<ITexture2D>, 
-		std::unique_ptr<ITexture2D>, 
-		std::unique_ptr<ITexture2D>, 
-		std::unique_ptr<ITexture2D>>;
-
 	class Renderer
 	{
 	private:
-		std::unique_ptr<IGraphicsDevice> _graphicsDevice;
-		SDL_Window* _swapchainWindow = nullptr; // Window of the swapchain; the platform window when null.
-		bool        _isPresented     = true;    // False while the next renderer presents the main window.
 
-		std::unique_ptr<IInputLayout> _vertexInputLayout;
-		std::unique_ptr<IInputLayout> _fullScreenVertexInputLayout;
-
-		// Adapter info
-		AdapterInfo _adapterInfo = {};
 
 		// Render targets
-		std::unique_ptr<IRenderSurface2D> _normalsAndMaterialIndexRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _depthRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _emissiveAndRoughnessRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _distortionRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _dofRenderTarget[3];
-		std::unique_ptr<IRenderSurface2D> _dumpScreenRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _renderTarget;
-		std::unique_ptr<IRenderSurface2D> _postProcessRenderTarget[2];
-		std::unique_ptr<IRenderSurface2D> _glowRenderTarget[2];
-		std::unique_ptr<IRenderSurface2D> _tempRoomAmbientRenderTarget1;
-		std::unique_ptr<IRenderSurface2D> _tempRoomAmbientRenderTarget2;
-		std::unique_ptr<IRenderSurface2D> _tempRoomAmbientRenderTarget3;
-		std::unique_ptr<IRenderSurface2D> _tempRoomAmbientRenderTarget4;
-		std::unique_ptr<IRenderSurface2D> _shadowMap;
-		std::unique_ptr<IRenderSurface2D> _legacyReflectionsRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _SSAORenderTarget;
-		std::unique_ptr<IRenderSurface2D> _SSAOBlurTempRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _SSAOBlurredRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _SMAASceneRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _SMAASceneSRGBRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _SMAADepthRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _SMAAEdgesRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _SMAABlendRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _skyboxRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _backBuffer;
-		std::unique_ptr<IRenderSurface2D> _outdoorMaskRenderTarget;
 
 		// Constant buffers
 
 		RenderView _gameCamera;
 		RenderView _oldGameCamera;
 		RenderView _currentGameCamera;
-		std::unique_ptr<IConstantBuffer> _cbCameraMatrices;
-		CObjectsBuffer _stObjects;
-		std::unique_ptr<IConstantBuffer> _cbObjects;
-		CRoomBuffer _stRoom;
-		std::unique_ptr<IConstantBuffer> _cbRoom;
-		std::array<AnimatedFrame, MAX_ANIMATED_FRAMES> _animatedFrames = {};
-		std::unique_ptr<IStructuredBuffer> _animatedFramesBuffer;
 		CShadowLightBuffer _stShadowMap;
-		std::unique_ptr<IConstantBuffer> _cbShadowMap;
-		CHUDBuffer _stHUD;
-		std::unique_ptr<IConstantBuffer> _cbHUD;
-		CHUDBarBuffer _stHUDBar;
-		std::unique_ptr<IConstantBuffer> _cbHUDBar;
-		CPostProcessBuffer _stPostProcessBuffer;
-		std::unique_ptr<IConstantBuffer> _cbPostProcessBuffer;
-		CInstancedSpriteBuffer _stInstancedSpriteBuffer;
-		std::unique_ptr<IConstantBuffer> _cbInstancedSpriteBuffer;
-		CPerDrawBuffer _stPerDraw;
-		std::unique_ptr<IConstantBuffer> _cbPerDraw;
-		bool _perDrawBufferDirty = true;
-		CSMAABuffer _stSMAABuffer;
-		std::unique_ptr<IConstantBuffer> _cbSMAABuffer;
-		CSkyBuffer _stSky;
-		std::unique_ptr<IConstantBuffer> _cbSky;
 
 		// Volumetric clouds
 		ConstantBuffers::CVolumetricCloudBuffer _stVolumetricCloud;
-		std::unique_ptr<IConstantBuffer> _cbVolumetricCloud;
 		VolumetricCloud::CloudNoiseTextures _cloudNoiseTextures;
-		std::unique_ptr<IRenderSurface2D> _cloudRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _cloudPrevFrameRT;              // Previous frame's cloud result for temporal checkerboard
-		std::unique_ptr<IRenderSurface2D> _cloudOcclusionTarget;
-		std::unique_ptr<IGpuReadbackBuffer> _cloudOcclusionReadback;
-		std::unique_ptr<IRenderSurface2D> _scenePreCloudBackup;          // Full-res copy of scene before cloud composite
 
 		// Atmospheric sky dome
 		ConstantBuffers::CAtmosphericSkyBuffer _stAtmosphericSky;
-		std::unique_ptr<IConstantBuffer> _cbAtmosphericSky;
 		AtmosphericSkySettings _atmosphericSkySettings;
 		VolumetricCloud::CloudRenderSettings _volumetricCloudSettings;
 		VolumetricCloud::CloudRuntimeState _cloudState;
@@ -193,7 +127,6 @@ namespace TEN::Renderer
 
 		// Aurora system
 		Aurora::AuroraSettings _auroraSettings;
-		std::unique_ptr<IRenderSurface2D> _auroraHalfResRenderTarget;   // Half-res offscreen RT for Low quality rendering.
 		float _auroraTime        = 0.0f;   // Accumulated animation time.
 		float _auroraPresetFade  = 0.0f;   // [0,1] fade multiplier driven by preset selection.
 		float _auroraPresetFadeDuration = 5.0f; // Duration in seconds for aurora to fade in/out on preset change.
@@ -205,63 +138,34 @@ namespace TEN::Renderer
 
 		// God rays
 		ConstantBuffers::CGodRayBuffer _stGodRay;
-		std::unique_ptr<IConstantBuffer> _cbGodRay;
-		std::unique_ptr<IRenderSurface2D> _godRayRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _horizonMaskRenderTarget;
 		GodRay::GodRaySettings _godRaySettings;
 
 		// Volumetric dust storm
 		ConstantBuffers::CDustStormBuffer _stDustStorm;
-		std::unique_ptr<IConstantBuffer> _cbDustStorm;
 		DustStorm::DustStormSettings _dustStormSettings;
 
 		// Dual volumetric cloud layer B (layer A reuses the members above).
-		std::unique_ptr<IRenderSurface2D> _cloudRenderTargetB;
-		std::unique_ptr<IRenderSurface2D> _cloudPrevFrameRTB;   // Layer B previous-frame RT for temporal checkerboard
-		std::unique_ptr<IRenderSurface2D> _cloudOcclusionTargetB;
-		std::unique_ptr<IGpuReadbackBuffer> _cloudOcclusionReadbackB;
 		VolumetricCloud::CloudRuntimeState _cloudStateB;
 
-		// Primitive batches
-
-		bool _primitiveBatchActive = false;
-
-		RendererViewport _viewport;
-		RendererViewport _distortionViewport;
-		RendererViewport _dofViewport;
-		RendererViewport _shadowMapViewport;
 
 		// Text
 
-		std::unique_ptr<ISpriteFont> _gameFont;
+		Font _gameFont = {};
 		std::vector<RendererStringToDraw> _stringsToDraw;
 		Vector4 _blinkColorValue = Vector4::Zero;
 		float _blinkTime = 0.0f;
 		float _oldBlinkTime = 0.0f;
 
 		// Sprites
-		std::vector<Vertex> _spriteVertices;
-		std::unique_ptr<IVertexBuffer> _spriteVertexBuffer;
 
 		// Graphics resources
 
-		std::unique_ptr<ITexture2D> _logo;
-		std::unique_ptr<ITexture2D> _skyTexture;
-		std::unique_ptr<ITexture2D> _whiteTexture;
+		RendererImage _logo = {};
 		RendererSprite _whiteSprite;
-		std::unique_ptr<ITexture2D> _loadingBarBorder;
-		std::unique_ptr<ITexture2D> _loadingBarInner;
-		std::unique_ptr<ITexture2D> _loadingScreenTexture;
+		RendererImage _loadingBarBorder = {};
+		RendererImage _loadingBarInner = {};
+		RendererImage _loadingScreenTexture = {};
 
-		std::unique_ptr<IVertexBuffer> _roomsVertexBuffer;
-		std::unique_ptr<IIndexBuffer> _roomsIndexBuffer;
-		std::unique_ptr<IVertexBuffer> _moveablesVertexBuffer;
-		std::unique_ptr<IIndexBuffer> _moveablesIndexBuffer;
-		std::unique_ptr<IVertexBuffer> _staticsVertexBuffer;
-		std::unique_ptr<IIndexBuffer> _staticsIndexBuffer;
-		std::unique_ptr<IVertexBuffer> _skyVertexBuffer;
-		std::unique_ptr<IIndexBuffer> _skyIndexBuffer;
-		std::unique_ptr<IVertexBuffer> _quadVertexBuffer;
 
 		std::vector<Vertex> _roomsVertices;
 		std::vector<int> _roomsIndices;
@@ -297,11 +201,6 @@ namespace TEN::Renderer
 		std::vector<RendererSpriteSequence>					   _spriteSequences;
 		std::vector<RendererAnimatedTextureSet>				   _animatedTextureSets;
 		std::vector<RendererMesh*>							   _meshes;
-		std::vector<AtlasTexturesSet>						   _roomTextures;
-		std::vector<AtlasTexturesSet>						   _animatedTextures;
-		std::vector<AtlasTexturesSet>						   _moveablesTextures;
-		std::vector<AtlasTexturesSet>						   _staticTextures;
-		std::vector<std::unique_ptr<ITexture2D>>			   _spritesTextures;
 		RendererSprite										   _videoSprite; // Video texture is an unique case
 		std::vector<RendererSpriteToDraw>					   _nextSkySprites = {}; // Sky sprites passed to the next renderer.
 		RendererSpriteToDraw								   _nextSunSprite  = {}; // Classic sun sprite passed to the next renderer.
@@ -425,6 +324,8 @@ namespace TEN::Renderer
 		void DrawGraphicsStatsComparison(const RenderView& view);
 
 		// Screen settings
+		int _screenWidth  = 0;
+		int _screenHeight = 0;
 		float _farView = DEFAULT_FAR_VIEW;
 		bool _isWindowed;
 
@@ -434,65 +335,38 @@ namespace TEN::Renderer
 
 		// Caching state changes
 
-		ITextureBase* _lastTexture;
-		BlendMode _lastBlendMode;
-		DepthState _lastDepthState;
-		CullMode _lastCullMode;
-		int _lastMaterialIndex;
-		int _lastSortedRoomNumber = NO_VALUE;
-		RendererObjectType _lastSortedObjectType = RendererObjectType::Unknown;
-		const void* _lastSortedObject = nullptr;
-		bool _lastSortedSkinned = false;
 
 		std::vector<RendererSpriteBucket> _spriteBuckets;
 
 		// Antialiasing
 
-		std::unique_ptr<ITexture2D> _SMAAAreaTexture;
-		std::unique_ptr<ITexture2D> _SMAASearchTexture;
 
 		// Post-process
 
-		bool _hasDistortionMask = false;
 		PostProcessMode _postProcessMode = PostProcessMode::None;
 		float _postProcessStrength = 1.0f;
 		Vector3 _postProcessTint = (Vector3)NEUTRAL_COLOR;
 		DOFState _currentDOF;
 		DOFState _lastDOF;
 
-		std::unique_ptr<IVertexBuffer> _fullscreenTriangleVertexBuffer;
 
-		bool _doingFullscreenPass = false;
 
 		// SSAO
 
-		std::unique_ptr<ITexture2D> _SSAONoiseTexture;
-		std::vector<Vector4> _SSAOKernel;
 
 		// Special effects
 		RendererMirror* _currentMirror = nullptr;
 
 		// Transparency
 
-		fast_vector<Vertex> _sortedPolygonsVertices;
-		fast_vector<int> _sortedPolygonsIndices;
 
-		std::vector<RendererSortedBatch> _sortedPolygonsBatches;
 		std::vector<RendererSortKey> _sortKeysScratch;
-		std::unique_ptr<IVertexBuffer> _sortedPolygonsVertexBuffer;
-		std::unique_ptr<IIndexBuffer> _sortedPolygonsIndexBuffer;
 
 		// High framerate
 
 		float _interpolationFactor = 0.0f;
 		bool  _graphicsSettingsChanged = false;
 
-		// Shader manager
-
-		ShaderManager _shaders;
-
-		std::unique_ptr<IPrimitiveBatch> _primitiveBatch;
-		std::unique_ptr<ISpriteBatch> _spriteBatch;
 
 		void BuildHierarchy(RendererObject* obj);
 		void BuildHierarchyRecursive(RendererObject* obj, RendererBone* node, RendererBone* parentNode);
@@ -515,14 +389,12 @@ namespace TEN::Renderer
 		void InitializeCommonTextures();
 		void InitializeGameBars();
 		void InitializeMenuBars(int y);
-		void InitializeSky();
 		void DrawAllStrings();
 		void GetResolvedStrings(std::vector<Next::OverlayText>& texts);
 		const RendererSprite* GetOpticOverlaySprite() const;
 		Next::UiFrame _nextUi = {}; // 2D layer recorded for the next renderer until the frame is presented.
-		std::unordered_map<const ITextureBase*, std::string> _nextImagePaths = {}; // Files of the textures loaded by SetTextureOrDefault.
 		void AddNextUiLayer(Next::OverlayLayerType type, int first);
-		void AddNextUiImage(const ITextureBase* texture, const Vector2& min, const Vector2& max, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color, BlendMode blendMode);
+		void AddNextUiImage(const std::string& path, const Vector2& min, const Vector2& max, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color, BlendMode blendMode);
 		void BeginNextUiObject(const Matrix& viewProjection, const Vector4& color, const Vector4& ambientLight, unsigned int frame, float interpolatedFrame, bool isAlphaTested);
 		void AddNextUiObjectMesh(const RendererMesh* mesh, const Matrix& world, const Matrix* bones = nullptr, int boneCount = 0);
 		void AddNextUiSkinMesh(const RendererObject& moveableObject, const RendererMesh* skinMesh, const Matrix& world);
@@ -536,7 +408,6 @@ namespace TEN::Renderer
 		bool GetSunSprite(const RenderView& renderView, RendererSpriteToDraw& sprite);
 
 		// Atmospheric sky dome
-		void InitializeAtmosphericSky();
 		void UpdateAtmosphericSkyBuffer(RenderView& renderView);
 	public:
 		float ComputeDayNightBlend(float sunElevation) const;
@@ -558,7 +429,6 @@ namespace TEN::Renderer
 	private:
 
 		// God rays
-		void InitializeGodRays();
 		void UpdateGodRayBuffer(RenderView& renderView);
 	public:
 		GodRay::GodRaySettings& GetGodRaySettings() { return _godRaySettings; }
@@ -567,7 +437,6 @@ namespace TEN::Renderer
 	private:
 
 		// Volumetric dust storm
-		void InitializeDustStorm();
 		void UpdateDustStormBuffer(RenderView& view);
 	public:
 		DustStorm::DustStormSettings& GetDustStormSettings() { return _dustStormSettings; }
@@ -576,7 +445,6 @@ namespace TEN::Renderer
 
 		// Volumetric clouds
 		void InitializeVolumetricClouds();
-		void ResizeVolumetricCloudTargets();
 		void UpdateVolumetricCloudBuffer(const VolumetricCloud::CloudRenderSettings& settings,
 		                                 const VolumetricCloud::CloudRuntimeState& runtimeState,
 		                                 RenderView& view);
@@ -591,8 +459,6 @@ namespace TEN::Renderer
 		int GetCloudFrameCounterB() const { return _cloudStateB.FrameCounter; }
 
 		// Dual volumetric cloud layers (new layered system).
-		void InitializeDualVolumetricClouds();
-		void ResizeDualCloudTargets();
 
 		// Sky effect state and draw records, prepared once per frame (RendererSkyEffects.cpp).
 		void PrepareSkyEffects(RenderView& view);
@@ -641,11 +507,11 @@ namespace TEN::Renderer
 		void DrawLocusts(RenderView& view, RendererPass rendererPass);
 		void DrawStatistics();
 		void DrawExamines();
-		void DrawFullScreenImage(ITextureBase* texture, float fade);
+		void DrawFullScreenImage(const RendererImage& image, float fade);
 		void PrepareShockwaves(RenderView& view);
 		void PrepareRipples(RenderView& view);
 		void PrepareUnderwaterBloodParticles(RenderView& view);
-		void DrawFullScreenQuad(ITextureBase* texture, Vector3 color, bool fit = true, float customAspect = 0.0f);
+		void DrawFullScreenQuad(const RendererImage& image, Vector3 color, bool fit = true, float customAspect = 0.0f);
 		void PrepareSmokeParticles(RenderView& view);
 		void PrepareSparkParticles(RenderView& view);
 		void PrepareExplosionParticles(RenderView& view);
@@ -720,11 +586,6 @@ namespace TEN::Renderer
 		void RestoreObjectVertices(GAME_OBJECT_ID objectID);
 		Vector4 GetPortalRect(Vector4 v, Vector4 vp);
 		bool SphereBoxIntersection(BoundingBox box, Vector3 sphereCentre, float sphereRadius);
-		void InitializeSpriteQuad();
-		void InitializePostProcess();
-		void CreateSSAONoiseTexture();
-		void InitializeSMAA();
-		std::unique_ptr<ITexture2D> CreateDefaultTexture(std::vector<unsigned char> color);
 		std::optional<Vector2> ProjectDisplayItemPointToScreen(const Vector3& worldPos) const;
 		bool IsRoomReflected(RenderView& renderView, int roomNumber);
 
@@ -747,20 +608,6 @@ namespace TEN::Renderer
 				return;
 
 			matrix = matrix * _currentMirror->ReflectionMatrix;
-		}
-
-        template <typename CBuff>
-        inline void UpdateConstantBuffer(CBuff* data, IConstantBuffer* cb, int size = 0) noexcept
-		{
-			_graphicsDevice->UpdateConstantBuffer(cb, data, size);
-			_numConstantBufferUpdates++;
-            _numConstantBufferBytes += (size > 0 && size < (int)sizeof(CBuff)) ? size : (int)sizeof(CBuff);
-		}
-
-		template <typename CBuff>
-		std::unique_ptr<IConstantBuffer> CreateConstantBuffer()
-		{
-			return std::move(_graphicsDevice->CreateConstantBuffer(sizeof(CBuff), "")); //typeid(CBuff).name()
 		}
 
 		static inline bool IsSortedBlendMode(BlendMode blendMode)
@@ -847,24 +694,19 @@ namespace TEN::Renderer
 
 		RendererMesh* GetRendererMeshFromTrMesh(RendererObject* obj, MESH* meshPtr, short boneIndex, int isJoints, int isHairs, int* lastVertex, int* lastIndex);
 		void DrawBar(float percent, const RendererHudBar& bar, GAME_OBJECT_ID textureSlot, int frame, bool poison);
-		void Create();
 		void Initialize(const std::string& gameDir, int w, int h, bool windowed);
 
-		// Backend escape hatch — used by ImGui DX11 init. Returns the underlying
-		// IGraphicsDevice; callers must downcast to the concrete backend type.
-		IGraphicsDevice* GetGraphicsDevice() const { return _graphicsDevice.get(); }
-		void ReloadShaders(bool recompileAAShaders = false);
-		void SetSwapchainWindow(SDL_Window* window, bool isPresented);
+		void ReloadShaders();
+		bool IsVideoSpriteActive() const;
 		void Render(float interpFactor);
 		void RenderTitle(float interpFactor);
 		void Lock();
 		bool PrepareDataForTheRenderer();
 		void UpdateCameraMatrices(CAMERA_INFO* cam, float farView);
-		void RenderSimpleSceneToParaboloid(IRenderTarget2D* renderTarget, Vector3 position, int hemisphere);
 		void DumpGameScene(SceneRenderMode renderMode = SceneRenderMode::Full, float blur = 0.0f);
 		void RenderInventory();
 		void CaptureMenuScreenshot();
-		void RenderScene(IRenderSurface2D* renderTarget, RenderView& view, SceneRenderMode renderMode = SceneRenderMode::Full);
+		void RenderScene(RenderView& view, SceneRenderMode renderMode = SceneRenderMode::Full);
 		void PrepareSceneSprites(RenderView& view);
 		ConstantBuffers::CCameraMatrixBuffer GetCameraUniforms(RenderView& view);
 		void CollectHud(RenderView& view, SceneRenderMode renderMode);
@@ -884,9 +726,9 @@ namespace TEN::Renderer
 		void AddDynamicSpotLight(const Vector3& pos, const Vector3& dir, float radius, float falloff, float distance, const Color& color, bool castShadows, int hash = 0);
 		void RenderLoadingScreen(float percentage);
 		void RenderFreezeMode(float interpFactor, bool staticBackground);
-		void RenderFullScreenTexture(ITextureBase* texture, float aspect);
-		void UpdateVideoTexture(ITexture2D* texture);
-		void ClearVideoTexture();
+		void RenderVideoFrame(float aspect);
+		void UpdateVideoSprite(int width, int height);
+		void ClearVideoSprite();
 		void UpdateProgress(float value);
 		void UpdatePlayerSkinVertices(GAME_OBJECT_ID skinID, GAME_OBJECT_ID skinJointsID, GAME_OBJECT_ID hairPrimaryID, GAME_OBJECT_ID hairSecondaryID);
 		void ToggleFullScreen(bool force = false);
@@ -925,10 +767,8 @@ namespace TEN::Renderer
 		void DrawObjectIn2DSpace(int objectNumber, Vector2 pos2D, EulerAngles orient, float scale1, float opacity = 1.0f, int meshBits = NO_JOINT_BITS);
 		void DrawObjectIn3DSpace(const DisplayItem& item);
 		void SetLoadingScreen(const std::string& fileName);
-		std::unique_ptr<ITexture2D> SetTextureOrDefault(std::string path);
-		std::string GetDefaultAdapterName();
+		RendererImage LoadImage(const std::string& path);
 		std::string SaveScreenshot();
-		const AdapterInfo& GetAdapterInfo() const;
 		void SaveOldState();
 
 		float						GetFramerateMultiplier() const;
@@ -963,3 +803,7 @@ namespace TEN::Renderer
 
 	extern Renderer g_Renderer;
 }
+
+// Game code refers to the renderer and its structures without namespaces, as the legacy graphics headers allowed.
+using namespace TEN::Renderer;
+using namespace TEN::Renderer::Structures;

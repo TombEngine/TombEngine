@@ -28,10 +28,6 @@ namespace TEN::Renderer
 		TENLog("Preparing renderer...", LogLevel::Info);
 
 		_skinVertexBackups.clear();
-		_lastBlendMode = BlendMode::Unknown;
-		_lastCullMode = CullMode::Unknown;
-		_lastDepthState = DepthState::Unknown;
-		_lastMaterialIndex = NO_VALUE;
 
 		_moveableObjects.resize(ID_NUMBER_OBJECTS);
 		_spriteSequences.resize(ID_NUMBER_OBJECTS);
@@ -48,59 +44,8 @@ namespace TEN::Renderer
 		auto item = RendererItem();
 		_items = std::vector<RendererItem>(allocatedItemSize, item);
 		_effects = std::vector<RendererEffect>(allocatedItemSize, RendererEffect());
-		
-		auto emptyNormalMap = std::vector<unsigned char>{ 128, 128, 255, 255 };
-		auto emptyORSHMap = std::vector<unsigned char>{ 255, 255, 0, 255 };
-		auto emptyEmissiveMap = std::vector<unsigned char>{ 0, 0, 0, 0 };
 
 		TENLog("Allocated renderer object memory.", LogLevel::Info);
-
-		_animatedTextures.resize(g_Level.AnimatedTextures.size());
-		for (int i = 0; i < g_Level.AnimatedTextures.size(); i++)
-		{
-			TEXTURE* texture = &g_Level.AnimatedTextures[i];
-			
-			std::unique_ptr<ITexture2D> color = _graphicsDevice->CreateTexture2DFromFileInMemory(
-				(int)texture->colorMapData.size(), texture->colorMapData.data());
-
-			std::unique_ptr<ITexture2D> normal;
-			if (texture->normalMapData.size() < 1)
-			{
-				normal = CreateDefaultTexture(emptyNormalMap);
-			}
-			else
-			{
-				normal = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->normalMapData.size(), texture->normalMapData.data());
-			}
-
-			std::unique_ptr<ITexture2D> ORSH;
-			if (texture->ORSHMapData.size() < 1)
-			{
-				ORSH = CreateDefaultTexture(emptyORSHMap);
-			}
-			else
-			{
-				ORSH = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->ORSHMapData.size(), texture->ORSHMapData.data());
-			}
-
-			std::unique_ptr<ITexture2D> emissive;
-			if (texture->emissiveMapData.size() < 1)
-			{
-				emissive = CreateDefaultTexture(emptyEmissiveMap);
-			}
-			else
-			{
-				emissive = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->emissiveMapData.size(), texture->emissiveMapData.data());
-			}
-
-			AtlasTexturesSet tex = std::make_tuple(
-				std::move(color),
-				std::move(normal),
-				std::move(ORSH),
-				std::move(emissive));
-
-			_animatedTextures[i] = std::move(tex);
-		}
 
 		std::transform(g_Level.AnimatedTexturesSequences.begin(), g_Level.AnimatedTexturesSequences.end(), std::back_inserter(_animatedTextureSets), [](ANIMATED_TEXTURES_SEQUENCE& sequence)
 		{  
@@ -144,194 +89,6 @@ namespace TEN::Renderer
 
 		if (_animatedTextureSets.size() > 0)
 			TENLog("Generated " + std::to_string(_animatedTextureSets.size()) + " animated texture sets.", LogLevel::Info);
-
-		_roomTextures.resize(g_Level.RoomTextures.size());
-		for (int i = 0; i < g_Level.RoomTextures.size(); i++)
-		{
-			TEXTURE* texture = &g_Level.RoomTextures[i];
-
-			std::unique_ptr<ITexture2D> color = _graphicsDevice->CreateTexture2DFromFileInMemory(
-				(int)texture->colorMapData.size(), texture->colorMapData.data());
-
-				std::unique_ptr<ITexture2D> normal;
-			if (texture->normalMapData.size() < 1)
-			{
-				normal = CreateDefaultTexture(emptyNormalMap);
-			}
-			else
-			{
-				normal = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->normalMapData.size(), texture->normalMapData.data());
-			}
-
-			std::unique_ptr<ITexture2D> ORSH;
-			if (texture->ORSHMapData.size() < 1)
-			{
-				ORSH = CreateDefaultTexture(emptyORSHMap);
-			}
-			else
-			{
-				ORSH = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->ORSHMapData.size(), texture->ORSHMapData.data());
-			}
-
-			std::unique_ptr<ITexture2D> emissive;
-			if (texture->emissiveMapData.size() < 1)
-			{
-				emissive = CreateDefaultTexture(emptyEmissiveMap);
-			}
-			else
-			{
-				emissive = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->emissiveMapData.size(), texture->emissiveMapData.data());
-			}
-
-			AtlasTexturesSet tex = std::make_tuple(
-				std::move(color),
-				std::move(normal),
-				std::move(ORSH),
-				std::move(emissive));
-			
-			_roomTextures[i] = std::move(tex);
-
-#ifdef DUMP_TEXTURES
-			char filename[255];
-			sprintf(filename, "dump/room_%d.png", i);
-
-			std::ofstream outfile(std::filesystem::path{filename}, std::ios::out | std::ios::binary);
-			outfile.write(reinterpret_cast<const char*>(texture->colorMapData.data()), texture->colorMapData.size());
-#endif
-		}
-
-		if (_roomTextures.size() > 0)
-			TENLog("Generated " + std::to_string(_roomTextures.size()) + " room texture atlases.", LogLevel::Info);
-
-		_moveablesTextures.resize(g_Level.MoveablesTextures.size());
-		for (int i = 0; i < g_Level.MoveablesTextures.size(); i++)
-		{
-			TEXTURE* texture = &g_Level.MoveablesTextures[i];
-
-			std::unique_ptr<ITexture2D> color = _graphicsDevice->CreateTexture2DFromFileInMemory(
-				(int)texture->colorMapData.size(), texture->colorMapData.data());
-
-				std::unique_ptr<ITexture2D> normal;
-			if (texture->normalMapData.size() < 1)
-			{
-				normal = CreateDefaultTexture(emptyNormalMap);
-			}
-			else
-			{
-				normal = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->normalMapData.size(), texture->normalMapData.data());
-			}
-
-			std::unique_ptr<ITexture2D> ORSH;
-			if (texture->ORSHMapData.size() < 1)
-			{
-				ORSH = CreateDefaultTexture(emptyORSHMap);
-			}
-			else
-			{
-				ORSH = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->ORSHMapData.size(), texture->ORSHMapData.data());
-			}
-
-			std::unique_ptr<ITexture2D> emissive;
-			if (texture->emissiveMapData.size() < 1)
-			{
-				emissive = CreateDefaultTexture(emptyEmissiveMap);
-			}
-			else
-			{
-				emissive = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->emissiveMapData.size(), texture->emissiveMapData.data());
-			}
-
-			AtlasTexturesSet tex = std::make_tuple(
-				std::move(color),
-				std::move(normal),
-				std::move(ORSH),
-				std::move(emissive));
-
-			_moveablesTextures[i] = std::move(tex);
-
-#ifdef DUMP_TEXTURES
-			char filename[255];
-			sprintf(filename, "dump/moveable_%d.png", i);
-
-			std::ofstream outfile(std::filesystem::path{filename}, std::ios::out | std::ios::binary);
-			outfile.write(reinterpret_cast<const char*>(texture->colorMapData.data()), texture->colorMapData.size());
-#endif
-		}
-
-		if (_moveablesTextures.size() > 0)
-			TENLog("Generated " + std::to_string(_moveablesTextures.size()) + " moveable texture atlases.", LogLevel::Info);
-
-		_staticTextures.resize(g_Level.StaticsTextures.size());
-		for (int i = 0; i < g_Level.StaticsTextures.size(); i++)
-		{
-			TEXTURE* texture = &g_Level.StaticsTextures[i];
-
-			std::unique_ptr<ITexture2D> color = _graphicsDevice->CreateTexture2DFromFileInMemory(
-				(int)texture->colorMapData.size(), texture->colorMapData.data());
-
-			std::unique_ptr<ITexture2D> normal;
-			if (texture->normalMapData.size() < 1)
-			{
-				normal = CreateDefaultTexture(emptyNormalMap);
-			}
-			else
-			{
-				normal = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->normalMapData.size(), texture->normalMapData.data());
-			}
-
-			std::unique_ptr<ITexture2D> ORSH;
-			if (texture->ORSHMapData.size() < 1)
-			{
-				ORSH = CreateDefaultTexture(emptyORSHMap);
-			}
-			else
-			{
-				ORSH = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->ORSHMapData.size(), texture->ORSHMapData.data());
-			}
-
-			std::unique_ptr<ITexture2D> emissive;
-			if (texture->emissiveMapData.size() < 1)
-			{
-				emissive = CreateDefaultTexture(emptyEmissiveMap);
-			}
-			else
-			{
-				emissive = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->emissiveMapData.size(), texture->emissiveMapData.data());
-			}
-
-			AtlasTexturesSet tex = std::make_tuple(
-				std::move(color),
-				std::move(normal),
-				std::move(ORSH),
-				std::move(emissive));
-			
-			_staticTextures[i] = std::move(tex);
-
-#ifdef DUMP_TEXTURES
-			char filename[255];
-			sprintf(filename, "dump/static_%d.png", i);
-
-			std::ofstream outfile(std::filesystem::path{filename}, std::ios::out | std::ios::binary);
-			outfile.write(reinterpret_cast<const char*>(texture->colorMapData.data()), texture->colorMapData.size());
-#endif
-		}
-
-		if (_staticTextures.size() > 0)
-			TENLog("Generated " + std::to_string(_staticTextures.size()) + " static mesh texture atlases.", LogLevel::Info);
-
-		_spritesTextures.resize(g_Level.SpritesTextures.size());
-		for (int i = 0; i < g_Level.SpritesTextures.size(); i++)
-		{
-			auto& texture = g_Level.SpritesTextures[i];
-			_spritesTextures[i] = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture.colorMapData.size(), texture.colorMapData.data());
-		}
-
-		if (_spritesTextures.size() > 0)
-			TENLog("Generated " + std::to_string((int)_spritesTextures.size()) + " sprite atlases.", LogLevel::Info);
-
-		_skyTexture = _graphicsDevice->CreateTexture2DFromFileInMemory((int)g_Level.SkyTexture.colorMapData.size(), g_Level.SkyTexture.colorMapData.data());
-
-		TENLog("Loaded sky texture.", LogLevel::Info);
 
 		int totalVertices = 0;
 		int totalIndices = 0;
@@ -427,7 +184,7 @@ namespace TEN::Renderer
 
 			if (room.positions.empty())
 				continue;
-			
+
 			for (auto& levelBucket : room.buckets)
 			{
 				RendererBucket bucket{};
@@ -465,7 +222,7 @@ namespace TEN::Renderer
 					n.Normalize();
 
 					newPoly.Normal = n;
-					
+
 					int baseVertices = lastVertex;
 					for (int k = 0; k < poly.indices.size(); k++)
 					{
@@ -494,7 +251,7 @@ namespace TEN::Renderer
 
 						vertex->AnimationFrameOffsetIndexHash = PackAnimationFrameOffsetIndexHash(poly.animatedFrame, index, hash);
 						vertex->Effects = PackEffectsAndIndexInPoly(room.effects[index], poly.shineStrength, k);
-						
+
 						lastVertex++;
 					}
 
@@ -514,7 +271,7 @@ namespace TEN::Renderer
 					else
 					{
 						newPoly.BaseIndex = lastIndex;
- 
+
 						_roomsIndices[lastIndex + 0] = baseVertices + 0;
 						_roomsIndices[lastIndex + 1] = baseVertices + 1;
 						_roomsIndices[lastIndex + 2] = baseVertices + 2;
@@ -606,8 +363,6 @@ namespace TEN::Renderer
 				}
 			}
 		}
-		_roomsVertexBuffer = _graphicsDevice->CreateVertexBuffer((int)_roomsVertices.size(), sizeof(Vertex), _roomsVertices.data());
-		_roomsIndexBuffer = _graphicsDevice->CreateIndexBuffer((int)_roomsIndices.size(), _roomsIndices.data());
 
 		std::for_each(std::execution::par_unseq,
 			_rooms.begin(),
@@ -629,7 +384,7 @@ namespace TEN::Renderer
 		);
 
 		TENLog("Preparing object data...", LogLevel::Info);
-			 
+
 		bool isSkinPresent = false;
 
 		totalVertices = 0;
@@ -815,8 +570,6 @@ namespace TEN::Renderer
 			bodyPart.BindPoseTransforms.push_back(Matrix::Identity);
 		}
 
-		_moveablesVertexBuffer = _graphicsDevice->CreateVertexBuffer((int)_moveablesVertices.size(), sizeof(Vertex), _moveablesVertices.data());
-		_moveablesIndexBuffer = _graphicsDevice->CreateIndexBuffer((int)_moveablesIndices.size(), _moveablesIndices.data());
 
 		TENLog("Preparing static mesh data...", LogLevel::Info);
 
@@ -851,11 +604,9 @@ namespace TEN::Renderer
 			_staticObjects.push_back(newStaticObj);
 		}
 
-		_staticsVertexBuffer = _graphicsDevice->CreateVertexBuffer((int)_staticsVertices.size(), sizeof(Vertex), _staticsVertices.data());
-		_staticsIndexBuffer = _graphicsDevice->CreateIndexBuffer((int)_staticsIndices.size(), _staticsIndices.data());
 
 		TENLog("Preparing sprite data...", LogLevel::Info);
-		
+
 		// Step 5: prepare sprites
 		_sprites.resize(g_Level.Sprites.size());
 
@@ -869,11 +620,11 @@ namespace TEN::Renderer
 			sprite.UV[1] = Vector2(oldSprite->x2, oldSprite->y2);
 			sprite.UV[2] = Vector2(oldSprite->x3, oldSprite->y3);
 			sprite.UV[3] = Vector2(oldSprite->x4, oldSprite->y4);
-			sprite.Texture = _spritesTextures[oldSprite->tile].get();
-			sprite.Width = round((oldSprite->x2 - oldSprite->x1) * (float)sprite.Texture->GetWidth() + 1.0f);
-			sprite.Height = round((oldSprite->y3 - oldSprite->y2) * (float)sprite.Texture->GetHeight() + 1.0f);
-			sprite.X = oldSprite->x1 * sprite.Texture->GetWidth();
-			sprite.Y = oldSprite->y1 * sprite.Texture->GetHeight();
+			const auto& page = g_Level.SpritesTextures[oldSprite->tile];
+			sprite.Width = round((oldSprite->x2 - oldSprite->x1) * (float)page.width + 1.0f);
+			sprite.Height = round((oldSprite->y3 - oldSprite->y2) * (float)page.height + 1.0f);
+			sprite.X = oldSprite->x1 * page.width;
+			sprite.Y = oldSprite->y1 * page.height;
 		}
 
 		for (int i = 0; i < SpriteSequencesIds.size(); i++)
@@ -900,24 +651,21 @@ namespace TEN::Renderer
 			}
 		}
 
-		if (Next::g_NextRenderer.IsActive())
-		{
-			auto geometry = Next::LegacyLevelGeometry{};
-			geometry.RoomVertices = &_roomsVertices;
-			geometry.RoomIndices = &_roomsIndices;
-			geometry.Rooms = &_rooms;
-			geometry.AnimatedTextureSets = &_animatedTextureSets;
-			geometry.StaticVertices = &_staticsVertices;
-			geometry.StaticIndices = &_staticsIndices;
-			geometry.MoveableVertices = &_moveablesVertices;
-			geometry.MoveableIndices = &_moveablesIndices;
-			geometry.StaticObjects = &_staticObjects;
-			geometry.MoveableObjects = &_moveableObjects;
-			geometry.Meshes = &_meshes;
-			geometry.Items = &_items;
-			geometry.Sprites = &_sprites;
-			Next::g_NextRenderer.LoadLevel(geometry);
-		}
+		auto geometry = Next::LegacyLevelGeometry{};
+		geometry.RoomVertices = &_roomsVertices;
+		geometry.RoomIndices = &_roomsIndices;
+		geometry.Rooms = &_rooms;
+		geometry.AnimatedTextureSets = &_animatedTextureSets;
+		geometry.StaticVertices = &_staticsVertices;
+		geometry.StaticIndices = &_staticsIndices;
+		geometry.MoveableVertices = &_moveablesVertices;
+		geometry.MoveableIndices = &_moveablesIndices;
+		geometry.StaticObjects = &_staticObjects;
+		geometry.MoveableObjects = &_moveableObjects;
+		geometry.Meshes = &_meshes;
+		geometry.Items = &_items;
+		geometry.Sprites = &_sprites;
+		Next::g_NextRenderer.LoadLevel(geometry);
 
 		return true;
 	}
@@ -968,13 +716,13 @@ namespace TEN::Renderer
 				{
 					Vertex vertex;
 					int v = poly->indices[k];
-					
+
 					vertex.Position.x = meshPtr->positions[v].x;
 					vertex.Position.y = meshPtr->positions[v].y;
 					vertex.Position.z = meshPtr->positions[v].z;
 					bucket.BoundsMin = Vector3::Min(bucket.BoundsMin, vertex.Position);
 					bucket.BoundsMax = Vector3::Max(bucket.BoundsMax, vertex.Position);
-					 
+
 					vertex.Normal = PackVector3(Vector3(poly->normals[k].x, poly->normals[k].y, poly->normals[k].z));
 					vertex.Tangent = PackVector3(Vector3(poly->tangents[k].x, poly->tangents[k].y, poly->tangents[k].z));
 
@@ -982,9 +730,9 @@ namespace TEN::Renderer
 
 					vertex.UV.x = poly->textureCoordinates[k].x;
 					vertex.UV.y = poly->textureCoordinates[k].y;
-					
+
 					vertex.Color = VectorColorToRGBA(Vector4(meshPtr->colors[v].x, meshPtr->colors[v].y, meshPtr->colors[v].z, 1.0f));
-					
+
 					vertex.BoneIndex  = meshPtr->boneIndices[v];
 					vertex.BoneWeight = meshPtr->boneWeights[v];
 
@@ -1276,10 +1024,7 @@ namespace TEN::Renderer
 		ProcessHair(hairSecondaryID, skinMoveable, isYoung);
 
 		// Re-upload modified vertex data to the GPU.
-		_graphicsDevice->UpdateVertexBuffer(_moveablesVertexBuffer.get(), 0, (int)_moveablesVertices.size(), _moveablesVertices.data());
-
-		if (Next::g_NextRenderer.IsActive())
-			Next::g_NextRenderer.UpdateMoveableVertices(_moveablesVertices);
+		Next::g_NextRenderer.UpdateMoveableVertices(_moveablesVertices);
 	}
 
 	void Renderer::BackupObjectVertices(GAME_OBJECT_ID objectID)
