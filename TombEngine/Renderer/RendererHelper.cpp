@@ -23,6 +23,7 @@
 #include "Objects/TR4/Vehicles/motorbike.h"
 #include "Objects/TR4/Vehicles/motorbike_info.h"
 #include "Math/Math.h"
+#include "Renderer/Next/NextRenderer.h"
 #include "Renderer/RenderView.h"
 #include "Specific/configuration.h"
 #include "Specific/level.h"
@@ -766,6 +767,14 @@ namespace TEN::Renderer
 
 		screenPath += "/";
 		screenPath += buffer;
+
+		// The next renderer saves the image when its next frame reaches the readback.
+		if (Next::g_NextRenderer.IsActive())
+		{
+			Next::g_NextRenderer.RequestScreenshot(screenPath);
+			TENLog(fmt::format("Saving screenshot to '{}'.", screenPath), LogLevel::Info);
+			return std::string(buffer);
+		}
 
 		if (!_graphicsDevice->SaveScreenshot(_backBuffer->GetRenderTarget(), screenPath))
 		{

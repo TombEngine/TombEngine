@@ -5,8 +5,8 @@
 #
 # Usage, from any directory:
 #   powershell -ExecutionPolicy Bypass -File Documentation\Renderer\RendererParity.ps1 [-BuildDir Build\Debug]
-#       [-Levels Benchmark_coastal,...] [-Backends vulkan,dx11] [-Window preview|next] [-Threshold 5] [-Seconds 12]
-#       [-ExtraArgs previewlowpower] [-SaveReference] [-UseReference] [-ReferenceDir Build\Debug\Logs\Reference]
+#       [-Levels Benchmark_coastal,...] [-Backends vulkan,dx11] [-Window next] [-Threshold 5] [-Seconds 12]
+#       [-ExtraArgs lowpower] [-SaveReference] [-UseReference] [-ReferenceDir Build\Debug\Logs\Reference]
 #
 # -SaveReference stores the legacy screenshot of each level as its reference image. -UseReference compares the next
 # renderer with the stored references instead of the legacy renderer, which no longer draws once it is removed.
@@ -21,7 +21,7 @@ param(
     [string]$BuildDir = "",
     [string[]]$Levels = @("Benchmark_coastal", "Benchmark_karnak", "Benchmark_tut1_water"),
     [string[]]$Backends = @("vulkan", "dx11"),
-    [string]$Window = "preview",
+    [string]$Window = "next",
     [double]$Threshold = 5.0,
     [int]$Seconds = 12,
     [string]$OutputDir = "",

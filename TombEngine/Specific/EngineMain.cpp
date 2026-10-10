@@ -292,9 +292,7 @@ int main(int argc, char* argv[])
 	auto gameDir = std::string();
 	float benchmarkDuration = 0.0f;
 	auto rhiTestBackend = std::string();
-	auto previewBackend = std::string();
-	bool isPreviewOnLowPowerGpu = false;
-	SDL_Window* previewWindow = nullptr;
+	bool isOnLowPowerGpu = false;
 	auto nextBackend = std::string();
 	SDL_Window* legacyWindow = nullptr;
 
@@ -326,19 +324,15 @@ int main(int argc, char* argv[])
 		{
 			rhiTestBackend = argv[++i];
 		}
-		else if (ArgEquals(arg.c_str(), "preview") && i + 1 < argc)
-		{
-			previewBackend = argv[++i];
-		}
 		else if (ArgEquals(arg.c_str(), "next") && i + 1 < argc)
 		{
-			// The next renderer draws the main window; the legacy renderer still prepares every frame in a hidden window.
+			// Renderer backend, overriding the configuration.
 			nextBackend = argv[++i];
 		}
-		else if (ArgEquals(arg.c_str(), "previewlowpower"))
+		else if (ArgEquals(arg.c_str(), "lowpower"))
 		{
-			// Runs the preview on the integrated GPU of hybrid systems, for comparisons on the same GPU.
-			isPreviewOnLowPowerGpu = true;
+			// Runs the renderer on the integrated GPU of hybrid systems.
+			isOnLowPowerGpu = true;
 		}
 	}
 
@@ -449,8 +443,8 @@ int main(int argc, char* argv[])
 		SetAudioConfiguration(g_Configuration);
 	}
 
-	// The configured renderer applies when the command line does not choose one.
-	if (nextBackend.empty() && previewBackend.empty() && g_Configuration.GraphicsBackend != GraphicsBackend::Legacy)
+	// The configured backend applies when the command line does not choose one; the retired legacy option uses Vulkan.
+	if (nextBackend.empty())
 		nextBackend = (g_Configuration.GraphicsBackend == GraphicsBackend::DX11) ? "dx11" : "vulkan";
 
 	// Initialize main window.
@@ -497,22 +491,16 @@ int main(int argc, char* argv[])
 		Sound_Init(GameDirectory);
 
 		// Initialize renderer.
-		// The next renderer starts first: when no backend works, the legacy renderer draws the main window.
-		if (!nextBackend.empty() && !StartNextRenderer(sdlWindow, nextBackend, isPreviewOnLowPowerGpu))
-		{
-			TENLog("Next renderer could not start, the legacy renderer draws the main window.", LogLevel::Error);
-			nextBackend.clear();
-		}
+		// The next renderer draws the main window; the legacy renderer still prepares every frame in a hidden window.
+		if (!StartNextRenderer(sdlWindow, nextBackend, isOnLowPowerGpu))
+			throw std::runtime_error("No renderer backend could be started.");
 
-		if (!nextBackend.empty())
-		{
-			legacyWindow = SDL_CreateWindow("TombEngine - legacy renderer", width, height, SDL_WINDOW_HIDDEN);
-			g_Renderer.SetSwapchainWindow(legacyWindow, false);
-		}
+		legacyWindow = SDL_CreateWindow("TombEngine - legacy renderer", width, height, SDL_WINDOW_HIDDEN);
+		g_Renderer.SetSwapchainWindow(legacyWindow, false);
 
 		g_Renderer.Initialize(GameDirectory, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight, g_Configuration.EnableWindowedMode);
 
-		// Initialize ImGui (debug overlay) — must come after the D3D11 device exists.
+		// Initialize ImGui (debug overlay), drawn by the next renderer.
 		TEN::Renderer::ImGuiInit(sdlWindow);
 
 		// Initialize input.
@@ -524,13 +512,6 @@ int main(int argc, char* argv[])
 		SDL_ShowWindow(sdlWindow);
 		SDL_RaiseWindow(sdlWindow);
 
-		// New renderer preview: a second window rendered by the RHI renderer from the same game state.
-		if (!previewBackend.empty())
-		{
-			previewWindow = SDL_CreateWindow("TombEngine - Next renderer preview", width, height, SDL_WINDOW_RESIZABLE);
-			if (previewWindow == nullptr || !TEN::Renderer::Next::g_NextRenderer.Initialize(previewWindow, ParseRHIBackend(previewBackend), GameDirectory, isPreviewOnLowPowerGpu))
-				TENLog("Next renderer preview could not be started.", LogLevel::Error);
-		}
 	}
 	catch (std::exception& ex)
 	{
@@ -641,12 +622,10 @@ int main(int argc, char* argv[])
 
 	TEN::Benchmark::ShutdownBenchmark();
 
-	// Tear ImGui down before the renderer / window: backends hold raw D3D11 + SDL handles.
+	// Tear ImGui down before the window: its SDL backend holds the window.
 	TEN::Renderer::ImGuiShutdown();
 
 	TEN::Renderer::Next::g_NextRenderer.Shutdown();
-	if (previewWindow != nullptr)
-		SDL_DestroyWindow(previewWindow);
 
 	if (legacyWindow != nullptr)
 		SDL_DestroyWindow(legacyWindow);

@@ -1,26 +1,15 @@
-// ============================================================================
-// ImGuiIntegration.cpp — ImGui SDL3 (input/window) + DX11 (rendering) bridge.
-// Lives entirely above the IGraphicsDevice abstraction except for one downcast
-// to DX11GraphicsDevice that hands ImGui the raw ID3D11Device*/Context*. When a
-// non-DX11 backend exists, swap the rendering half here without touching call
-// sites.
-// ============================================================================
+// ImGui bridge: SDL3 handles input and the window, and the next renderer draws the draw data through the RHI, so
+// ImGui has no rendering backend of its own.
 
 #include "framework.h"
 #include "Renderer/ImGuiIntegration.h"
 
 #include <imgui.h>
 #include <backends/imgui_impl_sdl3.h>
-#include <backends/imgui_impl_dx11.h>
-
-#include "Renderer/Renderer.h"
-#include "Renderer/Native/DirectX11/DX11GraphicsDevice.h"
 
 namespace TEN::Renderer
 {
-	using namespace TEN::Renderer::Native::DirectX11;
-
-	static bool s_Initialized   = false;
+	static bool s_Initialized    = false;
 	static bool s_OverlayVisible = false;
 
 	void ImGuiInit(SDL_Window* window)
@@ -28,39 +17,35 @@ namespace TEN::Renderer
 		if (s_Initialized)
 			return;
 
-		auto* dx11 = dynamic_cast<DX11GraphicsDevice*>(g_Renderer.GetGraphicsDevice());
-		if (window == nullptr || dx11 == nullptr)
+		if (window == nullptr)
 		{
-			TENLog("ImGui init skipped: missing SDL window or DX11 backend.", LogLevel::Warning);
+			TENLog("ImGui init skipped: missing SDL window.", LogLevel::Warning);
 			return;
 		}
 
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 
-		ImGuiIO& io = ImGui::GetIO();
+		auto& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.IniFilename = nullptr; // No imgui.ini persistence.
 
+		// The next renderer draws each command with its vertex offset and builds the font texture from the atlas.
+		io.BackendRendererName = "TombEngine RHI";
+		io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
+		io.Fonts->Build();
+
 		ImGui::StyleColorsDark();
 		auto& style = ImGui::GetStyle();
-		style.WindowRounding  = 4.0f;
-		style.FrameRounding   = 2.0f;
-		style.GrabRounding    = 2.0f;
-		style.ScrollbarSize   = 14.0f;
-		style.Alpha           = 0.95f;
+		style.WindowRounding = 4.0f;
+		style.FrameRounding  = 2.0f;
+		style.GrabRounding   = 2.0f;
+		style.ScrollbarSize  = 14.0f;
+		style.Alpha          = 0.95f;
 
-		if (!ImGui_ImplSDL3_InitForD3D(window))
+		if (!ImGui_ImplSDL3_InitForOther(window))
 		{
-			TENLog("ImGui_ImplSDL3_InitForD3D failed.", LogLevel::Error);
-			ImGui::DestroyContext();
-			return;
-		}
-
-		if (!ImGui_ImplDX11_Init(dx11->GetD3D11Device(), dx11->GetD3D11Context()))
-		{
-			TENLog("ImGui_ImplDX11_Init failed.", LogLevel::Error);
-			ImGui_ImplSDL3_Shutdown();
+			TENLog("ImGui_ImplSDL3_InitForOther failed.", LogLevel::Error);
 			ImGui::DestroyContext();
 			return;
 		}
@@ -73,8 +58,8 @@ namespace TEN::Renderer
 		if (!s_Initialized)
 			return;
 
-		ImGui_ImplDX11_Shutdown();
 		ImGui_ImplSDL3_Shutdown();
+		ImGui::GetIO().BackendRendererName = nullptr;
 		ImGui::DestroyContext();
 		s_Initialized = false;
 	}
@@ -84,7 +69,6 @@ namespace TEN::Renderer
 		if (!s_Initialized || !s_OverlayVisible)
 			return;
 
-		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplSDL3_NewFrame();
 		ImGui::NewFrame();
 	}
@@ -95,7 +79,6 @@ namespace TEN::Renderer
 			return;
 
 		ImGui::Render();
-		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 	}
 
 	bool ImGuiProcessEvent(const SDL_Event& event)
