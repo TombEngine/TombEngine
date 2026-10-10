@@ -117,7 +117,7 @@ bool TryModifyMiscCount(LaraInfo & lara, GAME_OBJECT_ID objectID, std::optional<
 		break;
 
 	case ID_HAMMER_ITEM:
-     lara.Inventory.HasHammer = (modType == ModificationType::Set) ? (amount.value_or(0) != 0) : add;
+     lara.Inventory.HasHammer = add;
 		break;
 
 	case ID_WATERSKIN1_EMPTY:
