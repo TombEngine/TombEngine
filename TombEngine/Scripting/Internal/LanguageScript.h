@@ -79,7 +79,6 @@
 #define STRING_QUALITY_MEDIUM			"medium"
 #define STRING_QUALITY_HIGH				"high"
 #define STRING_RENDERER					"renderer"
-#define STRING_RENDERER_LEGACY			"renderer_legacy"
 #define STRING_RENDERER_VULKAN			"renderer_vulkan"
 #define STRING_RENDERER_DX11			"renderer_dx11"
 #define STRING_ANTIALIASING_NONE		"none"

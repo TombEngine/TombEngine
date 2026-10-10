@@ -50,6 +50,12 @@ namespace TEN::Gui
 
 	GuiController g_Gui;
 
+	// Vulkan and DirectX 11 alternate; the backend is applied at the next start.
+	static void ToggleGraphicsBackend(GameConfiguration& configuration)
+	{
+		configuration.GraphicsBackend = (configuration.GraphicsBackend == GraphicsBackend::Vulkan) ? GraphicsBackend::DX11 : GraphicsBackend::Vulkan;
+	}
+
 	std::vector<std::string> OptionStrings =
 	{
 		STRING_USE,
@@ -637,8 +643,7 @@ namespace TEN::Gui
 			// Applied at the next start.
 			case DisplaySettingsOption::RendererBackend:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.GraphicsBackend =
-					(GraphicsBackend)(((int)CurrentSettings.Configuration.GraphicsBackend + (int)GraphicsBackend::Count - 1) % (int)GraphicsBackend::Count);
+				ToggleGraphicsBackend(CurrentSettings.Configuration);
 				break;
 
 			}
@@ -730,8 +735,7 @@ namespace TEN::Gui
 
 			case DisplaySettingsOption::RendererBackend:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.GraphicsBackend =
-					(GraphicsBackend)(((int)CurrentSettings.Configuration.GraphicsBackend + 1) % (int)GraphicsBackend::Count);
+				ToggleGraphicsBackend(CurrentSettings.Configuration);
 				break;
 			}
 		}

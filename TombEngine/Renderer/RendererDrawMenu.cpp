@@ -1,6 +1,5 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
-#include "Renderer/Graphics/VRAMTracker.h"
 
 #include "Game/Animation/Animation.h"
 #include "Game/collision/Point.h"
@@ -267,12 +266,11 @@ namespace TEN::Renderer
 			}
 			GetNextLinePosition(&y);
 
-			// Renderer drawing the main window, applied at the next start.
+			// Renderer backend of the main window, applied at the next start.
 			{
-				constexpr const char* RENDERER_STRINGS[(int)GraphicsBackend::Count] = { STRING_RENDERER_LEGACY, STRING_RENDERER_VULKAN, STRING_RENDERER_DX11 };
-				int backend = (int)g_Gui.GetCurrentSettings().Configuration.GraphicsBackend;
+				bool isDX11 = (g_Gui.GetCurrentSettings().Configuration.GraphicsBackend == GraphicsBackend::DX11);
 				AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RENDERER), optionColor, SF(titleOption == 10));
-				AddString(MenuRightSideEntry, y, g_GameFlow->GetString(RENDERER_STRINGS[backend]), plainColor, SF(titleOption == 10));
+				AddString(MenuRightSideEntry, y, g_GameFlow->GetString(isDX11 ? STRING_RENDERER_DX11 : STRING_RENDERER_VULKAN), plainColor, SF(titleOption == 10));
 			}
 			GetNextBlockPosition(&y);
 

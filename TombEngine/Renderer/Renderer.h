@@ -11,18 +11,9 @@
 #include "Game/effects/effects.h"
 #include "Game/effects/Electricity.h"
 #include "Game/Setup.h"
-#include "Renderer/ConstantBuffers/HUDBarBuffer.h"
-#include "Renderer/ConstantBuffers/HUDBuffer.h"
 #include "Renderer/ConstantBuffers/ShadowLightBuffer.h"
-#include "Renderer/ConstantBuffers/RoomBuffer.h"
-#include "Renderer/ConstantBuffers/ObjectsBuffer.h"
 #include "Renderer/ConstantBuffers/CameraMatrixBuffer.h"
 #include "Renderer/Structures/AnimatedFrame.h"
-#include "Renderer/ConstantBuffers/PerDrawBuffer.h"
-#include "Renderer/ConstantBuffers/InstancedSpriteBuffer.h"
-#include "Renderer/ConstantBuffers/PostProcessBuffer.h"
-#include "Renderer/ConstantBuffers/SMAABuffer.h"
-#include "Renderer/ConstantBuffers/SkyBuffer.h"
 #include "Renderer/ConstantBuffers/VolumetricCloudBuffer.h"
 #include "Renderer/ConstantBuffers/AtmosphericSkyBuffer.h"
 #include "Renderer/ConstantBuffers/GodRayBuffer.h"
@@ -320,8 +311,7 @@ namespace TEN::Renderer
 		void DrawGraphicsStatsOverview();
 		void DrawGraphicsStatsNext();
 		void DrawGraphicsStatsSky();
-		void DrawGraphicsStatsLegacy(const RenderView& view);
-		void DrawGraphicsStatsComparison(const RenderView& view);
+		void DrawGraphicsStatsFrontend();
 
 		// Screen settings
 		int _screenWidth  = 0;

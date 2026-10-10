@@ -17,14 +17,11 @@ enum class MenuOptionLoopingMode
 	Disabled
 };
 
-// Renderer drawing the main window; the next renderer backends fall back to each other, then to the legacy renderer.
+// Renderer backend of the main window; the backends fall back to each other. The values are stored in the configuration.
 enum class GraphicsBackend
 {
-	Legacy,
-	Vulkan,
-	DX11,
-
-	Count
+	Vulkan = 1,
+	DX11   = 2
 };
 
 struct GameConfiguration

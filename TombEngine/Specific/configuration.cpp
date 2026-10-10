@@ -120,7 +120,8 @@ static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 	g_Configuration.EnableAmbientOcclusion = config->enable_ambient_occlusion();
 	g_Configuration.EnableHighFramerate = config->enable_high_framerate();
 	g_Configuration.AtmosphericSkyQuality = (AtmosphericSkyQuality)std::clamp(config->atmospheric_sky_quality(), (int)AtmosphericSkyQuality::Low, (int)AtmosphericSkyQuality::High);
-	g_Configuration.GraphicsBackend = (GraphicsBackend)std::clamp(config->graphics_backend(), 0, (int)GraphicsBackend::Count - 1);
+	// The retired legacy renderer, stored as 0, uses Vulkan.
+	g_Configuration.GraphicsBackend = (config->graphics_backend() == (int)GraphicsBackend::DX11) ? GraphicsBackend::DX11 : GraphicsBackend::Vulkan;
 
 	if (config->adapter_name() != nullptr)
 		g_Configuration.AdapterName = config->adapter_name()->str();

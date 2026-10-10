@@ -11,7 +11,6 @@
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Sky/SkyCloudDebug.h"
 #include "Game/Sky/SkyCloudSystem.h"
-#include "Renderer/Graphics/VRAMTracker.h"
 #include "Renderer/Next/NextRenderer.h"
 #include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
@@ -92,17 +91,14 @@ namespace TEN::Renderer
 		if (!BeginStatTable("##Overview"))
 			return;
 
-		AddStatRow("Main window renderer", g_NextRenderer.IsActive() ? "next" : "legacy");
-		AddStatRow("Configured renderer", (g_Configuration.GraphicsBackend == GraphicsBackend::Legacy) ? "legacy" :
-			((g_Configuration.GraphicsBackend == GraphicsBackend::DX11) ? "next (DirectX 11)" : "next (Vulkan)"));
-		AddStatRow("Legacy FPS", "%.1f", _fps);
+		AddStatRow("Configured backend", (g_Configuration.GraphicsBackend == GraphicsBackend::DX11) ? "DirectX 11" : "Vulkan");
+		AddStatRow("FPS", "%.1f", _fps);
 		AddStatRow("Average frame time", "%.2f ms", averageTime);
 		AddStatRow("Worst frame time", "%.2f ms", worstTime);
 		AddStatRow("Average next renderer CPU time", "%.3f ms", averageNextTime);
 		AddStatRow("Game update time", "%d ms", _timeUpdate);
 		AddStatRow("Control phase time", "%d", ControlPhaseTime);
-		AddStatRow("Legacy frame time", "%d ms", _timeFrame);
-		AddStatRow("Legacy adapter", "%s", g_Configuration.AdapterName.c_str());
+		AddStatRow("Frontend frame time", "%d ms", _timeFrame);
 		AddStatRow("Screen resolution", "%d x %d", _screenWidth, _screenHeight);
 		AddStatRow("Windowed", YesNo(g_Configuration.EnableWindowedMode));
 		constexpr const char* ANTIALIASING_NAMES[] = { "none", "low (FXAA)", "medium (SMAA)", "high (SMAA)" };
@@ -317,125 +313,24 @@ namespace TEN::Renderer
 	}
 
 	// Draw calls, triangles and memory of the legacy renderer, which still runs behind the next renderer.
-	void Renderer::DrawGraphicsStatsLegacy(const RenderView& view)
+	// Scene collection of the renderer frontend: visible rooms, lights and sorted faces.
+	void Renderer::DrawGraphicsStatsFrontend()
 	{
-		if (ImGui::CollapsingHeader("Draw calls", ImGuiTreeNodeFlags_DefaultOpen) && BeginStatTable("##LegacyDraws"))
-		{
-			AddStatRow("Total", "%d", _numDrawCalls);
-			AddStatRow("    Rooms", "%d", _numRoomsDrawCalls);
-			AddStatRow("    Moveables", "%d", _numMoveablesDrawCalls);
-			AddStatRow("    Statics", "%d", _numStaticsDrawCalls);
-			AddStatRow("    Instanced statics", "%d", _numInstancedStaticsDrawCalls);
-			AddStatRow("    Sprites", "%d", _numSpritesDrawCalls);
-			AddStatRow("    Instanced sprites", "%d", _numInstancedSpritesDrawCalls);
-			AddStatRow("    Lines", "%d", _numLinesDrawCalls);
-			AddStatRow("    Debris", "%d", _numDebrisDrawCalls);
-			AddStatRow("    Effects", "%d", _numEffectsDrawCalls);
-			AddStatRow("    Shadow map", "%d", _numShadowMapDrawCalls);
-			AddStatRow("Sorted", "%d", _numSortedRoomsDrawCalls + _numSortedMoveablesDrawCalls + _numSortedStaticsDrawCalls + _numSortedSpritesDrawCalls);
-			AddStatRow("    Rooms", "%d", _numSortedRoomsDrawCalls);
-			AddStatRow("    Moveables", "%d", _numSortedMoveablesDrawCalls);
-			AddStatRow("    Statics", "%d", _numSortedStaticsDrawCalls);
-			AddStatRow("    Sprites", "%d", _numSortedSpritesDrawCalls);
-			ImGui::EndTable();
-		}
-
-		if (ImGui::CollapsingHeader("Geometry and state", ImGuiTreeNodeFlags_DefaultOpen) && BeginStatTable("##LegacyGeometry"))
-		{
-			AddStatRow("Triangles", "%d", _numTriangles);
-			AddStatRow("Sorted triangles", "%d", _numSortedTriangles);
-			AddStatRow("Rooms drawn", "%d", _debugViewCounts.Rooms);
-			AddStatRow("Sprites", "%d", _debugViewCounts.Sprites);
-			AddStatRow("Lights", "%d", _debugViewCounts.Lights);
-			AddStatRow("Fog bulbs", "%d", _debugViewCounts.FogBulbs);
-			AddStatRow("Sorted faces", "%d", _debugViewCounts.SortedFaces);
-			AddStatRow("Interleaved sorted groups", "%d", _numInterleavedSortedGroups);
-			AddStatRow("Sorted collect", "%.3f ms", _timeSortedCollect);
-			AddStatRow("Sorted sort", "%.3f ms", _timeSortedSort);
-			AddStatRow("Sorted draw", "%.3f ms", _timeSortedDraw);
-			AddStatRow("Constant buffer updates", "%d", _numConstantBufferUpdates);
-			AddStatRow("    Per draw", "%d", _numPerDrawUpdates);
-			AddStatRow("Constant buffer upload", "%.2f MB", ToMegabytes(_numConstantBufferBytes));
-			AddStatRow("Material updates", "%d of %d", _numExecutedMaterialsUpdates, _numRequestedMaterialsUpdates);
-			AddStatRow("Portal checks", "%d", _numCheckPortalCalls);
-			AddStatRow("Visible room searches", "%d", _numGetVisibleRoomsCalls);
-			AddStatRow("Dot products", "%d", _numDotProducts);
-			ImGui::EndTable();
-		}
-
-		if (ImGui::CollapsingHeader("Video memory", ImGuiTreeNodeFlags_DefaultOpen) && BeginStatTable("##LegacyMemory"))
-		{
-			auto& vram = Graphics::VRAMTracker::Get();
-			const auto& adapter = vram.GetAdapterInfo();
-			AddStatRow("Adapter", "%s", adapter.Name.c_str());
-			AddStatRow("Installed VRAM", "%.0f MB", ToMegabytes(adapter.DedicatedVideoMemory));
-			AddStatRow("Dedicated system memory", "%.0f MB", ToMegabytes(adapter.DedicatedSystemMemory));
-			AddStatRow("Shared system memory", "%.0f MB", ToMegabytes(adapter.SharedSystemMemory));
-			AddStatRow("Tracked VRAM", "%.2f MB", ToMegabytes(vram.GetTotal()));
-			AddStatRow("    Textures", "%.2f MB", ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::Texture)));
-			AddStatRow("    Render targets", "%.2f MB", ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::RenderTarget)));
-			AddStatRow("    Vertex buffers", "%.2f MB", ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::VertexBuffer)));
-			AddStatRow("    Index buffers", "%.2f MB", ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::IndexBuffer)));
-			ImGui::EndTable();
-		}
-	}
-
-	static void AddCompareRow(const char* name, const std::string& legacyValue, const std::string& nextValue)
-	{
-		ImGui::TableNextRow();
-		ImGui::TableSetColumnIndex(0);
-		ImGui::TextUnformatted(name);
-		ImGui::TableSetColumnIndex(1);
-		ImGui::TextUnformatted(legacyValue.c_str());
-		ImGui::TableSetColumnIndex(2);
-		ImGui::TextUnformatted(nextValue.c_str());
-	}
-
-	// Legacy draw call statistics next to the same values of the next renderer.
-	void Renderer::DrawGraphicsStatsComparison(const RenderView& view)
-	{
-		if (!g_NextRenderer.IsActive())
-		{
-			ImGui::TextUnformatted("The next renderer is not running.");
-			return;
-		}
-
-		const auto& stats = g_NextRenderer.GetFrameStats();
-		auto next = [&](DrawCategory category) { return std::to_string(stats.CategoryDrawCalls[(int)category]); };
-		int nextSortedTriangles = stats.CategoryTriangles[(int)DrawCategory::SortedRooms] + stats.CategoryTriangles[(int)DrawCategory::SortedStatics] +
-			stats.CategoryTriangles[(int)DrawCategory::SortedMoveables] + stats.CategoryTriangles[(int)DrawCategory::SortedSprites];
-
-		if (!ImGui::BeginTable("##Comparison", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp))
+		if (!BeginStatTable("##Frontend"))
 			return;
 
-		ImGui::TableSetupColumn("Statistic");
-		ImGui::TableSetupColumn("Legacy");
-		ImGui::TableSetupColumn("Next");
-		ImGui::TableHeadersRow();
-		AddCompareRow("Draw calls", std::to_string(_numDrawCalls), std::to_string(stats.DrawCalls));
-		AddCompareRow("    Rooms", std::to_string(_numRoomsDrawCalls), next(DrawCategory::Rooms));
-		AddCompareRow("    Statics", std::to_string(_numStaticsDrawCalls + _numInstancedStaticsDrawCalls), next(DrawCategory::Statics));
-		AddCompareRow("    Moveables", std::to_string(_numMoveablesDrawCalls), next(DrawCategory::Moveables));
-		AddCompareRow("    Sprites", std::to_string(_numSpritesDrawCalls + _numInstancedSpritesDrawCalls), next(DrawCategory::Sprites));
-		AddCompareRow("    Sorted rooms", std::to_string(_numSortedRoomsDrawCalls), next(DrawCategory::SortedRooms));
-		AddCompareRow("    Sorted statics", std::to_string(_numSortedStaticsDrawCalls), next(DrawCategory::SortedStatics));
-		AddCompareRow("    Sorted moveables", std::to_string(_numSortedMoveablesDrawCalls), next(DrawCategory::SortedMoveables));
-		AddCompareRow("    Sorted sprites", std::to_string(_numSortedSpritesDrawCalls), next(DrawCategory::SortedSprites));
-		AddCompareRow("    Shadow map", std::to_string(_numShadowMapDrawCalls), next(DrawCategory::Shadows));
-		AddCompareRow("    Debris", std::to_string(_numDebrisDrawCalls), next(DrawCategory::Debris));
-		AddCompareRow("    Debug lines", std::to_string(_numLinesDrawCalls), next(DrawCategory::Debug));
-		AddCompareRow("Triangles", std::to_string(_numTriangles), std::to_string(stats.Api.Triangles));
-		AddCompareRow("Sorted triangles", std::to_string(_numSortedTriangles), std::to_string(nextSortedTriangles));
-		AddCompareRow("Uniform updates", std::to_string(_numConstantBufferUpdates), std::to_string(stats.Api.UniformPushes));
-		AddCompareRow("Uniform data", fmt::format("{:.1f} KB", _numConstantBufferBytes / 1024.0f), fmt::format("{:.1f} KB", stats.Api.UniformBytes / 1024.0f));
-		AddCompareRow("Material updates", std::to_string(_numExecutedMaterialsUpdates), std::to_string(stats.MaterialUploads));
-		AddCompareRow("Sorted collect and sort", fmt::format("{:.3f} ms", _timeSortedCollect + _timeSortedSort), fmt::format("{:.3f} ms", stats.SortedCollectTime));
-		AddCompareRow("Sorted draw", fmt::format("{:.3f} ms", _timeSortedDraw), fmt::format("{:.3f} ms", stats.SortedRecordTime));
-		AddCompareRow("Rooms drawn", std::to_string(_debugViewCounts.Rooms), std::to_string(stats.RoomsDrawn));
+		AddStatRow("Rooms drawn", "%d", _debugViewCounts.Rooms);
+		AddStatRow("Sprites", "%d", _debugViewCounts.Sprites);
+		AddStatRow("Lights", "%d", _debugViewCounts.Lights);
+		AddStatRow("Fog bulbs", "%d", _debugViewCounts.FogBulbs);
+		AddStatRow("Sorted faces", "%d", _debugViewCounts.SortedFaces);
+		AddStatRow("Interleaved sorted groups", "%d", _numInterleavedSortedGroups);
+		AddStatRow("Sorted collect", "%.3f ms", _timeSortedCollect);
+		AddStatRow("Sorted sort", "%.3f ms", _timeSortedSort);
+		AddStatRow("Portal checks", "%d", _numCheckPortalCalls);
+		AddStatRow("Visible room searches", "%d", _numGetVisibleRoomsCalls);
+		AddStatRow("Dot products", "%d", _numDotProducts);
 		ImGui::EndTable();
-
-		ImGui::TextWrapped("The next renderer draws opaque geometry twice, in the depth prepass and in the scene pass, and groups identical "
-			"items and statics into instanced draws.");
 	}
 
 	void Renderer::DrawDebugRendererPage(const RenderView& view)
@@ -461,15 +356,9 @@ namespace TEN::Renderer
 			ImGui::EndTabItem();
 		}
 
-		if (ImGui::BeginTabItem("Legacy renderer"))
+		if (ImGui::BeginTabItem("Frontend"))
 		{
-			DrawGraphicsStatsLegacy(view);
-			ImGui::EndTabItem();
-		}
-
-		if (ImGui::BeginTabItem("Comparison"))
-		{
-			DrawGraphicsStatsComparison(view);
+			DrawGraphicsStatsFrontend();
 			ImGui::EndTabItem();
 		}
 

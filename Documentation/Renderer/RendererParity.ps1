@@ -1,33 +1,30 @@
-# Visual parity test of the next renderer against the legacy renderer.
-# Runs the benchmark scenario (Benchmark.lua) on every benchmark level and backend, compares the screenshots both
-# renderers save at the same game frame (Logs/Compare_Legacy.png and Logs/Compare_Next.png), and checks the logs for
-# Vulkan validation errors and device loss. Exits with 1 when a run fails, otherwise 0.
+# Visual regression test of the renderer against reference images saved from the retired legacy renderer.
+# Runs the benchmark scenario (Benchmark.lua) on every level and backend, compares the screenshot the renderer saves at a
+# fixed game frame (Logs/Compare_Next.png) with the level reference, and checks the logs for Vulkan validation errors
+# and device loss. Exits with 1 when a run fails, otherwise 0.
 #
 # Usage, from any directory:
 #   powershell -ExecutionPolicy Bypass -File Documentation\Renderer\RendererParity.ps1 [-BuildDir Build\Debug]
-#       [-Levels Benchmark_coastal,...] [-Backends vulkan,dx11] [-Window next] [-Threshold 5] [-Seconds 12]
-#       [-ExtraArgs lowpower] [-SaveReference] [-UseReference] [-ReferenceDir Build\Debug\Logs\Reference]
+#       [-Levels Benchmark_coastal,...] [-Backends vulkan,dx11] [-Threshold 5] [-Seconds 12]
+#       [-ExtraArgs lowpower] [-ReferenceDir Build\Debug\Logs\Reference]
 #
-# -SaveReference stores the legacy screenshot of each level as its reference image. -UseReference compares the next
-# renderer with the stored references instead of the legacy renderer, which no longer draws once it is removed.
-# The level "Title" captures the title menu; a level running InventoryTest.lua captures the inventory. Menus are
-# captured after a fixed number of presented frames. Test levels other than the benchmark levels, such as an inventory
-# level using InventoryTest.lua, need their own entries in the Gameflow.lua of the build.
+# References are <level>.png in the reference directory. The level "Title" captures the title menu; a level running
+# InventoryTest.lua captures the inventory. Menus are captured after a fixed number of logic ticks. Test levels other
+# than the benchmark levels, such as an inventory level using InventoryTest.lua, need their own entries in the
+# Gameflow.lua of the build.
 #
-# Threshold is the largest share of pixels, in percent, whose channels differ by more than 8 between the renderers.
-# Animated water and particles differ by timing, so a few percent is expected.
+# Threshold is the largest share of pixels, in percent, whose channels differ by more than 8 from the reference.
+# Animated water and particles differ by timing, so a few percent is expected. The references were taken at 30 frames
+# per second; menu animations advance per presented frame, so the inventory differs more with high framerate on.
 
 param(
     [string]$BuildDir = "",
     [string[]]$Levels = @("Benchmark_coastal", "Benchmark_karnak", "Benchmark_tut1_water"),
     [string[]]$Backends = @("vulkan", "dx11"),
-    [string]$Window = "next",
     [double]$Threshold = 5.0,
     [int]$Seconds = 12,
     [string]$OutputDir = "",
     [string[]]$ExtraArgs = @(),
-    [switch]$SaveReference,
-    [switch]$UseReference,
     [string]$ReferenceDir = ""
 )
 
@@ -44,7 +41,6 @@ $repository = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 if (-not $BuildDir) { $BuildDir = Join-Path $repository "Build\Debug" }
 if (-not $OutputDir) { $OutputDir = Join-Path $BuildDir "Logs\Parity" }
 if (-not $ReferenceDir) { $ReferenceDir = Join-Path $BuildDir "Logs\Reference" }
-New-Item -ItemType Directory -Force -Path $ReferenceDir | Out-Null
 
 $executable = Join-Path $BuildDir "Bin\x64\TombEngine.exe"
 $logDir = Join-Path $BuildDir "Logs"
@@ -97,7 +93,7 @@ foreach ($level in $Levels)
         # "Title" runs the title menu; other names are level files.
         $levelArgs = $(if ($level -eq "Title") { @() } else { @("level", "Data/$level.ten") })
         $process = Start-Process -FilePath $executable -WorkingDirectory $BuildDir -PassThru `
-            -ArgumentList (@("debug") + $levelArgs + @($Window, $backend, "benchmark", "$Seconds") + $ExtraArgs) `
+            -ArgumentList (@("debug") + $levelArgs + @("next", $backend, "benchmark", "$Seconds") + $ExtraArgs) `
             -RedirectStandardOutput $stdout -RedirectStandardError $stderr
         if (-not $process.WaitForExit(($Seconds + 120) * 1000))
         {
@@ -111,23 +107,19 @@ foreach ($level in $Levels)
         $validationErrors = ([regex]::Matches($log, "VUID-")).Count
         $deviceLosses = ([regex]::Matches($log, "DEVICE_LOST")).Count
 
-        $legacyShot = Join-Path $logDir "Compare_Legacy.png"
-        $nextShot = Join-Path $logDir "Compare_Next.png"
         $referenceShot = Join-Path $ReferenceDir "$level.png"
-        if ($SaveReference -and (Test-Path $legacyShot)) { Copy-Item $legacyShot $referenceShot }
-        if ($UseReference) { $legacyShot = $referenceShot }
-
-        if (-not (Test-Path $legacyShot) -or -not (Test-Path $nextShot))
+        $shot = Join-Path $logDir "Compare_Next.png"
+        if (-not (Test-Path $referenceShot) -or -not (Test-Path $shot))
         {
-            "$name : no screenshots, validation errors $validationErrors, device losses $deviceLosses"
+            "$name : no screenshot or reference, validation errors $validationErrors, device losses $deviceLosses"
             $failed = $true
             continue
         }
 
-        Copy-Item $legacyShot (Join-Path $OutputDir "$name.legacy.png")
-        Copy-Item $nextShot (Join-Path $OutputDir "$name.next.png")
+        Copy-Item $referenceShot (Join-Path $OutputDir "$name.reference.png")
+        Copy-Item $shot (Join-Path $OutputDir "$name.next.png")
 
-        $share = Get-DifferingShare $legacyShot $nextShot
+        $share = Get-DifferingShare $referenceShot $shot
         $isPassed = ($validationErrors -eq 0 -and $deviceLosses -eq 0 -and $share -le $Threshold)
         if (-not $isPassed) { $failed = $true }
 
