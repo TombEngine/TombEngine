@@ -296,7 +296,7 @@ L'algoritmo di develop_performance (bucket come unita', entry compatte, radix so
 
 - [x] Impostazione `GraphicsBackend` nella configurazione flatbuffers (`Vulkan` default, `D3D12`, `DX11`) e nel menu grafico; il cambio richiede il riavvio. *(valori Legacy, Vulkan e DirectX 11, voce "Renderer" nel menu grafico, attiva al riavvio; il default resta Legacy finche' il renderer nuovo non ha la parita' completa (cielo atmosferico, JPG) e la condizione del punto sotto; D3D12 escluso per scelta)*
 - [x] Fallback automatico in ordine Vulkan -> D3D12 -> DX11, con log del motivo. *(anche quando il device parte ma gli shader no: il backend richiesto, poi Vulkan, poi DX11, infine il legacy sulla finestra principale; provato con d3d12 senza DXIL)*
-- [ ] Test su NVIDIA, AMD e Intel (anche integrate), Windows 10 e 11; driver vecchi.
+- [ ] Test su NVIDIA, AMD e Intel (anche integrate), Windows 10 e 11; driver vecchi. *(2026-10-10, Windows 11: RTX 3050 e Radeon integrata, Vulkan e DX11, modalita' preview e next sui tre benchmark: parita' 0,2-1,5%, zero errori di validazione e device lost. Mancano Intel, Windows 10, driver vecchi e AMD discreta)*
 - [x] Vulkan diventa default solo se e' >= DX11 su tutti i benchmark. *(default Vulkan dal 2026-10-10, su richiesta; il fallback va a DX11 e poi al legacy)*
 
 ---

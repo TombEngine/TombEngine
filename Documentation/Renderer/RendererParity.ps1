@@ -6,6 +6,7 @@
 # Usage, from any directory:
 #   powershell -ExecutionPolicy Bypass -File Documentation\Renderer\RendererParity.ps1 [-BuildDir Build\Debug]
 #       [-Levels Benchmark_coastal,...] [-Backends vulkan,dx11] [-Window preview|next] [-Threshold 5] [-Seconds 12]
+#       [-ExtraArgs previewlowpower]
 #
 # Threshold is the largest share of pixels, in percent, whose channels differ by more than 8 between the renderers.
 # Animated water and particles differ by timing, so a few percent is expected.
@@ -17,7 +18,8 @@ param(
     [string]$Window = "preview",
     [double]$Threshold = 5.0,
     [int]$Seconds = 12,
-    [string]$OutputDir = ""
+    [string]$OutputDir = "",
+    [string[]]$ExtraArgs = @()
 )
 
 $ErrorActionPreference = "Stop"
@@ -25,6 +27,7 @@ $ErrorActionPreference = "Stop"
 # With -File, lists arrive as one comma separated string.
 $Levels = @($Levels | ForEach-Object { $_ -split "," } | Where-Object { $_ })
 $Backends = @($Backends | ForEach-Object { $_ -split "," } | Where-Object { $_ })
+$ExtraArgs = @($ExtraArgs | ForEach-Object { $_ -split "," } | Where-Object { $_ })
 
 Add-Type -AssemblyName System.Drawing
 
@@ -80,7 +83,7 @@ foreach ($level in $Levels)
         $stderr = Join-Path $OutputDir "$name.err.txt"
 
         $process = Start-Process -FilePath $executable -WorkingDirectory $BuildDir -PassThru `
-            -ArgumentList @("debug", "level", "Data/$level.ten", $Window, $backend, "benchmark", "$Seconds") `
+            -ArgumentList (@("debug", "level", "Data/$level.ten", $Window, $backend, "benchmark", "$Seconds") + $ExtraArgs) `
             -RedirectStandardOutput $stdout -RedirectStandardError $stderr
         if (-not $process.WaitForExit(($Seconds + 120) * 1000))
         {
@@ -110,7 +113,9 @@ foreach ($level in $Levels)
         $isPassed = ($validationErrors -eq 0 -and $deviceLosses -eq 0 -and $share -le $Threshold)
         if (-not $isPassed) { $failed = $true }
 
-        "{0} : {1}, differing {2:N1}%, validation errors {3}, device losses {4}" -f $name, ($(if ($isPassed) { "passed" } else { "FAILED" })), $share, $validationErrors, $deviceLosses
+        $device = [regex]::Match($log, "Next renderer initialized on ([^`r`n]+)").Groups[1].Value
+        $frameTime = [regex]::Match($log, "frame avg ([0-9.]+) ms").Groups[1].Value
+        "{0} : {1}, differing {2:N1}%, validation errors {3}, device losses {4}, frame avg {5} ms, {6}" -f $name, ($(if ($isPassed) { "passed" } else { "FAILED" })), $share, $validationErrors, $deviceLosses, $frameTime, $device
     }
 }
 
