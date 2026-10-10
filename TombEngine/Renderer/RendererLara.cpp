@@ -324,38 +324,13 @@ void Renderer::DrawLara(RenderView& view, RendererPass rendererPass)
 	if (nativeItem->Flags & IFLAG_INVISIBLE)
 		return;
 
-	_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-	_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
-
 	auto& laraObj = *_moveableObjects[ID_LARA];
 	auto skinMode = GetSkinningMode(laraObj, item->SkinIndex);
 
 	RendererRoom* room = &_rooms[LaraItem->RoomNumber];
 
-	_stObjects.Objects[0].World = item->InterpolatedWorld;
-	ReflectMatrixOptionally(_stObjects.Objects[0].World);
-
-	_stObjects.Objects[0].Color = item->Color;
-	_stObjects.Objects[0].AmbientLight = item->AmbientLight;
-	_stObjects.Skinned = (int)skinMode;
-
-	for (int k = 0; k < item->MeshIndex.size(); k++)
-		_stObjects.BoneLightModes[k] = (int)GetMesh(item->MeshIndex[k])->LightMode;
-
-	bool acceptsShadows = laraObj.ShadowType == ShadowMode::None;
-	BindMoveableLights(item->LightsToDraw, item->RoomNumber, item->PrevRoomNumber, item->LightFade, acceptsShadows);
-
 	if (skinMode == SkinningMode::Full)
-	{
-		for (int m = 0; m < laraObj.AnimationTransforms.size(); m++)
-			_stObjects.Bones[m] =  laraObj.BindPoseTransforms[m] * item->InterpolatedAnimationTransforms[m];
-        UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
-
 		DrawMesh(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view, rendererPass);
-	}
-
-	memcpy(_stObjects.Bones, item->InterpolatedAnimationTransforms, laraObj.AnimationTransforms.size() * sizeof(Matrix));
-    UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 	for (int k = 0; k < item->MeshIndex.size(); k++)
 	{
@@ -395,12 +370,6 @@ void Renderer::DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, Render
 
 		const auto& rendererObject = *_moveableObjects[unit.ObjectID];
 
-		_stObjects.Objects[0].World = Matrix::Identity;
-		_stObjects.Bones[0] = itemToDraw->InterpolatedAnimationTransforms[HairUnit::GetRootMeshID(i)] * itemToDraw->InterpolatedWorld;
-		_stObjects.Skinned = (int)(skinned ? SkinningMode::Full : SkinningMode::None);
-
-		ReflectMatrixOptionally(_stObjects.Bones[0]);
-
 		for (int j = 0; j < unit.Segments.size(); j++)
 		{
 			auto& segment = unit.Segments[j];
@@ -418,12 +387,8 @@ void Renderer::DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, Render
 				worldMatrix = Matrix::CreateRotationY(PI) * worldMatrix;
 
 			ReflectMatrixOptionally(worldMatrix);
-			_stObjects.Bones[j + 1] = segment.GlobalTransform = worldMatrix;
-
-			_stObjects.BoneLightModes[j] = (int)LightMode::Dynamic;
+			segment.GlobalTransform = worldMatrix;
 		}
-
-        UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 		if (skinned)
 		{

@@ -327,7 +327,6 @@ namespace TEN::Renderer
 						b = (arc.life * arc.b) / 16;
 					}
 
-
 					unsigned char oldR, oldG, oldB;
 					if (arc.PrevLife >= 16)
 					{
@@ -351,7 +350,6 @@ namespace TEN::Renderer
 						center,
 						Vector4(1.0f, 1.0f, 1.0f, 0.5f),
 						PI_DIV_2, 1.0f, Vector2(4, Vector3::Distance(origin, target)), BlendMode::Additive, dir, true, view);
-
 
 					AddSpriteBillboardConstrained(
 						&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_LIGHTHING],
@@ -1261,218 +1259,6 @@ namespace TEN::Renderer
 		}
 	}
 
-	bool Renderer::DrawGunFlashes(RenderView& view)
-	{
-		if (!Lara.RightArm.GunFlash && !Lara.LeftArm.GunFlash)
-			return false;
-
-		_stObjects.Skinned = (int)SkinningMode::Static;
-
-		if (Lara.Control.Look.OpticRange > 0 && _currentMirror == nullptr)
-			return false;
-
-		const auto& room = _rooms[LaraItem->RoomNumber];
-		auto* itemPtr = &_items[LaraItem->Index];
-
-		// Pre-validate both arms to determine if any will draw.
-		auto leftGunflash = GAME_OBJECT_ID::ID_NO_OBJECT;
-		auto rightGunflash = GAME_OBJECT_ID::ID_NO_OBJECT;
-		const WeaponSettings* leftSettings = nullptr;
-		const WeaponSettings* rightSettings = nullptr;
-
-		if (Lara.LeftArm.GunFlash && Lara.LeftArm.GunFlashType != LaraWeaponType::None && Lara.LeftArm.GunFlashType != LaraWeaponType::Flare)
-		{
-			leftSettings = &g_GameFlow->GetSettings()->Weapons[(int)Lara.LeftArm.GunFlashType - 1];
-			if (leftSettings->MuzzleFlash)
-			{
-				leftGunflash = (Lara.LeftArm.GunFlashType == LaraWeaponType::HK && Objects[GAME_OBJECT_ID::ID_GUN_FLASH2].loaded) ?
-					GAME_OBJECT_ID::ID_GUN_FLASH2 : GAME_OBJECT_ID::ID_GUN_FLASH;
-			}
-		}
-
-		if (Lara.RightArm.GunFlash && Lara.RightArm.GunFlashType != LaraWeaponType::None && Lara.RightArm.GunFlashType != LaraWeaponType::Flare)
-		{
-			rightSettings = &g_GameFlow->GetSettings()->Weapons[(int)Lara.RightArm.GunFlashType - 1];
-			if (rightSettings->MuzzleFlash)
-			{
-				rightGunflash = (Lara.RightArm.GunFlashType == LaraWeaponType::HK && Objects[GAME_OBJECT_ID::ID_GUN_FLASH2].loaded) ?
-					GAME_OBJECT_ID::ID_GUN_FLASH2 : GAME_OBJECT_ID::ID_GUN_FLASH;
-			}
-		}
-
-		if (leftGunflash == GAME_OBJECT_ID::ID_NO_OBJECT && rightGunflash == GAME_OBJECT_ID::ID_NO_OBJECT)
-			return false;
-
-		// Bind GPU state once.
-		_shaders.Bind(Shader::InstancedStatics);
-
-		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
-
-		_stObjects.Objects[0].AmbientLight = room.AmbientLight;
-		_stObjects.Objects[0].LightMode = (int)LightMode::Static;
-		BindInstancedStaticLights(itemPtr->LightsToDraw, 0);
-
-		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
-		SetBlendMode(BlendMode::Additive);
-
-		// Per-arm draw helper: only transform and draw.
-		auto drawArmFlash = [&](const WeaponSettings& settings, GAME_OBJECT_ID gunflash, bool left)
-		{
-			if (!Objects[gunflash].loaded)
-			{
-				TENLog(fmt::format("Gunflash object {} not loaded, skipping draw.", GetObjectName(gunflash)), LogLevel::Warning);
-				return;
-			}
-
-			const auto& flashMoveable = *_moveableObjects[gunflash];
-			const auto& flashMesh = *flashMoveable.ObjectMeshes[0];
-
-			auto zRot = (gunflash == GAME_OBJECT_ID::ID_GUN_FLASH2) ? 0.0f : TO_RAD((short)std::hash<int>()(GlobalCounter));
-
-			// Divide gunflash tint by 2 because tinting uses multiplication and additive color which doesn't look good with overbright color values.
-			_stObjects.Objects[0].Color = settings.ColorizeMuzzleFlash ? settings.FlashColor : NEUTRAL_COLOR;
-
-			for (const auto& flashBucket : flashMesh.Buckets)
-			{
-				if (flashBucket.BlendMode == BlendMode::Opaque)
-					continue;
-
-				if (flashBucket.Polygons.size() == 0)
-					continue;
-
-				BindBucketTextures(flashBucket, TextureSource::Moveables, false);
-				BindMaterial(flashBucket.MaterialIndex, false);
-
-				auto meshOffset = Objects[gunflash].Animations.front().Frames.front().RootPosition;
-				auto offset = settings.MuzzleOffset + Vector3(meshOffset.x, meshOffset.z, meshOffset.y); // Offsets are inverted because of bone orientation.
-
-				offset.x = left ? -offset.x : offset.x;
-
-				auto tMatrix = Matrix::CreateTranslation(offset);
-				auto usedType = left ? Lara.LeftArm.GunFlashType : Lara.RightArm.GunFlashType;
-				auto rotMatrix = Matrix::CreateRotationX(TO_RAD(usedType == LaraWeaponType::Pistol ? ANGLE(268) : ANGLE(280))); // HACK
-
-				auto worldMatrix = itemPtr->InterpolatedAnimationTransforms[left ? LM_LHAND : LM_RHAND] * itemPtr->InterpolatedWorld;
-				worldMatrix = tMatrix * worldMatrix;
-				worldMatrix = rotMatrix * worldMatrix;
-				worldMatrix = Matrix::CreateRotationZ(zRot) * worldMatrix;
-				ReflectMatrixOptionally(worldMatrix);
-
-				_stObjects.Objects[0].World = worldMatrix;
-                UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
-
-				DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
-
-				_numMoveablesDrawCalls++;
-			}
-		};
-
-		if (leftGunflash != GAME_OBJECT_ID::ID_NO_OBJECT)
-			drawArmFlash(*leftSettings, leftGunflash, true);
-
-		if (rightGunflash != GAME_OBJECT_ID::ID_NO_OBJECT)
-			drawArmFlash(*rightSettings, rightGunflash, false);
-
-		SetBlendMode(BlendMode::Opaque);
-		return true;
-	}
-
-	void Renderer::DrawBaddyGunflashes(RenderView& view)
-	{
-		_stObjects.Skinned = (int)SkinningMode::Static;
-
-		_shaders.Bind(Shader::InstancedStatics);
-		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
-
-		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
-		SetBlendMode(BlendMode::Additive);
-
-		// Per-slot draw helper: only transform and draw.
-		auto drawMuzzleFlash = [&](const CreatureMuzzleFlashInfo& flash, RendererItem& rItem, const RendererRoom& rRoom)
-		{
-			if (flash.Delay == 0 || flash.Bite.BoneID == NO_VALUE)
-				return;
-
-			auto flashObjectID = flash.SwitchToMuzzle2 ? (_moveableObjects[ID_GUN_FLASH2].has_value() ? ID_GUN_FLASH2 : ID_GUN_FLASH) : ID_GUN_FLASH;
-			auto zRot = flash.SwitchToMuzzle2 ? 0.0f : TO_RAD((short)std::hash<int>()(GlobalCounter));
-
-			if (!Objects[flashObjectID].loaded)
-			{
-				TENLog(fmt::format("Gunflash object {} not loaded for creature {}, skipping draw.", GetObjectName(flashObjectID), GetObjectName((GAME_OBJECT_ID)rItem.ObjectID)), LogLevel::Warning);
-				return;
-			}
-
-			const auto& flashMoveable = *_moveableObjects[flashObjectID];
-			const auto& flashMesh = *flashMoveable.ObjectMeshes[0];
-
-			for (const auto& flashBucket : flashMesh.Buckets)
-			{
-				if (flashBucket.BlendMode == BlendMode::Opaque)
-					continue;
-
-				if (flashBucket.Polygons.size() == 0)
-					continue;
-
-				BindBucketTextures(flashBucket, TextureSource::Moveables, false);
-				BindMaterial(flashBucket.MaterialIndex, false);
-
-				auto tMatrix = Matrix::CreateTranslation(flash.Bite.Position);
-				auto worldMatrix = rItem.InterpolatedAnimationTransforms[flash.Bite.BoneID] * rItem.InterpolatedWorld;
-				worldMatrix = tMatrix * worldMatrix;
-
-				if (flash.ApplyXRotation)
-				{
-					auto rotMatrixX = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f)));
-					worldMatrix = rotMatrixX * worldMatrix;
-				}
-
-				if (flash.ApplyZRotation)
-				{
-					auto rotMatrixZ = Matrix::CreateRotationZ(zRot);
-					worldMatrix = rotMatrixZ * worldMatrix;
-				}
-
-				ReflectMatrixOptionally(worldMatrix);
-
-				_stObjects.Objects[0].World = worldMatrix;
-                UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
-
-				DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
-
-				_numMoveablesDrawCalls++;
-			}
-		};
-
-		for (auto* rRoomPtr : view.RoomsToDraw)
-		{
-			if (IgnoreReflectionPassForRoom(rRoomPtr->RoomNumber))
-				continue;
-
-			for (auto* rItemPtr : rRoomPtr->ItemsToDraw)
-			{
-				auto& nativeItem = g_Level.Items[rItemPtr->ItemNumber];
-				if (!nativeItem.IsCreature())
-					continue;
-
-				auto& creature = *GetCreatureInfo(&nativeItem);
-				const auto& rRoom = _rooms[nativeItem.RoomNumber];
-
-				_stObjects.Objects[0].Color = CREATURE_GUNFLASH_COLOR;
-				_stObjects.Objects[0].AmbientLight = rRoom.AmbientLight;
-				_stObjects.Objects[0].LightMode = (int)LightMode::Static;
-				BindInstancedStaticLights(rItemPtr->LightsToDraw, 0);
-
-				drawMuzzleFlash(creature.MuzzleFlash[0], *rItemPtr, rRoom);
-				drawMuzzleFlash(creature.MuzzleFlash[1], *rItemPtr, rRoom);
-			}
-		}
-
-		SetBlendMode(BlendMode::Opaque);
-	}
-
 	void Renderer::PrepareFootprints(RenderView& view) 
 	{
 		for (const auto& footprint : Footprints)
@@ -1536,124 +1322,6 @@ namespace TEN::Renderer
 		}
 
 		return spriteMatrix;
-	}
-
-	void Renderer::DrawDebris(RenderView& view, RendererPass rendererPass)
-	{
-		_stObjects.Skinned = (int)SkinningMode::Static;
-
-		TexturesAreNotAnimated();
-
-		bool activeDebrisExist = false;
-		for (auto& deb : DebrisFragments)
-		{
-			if (deb.active)
-			{
-				if (IgnoreReflectionPassForRoom(deb.roomNumber))
-					continue;
-
-				activeDebrisExist = true;
-				break;
-			}
-		}
-
-		if (activeDebrisExist)
-		{
-			_shaders.Bind(Shader::InstancedStatics);
-
-			SetCullMode(CullMode::None);
-
-            BeginPrimitiveBatch();
-
-			bool lastAnimated = false;
-			int lastTexture = NO_VALUE;
-			bool firstDebris = true;
-
-			for (auto& deb : DebrisFragments)
-			{
-				if (deb.active)
-				{
-					if (IgnoreReflectionPassForRoom(deb.roomNumber))
-						continue;
-
-					if (!SetupBlendModeAndAlphaTest(deb.mesh.blendMode, rendererPass, 0))
-						continue;
-
-					if (!firstDebris && (lastTexture != deb.mesh.tex || lastAnimated != deb.mesh.Animated))
-					{
-                        EndPrimitiveBatch();
-                        BeginPrimitiveBatch();
-					}
-
-					if (deb.mesh.Animated)
-					{
-						BindTexture(TextureRegister::ColorMap, std::get<0>(_animatedTextures[deb.mesh.tex]).get(), SamplerStateRegister::LinearClamp);
-					}
-					else if (deb.isStatic)
-					{
-						BindTexture(TextureRegister::ColorMap, std::get<0>(_staticTextures[deb.mesh.tex]).get(), SamplerStateRegister::LinearClamp);
-					}
-					else
-					{
-						BindTexture(TextureRegister::ColorMap, std::get<0>(_moveablesTextures[deb.mesh.tex]).get(), SamplerStateRegister::LinearClamp);
-					}
-
-					_stObjects.Objects[0].World = Matrix::Identity;
-
-					// Update only if parameters are actually changed to reduce overhead.
-					if (firstDebris ||
-						(_stObjects.Objects[0].Color != deb.color ||
-						 _stObjects.Objects[0].AmbientLight != _rooms[deb.roomNumber].AmbientLight ||
-						 _stObjects.Objects[0].LightMode != (int)deb.lightMode))
-					{
-						_stObjects.Objects[0].Color = deb.color;
-						_stObjects.Objects[0].AmbientLight = _rooms[deb.roomNumber].AmbientLight;
-						_stObjects.Objects[0].LightMode = (int)deb.lightMode;
-
-                        UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
-					}
-
-					auto matrix = Matrix::Lerp(deb.PrevTransform, deb.Transform, GetInterpolationFactor());
-					ReflectMatrixOptionally(matrix);
-
-					Vertex vtx0;
-					vtx0.Position = Vector3::Transform(deb.mesh.Positions[0], matrix);
-					vtx0.UV = deb.mesh.TextureCoordinates[0];
-					vtx0.Normal = PackVector3(deb.mesh.Normals[0]);
-					vtx0.Color = VectorColorToRGBA(deb.mesh.Colors[0]);
-
-					Vertex vtx1;
-					vtx1.Position = Vector3::Transform(deb.mesh.Positions[1], matrix);
-					vtx1.UV = deb.mesh.TextureCoordinates[1];
-					vtx1.Normal = PackVector3(deb.mesh.Normals[1]);
-					vtx1.Color = VectorColorToRGBA(deb.mesh.Colors[1]);
-
-					Vertex vtx2;
-					vtx2.Position = Vector3::Transform(deb.mesh.Positions[2], matrix);
-					vtx2.UV = deb.mesh.TextureCoordinates[2];
-					vtx2.Normal = PackVector3(deb.mesh.Normals[2]);
-					vtx2.Color = VectorColorToRGBA(deb.mesh.Colors[2]);
-
-					_primitiveBatch->DrawTriangle(vtx0, vtx1, vtx2);
-
-					_numDebrisDrawCalls++;
-					_numDrawCalls++;
-					_numTriangles++;
-
-					lastAnimated = deb.mesh.Animated;
-					lastTexture = deb.mesh.tex;
-					firstDebris = false;
-				}
-			}
-
-            EndPrimitiveBatch();
-
-			// TODO: temporary fix, we need to remove every use of SpriteBatch and PrimitiveBatch because
-			// they mess up render states cache.
-
-			SetBlendMode(BlendMode::Opaque, true);
-			SetDepthState(DepthState::Write, true);
-		}
 	}
 
 	void Renderer::PrepareSmokeParticles(RenderView& view)
@@ -1838,49 +1506,6 @@ namespace TEN::Renderer
 
 	void Renderer::DrawEffects(RenderView& view, RendererPass rendererPass)
 	{
-		// Sorted-blend faces (e.g. alpha blend) are collected here and drawn later, back-to-front,
-		// in the Transparent pass. Opaque/alpha-test/additive faces are still drawn immediately below.
-		if (rendererPass == RendererPass::CollectTransparentFaces)
-		{
-			for (auto* roomPtr : view.RoomsToDraw)
-			{
-				if (IgnoreReflectionPassForRoom(roomPtr->RoomNumber))
-					continue;
-
-				for (auto* effectPtr : roomPtr->EffectsToDraw)
-				{
-					const auto& object = Objects[effectPtr->ObjectID];
-					if (object.Hidden || !object.loaded || effectPtr->Mesh == nullptr)
-						continue;
-
-					for (auto& bucket : effectPtr->Mesh->Buckets)
-					{
-						if (bucket.NumVertices == 0 || !IsSortedBlendMode(bucket.BlendMode))
-							continue;
-
-						auto sortableObject = RendererSortableObject{};
-						sortableObject.ObjectType = RendererObjectType::Effect;
-						sortableObject.BlendMode = bucket.BlendMode;
-						sortableObject.Bucket = &bucket;
-						sortableObject.LightMode = LightMode::Dynamic;
-						sortableObject.World = effectPtr->InterpolatedWorld;
-						sortableObject.Effect = effectPtr;
-						sortableObject.Room = &_rooms[effectPtr->RoomNumber];
-
-						CollectSortedBucket(view, sortableObject, &effectPtr->InterpolatedWorld, view.Camera.WorldPosition);
-					}
-				}
-			}
-
-			return;
-		}
-
-		_shaders.Bind(Shader::InstancedStatics);
-
-		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
-
 		for (auto* roomPtr : view.RoomsToDraw)
 		{
 			if (IgnoreReflectionPassForRoom(roomPtr->RoomNumber))
@@ -1889,50 +1514,24 @@ namespace TEN::Renderer
 			for (auto* effectPtr : roomPtr->EffectsToDraw)
 			{
 				const auto& object = Objects[effectPtr->ObjectID];
-				if (!object.Hidden && object.loaded)
-					DrawEffect(view, effectPtr, rendererPass);
-			}
-		}
-	}
-
-	void Renderer::DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass)
-	{
-        if (effect->Mesh == nullptr || !HasMeshForPass(*effect->Mesh, rendererPass))
-			return;
-
-		_stObjects.Skinned = (int)SkinningMode::Static;
-
-		auto world = effect->InterpolatedWorld;
-		ReflectMatrixOptionally(world);
-
-		_stObjects.Objects[0].World = world;
-		_stObjects.Objects[0].Color = effect->Color;
-		_stObjects.Objects[0].AmbientLight = effect->AmbientLight;
-		_stObjects.Objects[0].LightMode = (int)LightMode::Dynamic;
-		BindInstancedStaticLights(effect->LightsToDraw, 0);
-        UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
-
-		const auto& mesh = *effect->Mesh;
-
-		for (int animated = 0; animated < 2; animated++)
-		{
-			for (const auto& bucket : mesh.Buckets)
-			{
-				if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
+				if (object.Hidden || !object.loaded || effectPtr->Mesh == nullptr)
 					continue;
 
-				int passes = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
-				for (int p = 0; p < passes; p++)
+				for (auto& bucket : effectPtr->Mesh->Buckets)
 				{
-					if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
+					if (bucket.NumVertices == 0 || !IsSortedBlendMode(bucket.BlendMode))
 						continue;
 
-					BindBucketTextures(bucket, TextureSource::Moveables, animated);
-					BindMaterial(bucket.MaterialIndex, false);
+					auto sortableObject = RendererSortableObject{};
+					sortableObject.ObjectType = RendererObjectType::Effect;
+					sortableObject.BlendMode = bucket.BlendMode;
+					sortableObject.Bucket = &bucket;
+					sortableObject.LightMode = LightMode::Dynamic;
+					sortableObject.World = effectPtr->InterpolatedWorld;
+					sortableObject.Effect = effectPtr;
+					sortableObject.Room = &_rooms[effectPtr->RoomNumber];
 
-					DrawIndexedInstancedTriangles(bucket.NumIndices, 1, bucket.StartIndex, 0);
-
-					_numEffectsDrawCalls++;
+					CollectSortedBucket(view, sortableObject, &effectPtr->InterpolatedWorld, view.Camera.WorldPosition);
 				}
 			}
 		}

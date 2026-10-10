@@ -815,6 +815,7 @@ namespace TEN::Renderer::Next
         bool EnsureRenderTargets(int width, int height);
         std::unique_ptr<RHI::ITexture> CreateLevelTexture(const std::vector<unsigned char>& encodedData, const std::string& name, bool allowMips = true);
         void LoadOverlayImages(const UiFrame& ui);
+        void LoadOverlayImage(const std::string& path);
         RHI::ITexture* GetOverlayImageTexture(const std::string& path) const;
         std::unique_ptr<RHI::ITexture> CreateSolidTexture(const unsigned char color[4], const std::string& name, RHI::TextureType type = RHI::TextureType::Texture2D);
         void UploadTexture(RHI::ITexture* texture, const void* data, int size);

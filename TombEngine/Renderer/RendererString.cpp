@@ -193,7 +193,7 @@ namespace TEN::Renderer
 		}
 	}
 
-	// Strings as DrawAllStrings draws them: interpolated position, outline shadow first, premultiplied faded color.
+	// Strings as the legacy DrawAllStrings drew them: interpolated position, outline shadow first, premultiplied faded color.
 	void Renderer::GetResolvedStrings(std::vector<Next::OverlayText>& texts)
 	{
 		float shadowOffset = 1.5f / (REFERENCE_FONT_SIZE / _gameFont->GetLineSpacing());
@@ -217,43 +217,9 @@ namespace TEN::Renderer
 		if (_stringsToDraw.empty())
 			return;
 
-		if (Next::g_NextRenderer.IsActive())
-		{
-			int firstText = (int)_nextUi.Texts.size();
-			GetResolvedStrings(_nextUi.Texts);
-			for (int i = firstText; i < (int)_nextUi.Texts.size(); i++)
-				AddNextUiLayer(Next::OverlayLayerType::Texts, i);
-		}
-
-		SetBlendMode(BlendMode::AlphaBlend);
-
-		float shadowOffset = 1.5f / (REFERENCE_FONT_SIZE / _gameFont->GetLineSpacing());
-		auto shadowColor = (Vector4)g_GameFlow->GetSettings()->UI.ShadowTextColor;
-
-		_spriteBatch->Begin(SpriteSortingMode::Deferred, BlendMode::PremultipliedAlphaBlend);
-
-		for (const auto& rString : _stringsToDraw)
-		{
-			auto drawPos = Vector2::Lerp(rString.PrevPosition, rString.Position, GetInterpolationFactor(true));
-
-			// Draw shadow.
-			if (rString.Flags & (int)PrintStringFlags::Outline)
-			{
-				_gameFont->DrawString(
-					_spriteBatch.get(), rString.String,
-					Vector2(drawPos.x + shadowOffset * rString.Scale, drawPos.y + shadowOffset * rString.Scale),
-					(shadowColor * rString.Color.w * shadowColor.w) * ScreenFadeCurrent,
-					0.0f, Vector2::Zero, rString.Scale);
-			}
-
-			// Draw string.
-			_gameFont->DrawString(
-				_spriteBatch.get(), rString.String,
-				Vector2(drawPos.x, drawPos.y),
-				(rString.Color * rString.Color.w) * ScreenFadeCurrent,
-				0.0f, Vector2::Zero, rString.Scale);
-		}
-
-		_spriteBatch->End();
+		int firstText = (int)_nextUi.Texts.size();
+		GetResolvedStrings(_nextUi.Texts);
+		for (int i = firstText; i < (int)_nextUi.Texts.size(); i++)
+			AddNextUiLayer(Next::OverlayLayerType::Texts, i);
 	}
 }

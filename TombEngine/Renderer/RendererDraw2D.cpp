@@ -45,30 +45,6 @@ namespace TEN::Renderer
 	constexpr auto EXPOSURE_BAR_VERT_POS = Vector2(DISPLAY_SPACE_RES.x * 0.5f, 90.0f);
 	constexpr auto LOADING_BAR_VERT_POS	 = Vector2(DISPLAY_SPACE_RES.x * 0.5f, 550.0f);
 
-	static Matrix GetHudBarTransform(IGraphicsDevice& graphicsDevice, const RendererHudBar& bar)
-	{
-		float screenAspect = (float)graphicsDevice.GetScreenWidth() / (float)graphicsDevice.GetScreenHeight();
-		auto scale = Vector2::One;
-		auto sourcePivot = bar.Position;
-		auto targetPivot = bar.Position;
-
-		if (screenAspect >= 1.0f)
-		{
-			scale.y = screenAspect / DISPLAY_SPACE_ASPECT;
-		}
-		else
-		{
-			scale.x = DISPLAY_SPACE_ASPECT / screenAspect;
-			sourcePivot = Vector2(bar.Position.x + (bar.Size.x * 0.5f), bar.Position.y);
-			targetPivot = bar.VerticalPosition;
-		}
-
-		auto sourcePivot3D = Vector3(sourcePivot.x, HUD_ZERO_Y + sourcePivot.y, 0.0f);
-		auto targetPivot3D = Vector3(targetPivot.x, HUD_ZERO_Y + targetPivot.y, 0.0f);
-
-		return Matrix::CreateTranslation(-sourcePivot3D) * Matrix::CreateScale(scale.x, scale.y, 1.0f) * Matrix::CreateTranslation(targetPivot3D);
-	}
-
 	void Renderer::InitializeGameBars()
 	{
 		static const auto AIR_BAR_COLORS = std::array<Vector4, RendererHudBar::COLOR_COUNT>
@@ -153,67 +129,9 @@ namespace TEN::Renderer
 		if (!CheckIfSlotExists(ID_BAR_BORDER_GRAPHICS, "Bar rendering"))
 			return;
 
-		if (Next::g_NextRenderer.IsActive())
-		{
-			_nextUi.Bars.push_back(Next::OverlayBar{ bar.Position, bar.VerticalPosition, bar.Size, percent, &_sprites[Objects[ID_BAR_BORDER_GRAPHICS].meshIndex],
-				&_sprites[Objects[textureSlot].meshIndex], isPoisoned, frame });
-			AddNextUiLayer(Next::OverlayLayerType::Bars, (int)_nextUi.Bars.size() - 1);
-		}
-
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
-		
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->BindVertexBuffer(bar.VertexBufferBorder.get());
-		_graphicsDevice->BindIndexBuffer(bar.IndexBufferBorder.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		
-		_shaders.Bind(Shader::Hud);
-		_shaders.Bind(Shader::HudDTexture);
-
-		SetBlendMode(BlendMode::Opaque);
-		SetDepthState(DepthState::None);
-		SetCullMode(CullMode::None);
-
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Hud, _cbHUD.get());
-
-		auto* borderSprite = &_sprites[Objects[ID_BAR_BORDER_GRAPHICS].meshIndex];
-		_stHUDBar.Transform = GetHudBarTransform(*_graphicsDevice, bar);
-		_stHUDBar.BarStartUV = borderSprite->UV[0];
-		_stHUDBar.BarScale = Vector2(borderSprite->Width / (float)borderSprite->Texture->GetWidth(), borderSprite->Height / (float)borderSprite->Texture->GetHeight());
-
-		UpdateConstantBuffer(&_stHUDBar, _cbHUDBar.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
-		 
-		BindTexture(TextureRegister::Hud, borderSprite->Texture, SamplerStateRegister::LinearClamp);
-
-		DrawIndexedTriangles(56, 0, 0);
-
-		BindTexture(static_cast<TextureRegister>(0), _sprites[Objects[textureSlot].meshIndex].Texture, SamplerStateRegister::AnisotropicClamp);
-
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->BindVertexBuffer(bar.InnerVertexBuffer.get());
-		_graphicsDevice->BindIndexBuffer(bar.InnerIndexBuffer.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		
-		_shaders.Bind(Shader::Hud);
-		_shaders.Bind(Shader::HudBarColor);
-
-		_stHUDBar.Percent = percent;
-		_stHUDBar.Poisoned = isPoisoned;
-		_stHUDBar.Frame = frame;	
-		RendererSprite* innerSprite = &_sprites[Objects[textureSlot].meshIndex];
-		_stHUDBar.BarStartUV = innerSprite->UV[0];
-		_stHUDBar.BarScale = Vector2(innerSprite->Width / (float)innerSprite->Texture->GetWidth(), innerSprite->Height / (float)innerSprite->Texture->GetHeight());
-		UpdateConstantBuffer(&_stHUDBar, _cbHUDBar.get());
-
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
-		 
-		BindTexture(TextureRegister::Hud, innerSprite->Texture, SamplerStateRegister::LinearClamp);
-
-		DrawIndexedTriangles(12, 0, 0);
+		_nextUi.Bars.push_back(Next::OverlayBar{ bar.Position, bar.VerticalPosition, bar.Size, percent, &_sprites[Objects[ID_BAR_BORDER_GRAPHICS].meshIndex],
+			&_sprites[Objects[textureSlot].meshIndex], isPoisoned, frame });
+		AddNextUiLayer(Next::OverlayLayerType::Bars, (int)_nextUi.Bars.size() - 1);
 	}
 
 	void Renderer::DrawLoadingBar(float percentage)
@@ -221,53 +139,18 @@ namespace TEN::Renderer
 		if (!g_GameFlow->GetSettings()->Hud.LoadingBar)
 			return;
 
-		_stHUDBar.Transform = GetHudBarTransform(*_graphicsDevice, *g_LoadingBar);
+		// The loading bar images were loaded from files; missing files leave no bar.
+		auto border = _nextImagePaths.find(_loadingBarBorder.get());
+		auto inner = _nextImagePaths.find(_loadingBarInner.get());
+		if (border == _nextImagePaths.end() || inner == _nextImagePaths.end())
+			return;
 
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
-	
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);	
-		_graphicsDevice->BindVertexBuffer(g_LoadingBar->VertexBufferBorder.get());
-		_graphicsDevice->BindIndexBuffer(g_LoadingBar->IndexBufferBorder.get());
-
-		_shaders.Bind(Shader::Hud);
-		_shaders.Bind(Shader::HudDTexture);
-
-		SetBlendMode(BlendMode::Opaque);
-		SetDepthState(DepthState::None);
-		SetCullMode(CullMode::None);
-
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Hud, _cbHUD.get());
-		BindTexture(TextureRegister::Hud, _loadingBarBorder.get(), SamplerStateRegister::LinearClamp);
-
-		_stHUDBar.BarStartUV = Vector2::Zero;
-		_stHUDBar.BarScale = Vector2::One;
-		UpdateConstantBuffer(&_stHUDBar, _cbHUDBar.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
-
-		DrawIndexedTriangles(56, 0, 0);
-
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
-
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->BindVertexBuffer(g_LoadingBar->InnerVertexBuffer.get());
-		_graphicsDevice->BindIndexBuffer(g_LoadingBar->InnerIndexBuffer.get());
-
-		_shaders.Bind(Shader::Hud);
-		_shaders.Bind(Shader::HudBarColor);
-		
-		_stHUDBar.Percent = percentage / 100.0f;
-		_stHUDBar.Poisoned = false;
-		_stHUDBar.Frame = 0; 
-		UpdateConstantBuffer(&_stHUDBar, _cbHUDBar.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
-
-		BindTexture(TextureRegister::Hud, _loadingBarInner.get(), SamplerStateRegister::LinearClamp);
-
-		DrawIndexedTriangles(12, 0, 0);
+		const auto& bar = *g_LoadingBar;
+		auto nextBar = Next::OverlayBar{ bar.Position, bar.VerticalPosition, bar.Size, percentage / 100.0f };
+		nextBar.BorderPath = border->second;
+		nextBar.InnerPath = inner->second;
+		_nextUi.Bars.push_back(nextBar);
+		AddNextUiLayer(Next::OverlayLayerType::Bars, (int)_nextUi.Bars.size() - 1);
 	}
 
 	void Renderer::AddLine2D(const Vector2& origin, const Vector2& target, const Color& color, RendererDebugPage page)
@@ -291,97 +174,17 @@ namespace TEN::Renderer
 		return &_sprites[Objects[Lara.Control.Look.IsUsingLasersight ? ID_LASERSIGHT_GRAPHICS : ID_BINOCULAR_GRAPHICS].meshIndex];
 	}
 
+	// Lightning flash and binocular or laser sight sprite, drawn by the next renderer over the scene.
 	void Renderer::DrawOverlays(RenderView& view)
 	{
-		if (Next::g_NextRenderer.IsActive())
-		{
-			_nextUi.FlashColor = Weather.FlashColor();
-			_nextUi.OpticSprite = GetOpticOverlaySprite();
-			_nextUi.IsLaserSight = Lara.Control.Look.IsUsingLasersight;
-			AddNextUiLayer(Next::OverlayLayerType::ScreenOverlays, 0);
-		}
-
-		auto flashColor = Weather.FlashColor();
-		if (flashColor != Vector3::Zero)
-		{
-			SetBlendMode(BlendMode::Additive);
-			DrawFullScreenQuad(_whiteTexture.get(), flashColor);
-		}
-
-		if (CurrentLevel == 0)
-			return;
-
-		if (!Lara.Control.Look.OpticRange && !SpotcamOverlay)
-			return;
-
-		SetBlendMode(BlendMode::AlphaBlend);
-
-		if (Lara.Control.Look.OpticRange != 0 && !Lara.Control.Look.IsUsingLasersight)
-		{
-			DrawFullScreenSprite(&_sprites[Objects[ID_BINOCULAR_GRAPHICS].meshIndex], Vector3::One, false);
-		}
-		else if (Lara.Control.Look.OpticRange != 0 && Lara.Control.Look.IsUsingLasersight)
-		{
-			DrawFullScreenSprite(&_sprites[Objects[ID_LASERSIGHT_GRAPHICS].meshIndex], Vector3::One);
-
-			SetBlendMode(BlendMode::Opaque);
-
-			// Draw the aiming point
-			Vertex vertices[4];
-
-			vertices[0].Position.x = -4.0f / _graphicsDevice->GetScreenWidth();
-			vertices[0].Position.y = 4.0f / _graphicsDevice->GetScreenHeight();
-			vertices[0].Position.z = 0.0f;
-			vertices[0].UV.x = 0.0f;
-			vertices[0].UV.y = 0.0f;
-			vertices[0].Color = VectorColorToRGBA(Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-
-			vertices[1].Position.x = 4.0f / _graphicsDevice->GetScreenWidth();
-			vertices[1].Position.y = 4.0f / _graphicsDevice->GetScreenHeight();
-			vertices[1].Position.z = 0.0f;
-			vertices[1].UV.x = 1.0f;
-			vertices[1].UV.y = 0.0f;
-			vertices[1].Color = VectorColorToRGBA(Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-
-			vertices[2].Position.x = 4.0f / _graphicsDevice->GetScreenWidth();
-			vertices[2].Position.y = -4.0f / _graphicsDevice->GetScreenHeight();
-			vertices[2].Position.z = 0.0f;
-			vertices[2].UV.x = 1.0f;
-			vertices[2].UV.y = 1.0f;
-			vertices[2].Color = VectorColorToRGBA(Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-
-			vertices[3].Position.x = -4.0f / _graphicsDevice->GetScreenWidth();
-			vertices[3].Position.y = -4.0f / _graphicsDevice->GetScreenHeight();
-			vertices[3].Position.z = 0.0f;
-			vertices[3].UV.x = 0.0f;
-			vertices[3].UV.y = 1.0f;
-			vertices[3].Color = VectorColorToRGBA(Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-
-			_shaders.Bind(Shader::FullScreenQuad);
-
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-
-            BeginPrimitiveBatch();
-			_primitiveBatch->DrawQuad(vertices[0], vertices[1], vertices[2], vertices[3]);
-            EndPrimitiveBatch();
-		}
-		else
-		{
-			// TODO: Vignette goes here! -- Lwmte, 21.08.21
-		}
+		_nextUi.FlashColor = Weather.FlashColor();
+		_nextUi.OpticSprite = GetOpticOverlaySprite();
+		_nextUi.IsLaserSight = Lara.Control.Look.IsUsingLasersight;
+		AddNextUiLayer(Next::OverlayLayerType::ScreenOverlays, 0);
 	}
 
-	void Renderer::DrawFullScreenImage(ITextureBase* texture, float fade, IRenderTarget2D* target, IDepthTarget* depthTarget)
+	void Renderer::DrawFullScreenImage(ITextureBase* texture, float fade)
 	{
-		// Reset GPU state
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::None);
-
-		_graphicsDevice->BindRenderTarget(target, depthTarget);
-		_graphicsDevice->SetViewport(_viewport);
-		_graphicsDevice->SetScissor(_viewport);
-
 		DrawFullScreenQuad(texture, Vector3(fade), true);
 	}
 
@@ -389,38 +192,12 @@ namespace TEN::Renderer
 	{
 		constexpr auto VERTEX_COUNT = 4;
 
-		if (renderView.DisplaySpritesToDraw.empty())
-			return;
-
-		bool isNextActive = Next::g_NextRenderer.IsActive();
-		ITexture2D* texture2DPtr = nullptr;
 		for (const auto& spriteToDraw : renderView.DisplaySpritesToDraw)
 		{
 			if ((spriteToDraw.Priority >= 0) == negativePriority)
 				continue;
 
-			if (texture2DPtr == nullptr)
-			{
-				_shaders.Bind(Shader::FullScreenQuad);
-
-				_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-				_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-
-                BeginPrimitiveBatch();
-
-				BindTexture(TextureRegister::ColorMap, spriteToDraw.SpritePtr->Texture, SamplerStateRegister::AnisotropicClamp);
-				SetBlendMode(spriteToDraw.BlendMode);
-			}
-			else if (texture2DPtr != spriteToDraw.SpritePtr->Texture || _lastBlendMode != spriteToDraw.BlendMode)
-			{
-                EndPrimitiveBatch();
-                BeginPrimitiveBatch();
-
-				BindTexture(TextureRegister::ColorMap, spriteToDraw.SpritePtr->Texture, SamplerStateRegister::AnisotropicClamp);
-				SetBlendMode(spriteToDraw.BlendMode);
-			}
-
-			// Calculate vertex base.
+			// Corners in display space. Rotated 180 degrees to account for +Y being down.
 			auto vertices = std::array<Vector2, VERTEX_COUNT>
 			{
 				spriteToDraw.Size / 2,
@@ -429,185 +206,43 @@ namespace TEN::Renderer
 				Vector2(spriteToDraw.Size.x, -spriteToDraw.Size.y) / 2
 			};
 
-			// Transform vertices.
-			// NOTE: Must rotate 180 degrees to account for +Y being down.
 			auto rotMatrix = Matrix::CreateRotationZ(TO_RAD(spriteToDraw.Orientation + ANGLE(180.0f)));
 			auto nextSprite = Next::OverlaySprite{ spriteToDraw.SpritePtr, {}, spriteToDraw.Color, spriteToDraw.BlendMode };
 			for (int i = 0; i < VERTEX_COUNT; i++)
-			{
-				auto& vertex = vertices[i];
+				nextSprite.Corners[i] = Vector2::Transform(vertices[i], rotMatrix) * spriteToDraw.AspectCorrection + spriteToDraw.Position;
 
-				// Rotate.
-				vertex = Vector2::Transform(vertex, rotMatrix);
-
-				// Apply aspect correction.
-				vertex *= spriteToDraw.AspectCorrection;
-
-				// Offset to position and convert to NDC.
-				vertex += spriteToDraw.Position;
-				nextSprite.Corners[i] = vertex;
-				vertex = TEN::Utils::Convert2DPositionToNDC(vertex);
-			}
-
-			if (isNextActive)
-			{
-				_nextUi.Sprites.push_back(nextSprite);
-				AddNextUiLayer(Next::OverlayLayerType::Sprites, (int)_nextUi.Sprites.size() - 1);
-			}
-
-			// Define renderer vertices.
-			auto rVertices = std::array<Vertex, VERTEX_COUNT>{};
-			for (int i = 0; i < rVertices.size(); i++)
-			{
-				rVertices[i].Position = Vector3(vertices[i]);
-				rVertices[i].UV = spriteToDraw.SpritePtr->UV[i];
-				rVertices[i].Color = VectorColorToRGBA(Vector4(spriteToDraw.Color.x, spriteToDraw.Color.y, spriteToDraw.Color.z, spriteToDraw.Color.w));
-			}
-			
-			_primitiveBatch->DrawQuad(rVertices[0], rVertices[1], rVertices[2], rVertices[3]);
-
-			texture2DPtr = spriteToDraw.SpritePtr->Texture;
+			_nextUi.Sprites.push_back(nextSprite);
+			AddNextUiLayer(Next::OverlayLayerType::Sprites, (int)_nextUi.Sprites.size() - 1);
 		}
-		
-		if (texture2DPtr != nullptr)
-            EndPrimitiveBatch();
 	}
 
+	// Opaque image over the whole screen; fitted images keep their aspect and are cropped.
 	void Renderer::DrawFullScreenQuad(ITextureBase* texture, Vector3 color, bool fit, float customAspect)
 	{
-		constexpr auto VERTEX_COUNT = 4;
-		constexpr auto UV_RANGE		= std::pair<Vector2, Vector2>(Vector2(0.0f), Vector2(1.0f));
-
 		auto uvStart = Vector2::Zero;
-		auto uvEnd	 = Vector2::One;
+		auto uvEnd = Vector2::One;
 
 		if (fit)
 		{
-			float screenAspect = float(_graphicsDevice->GetScreenWidth()) / float(_graphicsDevice->GetScreenHeight());
-			float imageAspect  = customAspect == 0.0f ? float(texture->GetWidth()) / float(texture->GetHeight()) : customAspect;
+			auto screenResolution = GetScreenResolution();
+			float screenAspect = (float)screenResolution.x / (float)screenResolution.y;
+			float imageAspect = (customAspect == 0.0f) ? ((float)texture->GetWidth() / (float)texture->GetHeight()) : customAspect;
 
 			if (screenAspect > imageAspect)
 			{
-				float diff = ((screenAspect - imageAspect) / screenAspect) / 2;
-				uvStart.y += diff;
-				uvEnd.y -= diff;
+				float difference = ((screenAspect - imageAspect) / screenAspect) / 2.0f;
+				uvStart.y += difference;
+				uvEnd.y -= difference;
 			}
 			else
 			{
-				float diff = ((imageAspect - screenAspect) / imageAspect) / 2;
-				uvStart.x += diff;
-				uvEnd.x -= diff;
+				float difference = ((imageAspect - screenAspect) / imageAspect) / 2.0f;
+				uvStart.x += difference;
+				uvEnd.x -= difference;
 			}
 		}
 
-		auto vertices = std::array<Vertex, VERTEX_COUNT>{};
-		auto colorVec4 = Vector4(color.x, color.y, color.z, 1.0f);
-		AddNextUiImage(texture, Vector2::Zero, Vector2::One, uvStart, uvEnd, colorVec4, _lastBlendMode);
-
-		vertices[0].Position = Vector3(-1.0f, 1.0f, 0.0f);
-		vertices[0].UV.x = uvStart.x;
-		vertices[0].UV.y = uvStart.y;
-		vertices[0].Color = VectorColorToRGBA(colorVec4);
-
-		vertices[1].Position = Vector3(1.0f, 1.0f, 0.0f);
-		vertices[1].UV.x = uvEnd.x;
-		vertices[1].UV.y = uvStart.y;
-		vertices[1].Color = VectorColorToRGBA(colorVec4);
-
-		vertices[2].Position = Vector3(1.0f, -1.0f, 0.0f);
-		vertices[2].UV.x = uvEnd.x;
-		vertices[2].UV.y = uvEnd.y;
-		vertices[2].Color = VectorColorToRGBA(colorVec4);
-
-		vertices[3].Position = Vector3(-1.0f, -1.0f, 0.0f);
-		vertices[3].UV.x = uvStart.x;
-		vertices[3].UV.y = uvEnd.y;
-		vertices[3].Color = VectorColorToRGBA(colorVec4);
-
-		_shaders.Bind(Shader::FullScreenQuad);
-
-		BindTexture(TextureRegister::ColorMap, texture, SamplerStateRegister::AnisotropicClamp);
-
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-
-        BeginPrimitiveBatch();
-		_primitiveBatch->DrawQuad(vertices[0], vertices[1], vertices[2], vertices[3]);
-        EndPrimitiveBatch();
-	}
-
-	void Renderer::DrawFullScreenSprite(RendererSprite* sprite, DirectX::SimpleMath::Vector3 color, bool fit)
-	{
-		Vector2 uvStart = { 0.0f, 0.0f };
-		Vector2 uvEnd = { 1.0f, 1.0f };
-
-		ITexture2D* texture = sprite->Texture;
-
-		if (fit)
-		{
-			float screenAspect = float(_graphicsDevice->GetScreenWidth()) / float(_graphicsDevice->GetScreenHeight());
-			float imageAspect = float(sprite->Width) / float(sprite->Height);
-
-			if (screenAspect > imageAspect)
-			{
-				float diff = (screenAspect - imageAspect) / screenAspect / 2;
-				uvStart.y += diff;
-				uvEnd.y -= diff;
-			}
-			else
-			{
-				float diff = (imageAspect - screenAspect) / imageAspect / 2;
-				uvStart.x += diff;
-				uvEnd.x -= diff;
-			}
-		}
-
-		auto scale = Vector2(sprite->Width / (float)sprite->Texture->GetWidth(), sprite->Height / (float)sprite->Texture->GetHeight());
-		uvStart.x = uvStart.x * scale.x + sprite->UV[0].x;
-		uvStart.y = uvStart.y * scale.y + sprite->UV[0].y;
-		uvEnd.x = uvEnd.x * scale.x + sprite->UV[0].x;
-		uvEnd.y = uvEnd.y * scale.y + sprite->UV[0].y;
-
-		Vertex vertices[4];
-
-		vertices[0].Position.x = -1.0f;
-		vertices[0].Position.y = 1.0f;
-		vertices[0].Position.z = 0.0f;
-		vertices[0].UV.x = uvStart.x;
-		vertices[0].UV.y = uvStart.y;
-		vertices[0].Color = VectorColorToRGBA(Vector4(color.x, color.y, color.z, 1.0f));
-
-		vertices[1].Position.x = 1.0f;
-		vertices[1].Position.y = 1.0f;
-		vertices[1].Position.z = 0.0f;
-		vertices[1].UV.x = uvEnd.x;
-		vertices[1].UV.y = uvStart.y;
-		vertices[1].Color = VectorColorToRGBA(Vector4(color.x, color.y, color.z, 1.0f));
-
-		vertices[2].Position.x = 1.0f;
-		vertices[2].Position.y = -1.0f;
-		vertices[2].Position.z = 0.0f;
-		vertices[2].UV.x = uvEnd.x;
-		vertices[2].UV.y = uvEnd.y;
-		vertices[2].Color = VectorColorToRGBA(Vector4(color.x, color.y, color.z, 1.0f));
-
-		vertices[3].Position.x = -1.0f;
-		vertices[3].Position.y = -1.0f;
-		vertices[3].Position.z = 0.0f;
-		vertices[3].UV.x = uvStart.x;
-		vertices[3].UV.y = uvEnd.y;
-		vertices[3].Color = VectorColorToRGBA(Vector4(color.x, color.y, color.z, 1.0f));
-
-		_shaders.Bind(Shader::FullScreenQuad);
-
-		BindTexture(TextureRegister::ColorMap, texture, SamplerStateRegister::AnisotropicClamp);
-
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-
-        BeginPrimitiveBatch();
-		_primitiveBatch->DrawQuad(vertices[0], vertices[1], vertices[2], vertices[3]);
-        EndPrimitiveBatch();
+		AddNextUiImage(texture, Vector2::Zero, Vector2::One, uvStart, uvEnd, Vector4(color.x, color.y, color.z, 1.0f), BlendMode::Opaque);
 	}
 
 	void Renderer::AddDisplaySprite(const RendererSprite& sprite, const Vector2& pos2D, short orient, const Vector2& size, const Vector4& color,

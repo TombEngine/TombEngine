@@ -38,83 +38,6 @@ extern ScriptInterfaceFlowHandler *g_GameFlow;
 
 namespace TEN::Renderer
 {
-    void Renderer::InvalidatePerDrawBuffer()
-    {
-        _perDrawBufferDirty = true;
-        if (_primitiveBatchActive)
-            FlushPerDrawBuffer();
-    }
-
-    void Renderer::FlushPerDrawBuffer()
-    {
-        if (!_perDrawBufferDirty)
-            return;
-
-        UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
-        _perDrawBufferDirty = false;
-        _numPerDrawUpdates++;
-    }
-
-    void Renderer::BeginPrimitiveBatch()
-    {
-        FlushPerDrawBuffer();
-        _primitiveBatchActive = true;
-        _primitiveBatch->Begin();
-    }
-
-    void Renderer::EndPrimitiveBatch()
-    {
-        _primitiveBatch->End();
-        _primitiveBatchActive = false;
-    }
-
-    bool Renderer::IsBlendModeSupported(BlendMode blendMode, RendererPass rendererPass)
-    {
-        switch (rendererPass)
-        {
-        case RendererPass::GBuffer:
-            return blendMode == BlendMode::Opaque || blendMode == BlendMode::AlphaTest || blendMode == BlendMode::FastAlphaBlend;
-        case RendererPass::Opaque:
-            return blendMode == BlendMode::Opaque || blendMode == BlendMode::AlphaTest;
-        case RendererPass::Additive:
-            return blendMode == BlendMode::Additive;
-        case RendererPass::Distortion:
-            return blendMode == BlendMode::Distortion;
-        default:
-            return false;
-        }
-    }
-
-    bool Renderer::HasMeshForPass(const RendererMesh& mesh, RendererPass rendererPass, float alpha)
-    {
-        if (rendererPass == RendererPass::CollectTransparentFaces || rendererPass == RendererPass::ShadowMap)
-            return true;
-
-        for (const auto& bucket : mesh.Buckets)
-        {
-            if (bucket.NumVertices > 0 && IsBlendModeSupported(GetBlendModeFromAlpha(bucket.BlendMode, alpha), rendererPass))
-                return true;
-        }
-
-        return false;
-    }
-
-    bool Renderer::HasItemForPass(RendererItem& item, RendererObject& object, RendererPass rendererPass)
-    {
-        if (GetSkinningMode(object, item.SkinIndex) == SkinningMode::Full &&
-            HasMeshForPass(*GetMesh(item.SkinIndex), rendererPass, item.Color.w))
-        {
-            return true;
-        }
-
-        for (int meshIndex : item.MeshIndex)
-        {
-            if (HasMeshForPass(*GetMesh(meshIndex), rendererPass, item.Color.w))
-                return true;
-        }
-
-        return false;
-    }
 
 	void Renderer::UpdateAnimation(RendererItem* rendererItem, RendererObject& rendererObject, const FrameData& frame, int mask, bool useObjectWorldRotation,
 								   const MoveableAnimBlendData* blend, const RootMotionData* rootMotionOffset)
@@ -769,23 +692,9 @@ namespace TEN::Renderer
 		screenPath += buffer;
 
 		// The next renderer saves the image when its next frame reaches the readback.
-		if (Next::g_NextRenderer.IsActive())
-		{
-			Next::g_NextRenderer.RequestScreenshot(screenPath);
-			TENLog(fmt::format("Saving screenshot to '{}'.", screenPath), LogLevel::Info);
-			return std::string(buffer);
-		}
-
-		if (!_graphicsDevice->SaveScreenshot(_backBuffer->GetRenderTarget(), screenPath))
-		{
-			TENLog(fmt::format("Failed to save screenshot '{}' to disk.", screenPath), LogLevel::Error);
-			return std::string();
-		}
-		else
-		{
-			TENLog(fmt::format("Saved screenshot to '{}'.", screenPath), LogLevel::Info);
-			return std::string(buffer);
-		}
+		Next::g_NextRenderer.RequestScreenshot(screenPath);
+		TENLog(fmt::format("Saving screenshot to '{}'.", screenPath), LogLevel::Info);
+		return std::string(buffer);
 	}
 
 	std::optional<Vector2> Renderer::ProjectDisplayItemPointToScreen(const Vector3& worldPos) const

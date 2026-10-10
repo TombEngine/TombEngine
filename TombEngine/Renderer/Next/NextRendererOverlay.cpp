@@ -306,8 +306,8 @@ namespace TEN::Renderer::Next
         constexpr auto DISPLAY_ASPECT = DISPLAY_WIDTH / DISPLAY_HEIGHT;
         constexpr auto BORDER_SIZE = 1.0f;
 
-        auto* borderTexture = GetSpriteTexture(bar.Border);
-        auto* innerTexture = GetSpriteTexture(bar.Inner);
+        auto* borderTexture = (bar.Border != nullptr) ? GetSpriteTexture(bar.Border) : GetOverlayImageTexture(bar.BorderPath);
+        auto* innerTexture = (bar.Inner != nullptr) ? GetSpriteTexture(bar.Inner) : GetOverlayImageTexture(bar.InnerPath);
         if (borderTexture == nullptr || innerTexture == nullptr)
             return;
 
@@ -333,11 +333,16 @@ namespace TEN::Renderer::Next
             return Vector2(point.x * desc.Width / DISPLAY_WIDTH, point.y * desc.Height / DISPLAY_HEIGHT);
         };
 
-        auto getSpriteUniforms = [](const RendererSprite& sprite, ITexture& texture, bool isInner)
+        // Image files cover their whole texture.
+        auto getSpriteUniforms = [](const RendererSprite* sprite, ITexture& texture, bool isInner)
         {
             auto uniforms = OverlayBarUniforms{};
-            uniforms.BarStartUV = sprite.UV[0];
-            uniforms.BarScale = Vector2(sprite.Width / (float)texture.GetDesc().Width, sprite.Height / (float)texture.GetDesc().Height);
+            if (sprite != nullptr)
+            {
+                uniforms.BarStartUV = sprite->UV[0];
+                uniforms.BarScale = Vector2(sprite->Width / (float)texture.GetDesc().Width, sprite->Height / (float)texture.GetDesc().Height);
+            }
+
             uniforms.IsInner = isInner ? 1 : 0;
             return uniforms;
         };
@@ -358,7 +363,7 @@ namespace TEN::Renderer::Next
         float ys[4] = { bar.Position.y - border.y, bar.Position.y, bar.Position.y + bar.Size.y, bar.Position.y + bar.Size.y + border.y };
         const float uvs[4] = { 0.0f, 0.25f, 0.75f, 1.0f };
 
-        auto borderUniforms = getSpriteUniforms(*bar.Border, *borderTexture, false);
+        auto borderUniforms = getSpriteUniforms(bar.Border, *borderTexture, false);
         for (int row = 0; row < 3; row++)
         {
             for (int column = 0; column < 3; column++)
@@ -369,7 +374,7 @@ namespace TEN::Renderer::Next
         }
 
         // Inner bar, clipped in the shader at the percentage.
-        auto innerUniforms = getSpriteUniforms(*bar.Inner, *innerTexture, true);
+        auto innerUniforms = getSpriteUniforms(bar.Inner, *innerTexture, true);
         innerUniforms.Percent = bar.Percent;
         innerUniforms.PoisonFactor = bar.IsPoisoned ? (std::sin((bar.Frame % 30) / 30.0f * PI_MUL_2) * 0.5f + 0.5f) : 0.0f;
         addQuad(innerTexture, innerUniforms, bar.Position, bar.Position + bar.Size, Vector2::Zero, Vector2::One);
@@ -379,19 +384,28 @@ namespace TEN::Renderer::Next
     void NextRenderer::LoadOverlayImages(const UiFrame& ui)
     {
         for (const auto& image : ui.Images)
+            LoadOverlayImage(image.Path);
+
+        for (const auto& bar : ui.Bars)
         {
-            if (image.Path == OVERLAY_VIDEO_PATH || _overlayImages.find(image.Path) != _overlayImages.end())
-                continue;
-
-            auto file = std::ifstream(image.Path, std::ios::binary);
-            auto data = std::vector<unsigned char>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-            // No mips: averaging straight alpha texels brightens transparent edges, unlike the legacy sprite batch.
-            auto texture = CreateLevelTexture(data, "Overlay.Image", false);
-            if (texture == nullptr)
-                TENLog("Next renderer: cannot load image " + image.Path, LogLevel::Warning);
-
-            _overlayImages[image.Path] = std::move(texture);
+            LoadOverlayImage(bar.BorderPath);
+            LoadOverlayImage(bar.InnerPath);
         }
+    }
+
+    void NextRenderer::LoadOverlayImage(const std::string& path)
+    {
+        if (path.empty() || path == OVERLAY_VIDEO_PATH || _overlayImages.find(path) != _overlayImages.end())
+            return;
+
+        auto file = std::ifstream(path, std::ios::binary);
+        auto data = std::vector<unsigned char>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        // No mips: averaging straight alpha texels brightens transparent edges, unlike the legacy sprite batch.
+        auto texture = CreateLevelTexture(data, "Overlay.Image", false);
+        if (texture == nullptr)
+            TENLog("Next renderer: cannot load image " + path, LogLevel::Warning);
+
+        _overlayImages[path] = std::move(texture);
     }
 
     ITexture* NextRenderer::GetOverlayImageTexture(const std::string& path) const

@@ -698,7 +698,6 @@ namespace TEN::Renderer
 			break;
 		}
 
-		DrawLines2D();
 		DrawAllStrings();
 	}
 
@@ -970,8 +969,6 @@ namespace TEN::Renderer
 	// TODO: Handle opacity
 	void Renderer::DrawObjectIn2DSpace(int objectNumber, Vector2 pos2D, EulerAngles orient, float scale, float opacity, int meshBits)
 	{
-		constexpr auto AMBIENT_LIGHT_COLOR = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
-
 		auto screenRes = GetScreenResolution();
 		auto factor = Vector2(
 			screenRes.x / DISPLAY_SPACE_RES.x,
@@ -990,7 +987,7 @@ namespace TEN::Renderer
 		}
 
 		auto viewMatrix = Matrix::CreateLookAt(Vector3(0.0f, 0.0f, BLOCK(2)), Vector3::Zero, Vector3::Down);
-		auto projMatrix = Matrix::CreateOrthographic(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(), -BLOCK(1), BLOCK(1));
+		auto projMatrix = Matrix::CreateOrthographic((float)screenRes.x, (float)screenRes.y, -BLOCK(1), BLOCK(1));
 
 		auto& moveableObject = _moveableObjects[objectNumber];
 		if (!moveableObject.has_value())
@@ -1003,85 +1000,22 @@ namespace TEN::Renderer
 			UpdateAnimation(nullptr, *moveableObject, frame, UINT_MAX);
 		}
 
-		auto pos = _graphicsDevice->Unproject(Vector3(pos2D.x, pos2D.y, 1.0f), projMatrix, viewMatrix, Matrix::Identity);
+		auto viewport = DirectX::SimpleMath::Viewport(0.0f, 0.0f, (float)screenRes.x, (float)screenRes.y);
+		auto pos = viewport.Unproject(Vector3(pos2D.x, pos2D.y, 1.0f), projMatrix, viewMatrix, Matrix::Identity);
 		auto color = NEUTRAL_COLOR;
 		color.w = opacity;
 
-		// Set vertex buffer.
-		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
-
-		// Set matrices.
-		auto hudCamera = CCameraMatrixBuffer{};
-		hudCamera.CamDirectionWS = -Vector4::UnitZ;
-		hudCamera.ViewProjection = viewMatrix * projMatrix;
-		hudCamera.Frame = GlobalCounter;
-		hudCamera.InterpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
-		hudCamera.Gamma = g_Configuration.Gamma;
-		UpdateConstantBuffer(&hudCamera, _cbCameraMatrices.get());
-		_graphicsDevice->BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
-		_graphicsDevice->BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
-
-		_shaders.Bind(Shader::Inventory);
-
-		// Construct world matrix.
 		auto translationMatrix = Matrix::CreateTranslation(pos.x, pos.y, pos.z + BLOCK(1));
 		auto rotMatrix = orient.ToRotationMatrix();
 		auto scaleMatrix = Matrix::CreateScale(scale);
 		auto worldMatrix = scaleMatrix * rotMatrix * translationMatrix;
 
 		auto skinMode = GetSkinningMode(*moveableObject, object.skinIndex);
-
-		_stObjects.Objects[0].Color = color;
-		_stObjects.Objects[0].AmbientLight = g_DrawItems.GetAmbientLight();;
-		_stObjects.Skinned = (int)skinMode;
-
-		BeginNextUiObject(hudCamera.ViewProjection, color, g_DrawItems.GetAmbientLight(), hudCamera.Frame, hudCamera.InterpolatedFrame, true);
+		float interpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
+		BeginNextUiObject(viewMatrix * projMatrix, color, g_DrawItems.GetAmbientLight(), GlobalCounter, interpolatedFrame, true);
 
 		if (skinMode == SkinningMode::Full && object.skinIndex >= 0)
-		{
-			_stObjects.Objects[0].World = worldMatrix;
-
-			// Calculate bones matrices for skinning
-			for (int m = 0; m < moveableObject->AnimationTransforms.size(); m++)
-				_stObjects.Bones[m] = moveableObject->BindPoseTransforms[m] * moveableObject->AnimationTransforms[m];
-
-			_stObjects.BoneLightModes[0] = (int)LightMode::Dynamic;
-
-            UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
-
-			// Draw the skin mesh.
-			const auto skinMesh = GetMesh(object.skinIndex);
-			AddNextUiObjectMesh(skinMesh, worldMatrix, _stObjects.Bones, (int)moveableObject->AnimationTransforms.size());
-
-			for (int animated = 0; animated < 2; animated++)
-			{
-				for (const auto& bucket : skinMesh->Buckets)
-				{
-					if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
-						continue;
-
-					SetBlendMode(GetBlendModeFromAlpha((bucket.BlendMode == BlendMode::AlphaTest) ? BlendMode::AlphaBlend : bucket.BlendMode, color.w));
-					SetCullMode(CullMode::CounterClockwise);
-					SetDepthState(DepthState::Write);
-
-					BindBucketTextures(bucket, TextureSource::Moveables, animated);
-					BindMaterial(bucket.MaterialIndex, false);
-
-					SetAlphaTest((bucket.BlendMode == BlendMode::AlphaTest) ? AlphaTestMode::GreatherThan : AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
-
-					DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
-					_numMoveablesDrawCalls++;
-				}
-			}
-		}
-
-		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
-			_stObjects.Bones[i] = Matrix::Identity;
+			AddNextUiSkinMesh(*moveableObject, GetMesh(object.skinIndex), worldMatrix);
 
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
 		{
@@ -1095,45 +1029,8 @@ namespace TEN::Renderer
 			if (objectNumber == ID_COMPASS_ITEM && i == 1)
 				moveableObject->LinearizedBones[i]->ExtraRotation = EulerAngles(0, g_Gui.CompassNeedleAngle - ANGLE(180.0f), 0).ToQuaternion();
 
-			if (!object.Animations.empty())
-			{
-				_stObjects.Objects[0].World = moveableObject->AnimationTransforms[i] * worldMatrix;
-			}
-			else
-			{
-				_stObjects.Objects[0].World = moveableObject->BindPoseTransforms[i] * worldMatrix;
-			}
-
-			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
-
-            UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
-
-
-			const auto& mesh = *moveableObject->ObjectMeshes[i];
-			AddNextUiObjectMesh(&mesh, _stObjects.Objects[0].World);
-
-			for (int animated = 0; animated < 2; animated++)
-			{		
-				for (const auto& bucket : mesh.Buckets)
-				{
-					if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
-						continue;
-
-					SetBlendMode(GetBlendModeFromAlpha((bucket.BlendMode == BlendMode::AlphaTest) ? BlendMode::AlphaBlend : bucket.BlendMode, color.w));
-					SetCullMode(CullMode::CounterClockwise);
-					SetDepthState(DepthState::Write);
-
-					BindBucketTextures(bucket, TextureSource::Moveables, animated);
-					BindMaterial(bucket.MaterialIndex, false);
-
-					SetAlphaTest((bucket.BlendMode == BlendMode::AlphaTest) ? AlphaTestMode::GreatherThan : AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
-
-					DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
-					_numMoveablesDrawCalls++;
-				}
-			}
+			const auto& transform = object.Animations.empty() ? moveableObject->BindPoseTransforms[i] : moveableObject->AnimationTransforms[i];
+			AddNextUiObjectMesh(moveableObject->ObjectMeshes[i], transform * worldMatrix);
 		}
 	}
 
@@ -1154,10 +1051,8 @@ namespace TEN::Renderer
 		auto scale = item.GetInterpolatedScale(alpha);
 		int meshBits = item.GetMeshBits();
 
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
-
-		float aspectRatio = (float)(_graphicsDevice->GetScreenWidth()) / _graphicsDevice->GetScreenHeight();
+		auto screenRes = GetScreenResolution();
+		float aspectRatio = (float)screenRes.x / (float)screenRes.y;
 
 		auto viewMatrix = Matrix::CreateLookAt(g_DrawItems.GetInterpolatedCameraPosition(alpha), g_DrawItems.GetInterpolatedCameraTargetPosition(alpha), Vector3::Down);
 		auto projMatrix = Matrix::CreatePerspectiveFieldOfView(g_DrawItems.GetInterpolatedFov(alpha), aspectRatio, DISPLAY_ITEM_NEAR_PLANE, DISPLAY_ITEM_FAR_PLANE);
@@ -1174,87 +1069,16 @@ namespace TEN::Renderer
 			UpdateAnimation(nullptr, *moveableObject, GetAnimData(object, animNumber).Frames[frameNumber], UINT_MAX);
 		}
 
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
-		SetDepthState(DepthState::Write);
-
-		// Set vertex buffer.
-		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
-
-		// Set shaders.
-		_shaders.Bind(Shader::Inventory);
-
-		// Set matrices.
-		auto hudCamera = CCameraMatrixBuffer{};
-		hudCamera.CamDirectionWS = -Vector4::UnitZ;
-		hudCamera.ViewProjection = viewMatrix * projMatrix;
-		hudCamera.Gamma = g_Configuration.Gamma;
-		UpdateConstantBuffer(&hudCamera, _cbCameraMatrices.get());
-		_graphicsDevice->BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
-		_graphicsDevice->BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
-
-		_shaders.Bind(Shader::Inventory);
-
-		// Construct world matrix. // pos.x, pos.y, pos.z
 		auto translationMatrix = Matrix::CreateTranslation(pos.x, pos.y, pos.z);
 		auto rotMatrix = orient.ToRotationMatrix();
 		auto scaleMatrix = Matrix::CreateScale(scale);
 		auto worldMatrix = scaleMatrix * rotMatrix * translationMatrix;
 
 		auto skinMode = GetSkinningMode(*moveableObject, object.skinIndex);
-
-		_stObjects.Objects[0].Color = color;
-		_stObjects.Objects[0].AmbientLight = g_DrawItems.GetAmbientLight();
-		_stObjects.Skinned = (int)skinMode;
-
-		BeginNextUiObject(hudCamera.ViewProjection, color, g_DrawItems.GetAmbientLight(), hudCamera.Frame, hudCamera.InterpolatedFrame, false);
+		BeginNextUiObject(viewMatrix * projMatrix, color, g_DrawItems.GetAmbientLight(), 0, 0.0f, false);
 
 		if (skinMode == SkinningMode::Full && object.skinIndex >= 0)
-		{
-			_stObjects.Objects[0].World = worldMatrix;
-
-			// Calculate bones matrices for skinning.
-			for (int m = 0; m < moveableObject->AnimationTransforms.size(); m++)
-				_stObjects.Bones[m] = moveableObject->BindPoseTransforms[m] * moveableObject->AnimationTransforms[m];
-
-			_stObjects.BoneLightModes[0] = (int)LightMode::Dynamic;
-
-            UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
-
-			// Get skin mesh.
-			const auto* skinMesh = GetMesh(object.skinIndex);
-			AddNextUiObjectMesh(skinMesh, worldMatrix, _stObjects.Bones, (int)moveableObject->AnimationTransforms.size());
-
-			for (int animated = 0; animated < 2; animated++)
-			{
-				for (const auto& bucket : skinMesh->Buckets)
-				{
-					// TODO: Remove ^.
-					if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
-						continue;
-
-					SetBlendMode(GetBlendModeFromAlpha((bucket.BlendMode == BlendMode::AlphaTest) ? BlendMode::AlphaBlend : bucket.BlendMode, color.w));
-					SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
-
-					SetCullMode(CullMode::CounterClockwise);
-					SetDepthState(DepthState::Write);
-
-					BindBucketTextures(bucket, TextureSource::Moveables, animated);
-					BindMaterial(bucket.MaterialIndex, false);
-
-					DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
-					_numMoveablesDrawCalls++;
-				}
-			}
-		}
-
-		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
-			_stObjects.Bones[i] = Matrix::Identity;
+			AddNextUiSkinMesh(*moveableObject, GetMesh(object.skinIndex), worldMatrix);
 
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
 		{
@@ -1267,46 +1091,20 @@ namespace TEN::Renderer
 			auto rotOverride = item.GetInterpolatedMeshRotation(i, alpha);
 			moveableObject->LinearizedBones[i]->ExtraRotation = rotOverride.ToQuaternion();
 
-			if (!object.Animations.empty())
-			{
-				_stObjects.Objects[0].World = moveableObject->AnimationTransforms[i] * worldMatrix;
-			}
-			else
-			{
-				_stObjects.Objects[0].World = moveableObject->BindPoseTransforms[i] * worldMatrix;
-			}
-
-			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
-
-            UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
-
-			const auto& mesh = *moveableObject->ObjectMeshes[i];
-			AddNextUiObjectMesh(&mesh, _stObjects.Objects[0].World);
-
-			for (int animated = 0; animated < 2; animated++)
-			{
-				for (const auto& bucket : mesh.Buckets)
-				{
-					// TODO: Remove ^.
-					if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
-						continue;
-
-					SetBlendMode(GetBlendModeFromAlpha((bucket.BlendMode == BlendMode::AlphaTest) ? BlendMode::AlphaBlend : bucket.BlendMode, color.w));
-					SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
-
-					SetCullMode(CullMode::CounterClockwise);
-					SetDepthState(DepthState::Write);
-
-					BindBucketTextures(bucket, TextureSource::Moveables, animated);
-					BindMaterial(bucket.MaterialIndex, false);
-
-					DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
-					_numMoveablesDrawCalls++;
-				}
-			}
+			const auto& transform = object.Animations.empty() ? moveableObject->BindPoseTransforms[i] : moveableObject->AnimationTransforms[i];
+			AddNextUiObjectMesh(moveableObject->ObjectMeshes[i], transform * worldMatrix);
 		}
+	}
+
+	// Skinned mesh of a 2D or 3D space object, with the bone matrices of its current animation.
+	void Renderer::AddNextUiSkinMesh(const RendererObject& moveableObject, const RendererMesh* skinMesh, const Matrix& world)
+	{
+		auto bones = std::array<Matrix, BONE_COUNT_MAX>{};
+		int boneCount = std::min((int)moveableObject.AnimationTransforms.size(), BONE_COUNT_MAX);
+		for (int i = 0; i < boneCount; i++)
+			bones[i] = moveableObject.BindPoseTransforms[i] * moveableObject.AnimationTransforms[i];
+
+		AddNextUiObjectMesh(skinMesh, world, bones.data(), boneCount);
 	}
 
 	void Renderer::RenderTitleImage()
@@ -1314,8 +1112,6 @@ namespace TEN::Renderer
 		auto texture = SetTextureOrDefault(g_GameFlow->GetGameDir() + g_GameFlow->IntroImagePath.c_str());
 		if (texture == nullptr || !texture->IsValid())
 			return;
-
-		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
 
 		int timeout = 20;
 		float currentFade = FADE_FACTOR;
@@ -1338,22 +1134,18 @@ namespace TEN::Renderer
 				currentFade = std::clamp(currentFade -= FADE_FACTOR, 0.0f, 1.0f);
 			}
 
-			DrawFullScreenImage(texture.get(), Smoothstep(currentFade), _backBuffer->GetRenderTarget(), _backBuffer->GetDepthTarget());
+			DrawFullScreenImage(texture.get(), Smoothstep(currentFade));
 			Synchronize();
 
 			_nextUi.BackgroundFade = 0.0f;
 			PresentFrame();
-			_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 		}
 	}
 
 	void Renderer::DrawDisplayItems()
 	{
 		if (!g_DrawItems.IsEmpty())
-		{
-			_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 			g_DrawItems.Draw();
-		}
 	}
 
 	void Renderer::DrawExamines()
@@ -1413,124 +1205,72 @@ namespace TEN::Renderer
 		DrawAllStrings();
 	}
 
-	void Renderer::RenderInventoryScene(IRenderSurface2D* renderTarget, ITextureBase* background, float backgroundFade)
+	// Menu frames: the 2D layer over the last scene, faded by backgroundFade.
+	void Renderer::RenderInventoryScene(float backgroundFade)
 	{
-		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
-		_nextUi.BackgroundFade = (background != nullptr) ? backgroundFade : 0.0f;
+		_nextUi.BackgroundFade = backgroundFade;
 		_nextUi.IsMenu = true;
-
-		// Set basic render states
-		SetBlendMode(BlendMode::Opaque, true);
-		SetDepthState(DepthState::Write, true);
-		SetCullMode(CullMode::CounterClockwise, true);
-
-		// Bind and clear render target
-		std::vector<IRenderTarget2D*> renderTargets;
-		renderTargets.push_back(_renderTarget->GetRenderTarget());
-		renderTargets.push_back(_emissiveAndRoughnessRenderTarget->GetRenderTarget());
-
-		_graphicsDevice->SetViewport(_viewport);
-		_graphicsDevice->SetScissor(_viewport);
-
-		_graphicsDevice->ClearRenderTarget2D(_renderTarget->GetRenderTarget(), Colors::Black);
-		_graphicsDevice->ClearRenderTarget2D(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent);
-		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-		
-		if (background != nullptr)
-			DrawFullScreenImage(background, backgroundFade, _renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
-
-		_graphicsDevice->BindRenderTargets(renderTargets, _renderTarget->GetDepthTarget());
-		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-
-		// Set vertex buffer.
-		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
-
-		// Set shaders.
-		_shaders.Bind(Shader::Inventory);
 
 		if (CurrentLevel == 0)
 		{
 			auto titleMenu = g_Gui.GetMenuToDisplay();
-			bool drawLogo = (titleMenu == Menu::Title || titleMenu == Menu::Options);
-
-			if (drawLogo && _logo != nullptr)
-			{
-				int screenW = _graphicsDevice->GetScreenWidth();
-				int screenH = _graphicsDevice->GetScreenHeight();
-				float factorX = (float)screenW / DISPLAY_SPACE_RES.x;
-				float factorY = (float)screenH / DISPLAY_SPACE_RES.y;
-
-				// Uniform scale to preserve logo aspect ratio regardless of window aspect.
-				float sizeScale = std::min(factorX, factorY);
-
-				auto& settings = g_GameFlow->GetSettings()->UI;
-
-				float logoWidthScaled  = _logo->GetWidth()  * settings.TitleLogoScale * sizeScale;
-				float logoHeightScaled = _logo->GetHeight() * settings.TitleLogoScale * sizeScale;
-
-				// Position the logo as a percentage of the actual window so it stays anchored
-				// (e.g. centered horizontally at 50%) across any aspect ratio.
-				float centerX = (settings.TitleLogoPosition.x / 100.0f) * screenW;
-				float centerY = (settings.TitleLogoPosition.y / 100.0f) * screenH;
-
-				RendererRectangle rect;
-				rect.Left   = centerX - logoWidthScaled  * 0.5f;
-				rect.Right  = centerX + logoWidthScaled  * 0.5f;
-				rect.Top    = centerY - logoHeightScaled * 0.5f;
-				rect.Bottom = centerY + logoHeightScaled * 0.5f;
-
-				// HACK: Color range slippage. Remove in fix color range PR.
-				auto color = Vector4(settings.TitleLogoColor.GetR() / (float)UCHAR_MAX,
-					settings.TitleLogoColor.GetG() / (float)UCHAR_MAX,
-					settings.TitleLogoColor.GetB() / (float)UCHAR_MAX,
-					settings.TitleLogoColor.GetA() / (float)UCHAR_MAX);
-
-				_spriteBatch->Begin(SpriteSortingMode::BackToFront, BlendMode::AlphaBlend);
-				_spriteBatch->Draw(_logo.get(), rect, color * ScreenFadeCurrent);
-				AddNextUiImage(_logo.get(), Vector2((float)rect.Left / screenW, (float)rect.Top / screenH), Vector2((float)rect.Right / screenW, (float)rect.Bottom / screenH),
-					Vector2::Zero, Vector2::One, color * ScreenFadeCurrent, BlendMode::AlphaBlend);
-
-				_spriteBatch->End();
-			}
+			if (titleMenu == Menu::Title || titleMenu == Menu::Options)
+				AddTitleLogo();
 
 			RenderTitleMenu(titleMenu);
+			return;
 		}
-		else
+
+		switch (g_Gui.GetInventoryMode())
 		{
-			switch (g_Gui.GetInventoryMode())
-			{
-			case InventoryMode::Load:
-			case InventoryMode::Save:
-				RenderLoadSaveMenu();
-				break;
+		case InventoryMode::Load:
+		case InventoryMode::Save:
+			RenderLoadSaveMenu();
+			break;
 
-			case InventoryMode::InGame:
-				RenderNewInventory();
-				break;
+		case InventoryMode::InGame:
+			RenderNewInventory();
+			break;
 
-			case InventoryMode::Statistics:
-				DrawStatistics();
-				break;
+		case InventoryMode::Statistics:
+			DrawStatistics();
+			break;
 
-			case InventoryMode::Examine:
-				DrawExamines();
-				break;
+		case InventoryMode::Examine:
+			DrawExamines();
+			break;
 
-			case InventoryMode::Pause:
-				RenderPauseMenu(g_Gui.GetMenuToDisplay());
-				break;
-			}
+		case InventoryMode::Pause:
+			RenderPauseMenu(g_Gui.GetMenuToDisplay());
+			break;
 		}
+	}
 
-		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+	// The logo keeps its aspect ratio and is anchored at a percentage of the window, across any aspect ratio.
+	void Renderer::AddTitleLogo()
+	{
+		if (_logo == nullptr)
+			return;
 
-		ApplyGlow(_renderTarget.get(), _gameCamera);
-		ApplyAntialiasing(_renderTarget.get(), _gameCamera);
+		auto screenRes = GetScreenResolution();
+		float sizeScale = std::min(screenRes.x / DISPLAY_SPACE_RES.x, screenRes.y / DISPLAY_SPACE_RES.y);
 
-		CopyRenderTarget(_renderTarget.get(), renderTarget, _gameCamera);
+		const auto& settings = g_GameFlow->GetSettings()->UI;
+		auto halfSize = Vector2((float)_logo->GetWidth(), (float)_logo->GetHeight()) * settings.TitleLogoScale * sizeScale * 0.5f;
+		auto center = Vector2(settings.TitleLogoPosition.x / 100.0f * screenRes.x, settings.TitleLogoPosition.y / 100.0f * screenRes.y);
+
+		// HACK: Color range slippage. Remove in fix color range PR.
+		auto color = Vector4(
+			settings.TitleLogoColor.GetR() / (float)UCHAR_MAX,
+			settings.TitleLogoColor.GetG() / (float)UCHAR_MAX,
+			settings.TitleLogoColor.GetB() / (float)UCHAR_MAX,
+			settings.TitleLogoColor.GetA() / (float)UCHAR_MAX);
+
+		// The legacy sprite batch rectangle had integer coordinates.
+		auto screenSize = screenRes.ToVector2();
+		auto min = Vector2(std::trunc(center.x - halfSize.x), std::trunc(center.y - halfSize.y)) / screenSize;
+		auto max = Vector2(std::trunc(center.x + halfSize.x), std::trunc(center.y + halfSize.y)) / screenSize;
+		AddNextUiImage(_logo.get(), min, max, Vector2::Zero, Vector2::One, color * ScreenFadeCurrent, BlendMode::AlphaBlend);
 	}
 
 	void Renderer::SetLoadingScreen(const std::string& fileName)
@@ -1544,28 +1284,10 @@ namespace TEN::Renderer
 
 		if (staticBackground)
 		{
+			// The last scene stays as background, as in menus.
 			ResetDebugVariables();
 			UpdateDumpScreenRenderTarget();
-
-			// Set basic render states.
-			SetBlendMode(BlendMode::Opaque);
-			SetCullMode(CullMode::CounterClockwise);
-
-			// Clear the offscreen scene render targets.
-			_graphicsDevice->ClearRenderTarget2D(_renderTarget->GetRenderTarget(), Colors::Black);
-			_graphicsDevice->ClearRenderTarget2D(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent);
-			_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-
-			std::vector<IRenderTarget2D*> renderTargets;
-			renderTargets.push_back(_renderTarget->GetRenderTarget());
-			renderTargets.push_back(_emissiveAndRoughnessRenderTarget->GetRenderTarget());
-
-			_graphicsDevice->BindRenderTargets(renderTargets, _renderTarget->GetDepthTarget());
-			_graphicsDevice->SetViewport(_viewport);
-			_graphicsDevice->SetScissor(_viewport);
-
-			// Draw full screen background.
-			DrawFullScreenQuad(_dumpScreenRenderTarget->GetRenderTarget(), Vector3::One);
+			_nextUi.IsMenu = true;
 		}
 		else
 		{
@@ -1573,65 +1295,30 @@ namespace TEN::Renderer
 			RenderScene(_backBuffer.get(), _gameCamera, SceneRenderMode::NoHud);
 		}
 
-		// Draw display sprites sorted by priority.
+		// Display sprites sorted by priority.
 		CollectDisplaySprites(_gameCamera);
 		DrawDisplaySprites(_gameCamera, false);
 		DrawDisplayItems();
 		DrawDisplaySprites(_gameCamera, true);
 		DrawAllStrings();
 
-		if (staticBackground)
-		{
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
-
-			ApplyGlow(_renderTarget.get(), _gameCamera);
-			ApplyAntialiasing(_renderTarget.get(), _gameCamera);
-			CopyRenderTarget(_renderTarget.get(), _backBuffer.get(), _gameCamera);
-			_nextUi.IsMenu = true;
-		}
-
 		ClearScene();
-
-		_graphicsDevice->ClearState();
 		PresentFrame();
 	}
 
 	void Renderer::RenderLoadingScreen(float percentage)
 	{
-		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
-
-		// Set basic render states.
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
-
 		do
 		{
-			// Clear screen.
-			_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
-			_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-
-			// Bind back buffer.
-			_graphicsDevice->BindRenderTarget(_backBuffer->GetRenderTarget(), _backBuffer->GetDepthTarget());
-			_graphicsDevice->SetViewport(_viewport);
-			_graphicsDevice->SetScissor(_viewport);
-
-			// Draw fullscreen background. If unavailable, draw last dumped game scene.
+			// Loading screen image, or the last scene when there is none.
 			if (_loadingScreenTexture)
-			{
-				DrawFullScreenQuad(_loadingScreenTexture.get(), Vector3(ScreenFadeCurrent, ScreenFadeCurrent, ScreenFadeCurrent));
-			}
-			else if (_dumpScreenRenderTarget)
-			{
-				DrawFullScreenQuad(_dumpScreenRenderTarget->GetRenderTarget(), Vector3(ScreenFadeCurrent, ScreenFadeCurrent, ScreenFadeCurrent));
-			}
+				DrawFullScreenQuad(_loadingScreenTexture.get(), Vector3(ScreenFadeCurrent));
 
 			if (ScreenFadeCurrent && percentage > 0.0f && percentage < 100.0f)
 				DrawLoadingBar(percentage);
 
 			_nextUi.BackgroundFade = (_loadingScreenTexture == nullptr) ? ScreenFadeCurrent : 0.0f;
 			PresentFrame();
-			_graphicsDevice->ClearState();
 
 			Synchronize();
 			UpdateFadeScreenAndCinematicBars();
@@ -1645,24 +1332,7 @@ namespace TEN::Renderer
 
 		ResetDebugVariables();
 		UpdateDumpScreenRenderTarget();
-
-		if (_graphicsSettingsChanged)
-		{
-			UpdateCameraMatrices(&Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
-			Camera.DisableInterpolation = true;
-			DumpGameScene(SceneRenderMode::NoHud, g_GameFlow->GetSettings()->UI.MenuBackgroundBlur);
-			_graphicsSettingsChanged = false;
-		}
-
-		_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-
-		// Reset GPU state.
-		SetBlendMode(BlendMode::Opaque, true);
-		SetDepthState(DepthState::Write, true);
-		SetCullMode(CullMode::CounterClockwise, true);
-
-		RenderInventoryScene(_backBuffer.get(), _dumpScreenRenderTarget->GetRenderTarget(), 0.5f);
+		RenderInventoryScene(0.5f);
 
 		if (isCaptured)
 			CaptureMenuScreenshot();
@@ -1679,27 +1349,21 @@ namespace TEN::Renderer
 
 		InterpolateCamera(interpFactor);
 		DumpGameScene(g_Gui.GetMenuToDisplay() == Menu::SelectLevel ? SceneRenderMode::NoHud : SceneRenderMode::Full);
+		RenderInventoryScene(1.0f);
 
-		_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-
-		RenderInventoryScene(_backBuffer.get(), _dumpScreenRenderTarget->GetRenderTarget(), 1.0f);
-		
 		if (isCaptured)
 			CaptureMenuScreenshot();
 
 		PresentFrame();
 	}
 
-	// Benchmark runs of the title and inventory capture both renderers at a fixed menu tick.
+	// Benchmark runs of the title and inventory capture the menu at a fixed menu tick.
 	void Renderer::CaptureMenuScreenshot()
 	{
-		if (Next::g_NextRenderer.IsActive())
-			Next::g_NextRenderer.RequestScreenshot(g_GameFlow->GetGameDir() + "Logs/Compare_Next.png");
-
-		_graphicsDevice->SaveScreenshot(_backBuffer->GetRenderTarget(), g_GameFlow->GetGameDir() + "Logs/Compare_Legacy.png");
+		Next::g_NextRenderer.RequestScreenshot(g_GameFlow->GetGameDir() + "Logs/Compare_Next.png");
 	}
 
+	// The scene behind menus is rendered again after graphics settings change.
 	void Renderer::UpdateDumpScreenRenderTarget()
 	{
 		if (!_graphicsSettingsChanged)
@@ -1709,62 +1373,6 @@ namespace TEN::Renderer
 		Camera.DisableInterpolation = true;
 		DumpGameScene(SceneRenderMode::NoHud, g_GameFlow->GetSettings()->UI.MenuBackgroundBlur);
 		_graphicsSettingsChanged = false;
-	}
-
-	void Renderer::DrawDebugRenderTargets(RenderView& view)
-	{
-		if (_debugPage != RendererDebugPage::RendererStats)
-			return;
-
-		float aspectRatio = _graphicsDevice->GetScreenWidth() / (float)_graphicsDevice->GetScreenHeight();
-		int thumbWidth = _graphicsDevice->GetScreenWidth() / 8;
-		int thumbY = 0;
-
-		auto rect = RendererRectangle{};
-
-		_spriteBatch->Begin(SpriteSortingMode::Deferred, BlendMode::Opaque);
-
-		rect.Left = _graphicsDevice->GetScreenWidth() - thumbWidth;
-		rect.Top = thumbY;
-		rect.Right = rect.Left + thumbWidth;
-		rect.Bottom = rect.Top + thumbWidth / aspectRatio;
-
-		_spriteBatch->Draw(_normalsAndMaterialIndexRenderTarget->GetRenderTarget(), rect, Vector4::One);
-		thumbY += thumbWidth / aspectRatio;
-
-		rect.Left = _graphicsDevice->GetScreenWidth() - thumbWidth;
-		rect.Top = thumbY;
-		rect.Right = rect.Left + thumbWidth;
-		rect.Bottom = rect.Top + thumbWidth / aspectRatio;
-
-		rect.Left = _graphicsDevice->GetScreenWidth() - thumbWidth;
-		rect.Top = thumbY;
-		rect.Right = rect.Left + thumbWidth;
-		rect.Bottom = rect.Top + thumbWidth / aspectRatio;
-
-		_spriteBatch->Draw(_SSAOBlurredRenderTarget->GetRenderTarget(), rect, Vector4::One);
-		thumbY += thumbWidth / aspectRatio;
-
-		if (g_Configuration.AntialiasingMode > AntialiasingMode::Low)
-		{
-			rect.Left = _graphicsDevice->GetScreenWidth() - thumbWidth;
-			rect.Top = thumbY;
-			rect.Right = rect.Left + thumbWidth;
-			rect.Bottom = rect.Top + thumbWidth / aspectRatio;
-
-			_spriteBatch->Draw(_SMAAEdgesRenderTarget->GetRenderTarget(), rect, Vector4::One);
-			thumbY += thumbWidth / aspectRatio;
-
-			rect.Left = _graphicsDevice->GetScreenWidth() - thumbWidth;
-			rect.Top = thumbY;
-			rect.Right = rect.Left + thumbWidth;
-			rect.Bottom = rect.Top + thumbWidth / aspectRatio;
-
-			_spriteBatch->Draw(_SMAABlendRenderTarget->GetRenderTarget(), rect, Vector4::One);
-			thumbY += thumbWidth / aspectRatio;
-		}
-
-		_spriteBatch->End();
 	}
 
 	void Renderer::DrawDebugInfo(RenderView& view)

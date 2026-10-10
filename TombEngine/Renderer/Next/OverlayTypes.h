@@ -34,6 +34,8 @@ namespace TEN::Renderer::Next
         const Structures::RendererSprite* Inner            = nullptr;
         bool                              IsPoisoned       = false;
         int                               Frame            = 0;
+        std::string                       BorderPath       = {}; // Image files used instead of the sprites, as by the loading bar.
+        std::string                       InnerPath        = {};
     };
 
     // Display sprite of the legacy 2D layer, with its corners transformed into the 800x600 display space.

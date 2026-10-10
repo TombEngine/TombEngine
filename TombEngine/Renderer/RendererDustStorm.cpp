@@ -305,45 +305,4 @@ namespace TEN::Renderer
 		UpdateConstantBuffer(&_stDustStorm, _cbDustStorm.get());
 	}
 
-	void Renderer::DrawDustStorm(RenderView& view)
-	{
-		if (!_nextDustStorm.IsDrawn)
-			return;
-
-		// Bind CB to b10 (Hud slot - safe at this stage, see header).
-		auto* buf = _cbDustStorm.get();
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Hud, buf);
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Hud, buf);
-
-		// Bind linear depth as t0 and outdoor mask as t1.
-		BindRenderTargetAsTexture(TextureRegister::ColorMap, _depthRenderTarget->GetRenderTarget(),
-			SamplerStateRegister::PointWrap);
-		BindRenderTargetAsTexture(TextureRegister::NormalMap, _outdoorMaskRenderTarget->GetRenderTarget(),
-			SamplerStateRegister::PointWrap);
-
-		// Render to the main render target with alpha blending.
-		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
-		_graphicsDevice->SetViewport(view.Viewport);
-
-		SetBlendMode(BlendMode::AlphaBlend);
-		SetCullMode(CullMode::CounterClockwise);
-		SetDepthState(DepthState::None);
-
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
-		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
-
-		_shaders.Bind(Shader::DustStorm);
-		DrawTriangles(3, 0);
-
-		// Cleanup.
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-
-		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::ColorMap);
-		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::NormalMap);
-
-		SetBlendMode(BlendMode::Opaque);
-		SetDepthState(DepthState::Write);
-	}
 }

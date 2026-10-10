@@ -1492,7 +1492,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\Native\DirectX11\DX11GpuReadbackBuffer.cpp" />
     <ClCompile Include="Renderer\Native\DirectX11\DX11VertexBuffer.cpp" />
     <ClCompile Include="Renderer\Renderer.cpp" />
-    <ClCompile Include="Renderer\RendererAntialiasing.cpp" />
     <ClCompile Include="Renderer\ImGuiIntegration.cpp" />
     <ClCompile Include="Renderer\RendererCompatibility.cpp" />
     <ClCompile Include="Renderer\RendererDebug.cpp" />
