@@ -99,7 +99,7 @@ namespace TEN::Renderer::Next
         {
             renderPass.BindPipeline(_debugLinePipeline.get());
             renderPass.BindVertexBuffers(0, &vertexBinding, 1);
-            _frameStats.DrawCalls++;
+            CountDraw(DrawCategory::Debug, 0);
             renderPass.Draw(_debugLineVertexCount, 1, 0, 0);
         }
 
@@ -107,7 +107,7 @@ namespace TEN::Renderer::Next
         {
             renderPass.BindPipeline(_debugTrianglePipeline.get());
             renderPass.BindVertexBuffers(0, &vertexBinding, 1);
-            _frameStats.DrawCalls++;
+            CountDraw(DrawCategory::Debug, _debugTriangleVertexCount / 3);
             renderPass.Draw(_debugTriangleVertexCount, 1, _debugLineVertexCount, 0);
         }
 

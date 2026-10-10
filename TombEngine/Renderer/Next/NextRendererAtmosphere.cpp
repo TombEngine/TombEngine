@@ -82,7 +82,7 @@ namespace TEN::Renderer::Next
 
         commandBuffer.PushDebugGroup("Atmospheric sky");
         renderPass.BindPipeline(_atmosphericSkyPipeline.get());
-        _frameStats.DrawCalls++;
+        CountDraw(DrawCategory::Sky, 1);
         renderPass.Draw(3, 1, 0, 0);
         commandBuffer.PopDebugGroup();
     }
@@ -167,7 +167,7 @@ namespace TEN::Renderer::Next
     {
         renderPass.BindPipeline(pipeline);
         renderPass.BindPixelSamplers(0, &binding, 1);
-        _frameStats.DrawCalls++;
+        CountDraw(DrawCategory::Sky, 1);
         renderPass.Draw(3, 1, 0, 0);
     }
 }

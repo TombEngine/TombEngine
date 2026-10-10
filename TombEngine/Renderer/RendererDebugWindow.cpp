@@ -186,6 +186,68 @@ namespace TEN::Renderer
 			}
 		}
 
+		if (ImGui::CollapsingHeader("Draw calls", ImGuiTreeNodeFlags_DefaultOpen) &&
+			ImGui::BeginTable("##NextCategories", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp))
+		{
+			ImGui::TableSetupColumn("Content");
+			ImGui::TableSetupColumn("Draws");
+			ImGui::TableSetupColumn("Triangles");
+			ImGui::TableHeadersRow();
+			for (int category = 0; category < (int)DrawCategory::Count; category++)
+			{
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::TextUnformatted(GetDrawCategoryName((DrawCategory)category));
+				ImGui::TableSetColumnIndex(1);
+				ImGui::Text("%d", stats.CategoryDrawCalls[category]);
+				ImGui::TableSetColumnIndex(2);
+				ImGui::Text("%d", stats.CategoryTriangles[category]);
+			}
+
+			ImGui::EndTable();
+			if (BeginStatTable("##NextInstancing"))
+			{
+				AddStatRow("Instanced object draws", "%d", stats.InstancedDrawCalls);
+				AddStatRow("Drawn object instances", "%d", stats.DrawnInstances);
+				ImGui::EndTable();
+			}
+		}
+
+		if (ImGui::CollapsingHeader("API calls", ImGuiTreeNodeFlags_DefaultOpen) && BeginStatTable("##NextApi"))
+		{
+			const auto& api = stats.Api;
+			AddStatRow("Render passes", "%d", api.RenderPasses);
+			AddStatRow("Copy passes", "%d", api.CopyPasses);
+			AddStatRow("Compute passes", "%d", api.ComputePasses);
+			AddStatRow("Pipeline binds", "%d", api.PipelineBinds);
+			AddStatRow("Vertex buffer binds", "%d", api.VertexBufferBinds);
+			AddStatRow("Index buffer binds", "%d", api.IndexBufferBinds);
+			AddStatRow("Texture binds", "%d", api.TextureBinds);
+			AddStatRow("Storage buffer binds", "%d", api.StorageBufferBinds);
+			AddStatRow("Uniform pushes", "%d", api.UniformPushes);
+			AddStatRow("Uniform data", "%.1f KB", api.UniformBytes / 1024.0f);
+			AddStatRow("Draws", "%d", api.Draws);
+			AddStatRow("    Indexed", "%d", api.IndexedDraws);
+			AddStatRow("Instances", "%lld", api.Instances);
+			AddStatRow("Triangles", "%lld", api.Triangles);
+			AddStatRow("Lines", "%lld", api.Lines);
+			AddStatRow("Dispatches", "%d", api.Dispatches);
+			AddStatRow("Blits", "%d", api.Blits);
+			AddStatRow("Uploads", "%d", api.Uploads);
+			AddStatRow("Uploaded buffer data", "%.1f KB", api.UploadBytes / 1024.0f);
+			ImGui::EndTable();
+		}
+
+		if (ImGui::CollapsingHeader("Sorted faces", ImGuiTreeNodeFlags_DefaultOpen) && BeginStatTable("##NextSorted"))
+		{
+			AddStatRow("Sorted draws", "%d", stats.SortedDraws);
+			AddStatRow("Sorted indices", "%d", stats.SortedIndices);
+			AddStatRow("Collect and sort", "%.3f ms", stats.SortedCollectTime);
+			AddStatRow("Record", "%.3f ms", stats.SortedRecordTime);
+			AddStatRow("Material uploads", "%d", stats.MaterialUploads);
+			ImGui::EndTable();
+		}
+
 		if (ImGui::CollapsingHeader("Scene data", ImGuiTreeNodeFlags_DefaultOpen) && BeginStatTable("##NextScene"))
 		{
 			AddStatRow("Rooms drawn", "%d", stats.RoomsDrawn);
@@ -282,11 +344,11 @@ namespace TEN::Renderer
 		{
 			AddStatRow("Triangles", "%d", _numTriangles);
 			AddStatRow("Sorted triangles", "%d", _numSortedTriangles);
-			AddStatRow("Rooms drawn", "%d", (int)view.RoomsToDraw.size());
-			AddStatRow("Sprites", "%d", (int)view.SpritesToDraw.size());
-			AddStatRow("Lights", "%d", (int)view.LightsToDraw.size());
-			AddStatRow("Fog bulbs", "%d", (int)view.FogBulbsToDraw.size());
-			AddStatRow("Sorted faces", "%d", (int)view.TransparentSortKeys.size());
+			AddStatRow("Rooms drawn", "%d", _debugViewCounts.Rooms);
+			AddStatRow("Sprites", "%d", _debugViewCounts.Sprites);
+			AddStatRow("Lights", "%d", _debugViewCounts.Lights);
+			AddStatRow("Fog bulbs", "%d", _debugViewCounts.FogBulbs);
+			AddStatRow("Sorted faces", "%d", _debugViewCounts.SortedFaces);
 			AddStatRow("Interleaved sorted groups", "%d", _numInterleavedSortedGroups);
 			AddStatRow("Sorted collect", "%.3f ms", _timeSortedCollect);
 			AddStatRow("Sorted sort", "%.3f ms", _timeSortedSort);
@@ -318,6 +380,64 @@ namespace TEN::Renderer
 		}
 	}
 
+	static void AddCompareRow(const char* name, const std::string& legacyValue, const std::string& nextValue)
+	{
+		ImGui::TableNextRow();
+		ImGui::TableSetColumnIndex(0);
+		ImGui::TextUnformatted(name);
+		ImGui::TableSetColumnIndex(1);
+		ImGui::TextUnformatted(legacyValue.c_str());
+		ImGui::TableSetColumnIndex(2);
+		ImGui::TextUnformatted(nextValue.c_str());
+	}
+
+	// Legacy draw call statistics next to the same values of the next renderer.
+	void Renderer::DrawGraphicsStatsComparison(const RenderView& view)
+	{
+		if (!g_NextRenderer.IsActive())
+		{
+			ImGui::TextUnformatted("The next renderer is not running.");
+			return;
+		}
+
+		const auto& stats = g_NextRenderer.GetFrameStats();
+		auto next = [&](DrawCategory category) { return std::to_string(stats.CategoryDrawCalls[(int)category]); };
+		int nextSortedTriangles = stats.CategoryTriangles[(int)DrawCategory::SortedRooms] + stats.CategoryTriangles[(int)DrawCategory::SortedStatics] +
+			stats.CategoryTriangles[(int)DrawCategory::SortedMoveables] + stats.CategoryTriangles[(int)DrawCategory::SortedSprites];
+
+		if (!ImGui::BeginTable("##Comparison", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp))
+			return;
+
+		ImGui::TableSetupColumn("Statistic");
+		ImGui::TableSetupColumn("Legacy");
+		ImGui::TableSetupColumn("Next");
+		ImGui::TableHeadersRow();
+		AddCompareRow("Draw calls", std::to_string(_numDrawCalls), std::to_string(stats.DrawCalls));
+		AddCompareRow("    Rooms", std::to_string(_numRoomsDrawCalls), next(DrawCategory::Rooms));
+		AddCompareRow("    Statics", std::to_string(_numStaticsDrawCalls + _numInstancedStaticsDrawCalls), next(DrawCategory::Statics));
+		AddCompareRow("    Moveables", std::to_string(_numMoveablesDrawCalls), next(DrawCategory::Moveables));
+		AddCompareRow("    Sprites", std::to_string(_numSpritesDrawCalls + _numInstancedSpritesDrawCalls), next(DrawCategory::Sprites));
+		AddCompareRow("    Sorted rooms", std::to_string(_numSortedRoomsDrawCalls), next(DrawCategory::SortedRooms));
+		AddCompareRow("    Sorted statics", std::to_string(_numSortedStaticsDrawCalls), next(DrawCategory::SortedStatics));
+		AddCompareRow("    Sorted moveables", std::to_string(_numSortedMoveablesDrawCalls), next(DrawCategory::SortedMoveables));
+		AddCompareRow("    Sorted sprites", std::to_string(_numSortedSpritesDrawCalls), next(DrawCategory::SortedSprites));
+		AddCompareRow("    Shadow map", std::to_string(_numShadowMapDrawCalls), next(DrawCategory::Shadows));
+		AddCompareRow("    Debris", std::to_string(_numDebrisDrawCalls), next(DrawCategory::Debris));
+		AddCompareRow("    Debug lines", std::to_string(_numLinesDrawCalls), next(DrawCategory::Debug));
+		AddCompareRow("Triangles", std::to_string(_numTriangles), std::to_string(stats.Api.Triangles));
+		AddCompareRow("Sorted triangles", std::to_string(_numSortedTriangles), std::to_string(nextSortedTriangles));
+		AddCompareRow("Uniform updates", std::to_string(_numConstantBufferUpdates), std::to_string(stats.Api.UniformPushes));
+		AddCompareRow("Uniform data", fmt::format("{:.1f} KB", _numConstantBufferBytes / 1024.0f), fmt::format("{:.1f} KB", stats.Api.UniformBytes / 1024.0f));
+		AddCompareRow("Material updates", std::to_string(_numExecutedMaterialsUpdates), std::to_string(stats.MaterialUploads));
+		AddCompareRow("Sorted collect and sort", fmt::format("{:.3f} ms", _timeSortedCollect + _timeSortedSort), fmt::format("{:.3f} ms", stats.SortedCollectTime));
+		AddCompareRow("Sorted draw", fmt::format("{:.3f} ms", _timeSortedDraw), fmt::format("{:.3f} ms", stats.SortedRecordTime));
+		AddCompareRow("Rooms drawn", std::to_string(_debugViewCounts.Rooms), std::to_string(stats.RoomsDrawn));
+		ImGui::EndTable();
+
+		ImGui::TextWrapped("The next renderer draws opaque geometry twice, in the depth prepass and in the scene pass, and groups identical "
+			"items and statics into instanced draws.");
+	}
+
 	void Renderer::DrawDebugRendererPage(const RenderView& view)
 	{
 		if (!ImGui::BeginTabBar("##RendererTabs"))
@@ -344,6 +464,12 @@ namespace TEN::Renderer
 		if (ImGui::BeginTabItem("Legacy renderer"))
 		{
 			DrawGraphicsStatsLegacy(view);
+			ImGui::EndTabItem();
+		}
+
+		if (ImGui::BeginTabItem("Comparison"))
+		{
+			DrawGraphicsStatsComparison(view);
 			ImGui::EndTabItem();
 		}
 
@@ -462,7 +588,7 @@ namespace TEN::Renderer
 
 		AddStatRow("Camera room number", "%d", Camera.pos.RoomNumber);
 		AddStatRow("Room collector time", "%d", _timeRoomsCollector);
-		AddStatRow("Rooms drawn", "%d", (int)view.RoomsToDraw.size());
+		AddStatRow("Rooms drawn", "%d", _debugViewCounts.Rooms);
 		AddStatRow("Portal checks", "%d", _numCheckPortalCalls);
 		AddStatRow("Visible room searches", "%d", _numGetVisibleRoomsCalls);
 		AddStatRow("Dot products", "%d", _numDotProducts);

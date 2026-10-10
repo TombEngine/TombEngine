@@ -125,7 +125,7 @@ namespace TEN::Renderer::Next
             bucket.MaterialIndex = 0;
             BindBucket(commandBuffer, renderPass, bucket, *draw.Pages, draw.BlendMode, 0, BucketDrawInfo{}, state);
 
-            _frameStats.DrawCalls++;
+            CountDraw(DrawCategory::Debris, draw.VertexCount / 3);
             renderPass.Draw(draw.VertexCount, 1, draw.FirstVertex, 0);
         }
 

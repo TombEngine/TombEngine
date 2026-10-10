@@ -160,7 +160,7 @@ namespace TEN::Renderer::Next
         renderPass->BindPipeline(pipeline);
         renderPass->BindPixelSamplers(0, bindings, bindingCount);
 
-        _frameStats.DrawCalls++;
+        CountDraw(DrawCategory::Fullscreen, 1);
         renderPass->Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
         commandBuffer.PopDebugGroup();

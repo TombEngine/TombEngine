@@ -19,6 +19,13 @@ namespace TEN::Benchmark
         float SortedDrawTime     = 0.0f;
         float NextRenderTime     = 0.0f; // Milliseconds spent recording the next renderer preview frame.
         int   NextDrawCalls      = 0;
+        int   NextShadowDrawCalls = 0;
+        long long NextTriangles  = 0;
+        int   NextUniformPushes  = 0;
+        long long NextUniformBytes = 0;
+        int   NextUploadBytes    = 0;
+        float NextSortedCollectTime = 0.0f;
+        float NextSortedRecordTime  = 0.0f;
 
         int DrawCalls            = 0;
         int ShadowMapDrawCalls   = 0;

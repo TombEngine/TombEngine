@@ -99,8 +99,15 @@ namespace TEN::Renderer::RHI
 
     class ICommandBuffer
     {
+    protected:
+        CommandCounters Counters = {};
+
     public:
         virtual ~ICommandBuffer() = default;
+
+        // API calls recorded since the command buffer was acquired.
+        const CommandCounters& GetCounters() const { return Counters; }
+        void                   ResetCounters()     { Counters = {}; }
 
         // Returns nullptr when no swapchain image is available (minimized window); skip rendering then.
         virtual ITexture* AcquireSwapchainTexture() = 0;

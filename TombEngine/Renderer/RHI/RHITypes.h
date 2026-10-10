@@ -399,6 +399,59 @@ namespace TEN::Renderer::RHI
         unsigned char ClearStencil = 0;
     };
 
+    // API calls recorded into a command buffer, for the debug statistics.
+    struct CommandCounters
+    {
+        int       RenderPasses       = 0;
+        int       CopyPasses         = 0;
+        int       ComputePasses      = 0;
+        int       PipelineBinds      = 0;
+        int       VertexBufferBinds  = 0;
+        int       IndexBufferBinds   = 0;
+        int       TextureBinds       = 0;
+        int       StorageBufferBinds = 0;
+        int       UniformPushes      = 0;
+        long long UniformBytes       = 0;
+        int       Draws              = 0;
+        int       IndexedDraws       = 0;
+        long long Instances          = 0;
+        long long Triangles          = 0;
+        long long Lines              = 0;
+        int       Dispatches         = 0;
+        int       Blits              = 0;
+        int       Uploads            = 0;
+        long long UploadBytes        = 0;
+
+        void AddDraw(PrimitiveType primitive, int count, int instanceCount, bool isIndexed)
+        {
+            Draws++;
+            IndexedDraws += isIndexed ? 1 : 0;
+            Instances += instanceCount;
+
+            switch (primitive)
+            {
+            case PrimitiveType::TriangleList:
+                Triangles += (long long)(count / 3) * instanceCount;
+                break;
+
+            case PrimitiveType::TriangleStrip:
+                Triangles += (long long)std::max(count - 2, 0) * instanceCount;
+                break;
+
+            case PrimitiveType::LineList:
+                Lines += (long long)(count / 2) * instanceCount;
+                break;
+
+            case PrimitiveType::LineStrip:
+                Lines += (long long)std::max(count - 1, 0) * instanceCount;
+                break;
+
+            default:
+                break;
+            }
+        }
+    };
+
     struct GpuTiming
     {
         std::string Name         = {};

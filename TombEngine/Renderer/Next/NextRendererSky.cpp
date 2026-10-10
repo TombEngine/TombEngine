@@ -195,7 +195,7 @@ namespace TEN::Renderer::Next
         };
         renderPass->BindPixelSamplers(0, bindings, 3);
 
-        _frameStats.DrawCalls++;
+        CountDraw(DrawCategory::Sky, 1);
         renderPass->Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
     }
@@ -223,7 +223,7 @@ namespace TEN::Renderer::Next
         };
         renderPass->BindPixelSamplers(0, bindings, 2);
 
-        _frameStats.DrawCalls++;
+        CountDraw(DrawCategory::Sky, 1);
         renderPass->Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
         _targetPool.Release(sceneCopy);
@@ -304,7 +304,7 @@ namespace TEN::Renderer::Next
                 { sceneCopy, _linearClampSampler.get() }
             };
             renderPass->BindPixelSamplers(0, bindings, 4);
-            _frameStats.DrawCalls++;
+            CountDraw(DrawCategory::Sky, 1);
             renderPass->Draw(3, 1, 0, 0);
             commandBuffer.EndRenderPass();
 
@@ -362,7 +362,7 @@ namespace TEN::Renderer::Next
             { _normalTarget.get(), _pointClampSampler.get() }
         };
         renderPass.BindPixelSamplers(0, bindings, 2);
-        _frameStats.DrawCalls++;
+        CountDraw(DrawCategory::Sky, 1);
         renderPass.Draw(3, 1, 0, 0);
 
         // Later scene draws read the shadow uniforms from the same slot.

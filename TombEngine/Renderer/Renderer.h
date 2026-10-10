@@ -376,6 +376,18 @@ namespace TEN::Renderer
 		int _currentCausticsFrame;
 
 		// ImGui debug window (RendererDebugWindow.cpp). Debug messages of the game code are kept for the window.
+		// View counts of the last scene, kept for the debug window: the view is cleared before the window is drawn.
+		struct DebugViewCounts
+		{
+			int Rooms       = 0;
+			int Sprites     = 0;
+			int Lights      = 0;
+			int FogBulbs    = 0;
+			int SortedFaces = 0;
+		};
+
+		DebugViewCounts _debugViewCounts = {};
+
 		struct DebugPageTab
 		{
 			RendererDebugPage Page  = RendererDebugPage::None;
@@ -410,6 +422,7 @@ namespace TEN::Renderer
 		void DrawGraphicsStatsNext();
 		void DrawGraphicsStatsSky();
 		void DrawGraphicsStatsLegacy(const RenderView& view);
+		void DrawGraphicsStatsComparison(const RenderView& view);
 
 		// Screen settings
 		float _farView = DEFAULT_FAR_VIEW;

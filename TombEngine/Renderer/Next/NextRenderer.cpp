@@ -928,6 +928,7 @@ namespace TEN::Renderer::Next
             return;
 
         UploadFrameStorage(_materialBuffer, _materialData, (int)sizeof(GpuMaterial), BufferUsage::GraphicsStorageRead, "Materials");
+        _frameStats.MaterialUploads++;
         _uploadedMaterialData = _materialData;
     }
 
@@ -2001,6 +2002,7 @@ namespace TEN::Renderer::Next
         if (draws.empty())
             return;
 
+        auto startTime = std::chrono::steady_clock::now();
         commandBuffer.PushDebugGroup(isMirrored ? "Mirrored sorted faces" : "Sorted transparent faces");
 
         if (!_sortedIndexData.empty())
@@ -2030,7 +2032,7 @@ namespace TEN::Renderer::Next
                     scissorRoom = nullptr;
                 }
 
-                DrawSpriteRun(commandBuffer, renderPass, draw.Sprites, lastPipeline, lastSpriteTexture);
+                DrawSpriteRun(commandBuffer, renderPass, draw.Sprites, lastPipeline, lastSpriteTexture, false, DrawCategory::SortedSprites);
                 lastStreamCount = 0;
                 state = BucketBindState{};
                 continue;
@@ -2075,13 +2077,14 @@ namespace TEN::Renderer::Next
             roomInfo.IsForcedAlphaTest = draw.IsForcedAlphaTest;
             BindBucket(commandBuffer, renderPass, bucket, pages, draw.BlendMode, draw.IsRoom ? (unsigned int)_roomLightCount : 0, roomInfo, state);
 
-            _frameStats.DrawCalls++;
+            CountDraw(draw.IsRoom ? DrawCategory::SortedRooms : ((draw.Source == MeshSource::Statics) ? DrawCategory::SortedStatics : DrawCategory::SortedMoveables), draw.IndexCount / 3);
             renderPass.DrawIndexed(draw.IndexCount, 1, draw.FirstIndex, _geometrySections[(int)draw.Source].BaseVertex, draw.Instance);
         }
 
         if (scissorRoom != nullptr)
             renderPass.SetScissor(fullScissor);
 
+        _frameStats.SortedRecordTime += GetMilliseconds(startTime, std::chrono::steady_clock::now());
         commandBuffer.PopDebugGroup();
     }
 
@@ -2218,7 +2221,7 @@ namespace TEN::Renderer::Next
                 // Fog bulbs affect the first layer only, as in the legacy renderer.
                 auto skyUniforms = GetSkyVertexUniforms(world, layer == 0, view, hemisphere);
                 commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 2, &skyUniforms, sizeof(skyUniforms));
-                _frameStats.DrawCalls++;
+                CountDraw(DrawCategory::Sky, SKY_INDICES_COUNT / 3);
                 renderPass.DrawIndexed(SKY_INDICES_COUNT, 1, 0, 0, 0);
             }
         }
@@ -2237,7 +2240,7 @@ namespace TEN::Renderer::Next
         const IGraphicsPipeline* lastPipeline = nullptr;
         const ITexture* lastTexture = nullptr;
         for (const auto& draw : draws)
-            DrawSpriteRun(commandBuffer, renderPass, draw, lastPipeline, lastTexture, isOccluded);
+            DrawSpriteRun(commandBuffer, renderPass, draw, lastPipeline, lastTexture, isOccluded, DrawCategory::Sky);
 
         auto noAnimation = DrawVertexUniforms{ NO_VALUE };
         commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &noAnimation, sizeof(noAnimation));
@@ -2489,9 +2492,7 @@ namespace TEN::Renderer::Next
         EnsureCloudNoise(environment.CloudNoise);
 
         auto startTime = std::chrono::steady_clock::now();
-        _frameStats.DrawCalls = 0;
-        _frameStats.UploadBytes = 0;
-        _frameStats.Passes.clear();
+        ResetFrameStats();
 
         auto* commandBuffer = _device->AcquireCommandBuffer();
         if (commandBuffer == nullptr)
@@ -2556,7 +2557,9 @@ namespace TEN::Renderer::Next
         CollectRoomDraws(view);
         CollectSprites(view);
         CollectSkySprites(view, environment);
+        auto sortedStartTime = std::chrono::steady_clock::now();
         CollectSortedFaces(view, environment.InterpolationFactor);
+        _frameStats.SortedCollectTime = GetMilliseconds(sortedStartTime, std::chrono::steady_clock::now());
         CollectMirroredSorted(view);
         CollectDebugPrimitives(environment);
         auto uploadStartTime = std::chrono::steady_clock::now();
@@ -2595,6 +2598,7 @@ namespace TEN::Renderer::Next
         _frameEnvironment = nullptr;
         commandBuffer->PopDebugGroup();
         _frameStats.CpuTime = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - startTime).count();
+        _frameStats.Api = commandBuffer->GetCounters();
         commandBuffer->Submit();
         _hasScene = true;
         _isFramePending = true;

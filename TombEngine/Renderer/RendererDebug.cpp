@@ -53,6 +53,8 @@ namespace TEN::Renderer
 
 	void Renderer::CollectFrameStats(const RenderView& view)
 	{
+		_debugViewCounts = DebugViewCounts{ (int)view.RoomsToDraw.size(), (int)view.SpritesToDraw.size(), (int)view.LightsToDraw.size(), (int)view.FogBulbsToDraw.size(), (int)view.TransparentSortKeys.size() };
+
 		if (!TEN::Benchmark::IsBenchmarkActive())
 			return;
 
@@ -93,6 +95,17 @@ namespace TEN::Renderer
 		const auto& nextStats = Next::g_NextRenderer.GetFrameStats();
 		_frameStats.NextRenderTime = Next::g_NextRenderer.IsActive() ? nextStats.CpuTime : 0.0f;
 		_frameStats.NextDrawCalls = Next::g_NextRenderer.IsActive() ? nextStats.DrawCalls : 0;
+		if (Next::g_NextRenderer.IsActive())
+		{
+			_frameStats.NextShadowDrawCalls = nextStats.CategoryDrawCalls[(int)Next::DrawCategory::Shadows];
+			_frameStats.NextTriangles = nextStats.Api.Triangles;
+			_frameStats.NextUniformPushes = nextStats.Api.UniformPushes;
+			_frameStats.NextUniformBytes = nextStats.Api.UniformBytes;
+			_frameStats.NextUploadBytes = nextStats.UploadBytes;
+			_frameStats.NextSortedCollectTime = nextStats.SortedCollectTime;
+			_frameStats.NextSortedRecordTime = nextStats.SortedRecordTime;
+		}
+
 		_frameStats.CpuRenderTime -= _frameStats.NextRenderTime;
 
 		TEN::Benchmark::RecordBenchmarkFrame(_frameStats);

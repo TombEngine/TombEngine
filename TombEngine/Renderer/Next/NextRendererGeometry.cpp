@@ -177,7 +177,11 @@ namespace TEN::Renderer::Next
     {
         const auto& section = _geometrySections[(int)source];
 
-        _frameStats.DrawCalls++;
+        auto category = _isRenderingShadowMap ? DrawCategory::Shadows :
+            ((source == MeshSource::Rooms) ? DrawCategory::Rooms : ((source == MeshSource::Statics) ? DrawCategory::Statics : DrawCategory::Moveables));
+        CountDraw(category, bucket.NumIndices / 3 * instanceCount);
+        _frameStats.InstancedDrawCalls += (instanceCount > 1) ? 1 : 0;
+        _frameStats.DrawnInstances += instanceCount;
         renderPass.DrawIndexed(bucket.NumIndices, instanceCount, section.BaseIndex + bucket.StartIndex, section.BaseVertex, firstInstance);
     }
 }

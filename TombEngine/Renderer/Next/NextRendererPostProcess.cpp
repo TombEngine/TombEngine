@@ -132,7 +132,7 @@ namespace TEN::Renderer::Next
         auto binding = TextureSamplerBinding{ _depthTarget.get(), _pointClampSampler.get() };
         renderPass->BindPixelSamplers(0, &binding, 1);
 
-        _frameStats.DrawCalls++;
+        CountDraw(DrawCategory::Fullscreen, 1);
         renderPass->Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
     }
@@ -191,7 +191,7 @@ namespace TEN::Renderer::Next
         };
         renderPass->BindPixelSamplers(0, bindings, 6);
 
-        _frameStats.DrawCalls++;
+        CountDraw(DrawCategory::Fullscreen, 1);
         renderPass->Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
 

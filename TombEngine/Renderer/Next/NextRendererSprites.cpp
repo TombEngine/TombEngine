@@ -245,7 +245,7 @@ namespace TEN::Renderer::Next
     }
 
     void NextRenderer::DrawSpriteRun(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const SpriteDraw& draw,
-                                     const IGraphicsPipeline*& lastPipeline, const ITexture*& lastTexture, bool isSky)
+                                     const IGraphicsPipeline*& lastPipeline, const ITexture*& lastTexture, bool isSky, DrawCategory category)
     {
         auto* pipeline = GetScenePipeline(isSky ? SceneShader::SkySprites : SceneShader::Sprites, draw.BlendMode);
         if (pipeline != lastPipeline)
@@ -290,7 +290,7 @@ namespace TEN::Renderer::Next
 
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 3, &spriteUniforms, sizeof(spriteUniforms));
 
-        _frameStats.DrawCalls++;
+        CountDraw(category, draw.SpriteCount * 2);
         renderPass.Draw(6, draw.SpriteCount, 0, draw.FirstSprite);
     }
 

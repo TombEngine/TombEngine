@@ -273,6 +273,7 @@ namespace TEN::Renderer::RHI::SDLGPU
     public:
         SDL_GPUDevice*           Device = nullptr;
         SDL_GPUGraphicsPipeline* Handle = nullptr;
+        PrimitiveType            Primitive = PrimitiveType::TriangleList;
 
         ~SDLGPUGraphicsPipeline() override { SDL_ReleaseGPUGraphicsPipeline(Device, Handle); }
     };
@@ -370,10 +371,14 @@ namespace TEN::Renderer::RHI::SDLGPU
     {
     public:
         SDL_GPURenderPass* Handle = nullptr;
+        CommandCounters*   Counters  = nullptr;
+        PrimitiveType      Primitive = PrimitiveType::TriangleList;
 
         void BindPipeline(IGraphicsPipeline* pipeline) override
         {
             SDL_BindGPUGraphicsPipeline(Handle, ((SDLGPUGraphicsPipeline*)pipeline)->Handle);
+            Primitive = ((SDLGPUGraphicsPipeline*)pipeline)->Primitive;
+            Counters->PipelineBinds++;
         }
 
         void SetViewport(const Viewport& viewport) override
@@ -395,12 +400,14 @@ namespace TEN::Renderer::RHI::SDLGPU
                 sdlBindings[i] = SDL_GPUBufferBinding{ GetHandle(bindings[i].Buffer), (Uint32)bindings[i].Offset };
 
             SDL_BindGPUVertexBuffers(Handle, firstSlot, sdlBindings, count);
+            Counters->VertexBufferBinds += count;
         }
 
         void BindIndexBuffer(const BufferBinding& binding, IndexSize indexSize) override
         {
             auto sdlBinding = SDL_GPUBufferBinding{ GetHandle(binding.Buffer), (Uint32)binding.Offset };
             SDL_BindGPUIndexBuffer(Handle, &sdlBinding, (indexSize == IndexSize::Bits16) ? SDL_GPU_INDEXELEMENTSIZE_16BIT : SDL_GPU_INDEXELEMENTSIZE_32BIT);
+            Counters->IndexBufferBinds++;
         }
 
         void BindVertexSamplers(int firstSlot, const TextureSamplerBinding* bindings, int count) override
@@ -408,6 +415,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             SDL_GPUTextureSamplerBinding sdlBindings[MAX_SAMPLER_SLOTS];
             ToSDLTextureSamplerBindings(bindings, count, sdlBindings);
             SDL_BindGPUVertexSamplers(Handle, firstSlot, sdlBindings, count);
+            Counters->TextureBinds += count;
         }
 
         void BindVertexStorageBuffers(int firstSlot, IBuffer* const* buffers, int count) override
@@ -415,6 +423,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             SDL_GPUBuffer* handles[MAX_STORAGE_SLOTS];
             ToSDLBufferHandles(buffers, count, handles);
             SDL_BindGPUVertexStorageBuffers(Handle, firstSlot, handles, count);
+            Counters->StorageBufferBinds += count;
         }
 
         void BindPixelSamplers(int firstSlot, const TextureSamplerBinding* bindings, int count) override
@@ -422,6 +431,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             SDL_GPUTextureSamplerBinding sdlBindings[MAX_SAMPLER_SLOTS];
             ToSDLTextureSamplerBindings(bindings, count, sdlBindings);
             SDL_BindGPUFragmentSamplers(Handle, firstSlot, sdlBindings, count);
+            Counters->TextureBinds += count;
         }
 
         void BindPixelStorageBuffers(int firstSlot, IBuffer* const* buffers, int count) override
@@ -429,16 +439,19 @@ namespace TEN::Renderer::RHI::SDLGPU
             SDL_GPUBuffer* handles[MAX_STORAGE_SLOTS];
             ToSDLBufferHandles(buffers, count, handles);
             SDL_BindGPUFragmentStorageBuffers(Handle, firstSlot, handles, count);
+            Counters->StorageBufferBinds += count;
         }
 
         void Draw(int vertexCount, int instanceCount, int firstVertex, int firstInstance) override
         {
             SDL_DrawGPUPrimitives(Handle, vertexCount, instanceCount, firstVertex, firstInstance);
+            Counters->AddDraw(Primitive, vertexCount, instanceCount, false);
         }
 
         void DrawIndexed(int indexCount, int instanceCount, int firstIndex, int vertexOffset, int firstInstance) override
         {
             SDL_DrawGPUIndexedPrimitives(Handle, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+            Counters->AddDraw(Primitive, indexCount, instanceCount, true);
         }
     };
 
@@ -446,12 +459,15 @@ namespace TEN::Renderer::RHI::SDLGPU
     {
     public:
         SDL_GPUCopyPass* Handle = nullptr;
+        CommandCounters* Counters = nullptr;
 
         void UploadToBuffer(ITransferBuffer* source, int sourceOffset, IBuffer* destination, int destinationOffset, int size, bool cycle) override
         {
             auto location = SDL_GPUTransferBufferLocation{ GetHandle(source), (Uint32)sourceOffset };
             auto region = SDL_GPUBufferRegion{ GetHandle(destination), (Uint32)destinationOffset, (Uint32)size };
             SDL_UploadToGPUBuffer(Handle, &location, &region, cycle);
+            Counters->Uploads++;
+            Counters->UploadBytes += size;
         }
 
         void UploadToTexture(const TextureTransferInfo& source, const TextureRegion& destination, bool cycle) override
@@ -459,6 +475,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             auto sdlSource = ToSDL(source);
             auto sdlDestination = ToSDL(destination);
             SDL_UploadToGPUTexture(Handle, &sdlSource, &sdlDestination, cycle);
+            Counters->Uploads++;
         }
 
         void CopyTexture(const TextureRegion& source, const TextureRegion& destination) override
@@ -480,6 +497,7 @@ namespace TEN::Renderer::RHI::SDLGPU
     {
     public:
         SDL_GPUComputePass* Handle = nullptr;
+        CommandCounters*    Counters = nullptr;
 
         void BindPipeline(IComputePipeline* pipeline) override
         {
@@ -503,6 +521,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         void Dispatch(int groupCountX, int groupCountY, int groupCountZ) override
         {
             SDL_DispatchGPUCompute(Handle, groupCountX, groupCountY, groupCountZ);
+            Counters->Dispatches++;
         }
     };
 
@@ -573,6 +592,8 @@ namespace TEN::Renderer::RHI::SDLGPU
             }
 
             RenderPass.Handle = SDL_BeginGPURenderPass(Handle, sdlColorTargets, colorTargetCount, (depthTarget != nullptr) ? &sdlDepthTarget : nullptr);
+            RenderPass.Counters = &Counters;
+            Counters.RenderPasses++;
             return &RenderPass;
         }
 
@@ -585,6 +606,8 @@ namespace TEN::Renderer::RHI::SDLGPU
         ICopyPass* BeginCopyPass() override
         {
             CopyPass.Handle = SDL_BeginGPUCopyPass(Handle);
+            CopyPass.Counters = &Counters;
+            Counters.CopyPasses++;
             return &CopyPass;
         }
 
@@ -605,6 +628,8 @@ namespace TEN::Renderer::RHI::SDLGPU
                 buffers[i].buffer = GetHandle(desc.RWBuffers[i]);
 
             ComputePass.Handle = SDL_BeginGPUComputePass(Handle, textures, desc.NumRWTextures, buffers, desc.NumRWBuffers);
+            ComputePass.Counters = &Counters;
+            Counters.ComputePasses++;
             return &ComputePass;
         }
 
@@ -616,6 +641,8 @@ namespace TEN::Renderer::RHI::SDLGPU
 
         void PushUniforms(ShaderStage stage, int slot, const void* data, int size) override
         {
+            Counters.UniformPushes++;
+            Counters.UniformBytes += size;
             switch (stage)
             {
             case ShaderStage::Vertex:
@@ -647,6 +674,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             blitInfo.load_op = SDL_GPU_LOADOP_DONT_CARE;
             blitInfo.filter = SDL_GPU_FILTER_LINEAR;
             SDL_BlitGPUTexture(Handle, &blitInfo);
+            Counters.Blits++;
         }
 
         void PushDebugGroup(const char* name) override
@@ -951,6 +979,7 @@ namespace TEN::Renderer::RHI::SDLGPU
 
             auto pipeline = std::make_unique<SDLGPUGraphicsPipeline>();
             pipeline->Device = _device;
+            pipeline->Primitive = desc.Primitive;
             pipeline->Handle = handle;
             return pipeline;
         }
@@ -1044,6 +1073,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             }
 
             commandBuffer->Handle = SDL_AcquireGPUCommandBuffer(_device);
+            commandBuffer->ResetCounters();
             if (commandBuffer->Handle == nullptr)
             {
                 TENLog(std::string("SDL GPU: cannot acquire command buffer: ") + SDL_GetError(), LogLevel::Error);

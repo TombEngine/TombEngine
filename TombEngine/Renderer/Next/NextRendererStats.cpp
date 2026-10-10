@@ -12,6 +12,34 @@ namespace TEN::Renderer::Next
         return std::chrono::duration<float, std::milli>(end - start).count();
     }
 
+    const char* GetDrawCategoryName(DrawCategory category)
+    {
+        constexpr const char* NAMES[] =
+        {
+            "Rooms", "Statics", "Moveables", "Sprites", "Sorted rooms", "Sorted statics", "Sorted moveables", "Sorted sprites",
+            "Shadow map", "Debris", "Sky", "Fullscreen passes", "2D layer", "Debug primitives"
+        };
+
+        static_assert(sizeof(NAMES) / sizeof(NAMES[0]) == (int)DrawCategory::Count, "Draw category names.");
+        return NAMES[std::clamp((int)category, 0, (int)DrawCategory::Count - 1)];
+    }
+
+    // Counters restart with each scene frame; the pass list keeps its capacity.
+    void NextRenderer::ResetFrameStats()
+    {
+        auto passes = std::move(_frameStats.Passes);
+        passes.clear();
+        _frameStats = NextFrameStats{};
+        _frameStats.Passes = std::move(passes);
+    }
+
+    void NextRenderer::CountDraw(DrawCategory category, int triangles)
+    {
+        _frameStats.DrawCalls++;
+        _frameStats.CategoryDrawCalls[(int)category]++;
+        _frameStats.CategoryTriangles[(int)category] += triangles;
+    }
+
     // Counts of the collected frame data, taken after the passes are recorded.
     void NextRenderer::CollectFrameStats(const RenderView& view, const FrameEnvironment& environment)
     {

@@ -106,7 +106,7 @@ namespace TEN::Renderer::Next
 
                 renderPass->SetScissor(ScissorRect{ left, top, right - left, bottom - top });
 
-                _frameStats.DrawCalls++;
+                CountDraw(DrawCategory::Overlay, (int)command.ElemCount / 3);
                 renderPass->DrawIndexed((int)command.ElemCount, 1, indexOffset + (int)command.IdxOffset, vertexOffset + (int)command.VtxOffset, 0);
             }
 

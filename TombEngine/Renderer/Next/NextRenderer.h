@@ -141,6 +141,29 @@ namespace TEN::Renderer::Next
 
     float GetMilliseconds(std::chrono::steady_clock::time_point start, std::chrono::steady_clock::time_point end);
 
+    // Content of a draw call, as the draw call statistics of the legacy renderer.
+    enum class DrawCategory
+    {
+        Rooms,
+        Statics,
+        Moveables,
+        Sprites,
+        SortedRooms,
+        SortedStatics,
+        SortedMoveables,
+        SortedSprites,
+        Shadows,
+        Debris,
+        Sky,
+        Fullscreen,
+        Overlay,
+        Debug,
+
+        Count
+    };
+
+    const char* GetDrawCategoryName(DrawCategory category);
+
     // Statistics of the last scene frame, shown by the graphics statistics debug page.
     struct NextFrameStats
     {
@@ -149,6 +172,16 @@ namespace TEN::Renderer::Next
         float UploadTime  = 0.0f;
         int   DrawCalls   = 0;
         int   UploadBytes = 0;
+
+        std::array<int, (int)DrawCategory::Count> CategoryDrawCalls = {};
+        std::array<int, (int)DrawCategory::Count> CategoryTriangles = {};
+        int   InstancedDrawCalls = 0; // Object draws of more than one instance.
+        int   DrawnInstances     = 0;
+        float SortedCollectTime  = 0.0f;
+        float SortedRecordTime   = 0.0f;
+        int   MaterialUploads    = 0;
+
+        RHI::CommandCounters Api = {}; // API calls of the scene command buffer.
 
         int RoomsDrawn      = 0;
         int RoomDraws       = 0;
@@ -862,6 +895,8 @@ namespace TEN::Renderer::Next
         void DrawSortedFaces(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, bool isMirrored = false);
         void LogGpuTimings();
         void CollectFrameStats(const RenderView& view, const FrameEnvironment& environment);
+        void ResetFrameStats();
+        void CountDraw(DrawCategory category, int triangles);
         static FogBulbUniforms GetFogBulbUniforms(const RenderView& view);
         bool CreateSkyGeometry();
         void DrawSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere = 0);
@@ -976,7 +1011,7 @@ namespace TEN::Renderer::Next
         RHI::ITexture* GetSpriteTexture(const Structures::RendererSprite* sprite) const;
         bool           AddSprite(const Structures::RendererSpriteToDraw& sprite, const RenderView& view, const Structures::RendererMirror* mirror = nullptr);
         void           CollectSprites(const RenderView& view);
-        void           DrawSpriteRun(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const SpriteDraw& draw, const RHI::IGraphicsPipeline*& lastPipeline, const RHI::ITexture*& lastTexture, bool isSky = false);
+        void           DrawSpriteRun(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const SpriteDraw& draw, const RHI::IGraphicsPipeline*& lastPipeline, const RHI::ITexture*& lastTexture, bool isSky = false, DrawCategory category = DrawCategory::Sprites);
         void           SetSkySpriteMoon(Vector3& direction, float& diskCosRadius) const;
         void           DrawSprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
         void CollectRoomDraws(const RenderView& view);

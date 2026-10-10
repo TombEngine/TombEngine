@@ -70,7 +70,8 @@ namespace TEN::Benchmark
     {
         _file << "frame,time_s,cpu_frame_ms,cpu_render_ms,present_ms,draw_calls,shadow_draw_calls,triangles,"
                  "cb_updates,cb_bytes,perdraw_updates,rooms,sorted_faces,sorted_collect_ms,sorted_sort_ms,sorted_draw_ms,"
-                 "next_cpu_ms,next_draw_calls";
+                 "next_cpu_ms,next_draw_calls,next_shadow_draw_calls,next_triangles,next_uniform_pushes,next_uniform_bytes,next_upload_bytes,"
+                 "next_sorted_collect_ms,next_sorted_record_ms";
 
         for (int i = 0; i < stats.GpuPassCount; i++)
             _file << ",gpu_" << stats.GpuPassNames[i] << "_ms";
@@ -199,7 +200,9 @@ namespace TEN::Benchmark
               << stats.ConstantBufferUpdates << ',' << stats.ConstantBufferBytes << ',' << stats.PerDrawUpdates << ','
               << stats.RoomsDrawn << ',' << stats.SortedFaces << ','
               << stats.SortedCollectTime << ',' << stats.SortedSortTime << ',' << stats.SortedDrawTime << ','
-              << stats.NextRenderTime << ',' << stats.NextDrawCalls;
+              << stats.NextRenderTime << ',' << stats.NextDrawCalls << ',' << stats.NextShadowDrawCalls << ',' << stats.NextTriangles << ','
+              << stats.NextUniformPushes << ',' << stats.NextUniformBytes << ',' << stats.NextUploadBytes << ','
+              << stats.NextSortedCollectTime << ',' << stats.NextSortedRecordTime;
 
         for (int i = 0; i < stats.GpuPassCount; i++)
             _file << ',' << stats.GpuPassTimes[i];

@@ -258,6 +258,7 @@ namespace TEN::Renderer::RHI::DirectX11
         ComPtr<ID3D11RasterizerState>   Rasterizer   = nullptr;
         ComPtr<ID3D11DepthStencilState> DepthStencil = nullptr;
         D3D11_PRIMITIVE_TOPOLOGY        Topology     = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        PrimitiveType                   Primitive    = PrimitiveType::TriangleList;
         int                             VertexStrides[MAX_VERTEX_BUFFERS] = {};
 
         // Storage buffers follow sampled and storage textures in the t register range.
@@ -468,6 +469,7 @@ namespace TEN::Renderer::RHI::DirectX11
     public:
         ID3D11DeviceContext*  Context  = nullptr;
         DX11GraphicsPipeline* Pipeline = nullptr;
+        CommandCounters*      Counters = nullptr;
 
         // Strides belong to the pipeline: as on SDL GPU, vertex buffers may be bound before it, so they are kept
         // and bound again with the strides of each new pipeline.
@@ -487,6 +489,7 @@ namespace TEN::Renderer::RHI::DirectX11
             if (dxPipeline == Pipeline)
                 return;
 
+            Counters->PipelineBinds++;
             Pipeline = dxPipeline;
             Context->IASetInputLayout(dxPipeline->InputLayout.Get());
             Context->IASetPrimitiveTopology(dxPipeline->Topology);
@@ -519,6 +522,7 @@ namespace TEN::Renderer::RHI::DirectX11
             }
 
             VertexBufferCount = std::max(VertexBufferCount, firstSlot + count);
+            Counters->VertexBufferBinds += count;
             ApplyVertexBuffers(firstSlot, count);
         }
 
@@ -538,6 +542,7 @@ namespace TEN::Renderer::RHI::DirectX11
         {
             auto format = (indexSize == IndexSize::Bits16) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
             Context->IASetIndexBuffer(((DX11Buffer*)binding.Buffer)->Handle.Get(), format, binding.Offset);
+            Counters->IndexBufferBinds++;
         }
 
         void BindVertexSamplers(int firstSlot, const TextureSamplerBinding* bindings, int count) override
@@ -552,6 +557,7 @@ namespace TEN::Renderer::RHI::DirectX11
 
             Context->VSSetShaderResources(firstSlot, count, views);
             Context->VSSetSamplers(firstSlot, count, samplers);
+            Counters->TextureBinds += count;
         }
 
         void BindVertexStorageBuffers(int firstSlot, IBuffer* const* buffers, int count) override
@@ -562,6 +568,7 @@ namespace TEN::Renderer::RHI::DirectX11
 
             int base = (Pipeline != nullptr) ? Pipeline->VertexStorageBufferBase : 0;
             Context->VSSetShaderResources(base + firstSlot, count, views);
+            Counters->StorageBufferBinds += count;
         }
 
         void BindPixelSamplers(int firstSlot, const TextureSamplerBinding* bindings, int count) override
@@ -576,6 +583,7 @@ namespace TEN::Renderer::RHI::DirectX11
 
             Context->PSSetShaderResources(firstSlot, count, views);
             Context->PSSetSamplers(firstSlot, count, samplers);
+            Counters->TextureBinds += count;
         }
 
         void BindPixelStorageBuffers(int firstSlot, IBuffer* const* buffers, int count) override
@@ -586,16 +594,19 @@ namespace TEN::Renderer::RHI::DirectX11
 
             int base = (Pipeline != nullptr) ? Pipeline->PixelStorageBufferBase : 0;
             Context->PSSetShaderResources(base + firstSlot, count, views);
+            Counters->StorageBufferBinds += count;
         }
 
         void Draw(int vertexCount, int instanceCount, int firstVertex, int firstInstance) override
         {
             Context->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
+            Counters->AddDraw((Pipeline != nullptr) ? Pipeline->Primitive : PrimitiveType::TriangleList, vertexCount, instanceCount, false);
         }
 
         void DrawIndexed(int indexCount, int instanceCount, int firstIndex, int vertexOffset, int firstInstance) override
         {
             Context->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+            Counters->AddDraw((Pipeline != nullptr) ? Pipeline->Primitive : PrimitiveType::TriangleList, indexCount, instanceCount, true);
         }
     };
 
@@ -604,12 +615,15 @@ namespace TEN::Renderer::RHI::DirectX11
     public:
         ID3D11Device*        Device  = nullptr;
         ID3D11DeviceContext* Context = nullptr;
+        CommandCounters*     Counters = nullptr;
 
         void UploadToBuffer(ITransferBuffer* source, int sourceOffset, IBuffer* destination, int destinationOffset, int size, bool cycle) override
         {
             const auto& data = ((DX11TransferBuffer*)source)->Data;
             auto box = D3D11_BOX{ (UINT)destinationOffset, 0, 0, (UINT)(destinationOffset + size), 1, 1 };
             Context->UpdateSubresource(((DX11Buffer*)destination)->Handle.Get(), 0, &box, data.data() + sourceOffset, 0, 0);
+            Counters->Uploads++;
+            Counters->UploadBytes += size;
         }
 
         void UploadToTexture(const TextureTransferInfo& source, const TextureRegion& destination, bool cycle) override
@@ -634,6 +648,7 @@ namespace TEN::Renderer::RHI::DirectX11
                 (UINT)(destination.X + alignedWidth), (UINT)(destination.Y + alignedHeight), (UINT)(destination.Z + destination.Depth) };
 
             Context->UpdateSubresource(texture->Handle.Get(), subresource, &box, data.data() + source.Offset, rowPitch, depthPitch);
+            Counters->Uploads++;
         }
 
         void CopyTexture(const TextureRegion& source, const TextureRegion& destination) override
@@ -690,6 +705,7 @@ namespace TEN::Renderer::RHI::DirectX11
     public:
         ID3D11DeviceContext* Context  = nullptr;
         DX11ComputePipeline* Pipeline = nullptr;
+        CommandCounters*     Counters = nullptr;
 
         void BindPipeline(IComputePipeline* pipeline) override
         {
@@ -724,6 +740,7 @@ namespace TEN::Renderer::RHI::DirectX11
         void Dispatch(int groupCountX, int groupCountY, int groupCountZ) override
         {
             Context->Dispatch(groupCountX, groupCountY, groupCountZ);
+            Counters->Dispatches++;
         }
     };
 
@@ -798,6 +815,8 @@ namespace TEN::Renderer::RHI::DirectX11
 
             IsRenderPassOpen = true;
             RenderPass.Context = Context;
+            RenderPass.Counters = &Counters;
+            Counters.RenderPasses++;
             RenderPass.Reset();
             return &RenderPass;
         }
@@ -816,6 +835,8 @@ namespace TEN::Renderer::RHI::DirectX11
 
             CopyPass.Device = Device;
             CopyPass.Context = Context;
+            CopyPass.Counters = &Counters;
+            Counters.CopyPasses++;
             return &CopyPass;
         }
 
@@ -839,6 +860,8 @@ namespace TEN::Renderer::RHI::DirectX11
             NumComputeUavs = count;
 
             ComputePass.Context = Context;
+            ComputePass.Counters = &Counters;
+            Counters.ComputePasses++;
             ComputePass.Pipeline = nullptr;
             return &ComputePass;
         }
@@ -855,6 +878,8 @@ namespace TEN::Renderer::RHI::DirectX11
 
         void PushUniforms(ShaderStage stage, int slot, const void* data, int size) override
         {
+            Counters.UniformPushes++;
+            Counters.UniformBytes += size;
             if (size > UNIFORM_BUFFER_SIZE)
             {
                 TENLog("DX11: uniform push of " + std::to_string(size) + " bytes exceeds the uniform buffer size.", LogLevel::Error);
@@ -895,6 +920,7 @@ namespace TEN::Renderer::RHI::DirectX11
                 return;
 
             Context->CopySubresourceRegion(((DX11Texture*)destination)->Handle.Get(), 0, 0, 0, 0, ((DX11Texture*)source)->Handle.Get(), 0, nullptr);
+            Counters.Blits++;
         }
 
         void PushDebugGroup(const char* name) override
@@ -1336,6 +1362,7 @@ namespace TEN::Renderer::RHI::DirectX11
             pipeline->VertexShader = vertexShader->VertexShader;
             pipeline->PixelShader = pixelShader->PixelShader;
             pipeline->Topology = ToD3D11(desc.Primitive);
+            pipeline->Primitive = desc.Primitive;
             pipeline->VertexStorageBufferBase = vertexShader->Desc.NumSamplers + vertexShader->Desc.NumStorageTextures;
             pipeline->PixelStorageBufferBase = pixelShader->Desc.NumSamplers + pixelShader->Desc.NumStorageTextures;
 
@@ -1471,6 +1498,7 @@ namespace TEN::Renderer::RHI::DirectX11
 
         ICommandBuffer* AcquireCommandBuffer() override
         {
+            _commandBuffer.ResetCounters();
             return &_commandBuffer;
         }
 

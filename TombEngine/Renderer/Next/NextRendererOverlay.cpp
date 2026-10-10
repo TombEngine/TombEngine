@@ -594,7 +594,7 @@ namespace TEN::Renderer::Next
             auto binding = TextureSamplerBinding{ draw.Texture, _linearClampSampler.get() };
             renderPass->BindPixelSamplers(0, &binding, 1);
 
-            _frameStats.DrawCalls++;
+            CountDraw(DrawCategory::Overlay, draw.VertexCount / 3);
             renderPass->Draw(draw.VertexCount, 1, draw.FirstVertex, 0);
         }
 
