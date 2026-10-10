@@ -287,12 +287,6 @@ namespace TEN::Renderer
 				coverageB = g_SkyCloudSystem.GetCloudBRenderSettings().Coverage;
 			cloudCoverage = std::max(coverageA, coverageB);
 		}
-		else
-		{
-			const auto* activeSettings = GetActiveVolumetricCloudSettings();
-			if (activeSettings && activeSettings->Enabled)
-				cloudCoverage = activeSettings->Coverage;
-		}
 
 		// Underwater sky acts as an occlusion layer for the sun. Use the preset
 		// visibility as synthetic coverage so god rays emerge from the bright
@@ -414,78 +408,8 @@ namespace TEN::Renderer
 
 	void Renderer::DrawGodRays(RenderView& renderView)
 	{
-		// Check if any ray source is enabled.
-		float dayNightBlend = 0.0f;
-		{
-			auto* levelPtr = g_GameFlow->GetLevel(CurrentLevel);
-			float sunElev = 1.0f;
-			if (levelPtr->GetLensFlareEnabled())
-			{
-				constexpr float SHORT_TO_RAD = (DirectX::XM_2PI / 65536.0f);
-				float pitch = (float)levelPtr->GetLensFlarePitch() * SHORT_TO_RAD;
-				sunElev = std::sin(pitch);
-			}
-			dayNightBlend = ComputeDayNightBlend(sunElev);
-		}
-		bool useMoonRays = _moonSettings.Enabled && _moonSettings.GodRays.Enabled && dayNightBlend > 0.5f;
-
-		if (useMoonRays)
-		{
-			if (!_moonSettings.GodRays.Enabled)
-				return;
-		}
-		else
-		{
-			if (!_godRaySettings.Enabled)
-				return;
-		}
-
-		// Underwater sky always wants god ray shafts to be visible — bypass the
-		// preset suppression and the cloud-required gate below.
-		bool underwaterActive = _stAtmosphericSky.UnderwaterSkyVisibility > 0.001f;
-
-		// Suppress god rays for presets that have heavy overcast (no visible sun).
-		if (!underwaterActive)
-		{
-			auto currentPreset = g_SkyCloudSystem.GetCurrentPreset();
-			auto* presetDef    = g_SkyCloudSystem.GetPresetDefinition(currentPreset);
-			if (presetDef && !presetDef->GodRaysEnabled)
-				return;
-		}
-
-		// Require volumetric clouds to provide the occlusion mask.
-		// Aurora-category layers are pure light effects, not cloud geometry — exclude them
-		// so they contribute neither an occlusion mask nor auto-strength for god rays.
-		bool hasClouds = false;
-		if (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
-		{
-			// Only count as "real clouds" if at least one layer is not the Aurora category.
-			const int auroraType = (int)CloudCategory::Aurora;
-			bool aOnly = !g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.GetCloudARenderSettings().CloudType == auroraType;
-			bool bOnly = !g_SkyCloudSystem.IsCloudBActive() || g_SkyCloudSystem.GetCloudBRenderSettings().CloudType == auroraType;
-			if (!(aOnly && bOnly))
-				hasClouds = true;
-		}
-		else
-		{
-			const auto* activeSettings = GetActiveVolumetricCloudSettings();
-			if (activeSettings && activeSettings->Enabled)
-				hasClouds = true;
-		}
-
-		if (!hasClouds && !underwaterActive)
+		if (!_nextGodRays.IsDrawn)
 			return;
-
-		// Update the constant buffer.
-		UpdateGodRayBuffer(renderView);
-
-		// Skip only if the sun is behind the camera (sentinel -10).
-		// Off-screen but in-front suns still produce rays from the screen edge.
-		if (_stGodRay.SunScreenPos.x < -5.0f)
-			return;
-
-		_nextGodRays.IsDrawn = true;
-		_nextGodRays.Uniforms = _stGodRay;
 
 		// Render horizon mesh silhouette for additional occlusion in PSGodRay.
 		DrawHorizonMask(renderView);

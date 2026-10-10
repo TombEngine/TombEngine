@@ -3,13 +3,15 @@
 
 #include <mutex>
 
+#include "Specific/clock.h"
+
 namespace TEN::Benchmark
 {
     constexpr auto BENCHMARK_WARMUP_TIME = 3.0f;
     constexpr auto BENCHMARK_FLUSH_FRAMES = 60;
     constexpr auto BENCHMARK_SCREENSHOT_GAME_FRAME = 240;
-    constexpr auto BENCHMARK_MENU_SCREENSHOT_FRAME = 90;
-    constexpr auto BENCHMARK_MENU_EXIT_FRAME       = 150;
+    constexpr auto BENCHMARK_MENU_SCREENSHOT_TICK = 90;
+    constexpr auto BENCHMARK_MENU_EXIT_TICK       = 150;
 
     static bool _isActive = false;
     static bool _isStarted = false;
@@ -18,7 +20,9 @@ namespace TEN::Benchmark
     static std::chrono::steady_clock::time_point _startTime = {};
     static int _recordedFrames = 0;
     static bool _isScreenshotTaken = false;
-    static int  _menuFrames        = 0;
+    static int  _menuStartTick     = -1;
+    static bool _isMenuCaptured    = false;
+    static bool _isQuitRequested   = false;
     static std::ofstream _file;
     static std::mutex _mutex;
     static std::vector<float> _frameTimes = {};
@@ -156,21 +160,31 @@ namespace TEN::Benchmark
     }
 
     // Title and inventory frames do not run the game loop that ends the benchmark: they are captured after a fixed
-    // number of presented frames, and the run then ends.
+    // number of logic ticks, and the run then ends.
     bool ConsumeMenuScreenshotRequest()
     {
         if (!_isActive)
             return false;
 
-        _menuFrames++;
-        if (_menuFrames == BENCHMARK_MENU_EXIT_FRAME)
+        // Menus are timed in logic ticks, so the capture does not depend on the framerate.
+        int tick = (int)g_Synchronizer.GetStepCount();
+        if (_menuStartTick < 0)
+            _menuStartTick = tick;
+
+        int menuTicks = tick - _menuStartTick;
+        if (menuTicks >= BENCHMARK_MENU_EXIT_TICK && !_isQuitRequested)
         {
+            _isQuitRequested = true;
             auto quitEvent = SDL_Event{};
             quitEvent.type = SDL_EVENT_QUIT;
             SDL_PushEvent(&quitEvent);
         }
 
-        return (_menuFrames == BENCHMARK_MENU_SCREENSHOT_FRAME);
+        if (menuTicks < BENCHMARK_MENU_SCREENSHOT_TICK || _isMenuCaptured)
+            return false;
+
+        _isMenuCaptured = true;
+        return true;
     }
 
     void UpdateBenchmark()

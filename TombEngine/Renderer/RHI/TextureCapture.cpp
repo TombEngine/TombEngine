@@ -83,6 +83,16 @@ namespace TEN::Renderer::RHI
             _requests.push_back(std::move(request));
     }
 
+    void TextureReadback::Record(IDevice& device, ICopyPass& copyPass, ITexture* texture, ReadCallback callback)
+    {
+        auto request = Request{};
+        request.Buffer = RecordDownload(device, copyPass, texture, 0);
+        request.Desc = texture->GetDesc();
+        request.Callback = std::move(callback);
+        if (request.Buffer != nullptr)
+            _requests.push_back(std::move(request));
+    }
+
     void TextureReadback::Submit(ICommandBuffer& commandBuffer)
     {
         if (!HasUnsubmittedRequests())
@@ -97,6 +107,11 @@ namespace TEN::Renderer::RHI
             if (request.Fence == nullptr)
                 request.Fence = fence;
         }
+    }
+
+    void TextureReadback::Clear()
+    {
+        _requests.clear();
     }
 
     // With wait set, every submitted download is completed first, as at shutdown.
@@ -117,7 +132,16 @@ namespace TEN::Renderer::RHI
                 continue;
             }
 
-            bool saved = WritePng(request.Desc, (const unsigned char*)device.MapTransferBuffer(request.Buffer.get(), false), request.Path);
+            const auto* data = (const unsigned char*)device.MapTransferBuffer(request.Buffer.get(), false);
+            if (request.Callback != nullptr)
+            {
+                request.Callback(request.Desc, data);
+                device.UnmapTransferBuffer(request.Buffer.get());
+                _requests.erase(_requests.begin() + i);
+                continue;
+            }
+
+            bool saved = WritePng(request.Desc, data, request.Path);
             device.UnmapTransferBuffer(request.Buffer.get());
             TENLog("Screenshot " + request.Path + (saved ? " saved." : " failed."), saved ? LogLevel::Info : LogLevel::Warning);
 

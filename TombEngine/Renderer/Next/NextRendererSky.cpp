@@ -21,8 +21,12 @@ namespace TEN::Renderer::Next
         _cloudVertexShader = LoadShader(*_device, _shaderDirectory, "VolumetricClouds", "VS");
         _cloudRaymarchPixelShader = LoadShader(*_device, _shaderDirectory, "VolumetricClouds", "PS");
         _cloudCompositePixelShader = LoadShader(*_device, _shaderDirectory, "VolumetricClouds", "PSCloudComposite");
-        if (_cloudVertexShader == nullptr || _cloudRaymarchPixelShader == nullptr || _cloudCompositePixelShader == nullptr)
+        _cloudOcclusionPixelShader = LoadShader(*_device, _shaderDirectory, "VolumetricClouds", "PSCloudOcclusion");
+        if (_cloudVertexShader == nullptr || _cloudRaymarchPixelShader == nullptr || _cloudCompositePixelShader == nullptr ||
+            _cloudOcclusionPixelShader == nullptr)
+        {
             return false;
+        }
 
         // Both passes are opaque fullscreen triangles: the composite shader blends with its copy of the scene.
         auto desc = GraphicsPipelineDesc{};
@@ -41,12 +45,31 @@ namespace TEN::Renderer::Next
         desc.Name = "Clouds.Composite";
         _cloudCompositePipeline = _device->CreateGraphicsPipeline(desc);
 
+        desc.PixelShader = _cloudOcclusionPixelShader.get();
+        desc.ColorTargets[0].Format = PixelFormat::R32Float;
+        desc.Name = "Clouds.Occlusion";
+        _cloudOcclusionPipeline = _device->CreateGraphicsPipeline(desc);
+
+        auto targetDesc = TextureDesc{};
+        targetDesc.Width = 1;
+        targetDesc.Height = 1;
+        targetDesc.Format = PixelFormat::R32Float;
+        targetDesc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler;
+        for (int layer = 0; layer < CLOUD_LAYER_COUNT; layer++)
+        {
+            targetDesc.Name = "Clouds.Occlusion" + std::to_string(layer);
+            _cloudOcclusionTargets[layer] = _device->CreateTexture(targetDesc);
+            if (_cloudOcclusionTargets[layer] == nullptr)
+                return false;
+        }
+
         // Cloud noise tiles.
         auto samplerDesc = SamplerDesc{};
         samplerDesc.Name = "LinearWrap";
         _linearWrapSampler = _device->CreateSampler(samplerDesc);
 
-        return (_cloudRaymarchPipeline != nullptr && _cloudCompositePipeline != nullptr && _linearWrapSampler != nullptr);
+        return (_cloudRaymarchPipeline != nullptr && _cloudCompositePipeline != nullptr && _cloudOcclusionPipeline != nullptr &&
+                _linearWrapSampler != nullptr);
     }
 
     // The noise is generated once by the legacy renderer; it is uploaded on the first frame that provides it.
@@ -166,6 +189,9 @@ namespace TEN::Renderer::Next
             if (draw.IsRaymarched)
                 RaymarchCloudLayer(commandBuffer, draw);
 
+            if (draw.IsOcclusionQueried)
+                QueryCloudOcclusion(commandBuffer, draw);
+
             CompositeCloudLayer(commandBuffer, draw.Layer);
         }
 
@@ -198,6 +224,51 @@ namespace TEN::Renderer::Next
         CountDraw(DrawCategory::Sky, 1);
         renderPass->Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
+    }
+
+    // Sun transmittance through the layer, from rays toward the sun and the layer coverage around it on screen. The value
+    // is read back without stalling and reaches the lens flares some frames later, as in the legacy renderer.
+    void NextRenderer::QueryCloudOcclusion(ICommandBuffer& commandBuffer, const CloudLayerDraw& draw)
+    {
+        auto* target = _cloudOcclusionTargets[draw.Layer].get();
+
+        auto colorTarget = ColorTargetInfo{};
+        colorTarget.Texture = target;
+        colorTarget.Load = LoadOp::Clear;
+
+        auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
+        renderPass->BindPipeline(_cloudOcclusionPipeline.get());
+
+        TextureSamplerBinding bindings[3] =
+        {
+            { _cloudTargets[draw.Layer].get(), _linearClampSampler.get() },
+            { _cloudNoise3D.get(), _linearWrapSampler.get() },
+            { _cloudWorley2D.get(), _linearWrapSampler.get() }
+        };
+        renderPass->BindPixelSamplers(0, bindings, 3);
+
+        CountDraw(DrawCategory::Sky, 1);
+        renderPass->Draw(3, 1, 0, 0);
+        commandBuffer.EndRenderPass();
+
+        int layer = draw.Layer;
+        _readback.Record(*_device, *commandBuffer.BeginCopyPass(), target, [this, layer](const TextureDesc& desc, const unsigned char* data)
+        {
+            _cloudTransmittances[layer] = std::clamp(*(const float*)data, 0.0f, 1.0f);
+            _isCloudTransmittanceRead[layer] = true;
+        });
+        commandBuffer.EndCopyPass();
+    }
+
+    // Returns true once per completed readback of the layer transmittance.
+    bool NextRenderer::ReadCloudTransmittance(int layer, float& transmittance)
+    {
+        if (layer < 0 || layer >= CLOUD_LAYER_COUNT || !_isCloudTransmittanceRead[layer])
+            return false;
+
+        transmittance = _cloudTransmittances[layer];
+        _isCloudTransmittanceRead[layer] = false;
+        return true;
     }
 
     // Legacy pass 2: the composite shader blends the layer with a copy of the scene and writes the coverage to alpha.

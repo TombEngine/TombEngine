@@ -2151,6 +2151,8 @@ namespace TEN::Renderer
 
 		UpdateConstantBuffer(&cameraConstantBuffer, _cbCameraMatrices.get());
 
+		PrepareSkyEffects(view);
+
 		// Draw horizon and sky.
 		_graphicsDevice->BeginGpuTiming(GpuTimingScope::Sky);
 		DrawHorizonAndSky(_renderTarget->GetDepthTarget(), view);
@@ -3263,33 +3265,11 @@ namespace TEN::Renderer
 	{
 		auto* levelPtr = g_GameFlow->GetLevel(CurrentLevel);
 
-		if (!reflectionPass)
-		{
-			_nextCloudDraws.clear();
-			_nextSkyEffects = {};
-			_nextGodRays = {};
-			_nextHorizonLayers = {};
-		}
-
-		bool anyOutsideRooms = false;
-		for (int k = 0; k < renderView.RoomsToDraw.size(); k++)
-		{
-			const auto& nativeRoom = g_Level.Rooms[renderView.RoomsToDraw[k]->RoomNumber];
-			if (nativeRoom.flags & ENV_FLAG_SKYBOX)
-			{
-				anyOutsideRooms = true;
-				break;
-			}
-		}
-
-		if (!anyOutsideRooms && !reflectionPass)
+		if (!reflectionPass && !IsSkyboxVisible(renderView))
 			return;
 
-		if (Lara.Control.Look.OpticRange != 0)
-			AlterFOV(ANGLE(DEFAULT_FOV) - Lara.Control.Look.OpticRange, false);
-
 		// --- Atmospheric sky dome (rendered first as opaque background) ---
-		if (_atmosphericSkySettings.Enabled && !reflectionPass)
+		if (_nextSkyEffects.IsDomeDrawn && !reflectionPass)
 		{
 			DrawAtmosphericSkyDome(renderView);
 		}
@@ -3491,7 +3471,7 @@ namespace TEN::Renderer
 
 			// Draw sun and moon discs AFTER cloud compositing so that clouds
 			// naturally occlude them via the cloud coverage alpha channel.
-			if (_atmosphericSkySettings.Enabled)
+			if (_nextSkyEffects.IsSunMoonDiscDrawn)
 			{
 				DrawSunMoonDisc(renderView);
 				_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
@@ -3500,15 +3480,8 @@ namespace TEN::Renderer
 		}
 
 		// Draw aurora BEFORE the horizon mesh so that opaque horizon geometry
-		// naturally overwrites it by draw order — no depth test needed.
-		// When the atmospheric sky dome is off, UpdateAtmosphericSkyBuffer has not
-		// run yet this frame, so call it here unconditionally to keep _auroraSettings
-		// current (avoids a chicken-and-egg where Enabled=false blocks the very call
-		// that would set it to true).
-		if (!_atmosphericSkySettings.Enabled && !reflectionPass)
-			UpdateAtmosphericSkyBuffer(renderView);
-
-		if (_auroraSettings.Enabled && !reflectionPass)
+		// naturally overwrites it by draw order - no depth test needed.
+		if (_nextSkyEffects.IsAuroraDrawn && !reflectionPass)
 		{
 			DrawAurora(renderView);
 			// Restore mesh input layout and draw topology after fullscreen triangle pass.
@@ -3567,10 +3540,12 @@ namespace TEN::Renderer
 		// Draw horizon.
 		for (int layer = 0; layer < 2; layer++)
 		{
-			if (!levelPtr->GetHorizonEnabled(layer) || levelPtr->GetHorizonTransparency(layer) <= EPSILON)
-				continue;
+			// Reflections draw the horizons without the alpha and gradients of the cloud presets.
+			auto horizon = Next::HorizonLayerDraw{ IsHorizonLayerDrawn(layer), levelPtr->GetHorizonTransparency(layer) };
+			if (!reflectionPass)
+				horizon = _nextHorizonLayers[layer];
 
-			if (!_moveableObjects[levelPtr->GetHorizonObjectID(layer)].has_value())
+			if (!horizon.IsDrawn)
 				continue;
 
 			_shaders.Bind(reflectionPass ? Shader::RoomAmbientSky : Shader::Sky);
@@ -3581,86 +3556,15 @@ namespace TEN::Renderer
 			_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 			_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
-			auto pos = Vector3::Lerp(levelPtr->GetHorizonPrevPosition(layer), levelPtr->GetHorizonPosition(layer), GetInterpolationFactor());
-			auto orient = EulerAngles::Lerp(levelPtr->GetHorizonPrevOrientation(layer), levelPtr->GetHorizonOrientation(layer), GetInterpolationFactor());
-			auto rotMatrix = orient.ToRotationMatrix();
-			auto translationMatrix = Matrix::CreateTranslation(pos);
-			auto cameraMatrix = Matrix::CreateTranslation(renderView.Camera.WorldPosition);
-
-			float alpha = levelPtr->GetHorizonTransparency(layer);
-
-			// Cap alpha to 0.99 when the cloud bleed-overlay pass is active or
-			// the horizon gradient fade is in use.
-			// alpha=1.0 triggers fully-opaque blending (overwriting cloud pixels painted
-			// after the horizon mesh); 0.99 forces alpha-blending (visually identical,
-			// but lets the post-horizon bleed composite survive).
-			// Triggered by HorizonMeshBleed > 0 OR AltoBleedDepth > 0 OR AltoHorizonGradientFade > 0.
-			if (!reflectionPass)
-			{
-				const auto& bleedState = g_SkyCloudSystem.GetCurrentState();
-				float maxBleed = std::max(bleedState.CloudA.HorizonMeshBleed, bleedState.CloudB.HorizonMeshBleed);
-				float maxBleedDepth = std::max(bleedState.CloudA.AltoBleedDepth, bleedState.CloudB.AltoBleedDepth);
-				float maxGradient = std::max(
-					(bleedState.CloudA.Category == CloudCategory::AltocumulusMid) ? bleedState.CloudA.AltoHorizonGradientFade : 0.0f,
-					(bleedState.CloudB.Category == CloudCategory::AltocumulusMid) ? bleedState.CloudB.AltoHorizonGradientFade : 0.0f);
-				float layerRise = _atmosphericSkySettings.HorizonGradientRise[layer];
-				if ((maxBleed > 0.001f || maxBleedDepth > 0.001f || maxGradient > 0.001f || layerRise > 0.001f) && alpha >= 1.0f)
-					alpha = 0.99f;
-			}
-
-			_stSky.World = rotMatrix * translationMatrix * cameraMatrix;
+			float alpha = horizon.Alpha;
+			_stSky.World = GetHorizonWorldMatrix(layer, renderView);
 			_stSky.Color = Color(1.0f, 1.0f, 1.0f, alpha);
 			_stSky.ApplyFogBulbs = 1;
-
-			// Horizon gradient fade: take max from both cloud layers (AltocumulusMid only).
-			// Compute actual mesh Y bounds by transforming vertex positions — bounding sphere radius
-			// is dominated by X/Z extent of wide horizon rings and would give a useless Y range.
-			if (!reflectionPass)
-			{
-				const auto& gradState = g_SkyCloudSystem.GetCurrentState();
-				float gradA = (gradState.CloudA.Category == CloudCategory::AltocumulusMid) ? gradState.CloudA.AltoHorizonGradientFade : 0.0f;
-				float gradB = (gradState.CloudB.Category == CloudCategory::AltocumulusMid) ? gradState.CloudB.AltoHorizonGradientFade : 0.0f;
-				_stSky.HorizonGradientFade = std::max(gradA, gradB);
-				_stSky.HorizonGradientRise = _atmosphericSkySettings.HorizonGradientRise[layer];
-
-				if (_stSky.HorizonGradientFade > 0.001f || _stSky.HorizonGradientRise > 0.001f)
-				{
-					const auto& gradMeshObj = *_moveableObjects[levelPtr->GetHorizonObjectID(layer)];
-					float yMin = FLT_MAX;
-					float yMax = -FLT_MAX;
-					for (const auto* m : gradMeshObj.ObjectMeshes)
-					{
-						for (const auto& localPos : m->Positions)
-						{
-							// Transform object-space vertex position into world space.
-							Vector3 worldPos = Vector3::Transform(localPos, _stSky.World);
-							float camRelY = worldPos.y - renderView.Camera.WorldPosition.y;
-							yMin = std::min(yMin, camRelY);
-							yMax = std::max(yMax, camRelY);
-						}
-					}
-					// yMin = topmost Y (most negative = highest in Y-down), yMax = bottommost.
-					_stSky.MeshWorldYMin = yMin;
-					_stSky.MeshWorldYRange = std::max(yMax - yMin, 1.0f);
-				}
-				else
-				{
-					_stSky.MeshWorldYMin = 0.0f;
-					_stSky.MeshWorldYRange = 1.0f;
-				}
-			}
-			else
-			{
-				_stSky.HorizonGradientFade = 0.0f;
-				_stSky.HorizonGradientRise = 0.0f;
-				_stSky.MeshWorldYMin = 0.0f;
-				_stSky.MeshWorldYRange = 1.0f;
-			}
-
+			_stSky.HorizonGradientFade = horizon.GradientFade;
+			_stSky.HorizonGradientRise = horizon.GradientRise;
+			_stSky.MeshWorldYMin = horizon.MeshWorldYMin;
+			_stSky.MeshWorldYRange = horizon.MeshWorldYRange;
 			UpdateConstantBuffer(&_stSky, _cbSky.get());
-
-			if (!reflectionPass)
-				_nextHorizonLayers[layer] = Next::HorizonLayerDraw{ true, alpha, _stSky.HorizonGradientFade, _stSky.HorizonGradientRise, _stSky.MeshWorldYMin, _stSky.MeshWorldYRange };
 
 			const auto& moveableObj = *_moveableObjects[levelPtr->GetHorizonObjectID(layer)];
 			for (auto* mesh : moveableObj.ObjectMeshes)
@@ -3689,69 +3593,19 @@ namespace TEN::Renderer
 			}
 		}
 
-		// Re-render AltocumulusMid after the horizon mesh at HorizonMeshBleed intensity.
-		// At 1.0 this intentionally recreates the old behaviour where clouds were
-		// drawn in front of the mountains. At 0.0 the second pass is skipped, so
-		// the mountains fully overwrite the earlier cloud composite.
-		// Bleed clouds are only drawn when at least one horizon mesh layer is visible
-		// (opacity > 0): bleed clouds are designed to flow over those mountains and
-		// should not appear without destination geometry.
+		// Bleed overlays prepared by PrepareCloudBleed: Altocumulus layers drawn again over the horizon meshes.
 		if (!reflectionPass)
 		{
-			bool anyHorizonVisible = false;
-			for (int hLayer = 0; hLayer < 2; hLayer++)
+			for (const auto& draw : _nextCloudDraws)
 			{
-				if (levelPtr->GetHorizonEnabled(hLayer) && levelPtr->GetHorizonTransparency(hLayer) > EPSILON)
-					anyHorizonVisible = true;
-			}
-			auto doBleedOverlay = [&](CloudRenderSettings settings, VolumetricCloud::CloudRuntimeState& layerState, IRenderSurface2D* cloudRT, float bleedStrength)
-				{
-					if (!settings.Enabled)
-						return;
-					if (settings.CloudType != 1)
-						return;
+				if (!draw.IsAfterHorizons)
+					continue;
 
-					// AltoBleedDepth [0,100] drives bleed opacity progressively: 0 = invisible, 100 = full.
-					// HorizonMeshBleed bleedStrength adds on top (original mountain-bleed behavior).
-					float altoBleedIntensity = std::clamp(settings.AltoBleedDepth / 100.0f, 0.0f, 1.0f);
-					float effectiveBleed = std::max(altoBleedIntensity, bleedStrength);
-					if (effectiveBleed < 0.001f)
-						return;
+				DrawCloudLayer(draw, renderView);
 
-					// Lerp cloud shape parameters toward bleed-optimised values as AltoBleedDepth increases:
-					//   AltoZenithBias    : current value -> -1.0  (push distribution toward zenith/top so
-					//                       clouds flood downward from above rather than pooling at horizon)
-					//   AltoHeightBlendPower: current value -> 1.470 (soften the height ramp for a wider curtain)
-					settings.AltoZenithBias = settings.AltoZenithBias + ((-1.0f) - settings.AltoZenithBias) * altoBleedIntensity;
-					settings.AltoHeightBlendPower = settings.AltoHeightBlendPower + (1.470f - settings.AltoHeightBlendPower) * altoBleedIntensity;
-
-					settings.BleedPassStrength = effectiveBleed;
-
-					DrawSingleVolumetricCloudLayer(settings, layerState, cloudRT, renderView, false);
-
-					// The cloud draw restores the main target, but explicitly restore the
-					// caller-owned DSV used by this sky pass.
-					_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), depthTarget);
-					_graphicsDevice->SetViewport(renderView.Viewport);
-				};
-
-			if (anyHorizonVisible)
-			{
-				const auto& liveState = g_SkyCloudSystem.GetCurrentState();
-				if (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
-				{
-					if (g_SkyCloudSystem.IsCloudAActive())
-						doBleedOverlay(g_SkyCloudSystem.GetCloudARenderSettings(), _cloudState, _cloudRenderTarget.get(), liveState.CloudA.HorizonMeshBleed);
-					if (g_SkyCloudSystem.IsCloudBActive())
-						doBleedOverlay(g_SkyCloudSystem.GetCloudBRenderSettings(), _cloudStateB, _cloudRenderTargetB.get(), liveState.CloudB.HorizonMeshBleed);
-				}
-				else
-				{
-					// Single-layer path via level script: use CloudA bleed if any.
-					const CloudRenderSettings* singleSettings = GetActiveVolumetricCloudSettings();
-					if (singleSettings && singleSettings->Enabled)
-						doBleedOverlay(*singleSettings, _cloudState, _cloudRenderTarget.get(), liveState.CloudA.HorizonMeshBleed);
-				}
+				// The cloud draw restores the main target, but not the depth target of this sky pass.
+				_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), depthTarget);
+				_graphicsDevice->SetViewport(renderView.Viewport);
 			}
 
 			// Restore mesh rendering state.

@@ -75,6 +75,7 @@ namespace TEN::Renderer::Next
 
         _device->WaitIdle();
         _readback.Poll(*_device, true);
+        _readback.Clear();
         _roomTextures.clear();
         _animatedTextures.clear();
         _staticTextures.clear();
@@ -124,9 +125,11 @@ namespace TEN::Renderer::Next
         _godRayCompositePixelShader = nullptr;
         _cloudRaymarchPipeline = nullptr;
         _cloudCompositePipeline = nullptr;
+        _cloudOcclusionPipeline = nullptr;
         _cloudVertexShader = nullptr;
         _cloudRaymarchPixelShader = nullptr;
         _cloudCompositePixelShader = nullptr;
+        _cloudOcclusionPixelShader = nullptr;
         _linearWrapSampler = nullptr;
         _cloudNoise3D = nullptr;
         _cloudWorley2D = nullptr;
@@ -134,6 +137,7 @@ namespace TEN::Renderer::Next
         {
             _cloudTargets[layer] = nullptr;
             _cloudHistoryTargets[layer] = nullptr;
+            _cloudOcclusionTargets[layer] = nullptr;
         }
 
         _debugLinePipeline = nullptr;

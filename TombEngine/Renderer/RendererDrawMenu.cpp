@@ -1641,6 +1641,8 @@ namespace TEN::Renderer
 
 	void Renderer::RenderInventory()
 	{
+		bool isCaptured = TEN::Benchmark::ConsumeMenuScreenshotRequest();
+
 		ResetDebugVariables();
 		UpdateDumpScreenRenderTarget();
 
@@ -1662,12 +1664,19 @@ namespace TEN::Renderer
 
 		RenderInventoryScene(_backBuffer.get(), _dumpScreenRenderTarget->GetRenderTarget(), 0.5f);
 
-		CaptureMenuScreenshot();
+		if (isCaptured)
+			CaptureMenuScreenshot();
+
 		PresentFrame();
 	}
 
 	void Renderer::RenderTitle(float interpFactor)
 	{
+		// The captured frame is not interpolated, as at 30 frames per second.
+		bool isCaptured = TEN::Benchmark::ConsumeMenuScreenshotRequest();
+		if (isCaptured)
+			interpFactor = 0.0f;
+
 		InterpolateCamera(interpFactor);
 		DumpGameScene(g_Gui.GetMenuToDisplay() == Menu::SelectLevel ? SceneRenderMode::NoHud : SceneRenderMode::Full);
 
@@ -1676,16 +1685,15 @@ namespace TEN::Renderer
 
 		RenderInventoryScene(_backBuffer.get(), _dumpScreenRenderTarget->GetRenderTarget(), 1.0f);
 		
-		CaptureMenuScreenshot();
+		if (isCaptured)
+			CaptureMenuScreenshot();
+
 		PresentFrame();
 	}
 
-	// Benchmark runs of the title and inventory capture both renderers at a fixed menu frame.
+	// Benchmark runs of the title and inventory capture both renderers at a fixed menu tick.
 	void Renderer::CaptureMenuScreenshot()
 	{
-		if (!TEN::Benchmark::ConsumeMenuScreenshotRequest())
-			return;
-
 		if (Next::g_NextRenderer.IsActive())
 			Next::g_NextRenderer.RequestScreenshot(g_GameFlow->GetGameDir() + "Logs/Compare_Next.png");
 

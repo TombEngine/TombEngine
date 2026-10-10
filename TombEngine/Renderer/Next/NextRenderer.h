@@ -766,11 +766,16 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IShader>           _cloudCompositePixelShader             = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _cloudRaymarchPipeline                 = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _cloudCompositePipeline                = nullptr;
+        std::unique_ptr<RHI::IShader>           _cloudOcclusionPixelShader             = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _cloudOcclusionPipeline                = nullptr;
         std::unique_ptr<RHI::ISampler>          _linearWrapSampler                     = nullptr;
         std::unique_ptr<RHI::ITexture>          _cloudNoise3D                          = nullptr;
         std::unique_ptr<RHI::ITexture>          _cloudWorley2D                         = nullptr;
         std::unique_ptr<RHI::ITexture>          _cloudTargets[CLOUD_LAYER_COUNT]        = {};
         std::unique_ptr<RHI::ITexture>          _cloudHistoryTargets[CLOUD_LAYER_COUNT] = {};
+        std::unique_ptr<RHI::ITexture>          _cloudOcclusionTargets[CLOUD_LAYER_COUNT] = {}; // Sun transmittance, 1x1.
+        float                                   _cloudTransmittances[CLOUD_LAYER_COUNT]   = {};
+        bool                                    _isCloudTransmittanceRead[CLOUD_LAYER_COUNT] = {};
         std::unique_ptr<RHI::IShader>           _godRayVertexShader                    = nullptr;
         std::unique_ptr<RHI::IShader>           _godRayPixelShader                     = nullptr;
         std::unique_ptr<RHI::IShader>           _godRayCompositePixelShader            = nullptr;
@@ -917,6 +922,7 @@ namespace TEN::Renderer::Next
         void DrawCloudLayers(RHI::ICommandBuffer& commandBuffer, bool isAfterHorizons);
         void RaymarchCloudLayer(RHI::ICommandBuffer& commandBuffer, const CloudLayerDraw& draw);
         void CompositeCloudLayer(RHI::ICommandBuffer& commandBuffer, int layer);
+        void QueryCloudOcclusion(RHI::ICommandBuffer& commandBuffer, const CloudLayerDraw& draw);
         bool CreateGodRayResources();
         void DrawGodRays(RHI::ICommandBuffer& commandBuffer);
         bool CreateDustStormResources();
@@ -1033,6 +1039,7 @@ namespace TEN::Renderer::Next
         void FinishFrame(const UiFrame& ui);
         void PresentOnWindowThread();
         void RequestScreenshot(const std::string& path);
+        bool ReadCloudTransmittance(int layer, float& transmittance);
         void ReloadShaders();
         void UpdateMoveableVertices(const std::vector<Graphics::Vertices::Vertex>& vertices);
 

@@ -1508,6 +1508,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\RendererLara.cpp" />
     <ClCompile Include="Renderer\RendererPostProcess.cpp" />
     <ClCompile Include="Renderer\RendererSettings.cpp" />
+    <ClCompile Include="Renderer\RendererSkyEffects.cpp" />
     <ClCompile Include="Renderer\RendererSorted.cpp" />
     <ClCompile Include="Renderer\RHI\RHIDevice.cpp" />
     <ClCompile Include="Renderer\RHI\DirectX11\DX11Device.cpp" />

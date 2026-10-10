@@ -307,12 +307,8 @@ namespace TEN::Renderer
 
 	void Renderer::DrawDustStorm(RenderView& view)
 	{
-		_nextDustStorm.IsDrawn = false;
-		if (!_dustStormSettings.Enabled)
+		if (!_nextDustStorm.IsDrawn)
 			return;
-
-		UpdateDustStormBuffer(view);
-		_nextDustStorm = Next::DustStormDraw{ true, _stDustStorm };
 
 		// Bind CB to b10 (Hud slot - safe at this stage, see header).
 		auto* buf = _cbDustStorm.get();

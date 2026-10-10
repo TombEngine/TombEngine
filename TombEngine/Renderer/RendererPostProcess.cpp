@@ -84,11 +84,11 @@ namespace TEN::Renderer
 
 	float Renderer::GetLensFlareCloudOcclusion() const
 	{
-		// Dual-layer occlusion is updated inside DrawDualVolumetricClouds(), the legacy single layer one by UpdateCloudLensFlareOcclusion().
+		// The cloud layer transmittances are read back by PrepareCloudLayers.
 		if (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
 			return g_SkyCloudSystem.GetCombinedCloudTransmittance();
 
-		return GetCloudLensFlareOcclusion();
+		return 1.0f;
 	}
 
 	Vector3 Renderer::GetLensFlareColor(const RendererLensFlare& lensFlare, float cloudOcclusion) const
@@ -212,17 +212,6 @@ namespace TEN::Renderer
 			SetCullMode(CullMode::CounterClockwise);
 			SetDepthState(DepthState::Write);
 
-			// Update cloud occlusion for lens flare attenuation (before setting up lens flare RT).
-			// If the new dual-layer system has active volumetric layers, use its combined
-			// transmittance; otherwise fall back to the legacy single-layer occlusion.
-			if (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
-			{
-				// Dual-layer occlusion is updated inside DrawDualVolumetricClouds().
-			}
-			else
-			{
-				UpdateCloudLensFlareOcclusion(view);
-			}
 			float cloudOcclusion = GetLensFlareCloudOcclusion();
 
 			_graphicsDevice->ClearRenderTarget2D(_postProcessRenderTarget[destRenderTarget]->GetRenderTarget(), Colors::Transparent);

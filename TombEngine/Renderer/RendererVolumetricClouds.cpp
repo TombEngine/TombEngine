@@ -640,42 +640,4 @@ namespace TEN::Renderer
 		if (state.LightningThunderCountdown < 0.0f)
 			state.LightningThunderCountdown = 1.0f + boltDistNorm * 7.0f;
 	}
-
-	// ========================================================================
-	// Lens flare occlusion
-	// ========================================================================
-
-	void Renderer::UpdateCloudLensFlareOcclusion(RenderView& renderView)
-	{
-		// Legacy single-layer path. Delegates to the unified implementation;
-		// when GetActiveVolumetricCloudSettings() returns nullptr the call
-		// returns 1.0f (no occlusion) without touching the GPU.
-		const CloudRenderSettings* activeSettings = GetActiveVolumetricCloudSettings();
-		if (activeSettings == nullptr)
-		{
-			_cloudState.FlareOcclusion.SmoothedTransmittance = 1.0f;
-			return;
-		}
-
-		_cloudState.FlareOcclusion.SmoothedTransmittance = ComputeSingleLayerOcclusion(
-			*activeSettings, _cloudState,
-			_cloudOcclusionTarget.get(), _cloudRenderTarget.get(),
-			_cloudOcclusionReadback.get(), renderView);
-	}
-
-	float Renderer::GetCloudLensFlareOcclusion() const
-	{
-		return _cloudState.FlareOcclusion.SmoothedTransmittance;
-	}
-
-	// ========================================================================
-	// Settings accessor
-	// ========================================================================
-
-	const CloudRenderSettings* Renderer::GetActiveVolumetricCloudSettings() const
-	{
-		// Legacy single-layer Lua path removed; cloud rendering now flows exclusively
-		// through g_SkyCloudSystem (level.dynamicSky.Clouds in Gameflow.lua).
-		return nullptr;
-	}
 }

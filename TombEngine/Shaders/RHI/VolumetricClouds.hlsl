@@ -1,8 +1,9 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=0
 // TEN_SHADER: Pixel PS samplers=3 storage_textures=0 storage_buffers=0 uniform_buffers=4
 // TEN_SHADER: Pixel PSCloudComposite samplers=2 storage_textures=0 storage_buffers=0 uniform_buffers=4
+// TEN_SHADER: Pixel PSCloudOcclusion samplers=3 storage_textures=0 storage_buffers=0 uniform_buffers=4
 
-// Volumetric clouds of the legacy renderer (Shaders/VolumetricCloudsCore.hlsli): raymarch and composite passes,
+// Volumetric clouds of the legacy renderer (Shaders/VolumetricCloudsCore.hlsli): raymarch, composite and sun occlusion passes,
 // with the legacy cloud uniform block in slot 2 and the camera values it reads in slot 3.
 
 #include "./ShaderInterop.hlsli"
@@ -25,7 +26,7 @@ TEN_PS_TEXTURE(Texture2D, CloudTexture, 0);
 TEN_PS_TEXTURE(Texture3D<float4>, CloudNoise3D, 1);
 TEN_PS_TEXTURE(Texture2D<float2>, CloudWorley2D, 2);
 
-// Composite pass: cloud layer and scene copy.
+// Composite pass: cloud layer and scene copy. The sun occlusion pass reads the cloud layer and the noise textures.
 TEN_PS_TEXTURE(Texture2D, SceneColorTexture, 0);
 TEN_PS_TEXTURE(Texture2D, SceneBackgroundTex, 1);
 

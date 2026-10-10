@@ -605,11 +605,8 @@ namespace TEN::Renderer
 		void UpdateVolumetricCloudBuffer(const VolumetricCloud::CloudRenderSettings& settings,
 		                                 const VolumetricCloud::CloudRuntimeState& runtimeState,
 		                                 RenderView& view);
-		void UpdateCloudLensFlareOcclusion(RenderView& renderView);
 		void UpdateLightningThunder(const VolumetricCloud::CloudRenderSettings& settings, VolumetricCloud::CloudRuntimeState& state, float dt);
-		const VolumetricCloud::CloudRenderSettings* GetActiveVolumetricCloudSettings() const;
 	public:
-		float GetCloudLensFlareOcclusion() const;
 		float GetLensFlareCloudOcclusion() const;
 		Vector3 GetLensFlareColor(const RendererLensFlare& lensFlare, float cloudOcclusion) const;
 
@@ -622,22 +619,24 @@ namespace TEN::Renderer
 		void InitializeDualVolumetricClouds();
 		void ResizeDualCloudTargets();
 		void DrawDualVolumetricClouds(RenderView& renderView);
-		void DrawSingleVolumetricCloudLayer(
-			const VolumetricCloud::CloudRenderSettings& settings,
-			VolumetricCloud::CloudRuntimeState& state,
-			IRenderSurface2D* renderTarget,
-			RenderView& renderView,
-			IRenderSurface2D* prevFrameRT = nullptr,
-			bool advanceState = true,
-			bool skipRaymarch = false);
-		void UpdateDualCloudLensFlareOcclusion(RenderView& renderView);
-		float ComputeSingleLayerOcclusion(
-			const VolumetricCloud::CloudRenderSettings& settings,
-			VolumetricCloud::CloudRuntimeState& state,
-			IRenderSurface2D* occlusionTarget,
-			IRenderSurface2D* cloudColorTarget,
-			IGpuReadbackBuffer* readback,
-			RenderView& renderView);
+		void DrawCloudLayer(const Next::CloudLayerDraw& draw, RenderView& renderView);
+
+		// Sky effect state and draw records, prepared once per frame (RendererSkyEffects.cpp).
+		void PrepareSkyEffects(RenderView& view);
+		void PrepareAtmosphericSky(RenderView& view);
+		void PrepareCloudLayers(RenderView& view);
+		bool PrepareCloudLayer(const VolumetricCloud::CloudRenderSettings& settings, VolumetricCloud::CloudRuntimeState& state, int layer, RenderView& view, bool isBleed);
+		void AdvanceCloudLayer(const VolumetricCloud::CloudRenderSettings& settings, VolumetricCloud::CloudRuntimeState& state);
+		void UpdateCloudOcclusion(int layer, VolumetricCloud::CloudRuntimeState& state, Next::CloudLayerDraw& draw);
+		void PrepareHorizonLayers(RenderView& view);
+		void GetHorizonMeshHeightRange(int layer, const RenderView& view, float& yMin, float& yRange);
+		void PrepareCloudBleed(RenderView& view);
+		void PrepareGodRays(RenderView& view);
+		bool AreGodRaysEnabled();
+		void PrepareDustStorm(RenderView& view);
+		bool IsSkyboxVisible(const RenderView& view) const;
+		bool IsHorizonLayerDrawn(int layer);
+		Matrix GetHorizonWorldMatrix(int layer, const RenderView& view);
 		void DrawRooms(RenderView& view, RendererPass rendererPass);
 		void DrawItems(RenderView& view, RendererPass rendererPass, bool onlyPlayer = false);
 		void DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass);

@@ -18,6 +18,7 @@ namespace TEN::Renderer::Next
         bool IsRaymarched    = false;
         bool IsHistoryUsed   = false; // Temporal reprojection: the target is copied to the history before the raymarch.
         bool IsAfterHorizons = false; // Bleed overlay drawn over the horizon meshes.
+        bool IsOcclusionQueried = false; // The sun transmittance through the layer is read back for the lens flares.
 
         ConstantBuffers::CVolumetricCloudBuffer Uniforms = {};
     };
