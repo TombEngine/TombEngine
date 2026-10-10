@@ -277,7 +277,7 @@ L'algoritmo di develop_performance (bucket come unita', entry compatte, radix so
 - [x] Run di stanze fusi per {pipeline, array e layer di texture}: con le liste di luci indicizzate la stanza non e' piu' parte della chiave. *(il renderer nuovo fonde i run consecutivi di stanze con stesso stato e stesso rettangolo di portale: gli indici sono contigui, quindi l'ordine resta; lo scissor per stanza del legacy impedisce di fondere stanze con rettangoli diversi)*
 - [x] Sprite dentro i cluster (particelle viste attraverso il vetro), disegnati come istanze in ordine di profondita'.
 - [x] Rettangoli dei cluster dai bounding box invece che dai centri dei poligoni. *(otto angoli del box del bucket invece di una proiezione per poligono: piu' preciso e piu' economico; vale per entrambi i renderer)*
-- [ ] Debris, bossoli e ragni inclusi nella raccolta. *(bossoli solo opachi, ragni codice morto nel legacy; restano fuori dal sort solo i detriti con blend mode trasparenti, disegnati dopo le facce ordinate come nel legacy)*
+- [x] Debris, bossoli e ragni inclusi nella raccolta. *(bossoli solo opachi, ragni codice morto nel legacy; restano fuori dal sort solo i detriti con blend mode trasparenti, disegnati dopo le facce ordinate come nel legacy; lasciati cosi' per ora per restare uguali al legacy)*
 - [x] ~~Weighted Blended OIT: solo come eventuale opzione futura per le particelle, non in questo piano.~~ *(fuori dal piano)*
 
 ---
