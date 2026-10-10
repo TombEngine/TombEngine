@@ -8,6 +8,8 @@ namespace TEN::Benchmark
     constexpr auto BENCHMARK_WARMUP_TIME = 3.0f;
     constexpr auto BENCHMARK_FLUSH_FRAMES = 60;
     constexpr auto BENCHMARK_SCREENSHOT_GAME_FRAME = 240;
+    constexpr auto BENCHMARK_MENU_SCREENSHOT_FRAME = 90;
+    constexpr auto BENCHMARK_MENU_EXIT_FRAME       = 150;
 
     static bool _isActive = false;
     static bool _isStarted = false;
@@ -16,6 +18,7 @@ namespace TEN::Benchmark
     static std::chrono::steady_clock::time_point _startTime = {};
     static int _recordedFrames = 0;
     static bool _isScreenshotTaken = false;
+    static int  _menuFrames        = 0;
     static std::ofstream _file;
     static std::mutex _mutex;
     static std::vector<float> _frameTimes = {};
@@ -150,6 +153,24 @@ namespace TEN::Benchmark
 
         _isScreenshotTaken = true;
         return true;
+    }
+
+    // Title and inventory frames do not run the game loop that ends the benchmark: they are captured after a fixed
+    // number of presented frames, and the run then ends.
+    bool ConsumeMenuScreenshotRequest()
+    {
+        if (!_isActive)
+            return false;
+
+        _menuFrames++;
+        if (_menuFrames == BENCHMARK_MENU_EXIT_FRAME)
+        {
+            auto quitEvent = SDL_Event{};
+            quitEvent.type = SDL_EVENT_QUIT;
+            SDL_PushEvent(&quitEvent);
+        }
+
+        return (_menuFrames == BENCHMARK_MENU_SCREENSHOT_FRAME);
     }
 
     void UpdateBenchmark()

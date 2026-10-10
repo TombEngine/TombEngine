@@ -6,7 +6,13 @@
 # Usage, from any directory:
 #   powershell -ExecutionPolicy Bypass -File Documentation\Renderer\RendererParity.ps1 [-BuildDir Build\Debug]
 #       [-Levels Benchmark_coastal,...] [-Backends vulkan,dx11] [-Window preview|next] [-Threshold 5] [-Seconds 12]
-#       [-ExtraArgs previewlowpower]
+#       [-ExtraArgs previewlowpower] [-SaveReference] [-UseReference] [-ReferenceDir Build\Debug\Logs\Reference]
+#
+# -SaveReference stores the legacy screenshot of each level as its reference image. -UseReference compares the next
+# renderer with the stored references instead of the legacy renderer, which no longer draws once it is removed.
+# The level "Title" captures the title menu; a level running InventoryTest.lua captures the inventory. Menus are
+# captured after a fixed number of presented frames. Test levels other than the benchmark levels, such as an inventory
+# level using InventoryTest.lua, need their own entries in the Gameflow.lua of the build.
 #
 # Threshold is the largest share of pixels, in percent, whose channels differ by more than 8 between the renderers.
 # Animated water and particles differ by timing, so a few percent is expected.
@@ -19,7 +25,10 @@ param(
     [double]$Threshold = 5.0,
     [int]$Seconds = 12,
     [string]$OutputDir = "",
-    [string[]]$ExtraArgs = @()
+    [string[]]$ExtraArgs = @(),
+    [switch]$SaveReference,
+    [switch]$UseReference,
+    [string]$ReferenceDir = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -34,11 +43,14 @@ Add-Type -AssemblyName System.Drawing
 $repository = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 if (-not $BuildDir) { $BuildDir = Join-Path $repository "Build\Debug" }
 if (-not $OutputDir) { $OutputDir = Join-Path $BuildDir "Logs\Parity" }
+if (-not $ReferenceDir) { $ReferenceDir = Join-Path $BuildDir "Logs\Reference" }
+New-Item -ItemType Directory -Force -Path $ReferenceDir | Out-Null
 
 $executable = Join-Path $BuildDir "Bin\x64\TombEngine.exe"
 $logDir = Join-Path $BuildDir "Logs"
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 Copy-Item (Join-Path $PSScriptRoot "Benchmark.lua") (Join-Path $BuildDir "Scripts\Levels\Benchmark.lua")
+Copy-Item (Join-Path $PSScriptRoot "InventoryTest.lua") (Join-Path $BuildDir "Scripts\Levels\InventoryTest.lua")
 
 # Share of sampled pixels (every third row and column) differing by more than 8 in any channel.
 function Get-DifferingShare([string]$first, [string]$second)
@@ -82,8 +94,10 @@ foreach ($level in $Levels)
         $stdout = Join-Path $OutputDir "$name.out.txt"
         $stderr = Join-Path $OutputDir "$name.err.txt"
 
+        # "Title" runs the title menu; other names are level files.
+        $levelArgs = $(if ($level -eq "Title") { @() } else { @("level", "Data/$level.ten") })
         $process = Start-Process -FilePath $executable -WorkingDirectory $BuildDir -PassThru `
-            -ArgumentList (@("debug", "level", "Data/$level.ten", $Window, $backend, "benchmark", "$Seconds") + $ExtraArgs) `
+            -ArgumentList (@("debug") + $levelArgs + @($Window, $backend, "benchmark", "$Seconds") + $ExtraArgs) `
             -RedirectStandardOutput $stdout -RedirectStandardError $stderr
         if (-not $process.WaitForExit(($Seconds + 120) * 1000))
         {
@@ -99,6 +113,10 @@ foreach ($level in $Levels)
 
         $legacyShot = Join-Path $logDir "Compare_Legacy.png"
         $nextShot = Join-Path $logDir "Compare_Next.png"
+        $referenceShot = Join-Path $ReferenceDir "$level.png"
+        if ($SaveReference -and (Test-Path $legacyShot)) { Copy-Item $legacyShot $referenceShot }
+        if ($UseReference) { $legacyShot = $referenceShot }
+
         if (-not (Test-Path $legacyShot) -or -not (Test-Path $nextShot))
         {
             "$name : no screenshots, validation errors $validationErrors, device losses $deviceLosses"

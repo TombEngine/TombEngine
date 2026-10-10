@@ -16,7 +16,9 @@
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Renderer/ImGuiIntegration.h"
+#include "Renderer/Next/NextRenderer.h"
 #include "Scripting/Internal/TEN/Flow//Level/FlowLevel.h"
+#include "Specific/Benchmark.h"
 #include "Specific/configuration.h"
 #include "Specific/Input/InputAction.h"
 #include "Specific/level.h"
@@ -1660,6 +1662,7 @@ namespace TEN::Renderer
 
 		RenderInventoryScene(_backBuffer.get(), _dumpScreenRenderTarget->GetRenderTarget(), 0.5f);
 
+		CaptureMenuScreenshot();
 		PresentFrame();
 	}
 
@@ -1673,7 +1676,20 @@ namespace TEN::Renderer
 
 		RenderInventoryScene(_backBuffer.get(), _dumpScreenRenderTarget->GetRenderTarget(), 1.0f);
 		
+		CaptureMenuScreenshot();
 		PresentFrame();
+	}
+
+	// Benchmark runs of the title and inventory capture both renderers at a fixed menu frame.
+	void Renderer::CaptureMenuScreenshot()
+	{
+		if (!TEN::Benchmark::ConsumeMenuScreenshotRequest())
+			return;
+
+		if (Next::g_NextRenderer.IsActive())
+			Next::g_NextRenderer.RequestScreenshot(g_GameFlow->GetGameDir() + "Logs/Compare_Next.png");
+
+		_graphicsDevice->SaveScreenshot(_backBuffer->GetRenderTarget(), g_GameFlow->GetGameDir() + "Logs/Compare_Legacy.png");
 	}
 
 	void Renderer::UpdateDumpScreenRenderTarget()

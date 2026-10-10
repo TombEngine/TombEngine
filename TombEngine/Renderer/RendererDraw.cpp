@@ -3872,6 +3872,10 @@ namespace TEN::Renderer
 		if (captureScreenshots && Next::g_NextRenderer.IsActive())
 			Next::g_NextRenderer.RequestScreenshot(g_GameFlow->GetGameDir() + "Logs/Compare_Next.png");
 
+		// Screenshots show the game frame itself: the interpolation between game frames depends on the frame pacing of the run.
+		if (captureScreenshots)
+			interpFactor = 1.0f;
+
 		InterpolateCamera(interpFactor);
 
 		_graphicsDevice->BeginGpuTiming(GpuTimingScope::Frame);
