@@ -63,6 +63,9 @@ struct GameConfiguration
 	bool EnableRumble					= false;
 	bool EnableThumbstickCamera			= false;
 	bool InvertCameraYAxis				= false;
+	bool EnableSprintToggle				= false;
+	bool EnableCrouchToggle				= true;
+	bool EnableSmoothSprintSteps		= true;
 
 	// Input
 	int					  MouseSensitivity		= DEFAULT_MOUSE_SENSITIVITY;

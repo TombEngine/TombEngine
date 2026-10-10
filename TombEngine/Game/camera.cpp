@@ -590,6 +590,33 @@ void ResetRemasteredCameraOrient(const ItemInfo& item)
 	RemasteredCameraPrevAltitude = RemasteredCameraAltitude;
 }
 
+// Camera frame the stick is read in. It stays locked while the look camera is active and
+// unlocks once the player stops.
+void UpdatePlayerRefCameraOrient(ItemInfo& item)
+{
+	if (!g_Configuration.IsUsingRemasteredControls())
+		return;
+
+	auto& player = GetLaraInfo(item);
+
+	float vel = Vector2(item.Animation.Velocity.x, item.Animation.Velocity.z).Length();
+	bool isStopped = (((GetMoveAxis() == Vector2::Zero && !IsHeld(In::StepLeft) && !IsHeld(In::StepRight)) || vel == 0.0f) &&
+					  TestState(item.Animation.ActiveState, PLAYER_IDLE_STATE_IDS));
+
+	if (isStopped)
+		player.Control.LockRefCameraOrient = false;
+
+	if (Camera.type == CameraType::Look)
+		player.Control.LockRefCameraOrient = true;
+
+	short frameAngle = Camera.actualAngle;
+	if (Camera.type == CameraType::Chase || Camera.type == CameraType::Combat)
+		frameAngle = RemasteredCameraAzimuth;
+
+	if (!player.Control.LockRefCameraOrient)
+		player.Control.RefCameraOrient = EulerAngles(Camera.actualElevation, frameAngle, 0);
+}
+
 // Restores last tick's orbit angles, used when the camera cannot be placed this tick.
 static void HoldRemasteredCameraFrame()
 {
@@ -805,6 +832,33 @@ static void ApplyRemasteredCameraDiagonalPush(GameVector& pos, const GameVector&
 	pos.RoomNumber = GetPointCollision(toPos, pos.RoomNumber).GetRoomNumber();
 }
 
+// Turns the orbit azimuth toward the direction the player moves, faster as she moves faster.
+static void ApplyRemasteredCameraAssist(const ItemInfo& item)
+{
+	constexpr auto BASE_VEL					= BLOCK(0.1f);
+	constexpr auto BASE_ANGLE				= ANGLE(90.0f);
+	constexpr auto AUTO_ROT_DELTA_ANGLE_MAX = BASE_ANGLE * 1.5f;
+	constexpr auto AZIMUTH_ANGLE_LERP_ALPHA = 0.075f;
+
+	float vel = Vector2(item.Animation.Velocity.x, item.Animation.Velocity.z).Length();
+	if (GetMoveAxis() == Vector2::Zero || vel == 0.0f || !DoesPlayerRemasteredCameraAssistApply(item))
+		return;
+
+	const auto& player = GetLaraInfo(item);
+	float alpha = std::clamp(vel / BASE_VEL, 0.0f, 1.0f);
+	short deltaAngle = FROM_RAD(std::atan2(player.Control.RefMoveAxis.x, player.Control.RefMoveAxis.y));
+
+	if (abs(deltaAngle) <= BASE_ANGLE)
+	{
+		RemasteredCameraAzimuth = (short)(RemasteredCameraAzimuth + deltaAngle * (AZIMUTH_ANGLE_LERP_ALPHA * alpha));
+	}
+	else if (abs(deltaAngle) <= AUTO_ROT_DELTA_ANGLE_MAX)
+	{
+		int sign = (int)std::copysign(1, deltaAngle);
+		RemasteredCameraAzimuth = (short)(RemasteredCameraAzimuth + (short)(BASE_ANGLE * (AZIMUTH_ANGLE_LERP_ALPHA * alpha)) * sign);
+	}
+}
+
 // Turns the orbit angles with the right stick and mouse. Used in place of DoThumbstickCamera().
 static void UpdateRemasteredCameraOrient()
 {
@@ -840,6 +894,8 @@ static void UpdateRemasteredCameraOrient()
 
 		RemasteredCameraAltitude = std::clamp(RemasteredCameraAltitude, REMASTERED_CAMERA_ALTITUDE_MIN, REMASTERED_CAMERA_ALTITUDE_MAX);
 	}
+
+	ApplyRemasteredCameraAssist(*LaraItem);
 
 	Camera.actualAngle = RemasteredCameraAzimuth;
 	Camera.actualElevation += (RemasteredCameraAltitude - Camera.actualElevation) / 2;
@@ -1972,6 +2028,10 @@ void UpdateCamera()
 		TrackCameraInit = false;
 		CalculateCamera(LaraCollision);
 	}
+
+	// Remastered controls: updates the camera frame the stick is read in, except during flybys. -- divezzi, 10.10.26
+	if (LaraItem != nullptr && !UseSpotCam)
+		UpdatePlayerRefCameraOrient(*LaraItem);
 
 	// Update cameras matrices there, after having done all the possible camera logic.
 	g_Renderer.UpdateCameraMatrices(&Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));

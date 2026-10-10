@@ -43,6 +43,10 @@ namespace TEN::Input
 	SDL_JoystickID ActiveGamepadId = 0;
 	bool ActiveGamepadHasRumble = false;
 
+	// Remastered controls: actions cleared or pushed this frame by scripts or ClearAllActions(). -- divezzi, 09.10.26
+	auto ClearedActions = std::array<bool, (int)ActionID::Count>{};
+	auto PushedActions	= std::array<bool, (int)ActionID::Count>{};
+
 	static bool HasMatchingBindings(const BindingProfile& bindingProfile)
 	{
 		for (const auto& [actionID, keyID] : bindingProfile)
@@ -312,6 +316,47 @@ namespace TEN::Input
 			axis = Vector2::Zero;
 	}
 
+	// Records a cleared action. A cleared direction also zeroes its half of the move axis,
+	// which Remastered movement steers from.
+	static void RecordClearedAction(ActionID actionID)
+	{
+		if (!g_Configuration.IsUsingRemasteredControls())
+			return;
+
+		ClearedActions[(int)actionID] = true;
+
+		auto& moveAxis = AxisMap[AxisID::Move];
+		switch (actionID)
+		{
+		case In::Forward:
+			moveAxis.y = std::min(moveAxis.y, 0.0f);
+			break;
+
+		case In::Back:
+			moveAxis.y = std::max(moveAxis.y, 0.0f);
+			break;
+
+		case In::Left:
+			moveAxis.x = std::max(moveAxis.x, 0.0f);
+			break;
+
+		case In::Right:
+			moveAxis.x = std::min(moveAxis.x, 0.0f);
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	static void RecordPushedAction(ActionID actionID)
+	{
+		if (!g_Configuration.IsUsingRemasteredControls())
+			return;
+
+		PushedActions[(int)actionID] = true;
+	}
+
 	void ApplyActionQueue()
 	{
 		for (int i = 0; i < (int)ActionID::Count; i++)
@@ -325,10 +370,12 @@ namespace TEN::Input
 
 			case ActionQueueState::Update:
 				ActionMap[actionID].Update(true);
+				RecordPushedAction(actionID);
 				break;
 
 			case ActionQueueState::Clear:
 				ActionMap[actionID].Clear();
+				RecordClearedAction(actionID);
 				break;
 			}
 		}
@@ -887,6 +934,10 @@ namespace TEN::Input
 
 	void UpdateInputActions(bool allowAsyncUpdate, bool applyQueue)
 	{
+		// Remastered controls: the cleared and pushed records last one frame. -- divezzi, 09.10.26
+		ClearedActions.fill(false);
+		PushedActions.fill(false);
+
 		// Don't update input data during frameskip.
 		if (allowAsyncUpdate || !g_Synchronizer.Locked())
 		{
@@ -918,6 +969,10 @@ namespace TEN::Input
 
 		for (auto& [actionID, queue] : ActionQueueMap)
 			queue = ActionQueueState::None;
+
+		// Remastered controls: every action counts as cleared this frame. -- divezzi, 09.10.26
+		for (int i = 0; i < (int)ActionID::Count; i++)
+			RecordClearedAction((ActionID)i);
 	}
 
 	void Rumble(float power, float delaySec, RumbleMode mode)
@@ -1045,6 +1100,18 @@ namespace TEN::Input
 	{
 		// Time in game frames.
 		return ActionMap[actionID].GetTimeInactive();
+	}
+
+	// True if a script or ClearAllActions() cleared the action this frame. Remastered controls only.
+	bool IsCleared(ActionID actionID)
+	{
+		return ClearedActions[(int)actionID];
+	}
+
+	// True if a script pushed the action this frame. Remastered controls only.
+	bool IsPushed(ActionID actionID)
+	{
+		return PushedActions[(int)actionID];
 	}
 
 	bool IsDirectionalActionHeld()

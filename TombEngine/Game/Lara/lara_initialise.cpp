@@ -116,6 +116,11 @@ void InitializeLara(bool restore)
 	// Player anim init should happen after leveljump init.
 	InitializeLaraAnims(LaraItem);
 
+	// Remastered controls: seeds the movement frame from Lara's start facing. -- divezzi, 09.10.26
+	Lara.Control.RefCameraOrient = EulerAngles(0, LaraItem->Pose.Orientation.y, 0);
+	Lara.Control.RefMoveAxis = Vector2::Zero;
+	Lara.Control.LockRefCameraOrient = false;
+
 	// Remastered controls: starts the camera behind Lara. -- divezzi, 08.10.26
 	ResetRemasteredCameraOrient(*LaraItem);
 

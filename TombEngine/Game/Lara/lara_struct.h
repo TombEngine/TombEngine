@@ -1019,6 +1019,14 @@ enum class TorchState
 	JustLit
 };
 
+// Remastered controls: how a rearward push is resolved this tick. -- divezzi, 09.10.26
+enum class RemasteredBackResolution
+{
+	None,
+	TankBack,
+	Turn180
+};
+
 struct Ammo
 {
 private:
@@ -1193,6 +1201,19 @@ struct LookControlData
 	bool  IsUsingLasersight = false;
 };
 
+// Remastered controls: all player state of the Remastered scheme, kept together and read only under Remastered controls. -- divezzi, 10.10.26
+struct RemasteredControlData
+{
+	RemasteredBackResolution BackResolution = RemasteredBackResolution::None;
+
+	int	 CrouchStage			= 0;
+	bool IsCrouchStageUp		= false;
+	bool IsCrouchStageUpPending = false;
+	bool IsSprintToggled		= false;
+
+	int HeadingTurnSign = 0;
+};
+
 struct RopeControlData
 {
 	unsigned char Segment = 0;
@@ -1262,6 +1283,10 @@ struct PlayerControlData
 	short MoveAngle = 0;
 	short TurnRate	= 0;
 
+	EulerAngles RefCameraOrient		= EulerAngles::Identity;
+	Vector2		RefMoveAxis			= Vector2::Zero;
+	bool		LockRefCameraOrient = false;
+
 	HandStatus	  HandStatus	= {};
 	WaterStatus	  WaterStatus	= {};
 	JumpDirection JumpDirection = {};
@@ -1284,6 +1309,8 @@ struct PlayerControlData
 	bool CanClimbLadder = false;
 	bool CanLook		= false;
 	bool CanMonkeySwing = false;
+
+	RemasteredControlData Remastered = {};
 };
 
 // TODO: Refactor status handling to use floats.

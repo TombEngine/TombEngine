@@ -465,6 +465,8 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	HandlePlayerExtraAnim(*item);
+	// Remastered controls: turns the player toward the stick direction before her state runs. -- divezzi, 10.10.26
+	HandlePlayerRemasteredHeading(*item);
 	HandlePlayerBehaviorState(*item, *coll, PlayerBehaviorStateRoutineType::Control);
 	HandleLaraMovementParameters(item, coll);
 	AnimateItem(item);
@@ -734,7 +736,10 @@ void UpdateLara(ItemInfo* item, bool isTitle)
 	// Control player.
 	InItemControlLoop = true;
 
+	// Remastered controls: movement actions are rewritten for the player's tick, then restored. -- divezzi, 10.10.26
+	ApplyRemasteredInput(*item);
 	LaraControl(item, &LaraCollision);
+	RestoreRemasteredInput();
 	HandlePlayerFlyCheat(*item);
 	InItemControlLoop = false;
 	KillMoveItems();

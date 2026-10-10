@@ -17,6 +17,7 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Game/Setup.h"
 #include "Sound/sound.h"
+#include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
@@ -1713,7 +1714,9 @@ void lara_as_sprint(ItemInfo* item, CollisionInfo* coll)
 	if (IsHeld(In::Left) || IsHeld(In::Right))
 	{
 		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_TURN_RATE_MAX);
-		HandlePlayerLean(item, coll, LARA_LEAN_RATE, LARA_LEAN_MAX);
+		// Remastered controls: the sprint lean limit is larger under Remastered controls. -- divezzi, 10.10.26
+		HandlePlayerLean(item, coll, LARA_LEAN_RATE,
+						 g_Configuration.IsUsingRemasteredControls() ? PLAYER_REMASTERED_SPRINT_LEAN_CLAMP : LARA_LEAN_MAX);
 	}
 
 	if (IsHeld(In::Jump) || player.Control.IsRunJumpQueued)

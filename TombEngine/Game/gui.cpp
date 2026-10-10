@@ -1064,6 +1064,9 @@ namespace TEN::Gui
 			ToggleRumble,
 			ThumbstickCameraControl,
 			InvertCameraYAxisOption,
+			SprintToggleOption,
+			CrouchToggleOption,
+			SmoothSprintStepsOption,
 			MouseSensitivity,
 
 			Apply,
@@ -1142,6 +1145,37 @@ namespace TEN::Gui
 				{
 					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 					CurrentSettings.Configuration.InvertCameraYAxis = !CurrentSettings.Configuration.InvertCameraYAxis;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+				break;
+
+			// Remastered controls: sprint, crouch and smooth sprint steps rows, locked under Classic. -- divezzi, 10.10.26
+			case GameplaySettingsOption::SprintToggleOption:
+				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableSprintToggle = !CurrentSettings.Configuration.EnableSprintToggle;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+				break;
+
+			case GameplaySettingsOption::CrouchToggleOption:
+				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableCrouchToggle = !CurrentSettings.Configuration.EnableCrouchToggle;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+				break;
+
+			case GameplaySettingsOption::SmoothSprintStepsOption:
+				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableSmoothSprintSteps = !CurrentSettings.Configuration.EnableSmoothSprintSteps;
 				}
 				else
 					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);

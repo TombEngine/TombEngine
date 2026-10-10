@@ -163,6 +163,9 @@ static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 	g_Configuration.EnableRumble = config->enable_rumble();
 	g_Configuration.EnableThumbstickCamera = config->enable_thumbstick_camera();
 	g_Configuration.InvertCameraYAxis = config->invert_camera_y_axis();
+	g_Configuration.EnableSprintToggle = config->enable_sprint_toggle();
+	g_Configuration.EnableCrouchToggle = config->enable_crouch_toggle();
+	g_Configuration.EnableSmoothSprintSteps = config->enable_smooth_sprint_steps();
 
 	g_Configuration.MouseSensitivity = config->mouse_sensitivity();
 	g_Configuration.MenuOptionLoopingMode = (MenuOptionLoopingMode)config->menu_option_looping_mode();
@@ -230,6 +233,9 @@ void InitDefaultConfiguration()
 	g_Configuration.EnableRumble = true;
 	g_Configuration.EnableThumbstickCamera = false;
 	g_Configuration.InvertCameraYAxis = false;
+	g_Configuration.EnableSprintToggle = false;
+	g_Configuration.EnableCrouchToggle = true;
+	g_Configuration.EnableSmoothSprintSteps = true;
 
 	g_Configuration.MouseSensitivity = GameConfiguration::DEFAULT_MOUSE_SENSITIVITY;
 	g_Configuration.MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
@@ -319,6 +325,9 @@ static std::vector<unsigned char> BuildConfigurationBuffer()
 	builder.add_remastered_bindings(remasteredBindingsOffset);
 	builder.add_remastered_gamepad_bindings(remasteredGamepadBindingsOffset);
 	builder.add_invert_camera_y_axis(g_Configuration.InvertCameraYAxis);
+	builder.add_enable_sprint_toggle(g_Configuration.EnableSprintToggle);
+	builder.add_enable_crouch_toggle(g_Configuration.EnableCrouchToggle);
+	builder.add_enable_smooth_sprint_steps(g_Configuration.EnableSmoothSprintSteps);
 
 	auto config = builder.Finish();
 	FinishConfigurationBuffer(fbb, config);

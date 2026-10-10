@@ -100,6 +100,8 @@ namespace TEN::Input
 	float		 GetActionValue(ActionID actionID);
 	unsigned int GetActionTimeActive(ActionID actionID);
 	unsigned int GetActionTimeInactive(ActionID actionID);
+	bool		 IsCleared(ActionID actionID);
+	bool		 IsPushed(ActionID actionID);
 
 	bool IsDirectionalActionHeld();
 	bool IsWakeActionHeld();

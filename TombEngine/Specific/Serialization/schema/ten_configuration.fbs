@@ -43,6 +43,9 @@ table Configuration {
 	remastered_bindings: [Binding];
 	remastered_gamepad_bindings: [Binding];
 	invert_camera_y_axis: bool;
+	enable_sprint_toggle: bool;
+	enable_crouch_toggle: bool = true;
+	enable_smooth_sprint_steps: bool = true;
 }
 
 root_type Configuration;

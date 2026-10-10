@@ -121,6 +121,9 @@ struct ConfigurationT : public flatbuffers::NativeTable {
   std::vector<std::unique_ptr<TEN::Serialization::Config::BindingT>> remastered_bindings{};
   std::vector<std::unique_ptr<TEN::Serialization::Config::BindingT>> remastered_gamepad_bindings{};
   bool invert_camera_y_axis = false;
+  bool enable_sprint_toggle = false;
+  bool enable_crouch_toggle = true;
+  bool enable_smooth_sprint_steps = true;
 };
 
 struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -159,7 +162,10 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_CONTROL_MODE = 60,
     VT_REMASTERED_BINDINGS = 62,
     VT_REMASTERED_GAMEPAD_BINDINGS = 64,
-    VT_INVERT_CAMERA_Y_AXIS = 66
+    VT_INVERT_CAMERA_Y_AXIS = 66,
+    VT_ENABLE_SPRINT_TOGGLE = 68,
+    VT_ENABLE_CROUCH_TOGGLE = 70,
+    VT_ENABLE_SMOOTH_SPRINT_STEPS = 72
   };
   int32_t screen_width() const {
     return GetField<int32_t>(VT_SCREEN_WIDTH, 0);
@@ -257,6 +263,15 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool invert_camera_y_axis() const {
     return GetField<uint8_t>(VT_INVERT_CAMERA_Y_AXIS, 0) != 0;
   }
+  bool enable_sprint_toggle() const {
+    return GetField<uint8_t>(VT_ENABLE_SPRINT_TOGGLE, 0) != 0;
+  }
+  bool enable_crouch_toggle() const {
+    return GetField<uint8_t>(VT_ENABLE_CROUCH_TOGGLE, 1) != 0;
+  }
+  bool enable_smooth_sprint_steps() const {
+    return GetField<uint8_t>(VT_ENABLE_SMOOTH_SPRINT_STEPS, 1) != 0;
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_SCREEN_WIDTH) &&
@@ -298,6 +313,9 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(remastered_gamepad_bindings()) &&
            verifier.VerifyVectorOfTables(remastered_gamepad_bindings()) &&
            VerifyField<uint8_t>(verifier, VT_INVERT_CAMERA_Y_AXIS) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_SPRINT_TOGGLE) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_CROUCH_TOGGLE) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_SMOOTH_SPRINT_STEPS) &&
            verifier.EndTable();
   }
   ConfigurationT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -405,6 +423,15 @@ struct ConfigurationBuilder {
   void add_invert_camera_y_axis(bool invert_camera_y_axis) {
     fbb_.AddElement<uint8_t>(Configuration::VT_INVERT_CAMERA_Y_AXIS, static_cast<uint8_t>(invert_camera_y_axis), 0);
   }
+  void add_enable_sprint_toggle(bool enable_sprint_toggle) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_SPRINT_TOGGLE, static_cast<uint8_t>(enable_sprint_toggle), 0);
+  }
+  void add_enable_crouch_toggle(bool enable_crouch_toggle) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_CROUCH_TOGGLE, static_cast<uint8_t>(enable_crouch_toggle), 1);
+  }
+  void add_enable_smooth_sprint_steps(bool enable_smooth_sprint_steps) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_SMOOTH_SPRINT_STEPS, static_cast<uint8_t>(enable_smooth_sprint_steps), 1);
+  }
   explicit ConfigurationBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -449,7 +476,10 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(
     int32_t control_mode = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> remastered_bindings = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> remastered_gamepad_bindings = 0,
-    bool invert_camera_y_axis = false) {
+    bool invert_camera_y_axis = false,
+    bool enable_sprint_toggle = false,
+    bool enable_crouch_toggle = true,
+    bool enable_smooth_sprint_steps = true) {
   ConfigurationBuilder builder_(_fbb);
   builder_.add_remastered_gamepad_bindings(remastered_gamepad_bindings);
   builder_.add_remastered_bindings(remastered_bindings);
@@ -469,6 +499,9 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(
   builder_.add_gamma(gamma);
   builder_.add_screen_height(screen_height);
   builder_.add_screen_width(screen_width);
+  builder_.add_enable_smooth_sprint_steps(enable_smooth_sprint_steps);
+  builder_.add_enable_crouch_toggle(enable_crouch_toggle);
+  builder_.add_enable_sprint_toggle(enable_sprint_toggle);
   builder_.add_invert_camera_y_axis(invert_camera_y_axis);
   builder_.add_enable_thumbstick_camera(enable_thumbstick_camera);
   builder_.add_enable_rumble(enable_rumble);
@@ -524,7 +557,10 @@ inline flatbuffers::Offset<Configuration> CreateConfigurationDirect(
     int32_t control_mode = 0,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *remastered_bindings = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *remastered_gamepad_bindings = nullptr,
-    bool invert_camera_y_axis = false) {
+    bool invert_camera_y_axis = false,
+    bool enable_sprint_toggle = false,
+    bool enable_crouch_toggle = true,
+    bool enable_smooth_sprint_steps = true) {
   auto adapter_name__ = adapter_name ? _fbb.CreateString(adapter_name) : 0;
   auto bindings__ = bindings ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>(*bindings) : 0;
   auto remastered_bindings__ = remastered_bindings ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>(*remastered_bindings) : 0;
@@ -562,7 +598,10 @@ inline flatbuffers::Offset<Configuration> CreateConfigurationDirect(
       control_mode,
       remastered_bindings__,
       remastered_gamepad_bindings__,
-      invert_camera_y_axis);
+      invert_camera_y_axis,
+      enable_sprint_toggle,
+      enable_crouch_toggle,
+      enable_smooth_sprint_steps);
 }
 
 flatbuffers::Offset<Configuration> CreateConfiguration(flatbuffers::FlatBufferBuilder &_fbb, const ConfigurationT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -637,6 +676,9 @@ inline void Configuration::UnPackTo(ConfigurationT *_o, const flatbuffers::resol
   { auto _e = remastered_bindings(); if (_e) { _o->remastered_bindings.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->remastered_bindings[_i] = std::unique_ptr<TEN::Serialization::Config::BindingT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = remastered_gamepad_bindings(); if (_e) { _o->remastered_gamepad_bindings.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->remastered_gamepad_bindings[_i] = std::unique_ptr<TEN::Serialization::Config::BindingT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = invert_camera_y_axis(); _o->invert_camera_y_axis = _e; }
+  { auto _e = enable_sprint_toggle(); _o->enable_sprint_toggle = _e; }
+  { auto _e = enable_crouch_toggle(); _o->enable_crouch_toggle = _e; }
+  { auto _e = enable_smooth_sprint_steps(); _o->enable_smooth_sprint_steps = _e; }
 }
 
 inline flatbuffers::Offset<Configuration> Configuration::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ConfigurationT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -679,6 +721,9 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(flatbuffers::FlatB
   auto _remastered_bindings = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> (_o->remastered_bindings.size(), [](size_t i, _VectorArgs *__va) { return CreateBinding(*__va->__fbb, __va->__o->remastered_bindings[i].get(), __va->__rehasher); }, &_va );
   auto _remastered_gamepad_bindings = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> (_o->remastered_gamepad_bindings.size(), [](size_t i, _VectorArgs *__va) { return CreateBinding(*__va->__fbb, __va->__o->remastered_gamepad_bindings[i].get(), __va->__rehasher); }, &_va );
   auto _invert_camera_y_axis = _o->invert_camera_y_axis;
+  auto _enable_sprint_toggle = _o->enable_sprint_toggle;
+  auto _enable_crouch_toggle = _o->enable_crouch_toggle;
+  auto _enable_smooth_sprint_steps = _o->enable_smooth_sprint_steps;
   return TEN::Serialization::Config::CreateConfiguration(
       _fbb,
       _screen_width,
@@ -712,7 +757,10 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(flatbuffers::FlatB
       _control_mode,
       _remastered_bindings,
       _remastered_gamepad_bindings,
-      _invert_camera_y_axis);
+      _invert_camera_y_axis,
+      _enable_sprint_toggle,
+      _enable_crouch_toggle,
+      _enable_smooth_sprint_steps);
 }
 
 inline const TEN::Serialization::Config::Configuration *GetConfiguration(const void *buf) {

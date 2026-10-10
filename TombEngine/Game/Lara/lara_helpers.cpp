@@ -23,6 +23,7 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Sound/sound.h"
+#include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
@@ -88,6 +89,10 @@ void HandleLaraMovementParameters(ItemInfo* item, CollisionInfo* coll)
 	{
 		ResetPlayerFlex(item, 0.1f);
 	}
+
+	// Remastered controls: the heading solver turns the player in its states, so the turn rate is zeroed there. -- divezzi, 10.10.26
+	if (g_Configuration.IsUsingRemasteredControls() && DoesPlayerRemasteredSolverOwnHeading(*item))
+		lara->Control.TurnRate = 0;
 
 	// Apply and reset turn rate.
 	item->Pose.Orientation.y += lara->Control.TurnRate;
@@ -487,15 +492,16 @@ void HandlePlayerLookAround(ItemInfo& item, bool invertXAxis)
 	bool isSlow = IsHeld(In::Walk);
 	auto axisCoeff = Vector2::Zero;
 
+	// Remastered controls: look-around reads the keys as pressed, before the movement rewrite. -- divezzi, 10.10.26
 	// Determine X axis coefficient.
-	if ((IsHeld(In::Forward) || IsHeld(In::Back)) &&
+	if ((IsRawActionHeld(In::Forward) || IsRawActionHeld(In::Back)) &&
 		(player.Control.Look.Mode == LookMode::Free || player.Control.Look.Mode == LookMode::Vertical))
 	{
 		axisCoeff.x = AxisMap[AxisID::Move].y;
 	}
 
 	// Determine Y axis coefficient.
-	if ((IsHeld(In::Left) || IsHeld(In::Right)) &&
+	if ((IsRawActionHeld(In::Left) || IsRawActionHeld(In::Right)) &&
 		(player.Control.Look.Mode == LookMode::Free || player.Control.Look.Mode == LookMode::Horizontal))
 	{
 		axisCoeff.y = AxisMap[AxisID::Move].x;
@@ -982,6 +988,14 @@ void HandlePlayerElevationChange(ItemInfo* item, CollisionInfo* coll)
 		{
 			item->DisableInterpolation = true;
 
+			// Remastered controls: with Smooth Sprint Steps on, a sprint climbs the step without the step-up animation. -- divezzi, 10.10.26
+			if (g_Configuration.IsUsingRemasteredControls() && g_Configuration.EnableSmoothSprintSteps &&
+				item->Animation.ActiveState == LS_SPRINT)
+			{
+				item->Pose.Position.y += coll->Middle.Floor;
+				return;
+			}
+
 			const auto* dispatch = GetStateDispatch(*item, LS_STEP_UP);
 			if (dispatch != nullptr)
 			{
@@ -1302,6 +1316,651 @@ void ResetPlayerTurnRateY(ItemInfo& item, short decelRate)
 {
 	auto& player = GetLaraInfo(item);
 	player.Control.TurnRate/*.y*/ = ResetPlayerTurnRate(player.Control.TurnRate/*.y*/, decelRate);
+}
+
+// Remastered controls: input rewrite and heading solver for camera-relative movement. -- divezzi, 10.10.26
+
+enum class RemasteredInputScope
+{
+	None,
+	Ground
+};
+
+// Raw and rewritten values of the actions the Remastered input rewrite changed this tick.
+static auto RemasteredRawActions	 = std::unordered_map<ActionID, Action>{};
+static auto RemasteredWrittenActions = std::unordered_map<ActionID, Action>{};
+
+// Held state of an action as pressed, before the Remastered input rewrite.
+bool IsRawActionHeld(ActionID actionID)
+{
+	auto it = RemasteredRawActions.find(actionID);
+	if (it == RemasteredRawActions.end())
+		return IsHeld(actionID);
+
+	return it->second.IsHeld();
+}
+
+// Steps an angle toward a target by a share of the remaining error, clamped between a minimum and a maximum step.
+// An exact half-turn error keeps the previous turn direction, stored in prevSign.
+static short ApproachHeadingAngle(short fromAngle, short toAngle, float rate, short stepMax, int& prevSign)
+{
+	constexpr auto STEP_MIN = ANGLE(0.5f);
+
+	short deltaAngle = Geometry::GetShortestAngle(fromAngle, toAngle);
+	int deltaAngleAbs = abs((int)deltaAngle);
+	if (deltaAngleAbs == 0)
+		return toAngle;
+
+	float step = ((float)deltaAngleAbs * rate) / PI;
+	step = std::clamp(step, (float)STEP_MIN, (float)stepMax);
+	if (step >= (float)deltaAngleAbs)
+		return toAngle;
+
+	int sign = (deltaAngle < 0) ? -1 : 1;
+	if (deltaAngle == SHRT_MIN && prevSign != 0)
+		sign = prevSign;
+
+	prevSign = sign;
+	return (short)(fromAngle + (short)((int)step * sign));
+}
+
+// Weapons drawn and ready. A torch counts as holstered.
+static bool IsPlayerRemasteredWeaponReady(const ItemInfo& item)
+{
+	const auto& player = GetLaraInfo(item);
+	return (player.Control.HandStatus == HandStatus::WeaponReady &&
+			player.Control.Weapon.GunType != LaraWeaponType::Torch);
+}
+
+// Weapons drawn or being drawn. A torch counts as holstered.
+static bool IsPlayerInRemasteredCombatBackStance(const ItemInfo& item)
+{
+	const auto& player = GetLaraInfo(item);
+	return ((player.Control.HandStatus == HandStatus::WeaponReady ||
+			 player.Control.HandStatus == HandStatus::WeaponDraw) &&
+			player.Control.Weapon.GunType != LaraWeaponType::Torch);
+}
+
+// Hanging, shimmying, monkey swing, ladder, rope and pole states.
+static bool DoesPlayerRemasteredInputOwnGrip(const ItemInfo& item)
+{
+	if (!g_Configuration.IsUsingRemasteredControls())
+		return false;
+
+	switch (item.Animation.ActiveState)
+	{
+	case LS_MONKEY_IDLE:
+	case LS_MONKEY_FORWARD:
+	case LS_MONKEY_BACK:
+	case LS_MONKEY_TURN_LEFT:
+	case LS_MONKEY_TURN_RIGHT:
+	case LS_MONKEY_TURN_180:
+	case LS_MONKEY_SHIMMY_LEFT:
+	case LS_MONKEY_SHIMMY_RIGHT:
+	case LS_HANG:
+	case LS_SHIMMY_LEFT:
+	case LS_SHIMMY_RIGHT:
+	case LS_SHIMMY_OUTER_LEFT:
+	case LS_SHIMMY_OUTER_RIGHT:
+	case LS_SHIMMY_INNER_LEFT:
+	case LS_SHIMMY_INNER_RIGHT:
+	case LS_SHIMMY_45_OUTER_LEFT:
+	case LS_SHIMMY_45_OUTER_RIGHT:
+	case LS_SHIMMY_45_INNER_LEFT:
+	case LS_SHIMMY_45_INNER_RIGHT:
+	case LS_LADDER_IDLE:
+	case LS_LADDER_STOP:
+	case LS_LADDER_UP:
+	case LS_LADDER_DOWN:
+	case LS_LADDER_LEFT:
+	case LS_LADDER_RIGHT:
+	case LS_ROPE_IDLE:
+	case LS_ROPE_UP:
+	case LS_ROPE_SWING:
+	case LS_ROPE_UNKNOWN:
+	case LS_ROPE_TURN_CLOCKWISE:
+	case LS_ROPE_TURN_COUNTER_CLOCKWISE:
+	case LS_ROPE_DOWN:
+	case LS_POLE_IDLE:
+	case LS_POLE_UP:
+	case LS_POLE_DOWN:
+	case LS_POLE_TURN_CLOCKWISE:
+	case LS_POLE_TURN_COUNTER_CLOCKWISE:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+static bool IsPlayerRemasteredOnKnees(const ItemInfo& item)
+{
+	switch (item.Animation.ActiveState)
+	{
+	case LS_CRAWL_IDLE:
+	case LS_CRAWL_FORWARD:
+	case LS_CRAWL_BACK:
+	case LS_CRAWL_TURN_LEFT:
+	case LS_CRAWL_TURN_RIGHT:
+	case LS_CRAWL_TURN_180:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+// Walk with a pure sideways push, read from the raw keys. The stock crawl turn plays.
+static bool IsPlayerRemasteredCrawlTurnHeld()
+{
+	return (IsRawActionHeld(In::Walk) && (IsRawActionHeld(In::Left) || IsRawActionHeld(In::Right)) &&
+			!IsRawActionHeld(In::Forward) && !IsRawActionHeld(In::Back));
+}
+
+// A script pushed a direction this frame. That tick plays classic.
+static bool IsPlayerRemasteredDirectionPushed()
+{
+	return (IsPushed(In::Forward) || IsPushed(In::Back) || IsPushed(In::Left) || IsPushed(In::Right));
+}
+
+// Turn rate and step cap of the heading solver in the player's current state.
+// Scope None leaves the state to play classic.
+static RemasteredInputScope GetPlayerRemasteredTurnParams(const ItemInfo& item, float& rate, short& stepMax)
+{
+	constexpr auto TURN_RATE_IDLE		= 1.0f;
+	constexpr auto TURN_RATE_WALK		= 1.0f;
+	constexpr auto TURN_RATE_RUN		= 1.0f;
+	constexpr auto TURN_RATE_SPRINT		= 0.2f;
+	constexpr auto TURN_RATE_WADE		= 0.6f;
+	constexpr auto TURN_RATE_CRAWL_IDLE = 0.5f;
+	constexpr auto TURN_RATE_CRAWL		= 0.2f;
+
+	constexpr auto TURN_STEP_MAX_IDLE		= ANGLE(90.0f);
+	constexpr auto TURN_STEP_MAX_WALK		= ANGLE(45.0f);
+	constexpr auto TURN_STEP_MAX_RUN		= ANGLE(30.0f);
+	constexpr auto TURN_STEP_MAX_SPRINT		= ANGLE(5.0f);
+	constexpr auto TURN_STEP_MAX_WADE		= ANGLE(15.0f);
+	constexpr auto TURN_STEP_MAX_CRAWL_IDLE = ANGLE(90.0f);
+	constexpr auto TURN_STEP_MAX_CRAWL		= ANGLE(7.0f);
+
+	if (IsPlayerRemasteredDirectionPushed())
+		return RemasteredInputScope::None;
+
+	// TODO: Armed standing plays classic until armed turning is added. -- divezzi, 10.10.26
+	if (IsPlayerRemasteredWeaponReady(item))
+	{
+		switch (item.Animation.ActiveState)
+		{
+		case LS_IDLE:
+		case LS_SOFT_SPLAT:
+		case LS_TURN_LEFT_SLOW:
+		case LS_TURN_RIGHT_SLOW:
+		case LS_TURN_LEFT_FAST:
+		case LS_TURN_RIGHT_FAST:
+			return RemasteredInputScope::None;
+		}
+	}
+
+	switch (item.Animation.ActiveState)
+	{
+	case LS_IDLE:
+	case LS_SOFT_SPLAT:
+	case LS_TURN_LEFT_SLOW:
+	case LS_TURN_RIGHT_SLOW:
+	case LS_TURN_LEFT_FAST:
+	case LS_TURN_RIGHT_FAST:
+		rate = TURN_RATE_IDLE;
+		stepMax = TURN_STEP_MAX_IDLE;
+		return RemasteredInputScope::Ground;
+
+	case LS_WALK_FORWARD:
+		rate = TURN_RATE_WALK;
+		stepMax = TURN_STEP_MAX_WALK;
+		return RemasteredInputScope::Ground;
+
+	case LS_RUN_FORWARD:
+		rate = TURN_RATE_RUN;
+		stepMax = TURN_STEP_MAX_RUN;
+		return RemasteredInputScope::Ground;
+
+	case LS_SPRINT:
+		rate = TURN_RATE_SPRINT;
+		stepMax = TURN_STEP_MAX_SPRINT;
+		return RemasteredInputScope::Ground;
+
+	case LS_WADE_FORWARD:
+		rate = TURN_RATE_WADE;
+		stepMax = TURN_STEP_MAX_WADE;
+		return RemasteredInputScope::Ground;
+
+	case LS_STEP_LEFT:
+	case LS_STEP_RIGHT:
+		rate = TURN_RATE_IDLE;
+		stepMax = TURN_STEP_MAX_IDLE;
+		return RemasteredInputScope::Ground;
+
+	case LS_CRAWL_IDLE:
+	case LS_CRAWL_TURN_LEFT:
+	case LS_CRAWL_TURN_RIGHT:
+		if (IsPlayerRemasteredCrawlTurnHeld())
+			return RemasteredInputScope::None;
+
+		rate = TURN_RATE_CRAWL_IDLE;
+		stepMax = TURN_STEP_MAX_CRAWL_IDLE;
+		return RemasteredInputScope::Ground;
+
+	case LS_CRAWL_FORWARD:
+	case LS_CRAWL_BACK:
+		rate = TURN_RATE_CRAWL;
+		stepMax = TURN_STEP_MAX_CRAWL;
+		return RemasteredInputScope::Ground;
+
+	default:
+		return RemasteredInputScope::None;
+	}
+}
+
+// True if the heading solver turns the player in the current state.
+bool DoesPlayerRemasteredSolverOwnHeading(const ItemInfo& item)
+{
+	float rate = 0.0f;
+	short stepMax = 0;
+	return (GetPlayerRemasteredTurnParams(item, rate, stepMax) == RemasteredInputScope::Ground);
+}
+
+// True if the camera turns toward the player's movement in the current state.
+bool DoesPlayerRemasteredCameraAssistApply(const ItemInfo& item)
+{
+	return DoesPlayerRemasteredSolverOwnHeading(item);
+}
+
+// Heading the stick points to, relative to the camera. The player's own heading when the stick is centered.
+short GetPlayerHeadingAngleY(const ItemInfo& item)
+{
+	if (!g_Configuration.IsUsingRemasteredControls())
+		return item.Pose.Orientation.y;
+
+	const auto& player = GetLaraInfo(item);
+	auto dir = player.Control.RefMoveAxis;
+	if (dir == Vector2::Zero)
+		return item.Pose.Orientation.y;
+
+	dir.Normalize();
+	short moveAxisAngle = FROM_RAD(std::atan2(dir.x, dir.y));
+	return (short)(player.Control.RefCameraOrient.y + moveAxisAngle);
+}
+
+// A diagonal step or wall met within 45 degrees of square-on resets the side collision, so the player
+// moves on until the front probe stops her instead of being deflected every tick. Returns true if reset.
+bool HandlePlayerRemasteredDiagonalStep(const ItemInfo& item, CollisionInfo& coll)
+{
+	if (!g_Configuration.IsUsingRemasteredControls())
+		return false;
+
+	switch (item.Animation.ActiveState)
+	{
+	case LS_WALK_FORWARD:
+	case LS_RUN_FORWARD:
+	case LS_SPRINT:
+	case LS_WADE_FORWARD:
+		break;
+
+	default:
+		return false;
+	}
+
+	bool isLeft = (coll.CollisionType == CollisionType::Left);
+	if (!isLeft && coll.CollisionType != CollisionType::Right)
+		return false;
+
+	auto& sidePos = isLeft ? coll.MiddleLeft : coll.MiddleRight;
+	bool isTriangle = isLeft ? coll.TriangleAtLeft() : coll.TriangleAtRight();
+	if (!isTriangle || !sidePos.HasDiagonalSplit())
+		return false;
+
+	int quarter = ((unsigned short)coll.Setup.ForwardAngle / ANGLE(90.0f)) % 2;
+	bool isFacingStep = (sidePos.HasFlippedDiagonalSplit() != (quarter != 0));
+	if (!isFacingStep)
+		return false;
+
+	coll.CollisionType = CollisionType::None;
+	return true;
+}
+
+// Working copy of the general actions, rewritten by the Remastered transform and written back to the action map.
+struct RemasteredInput
+{
+	bool Forward   = false;
+	bool Back	   = false;
+	bool Left	   = false;
+	bool Right	   = false;
+	bool StepLeft  = false;
+	bool StepRight = false;
+	bool Walk	   = false;
+	bool Sprint	   = false;
+	bool Crouch	   = false;
+	bool Jump	   = false;
+	bool Roll	   = false;
+	bool Action	   = false;
+	bool Draw	   = false;
+	bool Look	   = false;
+};
+
+static RemasteredInput ReadRemasteredInput()
+{
+	auto input = RemasteredInput{};
+	input.Forward	= IsHeld(In::Forward);
+	input.Back		= IsHeld(In::Back);
+	input.Left		= IsHeld(In::Left);
+	input.Right		= IsHeld(In::Right);
+	input.StepLeft	= IsHeld(In::StepLeft);
+	input.StepRight = IsHeld(In::StepRight);
+	input.Walk		= IsHeld(In::Walk);
+	input.Sprint	= IsHeld(In::Sprint);
+	input.Crouch	= IsHeld(In::Crouch);
+	input.Jump		= IsHeld(In::Jump);
+	input.Roll		= IsHeld(In::Roll);
+	input.Action	= IsHeld(In::Action);
+	input.Draw		= IsHeld(In::Draw);
+	input.Look		= IsHeld(In::Look);
+	return input;
+}
+
+// Writes a rewritten value to the action map, keeping the raw and the written action for the restore.
+static void WriteRemasteredAction(ActionID actionID, bool isHeld)
+{
+	auto& action = ActionMap[actionID];
+	if (action.IsHeld() == isHeld)
+		return;
+
+	RemasteredRawActions.insert_or_assign(actionID, action);
+	action.Update(isHeld);
+	RemasteredWrittenActions.insert_or_assign(actionID, action);
+}
+
+static void WriteRemasteredInput(const RemasteredInput& input)
+{
+	WriteRemasteredAction(In::Forward, input.Forward);
+	WriteRemasteredAction(In::Back, input.Back);
+	WriteRemasteredAction(In::Left, input.Left);
+	WriteRemasteredAction(In::Right, input.Right);
+	WriteRemasteredAction(In::StepLeft, input.StepLeft);
+	WriteRemasteredAction(In::StepRight, input.StepRight);
+	WriteRemasteredAction(In::Walk, input.Walk);
+	WriteRemasteredAction(In::Sprint, input.Sprint);
+	WriteRemasteredAction(In::Crouch, input.Crouch);
+	WriteRemasteredAction(In::Jump, input.Jump);
+	WriteRemasteredAction(In::Roll, input.Roll);
+	WriteRemasteredAction(In::Action, input.Action);
+	WriteRemasteredAction(In::Draw, input.Draw);
+	WriteRemasteredAction(In::Look, input.Look);
+}
+
+// A script clear of Sprint or Crouch resets its toggle.
+static void ResetPlayerRemasteredClearedLatches(ItemInfo& item)
+{
+	auto& player = GetLaraInfo(item);
+
+	if (IsCleared(In::Sprint))
+		player.Control.Remastered.IsSprintToggled = false;
+
+	if (IsCleared(In::Crouch))
+	{
+		player.Control.Remastered.CrouchStage = 0;
+		player.Control.Remastered.IsCrouchStageUpPending = false;
+	}
+}
+
+// A script clear holds the action off, even where the rewrite would set it.
+static void MaskPlayerRemasteredClearedInput(RemasteredInput& input)
+{
+	input.Forward	= (input.Forward && !IsCleared(In::Forward));
+	input.Back		= (input.Back && !IsCleared(In::Back));
+	input.Left		= (input.Left && !IsCleared(In::Left));
+	input.Right		= (input.Right && !IsCleared(In::Right));
+	input.StepLeft	= (input.StepLeft && !IsCleared(In::StepLeft));
+	input.StepRight = (input.StepRight && !IsCleared(In::StepRight));
+	input.Walk		= (input.Walk && !IsCleared(In::Walk));
+	input.Sprint	= (input.Sprint && !IsCleared(In::Sprint));
+	input.Crouch	= (input.Crouch && !IsCleared(In::Crouch));
+	input.Jump		= (input.Jump && !IsCleared(In::Jump));
+	input.Roll		= (input.Roll && !IsCleared(In::Roll));
+	input.Action	= (input.Action && !IsCleared(In::Action));
+	input.Draw		= (input.Draw && !IsCleared(In::Draw));
+	input.Look		= (input.Look && !IsCleared(In::Look));
+}
+
+// Sprint toggle: a press while running latches the sprint, the next press or leaving the run releases it.
+static void UpdatePlayerRemasteredSprintToggle(ItemInfo& item, RemasteredInput& input)
+{
+	auto& remastered = GetLaraInfo(item).Control.Remastered;
+	bool isRunning = (item.Animation.ActiveState == LS_RUN_FORWARD || item.Animation.ActiveState == LS_SPRINT);
+
+	if (!g_Configuration.EnableSprintToggle)
+	{
+		remastered.IsSprintToggled = false;
+	}
+	else if (IsClicked(In::Sprint) && !IsPushed(In::Sprint))
+	{
+		if (remastered.IsSprintToggled)
+		{
+			remastered.IsSprintToggled = false;
+		}
+		else if (isRunning)
+		{
+			remastered.IsSprintToggled = true;
+		}
+	}
+
+	if (!isRunning)
+		remastered.IsSprintToggled = false;
+
+	if (g_Configuration.EnableSprintToggle && isRunning)
+		input.Sprint = (remastered.IsSprintToggled || IsPushed(In::Sprint));
+}
+
+// Crouch stages: standing, crouched, on knees. A press on knees rises one stage to the crouch.
+static void UpdatePlayerRemasteredCrouchStages(ItemInfo& item, RemasteredInput& input)
+{
+	auto& player = GetLaraInfo(item);
+	auto& remastered = player.Control.Remastered;
+
+	if (!g_Configuration.EnableCrouchToggle)
+	{
+		remastered.CrouchStage = IsHeld(In::Crouch) ? 1 : 0;
+		remastered.IsCrouchStageUpPending = false;
+	}
+	else if (IsClicked(In::Crouch) && !IsPushed(In::Crouch))
+	{
+		if (remastered.CrouchStage == 0)
+		{
+			remastered.CrouchStage = 1;
+		}
+		else if (IsPlayerRemasteredOnKnees(item))
+		{
+			remastered.IsCrouchStageUpPending = true;
+		}
+		else
+		{
+			remastered.CrouchStage = 0;
+		}
+	}
+
+	if (remastered.IsCrouchStageUpPending)
+	{
+		if (IsPlayerRemasteredOnKnees(item))
+		{
+			remastered.IsCrouchStageUp = true;
+			input.Forward = false;
+			input.Back = false;
+		}
+		else
+		{
+			remastered.IsCrouchStageUpPending = false;
+		}
+	}
+
+	if (player.Control.WaterStatus == WaterStatus::Underwater ||
+		player.Control.WaterStatus == WaterStatus::TreadWater ||
+		DoesPlayerRemasteredInputOwnGrip(item))
+	{
+		remastered.CrouchStage = 0;
+		remastered.IsCrouchStageUpPending = false;
+	}
+
+	input.Crouch = ((remastered.CrouchStage != 0) || IsPushed(In::Crouch));
+}
+
+// Rewrites the movement actions so the stick moves the player relative to the camera.
+// On the ground the heading solver turns her, so a push becomes Forward, and a push toward the camera a fast 180.
+static void TransformPlayerRemasteredInput(ItemInfo& item, RemasteredInput& input)
+{
+	constexpr auto BACK_ARC_MIN_ANGLE	= ANGLE(135.0f);
+	constexpr auto CRAWL_BACK_ARC_ANGLE = ANGLE(45.0f);
+
+	auto& player = GetLaraInfo(item);
+
+	ResetPlayerRemasteredClearedLatches(item);
+	UpdatePlayerRemasteredSprintToggle(item, input);
+	UpdatePlayerRemasteredCrouchStages(item, input);
+	player.Control.RefMoveAxis = GetMoveAxis();
+
+	if (!IsPlayerRemasteredDirectionPushed() && !IsPlayerInRemasteredCombatBackStance(item) &&
+		(item.Animation.ActiveState == LS_WALK_BACK || item.Animation.ActiveState == LS_RUN_BACK))
+	{
+		input.Back = false;
+	}
+
+	if (IsPlayerRemasteredDirectionPushed())
+		return;
+
+	if (player.Control.RefMoveAxis == Vector2::Zero)
+	{
+		player.Control.TurnRate = 0;
+		return;
+	}
+
+	float turnRate = 0.0f;
+	short turnStepMax = 0;
+	if (GetPlayerRemasteredTurnParams(item, turnRate, turnStepMax) == RemasteredInputScope::None)
+		return;
+
+	auto dir = player.Control.RefMoveAxis;
+	dir.Normalize();
+	short moveAxisAngle = FROM_RAD(std::atan2(dir.x, dir.y));
+	bool isPushingBack = (abs((int)moveAxisAngle) >= BACK_ARC_MIN_ANGLE);
+
+	// Walk with a push toward the camera on knees, facing away from it: the stock crawl back plays.
+	if (input.Walk && isPushingBack &&
+		(item.Animation.ActiveState == LS_CRAWL_IDLE ||
+		 item.Animation.ActiveState == LS_CRAWL_FORWARD ||
+		 item.Animation.ActiveState == LS_CRAWL_BACK))
+	{
+		short frameDeltaAngle = Geometry::GetShortestAngle(item.Pose.Orientation.y, player.Control.RefCameraOrient.y);
+		if (abs((int)frameDeltaAngle) <= CRAWL_BACK_ARC_ANGLE)
+		{
+			player.Control.Remastered.BackResolution = RemasteredBackResolution::TankBack;
+			input.Left = false;
+			input.Right = false;
+			return;
+		}
+	}
+
+	input.Left = false;
+	input.Right = false;
+	input.StepLeft = false;
+	input.StepRight = false;
+
+	if (isPushingBack)
+		player.Control.Remastered.BackResolution = RemasteredBackResolution::Turn180;
+
+	input.Back = false;
+	input.Forward = true;
+}
+
+void ApplyRemasteredInput(ItemInfo& item)
+{
+	auto& player = GetLaraInfo(item);
+
+	// Under Classic controls all Remastered state is cleared, so the toggles are off on a switch back.
+	if (!g_Configuration.IsUsingRemasteredControls())
+	{
+		player.Control.Remastered = {};
+		return;
+	}
+
+	player.Control.Remastered.BackResolution = RemasteredBackResolution::None;
+	player.Control.Remastered.IsCrouchStageUp = false;
+
+	if (player.Context.Vehicle != NO_VALUE)
+		return;
+
+	auto input = ReadRemasteredInput();
+	TransformPlayerRemasteredInput(item, input);
+	MaskPlayerRemasteredClearedInput(input);
+	WriteRemasteredInput(input);
+}
+
+void RestoreRemasteredInput()
+{
+	for (const auto& [actionID, writtenAction] : RemasteredWrittenActions)
+	{
+		// An action changed by player code during the tick, such as a look-around clear, keeps that change.
+		const auto& action = ActionMap[actionID];
+		if (action.GetValue() != writtenAction.GetValue() ||
+			action.GetTimeActive() != writtenAction.GetTimeActive() ||
+			action.GetTimeInactive() != writtenAction.GetTimeInactive())
+		{
+			continue;
+		}
+
+		ActionMap[actionID] = RemasteredRawActions[actionID];
+	}
+
+	RemasteredRawActions.clear();
+	RemasteredWrittenActions.clear();
+}
+
+// Turns the player toward the heading the stick points to, at the turn rate of her current state.
+void HandlePlayerRemasteredHeading(ItemInfo& item)
+{
+	constexpr auto TURN_RATE_180	 = 1.0f;
+	constexpr auto TURN_STEP_MAX_180 = ANGLE(90.0f);
+
+	if (!g_Configuration.IsUsingRemasteredControls())
+		return;
+
+	auto& player = GetLaraInfo(item);
+
+	if (!DoesPlayerRemasteredSolverOwnHeading(item))
+		return;
+
+	player.Control.TurnRate = 0;
+
+	if (player.Control.Remastered.BackResolution == RemasteredBackResolution::TankBack)
+		return;
+
+	if (player.Control.IsMoving)
+		return;
+
+	if (player.Control.RefMoveAxis == Vector2::Zero)
+		return;
+
+	float rate = 0.0f;
+	short stepMax = 0;
+	GetPlayerRemasteredTurnParams(item, rate, stepMax);
+
+	if (player.Control.Remastered.BackResolution == RemasteredBackResolution::Turn180)
+	{
+		rate = TURN_RATE_180;
+		stepMax = TURN_STEP_MAX_180;
+	}
+
+	if (IsHeld(In::Look))
+		return;
+
+	short headingAngle = GetPlayerHeadingAngleY(item);
+	item.Pose.Orientation.y = ApproachHeadingAngle(item.Pose.Orientation.y, headingAngle, rate, stepMax, player.Control.Remastered.HeadingTurnSign);
 }
 
 void ModulateLaraSwimTurnRates(ItemInfo* item, CollisionInfo* coll)

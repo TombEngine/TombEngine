@@ -14,6 +14,7 @@
 #include "Game/Lara/lara_flare.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
@@ -418,6 +419,15 @@ void lara_as_crawl_idle(ItemInfo* item, CollisionInfo* coll)
 		if (IsHeld(In::Roll) || (IsHeld(In::Forward) && IsHeld(In::Back)))
 		{
 			item->Animation.TargetState = LS_CRAWL_TURN_180;
+			return;
+		}
+
+		// Remastered controls: a crouch press on knees rises to the crouch without drawing a weapon. -- divezzi, 10.10.26
+		if (g_Configuration.IsUsingRemasteredControls() && player.Control.Remastered.IsCrouchStageUp &&
+			TestStateDispatch(*item, LS_CROUCH_IDLE))
+		{
+			item->Animation.TargetState = LS_CROUCH_IDLE;
+			player.Control.HandStatus = HandStatus::Free;
 			return;
 		}
 
