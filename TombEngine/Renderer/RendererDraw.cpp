@@ -3883,7 +3883,10 @@ namespace TEN::Renderer
 		ImGuiNewFrame();
 		if (ImGuiIsOverlayVisible())
 		{
-			TEN::Sky::DrawSkyDebugWindow();
+			if (_debugPage == RendererDebugPage::SkyDebug)
+				TEN::Sky::DrawSkyDebugWindow();
+			else if (_debugPage == RendererDebugPage::GraphicsStats)
+				DrawGraphicsStatsWindow(_gameCamera);
 		}
 		ImGuiRenderFrame();
 		_nextUi.DebugDrawData = ImGuiGetDrawData();

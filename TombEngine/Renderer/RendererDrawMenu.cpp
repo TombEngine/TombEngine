@@ -1977,10 +1977,15 @@ namespace TEN::Renderer
 		return _debugPage;
 	}
 
+	// Debug pages drawn as ImGui windows show the ImGui overlay while they are active.
+	static bool IsImGuiDebugPage(RendererDebugPage page)
+	{
+		return (page == RendererDebugPage::SkyDebug || page == RendererDebugPage::GraphicsStats);
+	}
+
 	void Renderer::SwitchDebugPage(bool goBack)
 	{
-		// Hide ImGui overlay if leaving the sky debug page.
-		if (_debugPage == RendererDebugPage::SkyDebug && ImGuiIsOverlayVisible())
+		if (IsImGuiDebugPage(_debugPage) && ImGuiIsOverlayVisible())
 			ImGuiToggleOverlay();
 
 		int page = (int)_debugPage;
@@ -1997,8 +2002,7 @@ namespace TEN::Renderer
 
 		_debugPage = (RendererDebugPage)page;
 
-		// Show ImGui overlay when entering the sky debug page.
-		if (_debugPage == RendererDebugPage::SkyDebug && !ImGuiIsOverlayVisible())
+		if (IsImGuiDebugPage(_debugPage) && !ImGuiIsOverlayVisible())
 			ImGuiToggleOverlay();
 	}
 }

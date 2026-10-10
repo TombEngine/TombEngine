@@ -1701,6 +1701,7 @@ namespace TEN::Renderer::Next
         }
 
         _uploadRing.UploadToBuffer(storage.Buffer.get(), 0, data.data(), (int)data.size());
+        _frameStats.UploadBytes += (int)data.size();
     }
 
     // All per-frame data goes to the GPU in a single copy pass before the scene pass.
@@ -2489,6 +2490,8 @@ namespace TEN::Renderer::Next
 
         auto startTime = std::chrono::steady_clock::now();
         _frameStats.DrawCalls = 0;
+        _frameStats.UploadBytes = 0;
+        _frameStats.Passes.clear();
 
         auto* commandBuffer = _device->AcquireCommandBuffer();
         if (commandBuffer == nullptr)
@@ -2545,6 +2548,7 @@ namespace TEN::Renderer::Next
         commandBuffer->PushUniforms(RHI::ShaderStage::Vertex, 2, &defaultSkyVertexUniforms, sizeof(defaultSkyVertexUniforms));
         commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 1, &defaultDrawPixelUniforms, sizeof(defaultDrawPixelUniforms));
 
+        auto collectStartTime = std::chrono::steady_clock::now();
         CollectMaterials(environment.InterpolationFactor);
         CollectDecals(view);
         CollectObjects(view, environment.InterpolationFactor);
@@ -2555,8 +2559,11 @@ namespace TEN::Renderer::Next
         CollectSortedFaces(view, environment.InterpolationFactor);
         CollectMirroredSorted(view);
         CollectDebugPrimitives(environment);
+        auto uploadStartTime = std::chrono::steady_clock::now();
+        _frameStats.CollectTime = GetMilliseconds(collectStartTime, uploadStartTime);
 
         UploadFrameData(*commandBuffer, environment);
+        _frameStats.UploadTime = GetMilliseconds(uploadStartTime, std::chrono::steady_clock::now());
 
         PrepareShadows(environment, environment.InterpolationFactor);
         _hasDistortion = HasDistortionDraws(view);
@@ -2574,10 +2581,15 @@ namespace TEN::Renderer::Next
             if (pass.IsEnabled != nullptr && !(this->*pass.IsEnabled))
                 continue;
 
+            auto passStartTime = std::chrono::steady_clock::now();
+            int passDrawCalls = _frameStats.DrawCalls;
             commandBuffer->PushDebugGroup(pass.Name);
             (this->*pass.Execute)(*commandBuffer);
             commandBuffer->PopDebugGroup();
+            _frameStats.Passes.push_back(NextPassStats{ pass.Name, GetMilliseconds(passStartTime, std::chrono::steady_clock::now()), _frameStats.DrawCalls - passDrawCalls });
         }
+
+        CollectFrameStats(view, environment);
 
         _frameView = nullptr;
         _frameEnvironment = nullptr;

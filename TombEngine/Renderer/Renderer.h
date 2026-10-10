@@ -375,6 +375,19 @@ namespace TEN::Renderer
 		float _fps;
 		int _currentCausticsFrame;
 
+		// Graphics statistics debug page (RendererGraphicsStats.cpp).
+		static constexpr auto GRAPHICS_STATS_HISTORY = 240;
+
+		std::array<float, GRAPHICS_STATS_HISTORY> _statsFrameTimes   = {};
+		std::array<float, GRAPHICS_STATS_HISTORY> _statsNextCpuTimes = {};
+		int                                       _statsHistoryIndex = 0;
+
+		void DrawGraphicsStatsWindow(const RenderView& view);
+		void DrawGraphicsStatsOverview();
+		void DrawGraphicsStatsNext();
+		void DrawGraphicsStatsSky();
+		void DrawGraphicsStatsLegacy(const RenderView& view);
+
 		// Screen settings
 		float _farView = DEFAULT_FAR_VIEW;
 		bool _isWindowed;

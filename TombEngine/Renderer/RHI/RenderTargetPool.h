@@ -24,5 +24,6 @@ namespace TEN::Renderer::RHI
 
         ITexture* Acquire(const TextureDesc& desc);
         void      Release(ITexture* texture);
+        int       GetCount() const { return (int)_entries.size(); }
     };
 }

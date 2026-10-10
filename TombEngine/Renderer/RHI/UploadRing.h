@@ -46,5 +46,7 @@ namespace TEN::Renderer::RHI
         void UploadToBuffer(IBuffer* destination, int destinationOffset, const void* data, int size);
         void UploadToTexture(const TextureRegion& destination, const void* data, int size);
         void End();
+
+        int GetCapacity() const { return _capacity; }
     };
 }

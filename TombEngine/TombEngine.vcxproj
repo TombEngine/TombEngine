@@ -1496,6 +1496,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\ImGuiIntegration.cpp" />
     <ClCompile Include="Renderer\RendererCompatibility.cpp" />
     <ClCompile Include="Renderer\RendererDebug.cpp" />
+    <ClCompile Include="Renderer\RendererGraphicsStats.cpp" />
     <ClCompile Include="Renderer\RendererDraw.cpp" />
     <ClCompile Include="Renderer\RendererDraw2D.cpp" />
     <ClCompile Include="Renderer\RendererDrawEffect.cpp" />
@@ -1536,6 +1537,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\Next\NextRendererPostProcess.cpp" />
     <ClCompile Include="Renderer\Next\NextRendererShadows.cpp" />
     <ClCompile Include="Renderer\Next\NextRendererSprites.cpp" />
+    <ClCompile Include="Renderer\Next\NextRendererStats.cpp" />
     <ClCompile Include="Renderer\Next\NextRendererSSAO.cpp" />
     <ClCompile Include="Renderer\Next\TextureLoader.cpp" />
     <ClCompile Include="Renderer\RendererSprites.cpp" />

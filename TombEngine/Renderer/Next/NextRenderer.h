@@ -131,10 +131,63 @@ namespace TEN::Renderer::Next
         int          ShadowSphereCount   = 0;
     };
 
+    // Recording of one frame pass of the last frame.
+    struct NextPassStats
+    {
+        const char* Name      = nullptr;
+        float       CpuTime   = 0.0f; // Milliseconds.
+        int         DrawCalls = 0;
+    };
+
+    float GetMilliseconds(std::chrono::steady_clock::time_point start, std::chrono::steady_clock::time_point end);
+
+    // Statistics of the last scene frame, shown by the graphics statistics debug page.
     struct NextFrameStats
     {
-        float CpuTime   = 0.0f; // Milliseconds spent collecting, uploading and recording the frame.
-        int   DrawCalls = 0;
+        float CpuTime     = 0.0f; // Milliseconds spent collecting, uploading and recording the frame.
+        float CollectTime = 0.0f;
+        float UploadTime  = 0.0f;
+        int   DrawCalls   = 0;
+        int   UploadBytes = 0;
+
+        int RoomsDrawn      = 0;
+        int RoomDraws       = 0;
+        int ObjectDraws     = 0;
+        int ShadowDraws     = 0;
+        int Instances       = 0;
+        int Bones           = 0;
+        int Lights          = 0;
+        int Decals          = 0;
+        int Materials       = 0;
+        int Sprites         = 0;
+        int SpriteRuns      = 0;
+        int SkySprites      = 0;
+        int SortedDraws     = 0;
+        int SortedIndices   = 0;
+        int DebrisTriangles = 0;
+        int Mirrors         = 0;
+        int GunFlashes      = 0;
+        int FogBulbs        = 0;
+        int CloudDraws      = 0;
+        int DebugVertices   = 0;
+
+        std::vector<NextPassStats> Passes = {};
+    };
+
+    // Device, targets and level resources of the next renderer.
+    struct NextRendererInfo
+    {
+        std::string Backend            = {};
+        std::string DeviceName         = {};
+        int         Width              = 0;
+        int         Height             = 0;
+        int         RoomVertices       = 0;
+        int         ObjectVertices     = 0;
+        int         TextureArrayGroups = 0;
+        int         TexturePages       = 0;
+        int         ScenePipelines     = 0;
+        int         PooledTargets      = 0;
+        int         UploadRingSize     = 0;
     };
 
     // New RHI-based renderer. During the migration it draws into a separate preview window, fed by the
@@ -704,6 +757,8 @@ namespace TEN::Renderer::Next
         std::vector<SpriteDraw>       _spriteDraws         = {};
         int                           _roomLightCount      = 0;
         NextFrameStats                _frameStats          = {};
+        std::vector<RHI::GpuTiming> _gpuTimings      = {};
+        int                         _gpuTimingFrames = 0;
         bool                          _isLevelLoaded    = false;
 
         // Scene frame in _colorTarget; with the 2D layer in _finalTarget, handed from the render thread to the window thread.
@@ -806,6 +861,7 @@ namespace TEN::Renderer::Next
         int  GetSortedObjectInstance(const Structures::RendererSortableObject& object, float interpolationFactor);
         void DrawSortedFaces(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, bool isMirrored = false);
         void LogGpuTimings();
+        void CollectFrameStats(const RenderView& view, const FrameEnvironment& environment);
         static FogBulbUniforms GetFogBulbUniforms(const RenderView& view);
         bool CreateSkyGeometry();
         void DrawSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere = 0);
@@ -946,6 +1002,8 @@ namespace TEN::Renderer::Next
         void UpdateMoveableVertices(const std::vector<Graphics::Vertices::Vertex>& vertices);
 
         const NextFrameStats& GetFrameStats() const;
+        NextRendererInfo      GetInfo() const;
+        const std::vector<RHI::GpuTiming>& SampleGpuTimings();
     };
 
     extern NextRenderer g_NextRenderer;
