@@ -7,6 +7,8 @@
 #include "Game/items.h"
 #include "Game/savegame.h"
 #include "Math/Math.h"
+
+#include "Renderer/ImGuiIntegration.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
@@ -18,6 +20,8 @@ using namespace TEN::Gui;
 using namespace TEN::Math;
 using namespace TEN::Utils;
 using TEN::Renderer::g_Renderer;
+using TEN::Renderer::ImGuiIsOverlayVisible;
+
 
 namespace TEN::Input
 {
@@ -240,13 +244,17 @@ namespace TEN::Input
 
 	void SetRelativeMouseMode(bool relative)
 	{
-		relative = relative || g_Renderer.IsFullScreen();
+	 // The ImGui debug overlay needs the visible cursor, even in fullscreen.
+		if (ImGuiIsOverlayVisible())
+			relative = false;
+		else
+			relative = relative || g_Renderer.IsFullScreen();
 
 		if (MouseRelativeMode == relative)
 			return;
 
 		if (SDL_SetWindowRelativeMouseMode(g_Platform->GetSDL3Window(), relative))
-			MouseRelativeMode = relative;
+			 MouseRelativeMode = relative;
 	}
 
 	GamepadType GetGamepadType()
