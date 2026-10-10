@@ -2501,15 +2501,9 @@ namespace TEN::Sky
 
 	// ====================================================================
 
-	void DrawSkyDebugWindow()
+	// Tabs of the sky page of the debug window.
+	void DrawSkyDebugContents()
 	{
-		ImGui::SetNextWindowSize(ImVec2(520, 760), ImGuiCond_FirstUseEver);
-		if (!ImGui::Begin("Sky Debug", nullptr, ImGuiWindowFlags_NoCollapse))
-		{
-			ImGui::End();
-			return;
-		}
-
 		if (ImGui::BeginTabBar("##SkyDebugTabs"))
 		{
 			if (ImGui::BeginTabItem("Clouds"))
@@ -2554,8 +2548,6 @@ namespace TEN::Sky
 
 			ImGui::EndTabBar();
 		}
-
-		ImGui::End();
 	}
 
 	// ====================================================================

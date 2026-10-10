@@ -1948,6 +1948,7 @@ namespace TEN::Renderer
 		_lines3DToDraw.clear();
 		_triangles3DToDraw.clear();
 		_stringsToDraw.clear();
+		_debugMessages.clear();
 
 		_currentCausticsFrame++;
 		_currentCausticsFrame %= 32;
@@ -3878,16 +3879,12 @@ namespace TEN::Renderer
 		RenderScene(_backBuffer.get(), _gameCamera);
 		_graphicsDevice->EndGpuTiming(GpuTimingScope::Scene);
 
-		// ImGui debug overlay: NewFrame -> draw windows -> render.
-		// Must happen after RenderScene (so it draws on top) and before ClearState/Present.
+		// ImGui debug window, shown while a debug page is active. Drawn after RenderScene, so it is on top, and before Present.
+		ImGuiSetOverlayVisible(DebugMode && _debugPage != RendererDebugPage::None);
 		ImGuiNewFrame();
 		if (ImGuiIsOverlayVisible())
-		{
-			if (_debugPage == RendererDebugPage::SkyDebug)
-				TEN::Sky::DrawSkyDebugWindow();
-			else if (_debugPage == RendererDebugPage::GraphicsStats)
-				DrawGraphicsStatsWindow(_gameCamera);
-		}
+			DrawDebugWindow(_gameCamera);
+
 		ImGuiRenderFrame();
 		_nextUi.DebugDrawData = ImGuiGetDrawData();
 

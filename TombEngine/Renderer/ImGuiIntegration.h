@@ -37,6 +37,7 @@ namespace TEN::Renderer
 	bool ImGuiProcessEvent(const SDL_Event& event);
 
 	void ImGuiToggleOverlay();
+	void ImGuiSetOverlayVisible(bool isVisible);
 	bool ImGuiIsOverlayVisible();
 
 	// Draw data of the last ImGuiRenderFrame, for renderers that draw the overlay themselves; null when hidden.

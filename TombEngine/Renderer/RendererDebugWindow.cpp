@@ -3,11 +3,23 @@
 
 #include <imgui.h>
 
+#include "Game/camera.h"
+#include "Game/collision/Point.h"
+#include "Game/control/box.h"
+#include "Game/control/control.h"
+#include "Game/Lara/lara.h"
+#include "Game/Lara/lara_helpers.h"
+#include "Game/Sky/SkyCloudDebug.h"
 #include "Game/Sky/SkyCloudSystem.h"
 #include "Renderer/Graphics/VRAMTracker.h"
 #include "Renderer/Next/NextRenderer.h"
 #include "Specific/configuration.h"
+#include "Specific/Input/Input.h"
+#include "Specific/Input/InputAction.h"
+#include "Specific/level.h"
 
+using namespace TEN::Collision::Point;
+using namespace TEN::Input;
 using namespace TEN::Renderer::Next;
 
 namespace TEN::Renderer
@@ -88,7 +100,9 @@ namespace TEN::Renderer
 		AddStatRow("Worst frame time", "%.2f ms", worstTime);
 		AddStatRow("Average next renderer CPU time", "%.3f ms", averageNextTime);
 		AddStatRow("Game update time", "%d ms", _timeUpdate);
+		AddStatRow("Control phase time", "%d", ControlPhaseTime);
 		AddStatRow("Legacy frame time", "%d ms", _timeFrame);
+		AddStatRow("Legacy adapter", "%s", g_Configuration.AdapterName.c_str());
 		AddStatRow("Screen resolution", "%d x %d", _graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
 		AddStatRow("Windowed", YesNo(g_Configuration.EnableWindowedMode));
 		constexpr const char* ANTIALIASING_NAMES[] = { "none", "low (FXAA)", "medium (SMAA)", "high (SMAA)" };
@@ -304,50 +318,307 @@ namespace TEN::Renderer
 		}
 	}
 
-	// ImGui window of the graphics statistics debug page.
-	void Renderer::DrawGraphicsStatsWindow(const RenderView& view)
+	void Renderer::DrawDebugRendererPage(const RenderView& view)
 	{
-		// The history keeps running while other tabs are shown.
+		if (!ImGui::BeginTabBar("##RendererTabs"))
+			return;
+
+		if (ImGui::BeginTabItem("Overview"))
+		{
+			DrawGraphicsStatsOverview();
+			ImGui::EndTabItem();
+		}
+
+		if (ImGui::BeginTabItem("Next renderer"))
+		{
+			DrawGraphicsStatsNext();
+			ImGui::EndTabItem();
+		}
+
+		if (ImGui::BeginTabItem("Sky effects"))
+		{
+			DrawGraphicsStatsSky();
+			ImGui::EndTabItem();
+		}
+
+		if (ImGui::BeginTabItem("Legacy renderer"))
+		{
+			DrawGraphicsStatsLegacy(view);
+			ImGui::EndTabItem();
+		}
+
+		ImGui::EndTabBar();
+	}
+
+	void Renderer::DrawDebugDimensionPage(const RenderView& view)
+	{
+		const auto& playerItem = *LaraItem;
+		const auto& player = GetLaraInfo(playerItem);
+		const auto& room = g_Level.Rooms[playerItem.RoomNumber];
+		if (!BeginStatTable("##Dimensions"))
+			return;
+
+		AddStatRow("Position", "%d, %d, %d", playerItem.Pose.Position.x, playerItem.Pose.Position.y, playerItem.Pose.Position.z);
+		AddStatRow("Orientation", "%d, %d, %d", playerItem.Pose.Orientation.x, playerItem.Pose.Orientation.y, playerItem.Pose.Orientation.z);
+		AddStatRow("Scale", "%.3f, %.3f, %.3f", playerItem.Pose.Scale.x, playerItem.Pose.Scale.y, playerItem.Pose.Scale.z);
+		AddStatRow("Room number", "%d", playerItem.RoomNumber);
+		AddStatRow("Pathfinding box", "%d", playerItem.BoxNumber);
+		if (player.Context.WaterSurfaceDist == -NO_HEIGHT)
+			AddStatRow("Water surface distance", "N/A");
+		else
+			AddStatRow("Water surface distance", "%d", player.Context.WaterSurfaceDist);
+
+		AddStatRow("Room bounds", "%d, %d, %d, %d", room.Position.x, room.Position.z, room.Position.x + BLOCK(room.XSize), room.Position.z + BLOCK(room.ZSize));
+		AddStatRow("Room Y, bottom, top", "%d, %d, %d", room.Position.y, room.BottomHeight, room.TopHeight);
+		AddStatRow("Camera position", "%d, %d, %d", Camera.pos.x, Camera.pos.y, Camera.pos.z);
+		AddStatRow("Camera target", "%d, %d, %d", Camera.target.x, Camera.target.y, Camera.target.z);
+		AddStatRow("Camera room number", "%d", Camera.pos.RoomNumber);
+		ImGui::EndTable();
+	}
+
+	void Renderer::DrawDebugPlayerPage(const RenderView& view)
+	{
+		const auto& playerItem = *LaraItem;
+		const auto& player = GetLaraInfo(playerItem);
+		if (!BeginStatTable("##Player"))
+			return;
+
+		AddStatRow("Animation object", "%d", playerItem.Animation.AnimObjectID);
+		AddStatRow("Animation number", "%d", playerItem.Animation.AnimNumber);
+		AddStatRow("Frame number", "%d", playerItem.Animation.FrameNumber);
+		AddStatRow("Active state", "%d", playerItem.Animation.ActiveState);
+		AddStatRow("Target state", "%d", playerItem.Animation.TargetState);
+		AddStatRow("Velocity", "%.3f, %.3f, %.3f", playerItem.Animation.Velocity.z, playerItem.Animation.Velocity.y, playerItem.Animation.Velocity.x);
+		AddStatRow("Airborne", "%s", YesNo(playerItem.Animation.IsAirborne));
+		AddStatRow("Hand status", "%d", (int)player.Control.HandStatus);
+		AddStatRow("Water status", "%d", (int)player.Control.WaterStatus);
+		AddStatRow("Can climb ladder", "%s", YesNo(player.Control.CanClimbLadder));
+		AddStatRow("Can monkey swing", "%s", YesNo(player.Control.CanMonkeySwing));
+		AddStatRow("Hit points", "%d", playerItem.HitPoints);
+		AddStatRow("Target hit points", "%d", (player.TargetEntity != nullptr) ? player.TargetEntity->HitPoints : 0);
+		ImGui::EndTable();
+	}
+
+	void Renderer::DrawDebugInputPage(const RenderView& view)
+	{
+		int size = (int)ACTION_ID_GROUPS[(int)USER_ACTION_GROUP_IDS.back()].back();
+		auto clickedActions = BitField(size);
+		auto heldActions = BitField(size);
+		auto releasedActions = BitField(size);
+		for (auto actionGroupID : USER_ACTION_GROUP_IDS)
+		{
+			for (auto actionID : ACTION_ID_GROUPS[(int)actionGroupID])
+			{
+				const auto& action = ActionMap.at(actionID);
+				if (action.IsClicked())
+					clickedActions.Set((int)action.GetID());
+
+				if (action.IsHeld())
+					heldActions.Set((int)action.GetID());
+
+				if (action.IsReleased())
+					releasedActions.Set((int)action.GetID());
+			}
+		}
+
+		if (!BeginStatTable("##Input"))
+			return;
+
+		AddStatRow("Clicked actions", "%s", clickedActions.ToString().c_str());
+		AddStatRow("Held actions", "%s", heldActions.ToString().c_str());
+		AddStatRow("Released actions", "%s", releasedActions.ToString().c_str());
+		AddStatRow("Move axes", "%.3f, %.3f", GetMoveAxis().x, GetMoveAxis().y);
+		AddStatRow("Camera axes", "%.3f, %.3f", GetCameraAxis().x, GetCameraAxis().y);
+		AddStatRow("Mouse axes", "%.3f, %.3f", GetMouseAxis().x, GetMouseAxis().y);
+		AddStatRow("Cursor position", "%.3f, %.3f", GetMouse2DPosition().x, GetMouse2DPosition().y);
+		ImGui::EndTable();
+	}
+
+	void Renderer::DrawDebugCollisionPage(const RenderView& view)
+	{
+		if (!BeginStatTable("##Collision"))
+			return;
+
+		AddStatRow("Collision type", "%d", (int)LaraCollision.CollisionType);
+		AddStatRow("Bridge item", "%d", LaraCollision.Middle.Bridge);
+		AddStatRow("Front floor", "%d", LaraCollision.Front.Floor);
+		AddStatRow("Front left floor", "%d", LaraCollision.FrontLeft.Floor);
+		AddStatRow("Front right floor", "%d", LaraCollision.FrontRight.Floor);
+		AddStatRow("Front ceiling", "%d", LaraCollision.Front.Ceiling);
+		AddStatRow("Front left ceiling", "%d", LaraCollision.FrontLeft.Ceiling);
+		AddStatRow("Front right ceiling", "%d", LaraCollision.FrontRight.Ceiling);
+		ImGui::EndTable();
+	}
+
+	void Renderer::DrawDebugCollisionMeshPage(const RenderView& view)
+	{
+		ImGui::TextWrapped("Room collision meshes are drawn in the scene.");
+	}
+
+	void Renderer::DrawDebugPortalPage(const RenderView& view)
+	{
+		if (!BeginStatTable("##Portals"))
+			return;
+
+		AddStatRow("Camera room number", "%d", Camera.pos.RoomNumber);
+		AddStatRow("Room collector time", "%d", _timeRoomsCollector);
+		AddStatRow("Rooms drawn", "%d", (int)view.RoomsToDraw.size());
+		AddStatRow("Portal checks", "%d", _numCheckPortalCalls);
+		AddStatRow("Visible room searches", "%d", _numGetVisibleRoomsCalls);
+		AddStatRow("Dot products", "%d", _numDotProducts);
+		ImGui::EndTable();
+	}
+
+	void Renderer::DrawDebugPathfindingPage(const RenderView& view)
+	{
+		const auto& playerItem = *LaraItem;
+		int playerBoxID = (playerItem.BoxNumber == NO_VALUE) ? GetPointCollision(playerItem).GetBottomSector().PathfindingBoxID : playerItem.BoxNumber;
+		auto creatures = GetActiveCreatures();
+		if (!BeginStatTable("##Pathfinding"))
+			return;
+
+		AddStatRow("Player box", "%d", playerBoxID);
+		AddStatRow("Active creatures", "%d", (int)creatures.size());
+		if (PathfindingDisplayIndex >= 0 && PathfindingDisplayIndex < (int)creatures.size())
+		{
+			auto& enemy = g_Level.Items[creatures[PathfindingDisplayIndex]];
+			const auto* creature = (CreatureInfo*)enemy.Data;
+			auto zoneType = creature->LOT.Zone;
+			const auto& zones = g_Level.Zones[(int)zoneType][(int)FlipStatus];
+
+			auto mood = "Unknown";
+			switch (creature->Mood)
+			{
+			case MoodType::Attack: mood = "Attack"; break;
+			case MoodType::Stalk:  mood = "Stalk";  break;
+			case MoodType::Escape: mood = "Escape"; break;
+			case MoodType::Bored:  mood = "Bored";  break;
+			}
+
+			AddStatRow("Player zone", "%d", (playerBoxID == NO_VALUE) ? NO_VALUE : zones[playerBoxID]);
+			AddStatRow("Enemy", "%s", enemy.Name.c_str());
+			AddStatRow("Enemy box", "%d", enemy.BoxNumber);
+			AddStatRow("Enemy zone type", "%d", (int)zoneType);
+			AddStatRow("Enemy zone", "%d", (enemy.BoxNumber == NO_VALUE) ? NO_VALUE : zones[enemy.BoxNumber]);
+			AddStatRow("Enemy mood", "%s", mood);
+		}
+
+		ImGui::EndTable();
+		if (PathfindingDisplayIndex < 0 && !creatures.empty())
+			ImGui::TextUnformatted("Push TAB to scroll through enemies.");
+	}
+
+	void Renderer::DrawDebugWireframePage(const RenderView& view)
+	{
+		ImGui::TextWrapped("The scene is drawn in wireframe.");
+	}
+
+	void Renderer::DrawDebugSkyPage(const RenderView& view)
+	{
+		TEN::Sky::DrawSkyDebugContents();
+	}
+
+	// Lines printed by the game code for the current page during the last game update.
+	void Renderer::DrawDebugMessages()
+	{
+		if (_debugMessages.empty() || !ImGui::CollapsingHeader("Messages", ImGuiTreeNodeFlags_DefaultOpen))
+			return;
+
+		for (const auto& message : _debugMessages)
+			ImGui::TextUnformatted(message.c_str());
+	}
+
+	// Selected page of a group: its tab becomes the debug page, so the scene debug drawing follows it.
+	void Renderer::DrawDebugPageGroup(const char* group, const std::vector<DebugPageTab>& tabs, const RenderView& view, bool isSelectionPending)
+	{
+		int pageCount = 0;
+		for (const auto& tab : tabs)
+			pageCount += (strcmp(tab.Group, group) == 0) ? 1 : 0;
+
+		bool hasTabBar = (pageCount > 1) && ImGui::BeginTabBar(group);
+		for (const auto& tab : tabs)
+		{
+			if (strcmp(tab.Group, group) != 0)
+				continue;
+
+			if (hasTabBar)
+			{
+				auto flags = (isSelectionPending && tab.Page == _debugPage) ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None;
+				if (!ImGui::BeginTabItem(tab.Name, nullptr, flags))
+					continue;
+			}
+
+			if (!isSelectionPending)
+				_debugPage = tab.Page;
+
+			(this->*tab.Draw)(view);
+			DrawDebugMessages();
+			if (hasTabBar)
+				ImGui::EndTabItem();
+		}
+
+		if (hasTabBar)
+			ImGui::EndTabBar();
+	}
+
+	// Single ImGui window of the debug pages, shown while a debug page is active.
+	void Renderer::DrawDebugWindow(const RenderView& view)
+	{
+		// Debug pages grouped by topic; the debug keys cycle through them in enum order.
+		static const auto DEBUG_PAGE_TABS = std::vector<DebugPageTab>
+		{
+			{ RendererDebugPage::RendererStats, "Renderer", "Statistics", &Renderer::DrawDebugRendererPage },
+			{ RendererDebugPage::PortalStats, "Renderer", "Portals", &Renderer::DrawDebugPortalPage },
+			{ RendererDebugPage::WireframeMode, "Renderer", "Wireframe", &Renderer::DrawDebugWireframePage },
+			{ RendererDebugPage::PlayerStats, "Player", "Player", &Renderer::DrawDebugPlayerPage },
+			{ RendererDebugPage::DimensionStats, "Player", "Dimensions", &Renderer::DrawDebugDimensionPage },
+			{ RendererDebugPage::InputStats, "Player", "Input", &Renderer::DrawDebugInputPage },
+			{ RendererDebugPage::CollisionStats, "Collision", "Collision", &Renderer::DrawDebugCollisionPage },
+			{ RendererDebugPage::CollisionMeshStats, "Collision", "Collision mesh", &Renderer::DrawDebugCollisionMeshPage },
+			{ RendererDebugPage::PathfindingStats, "Collision", "Pathfinding", &Renderer::DrawDebugPathfindingPage },
+			{ RendererDebugPage::SkyDebug, "Sky", "Sky", &Renderer::DrawDebugSkyPage }
+		};
+
+		constexpr const char* DEBUG_PAGE_GROUPS[] = { "Renderer", "Player", "Collision", "Sky" };
+
+		// The frame history keeps running while other pages are shown.
 		_statsFrameTimes[_statsHistoryIndex] = ImGui::GetIO().DeltaTime * 1000.0f;
 		_statsNextCpuTimes[_statsHistoryIndex] = g_NextRenderer.IsActive() ? g_NextRenderer.GetFrameStats().CpuTime : 0.0f;
 		_statsHistoryIndex = (_statsHistoryIndex + 1) % GRAPHICS_STATS_HISTORY;
 
-		ImGui::SetNextWindowSize(ImVec2(460.0f, 640.0f), ImGuiCond_FirstUseEver);
-		if (!ImGui::Begin("Graphics statistics", nullptr, ImGuiWindowFlags_NoCollapse))
+		ImGui::SetNextWindowSize(ImVec2(560.0f, 720.0f), ImGuiCond_FirstUseEver);
+		bool isOpen = true;
+		if (!ImGui::Begin("Debug", &isOpen, ImGuiWindowFlags_NoCollapse))
 		{
 			ImGui::End();
 			return;
 		}
 
-		if (ImGui::BeginTabBar("##GraphicsStatsTabs"))
+		if (ImGui::BeginTabBar("##DebugGroups"))
 		{
-			if (ImGui::BeginTabItem("Overview"))
+			// A page selected with the debug keys takes a frame to become the selected tab.
+			bool isSelectionPending = (_debugPageSelectionFrames > 0);
+			for (const char* group : DEBUG_PAGE_GROUPS)
 			{
-				DrawGraphicsStatsOverview();
+				bool hasSelectedPage = false;
+				for (const auto& tab : DEBUG_PAGE_TABS)
+					hasSelectedPage |= (strcmp(tab.Group, group) == 0 && tab.Page == _debugPage);
+
+				auto flags = (isSelectionPending && hasSelectedPage) ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None;
+				if (!ImGui::BeginTabItem(group, nullptr, flags))
+					continue;
+
+				DrawDebugPageGroup(group, DEBUG_PAGE_TABS, view, isSelectionPending);
 				ImGui::EndTabItem();
 			}
 
-			if (ImGui::BeginTabItem("Next renderer"))
-			{
-				DrawGraphicsStatsNext();
-				ImGui::EndTabItem();
-			}
-
-			if (ImGui::BeginTabItem("Sky"))
-			{
-				DrawGraphicsStatsSky();
-				ImGui::EndTabItem();
-			}
-
-			if (ImGui::BeginTabItem("Legacy renderer"))
-			{
-				DrawGraphicsStatsLegacy(view);
-				ImGui::EndTabItem();
-			}
-
+			_debugPageSelectionFrames = std::max(_debugPageSelectionFrames - 1, 0);
 			ImGui::EndTabBar();
 		}
 
 		ImGui::End();
+
+		if (!isOpen)
+			_debugPage = RendererDebugPage::None;
 	}
 }

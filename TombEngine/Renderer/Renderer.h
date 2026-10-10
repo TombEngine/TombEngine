@@ -375,14 +375,37 @@ namespace TEN::Renderer
 		float _fps;
 		int _currentCausticsFrame;
 
-		// Graphics statistics debug page (RendererGraphicsStats.cpp).
+		// ImGui debug window (RendererDebugWindow.cpp). Debug messages of the game code are kept for the window.
+		struct DebugPageTab
+		{
+			RendererDebugPage Page  = RendererDebugPage::None;
+			const char*       Group = nullptr;
+			const char*       Name  = nullptr;
+			void (Renderer::* Draw)(const RenderView& view) = nullptr;
+		};
+
+		std::vector<std::string> _debugMessages            = {};
+		int                      _debugPageSelectionFrames = 0;
+
 		static constexpr auto GRAPHICS_STATS_HISTORY = 240;
 
 		std::array<float, GRAPHICS_STATS_HISTORY> _statsFrameTimes   = {};
 		std::array<float, GRAPHICS_STATS_HISTORY> _statsNextCpuTimes = {};
 		int                                       _statsHistoryIndex = 0;
 
-		void DrawGraphicsStatsWindow(const RenderView& view);
+		void DrawDebugWindow(const RenderView& view);
+		void DrawDebugMessages();
+		void DrawDebugPageGroup(const char* group, const std::vector<DebugPageTab>& tabs, const RenderView& view, bool isSelectionPending);
+		void DrawDebugRendererPage(const RenderView& view);
+		void DrawDebugDimensionPage(const RenderView& view);
+		void DrawDebugPlayerPage(const RenderView& view);
+		void DrawDebugInputPage(const RenderView& view);
+		void DrawDebugCollisionPage(const RenderView& view);
+		void DrawDebugCollisionMeshPage(const RenderView& view);
+		void DrawDebugPortalPage(const RenderView& view);
+		void DrawDebugPathfindingPage(const RenderView& view);
+		void DrawDebugWireframePage(const RenderView& view);
+		void DrawDebugSkyPage(const RenderView& view);
 		void DrawGraphicsStatsOverview();
 		void DrawGraphicsStatsNext();
 		void DrawGraphicsStatsSky();

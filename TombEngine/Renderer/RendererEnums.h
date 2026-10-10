@@ -178,7 +178,6 @@ enum class RendererDebugPage
 {
 	None,
 	RendererStats,
-	MemoryStats,
 	DimensionStats,
 	PlayerStats,
 	InputStats,
@@ -187,7 +186,6 @@ enum class RendererDebugPage
 	PortalStats,
 	PathfindingStats,
 	WireframeMode,
-	GraphicsStats,
 	SkyDebug,
 
 	Count

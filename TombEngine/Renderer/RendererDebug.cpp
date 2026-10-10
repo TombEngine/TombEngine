@@ -98,18 +98,12 @@ namespace TEN::Renderer
 		TEN::Benchmark::RecordBenchmarkFrame(_frameStats);
 	}
 
+	// Debug messages are listed by the ImGui debug window.
 	void Renderer::PrintDebugMessage(const char* msg, va_list args)
 	{
-		constexpr auto LINE_X_POS	= DISPLAY_SPACE_RES.x / 100;
-		constexpr auto LINE_SPACING = DISPLAY_SPACE_RES.y / 30;
-		constexpr auto COLOR		= Color(1.0f, 1.0f, 1.0f);
-		constexpr auto SCALE		= 0.8f;
-
 		char buffer[255];
 		vsnprintf(buffer, sizeof(buffer), msg, args);
-		AddString(buffer, Vector2(LINE_X_POS, _currentLineHeight), COLOR, SCALE, (int)PrintStringFlags::Outline);
-
-		_currentLineHeight += LINE_SPACING;
+		_debugMessages.push_back(buffer);
 	}
 
 	void Renderer::PrintDebugMessage(const char* msg, ...)
