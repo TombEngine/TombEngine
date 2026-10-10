@@ -118,7 +118,7 @@ struct ConfigurationT : public flatbuffers::NativeTable {
   int32_t last_gamepad_type = 0;
   std::vector<std::unique_ptr<TEN::Serialization::Config::BindingT>> bindings{};
   int32_t atmospheric_sky_quality = 1;
-  int32_t graphics_backend = 0;
+  int32_t graphics_backend = 1;
 };
 
 struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -245,7 +245,7 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return GetField<int32_t>(VT_ATMOSPHERIC_SKY_QUALITY, 1);
   }
   int32_t graphics_backend() const {
-    return GetField<int32_t>(VT_GRAPHICS_BACKEND, 0);
+    return GetField<int32_t>(VT_GRAPHICS_BACKEND, 1);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -381,7 +381,7 @@ struct ConfigurationBuilder {
     fbb_.AddElement<int32_t>(Configuration::VT_ATMOSPHERIC_SKY_QUALITY, atmospheric_sky_quality, 1);
   }
   void add_graphics_backend(int32_t graphics_backend) {
-    fbb_.AddElement<int32_t>(Configuration::VT_GRAPHICS_BACKEND, graphics_backend, 0);
+    fbb_.AddElement<int32_t>(Configuration::VT_GRAPHICS_BACKEND, graphics_backend, 1);
   }
   explicit ConfigurationBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -425,7 +425,7 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(
     int32_t last_gamepad_type = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> bindings = 0,
     int32_t atmospheric_sky_quality = 1,
-    int32_t graphics_backend = 0) {
+    int32_t graphics_backend = 1) {
   ConfigurationBuilder builder_(_fbb);
   builder_.add_graphics_backend(graphics_backend);
   builder_.add_atmospheric_sky_quality(atmospheric_sky_quality);
@@ -496,7 +496,7 @@ inline flatbuffers::Offset<Configuration> CreateConfigurationDirect(
     int32_t last_gamepad_type = 0,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *bindings = nullptr,
     int32_t atmospheric_sky_quality = 1,
-    int32_t graphics_backend = 0) {
+    int32_t graphics_backend = 1) {
   auto adapter_name__ = adapter_name ? _fbb.CreateString(adapter_name) : 0;
   auto bindings__ = bindings ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>(*bindings) : 0;
   return TEN::Serialization::Config::CreateConfiguration(

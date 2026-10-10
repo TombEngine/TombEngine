@@ -182,7 +182,7 @@ void InitDefaultConfiguration()
 	g_Configuration.EnableHighFramerate = true;
 	g_Configuration.Gamma = 1.0f;
 	g_Configuration.AtmosphericSkyQuality = AtmosphericSkyQuality::Medium;
-	g_Configuration.GraphicsBackend = GraphicsBackend::Legacy;
+	g_Configuration.GraphicsBackend = GraphicsBackend::Vulkan;
 
 	g_Configuration.SoundDevice = 1;
 	g_Configuration.EnableSound = true;

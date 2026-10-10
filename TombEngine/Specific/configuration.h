@@ -48,7 +48,7 @@ struct GameConfiguration
 	bool	   EnableHighFramerate    = true;
 	AntialiasingMode AntialiasingMode = AntialiasingMode::None;
 	AtmosphericSkyQuality AtmosphericSkyQuality = AtmosphericSkyQuality::Medium;
-	GraphicsBackend GraphicsBackend = GraphicsBackend::Legacy; // Applied at startup.
+	GraphicsBackend GraphicsBackend = GraphicsBackend::Vulkan; // Applied at startup.
 
 	// Sound
 
