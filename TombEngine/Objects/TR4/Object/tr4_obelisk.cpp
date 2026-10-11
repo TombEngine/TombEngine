@@ -1,4 +1,4 @@
-#include "framework.h"
+﻿#include "framework.h"
 #include "Objects/TR4/Object/tr4_obelisk.h"
 
 #include "Game/Animation/Animation.h"
@@ -36,7 +36,7 @@ namespace
 			obelisks[ocb - 1] = &candidate;
 		}
 
-       return obelisks[0] != nullptr && obelisks[0]->Pose.Orientation.y == ANGLE(180.0f) &&
+			return obelisks[0] != nullptr && obelisks[0]->Pose.Orientation.y == ANGLE(180.0f) &&
 			obelisks[1] != nullptr && obelisks[1]->Pose.Orientation.y == 0 &&
 			obelisks[2] != nullptr && obelisks[2]->Pose.Orientation.y == ANGLE(90.0f);
 	}
@@ -56,10 +56,14 @@ void InitializeObelisk(short itemNumber)
 	for (int i = 0; i < g_Level.NumItems; i++)
 	{
 		const auto* currentItem = &g_Level.Items[i];
-
-		if (currentItem->ObjectNumber == ID_ANIMATING3)
+		if (currentItem->ObjectNumber == ID_OBELISK_CAGE)
 			item->ItemFlags[2] = i;
 	}
+}
+
+void InitializeObeliskCage(short itemNumber)
+{
+	g_Level.Items[itemNumber].ItemFlags[0] = 0;
 }
 
 void ObeliskControl(short itemNumber)
@@ -98,30 +102,11 @@ void ObeliskControl(short itemNumber)
 			auto* cage = &g_Level.Items[item->ItemFlags[2]];
 			SoundEffect(SFX_TR4_ELECTRIC_ARCING_LOOP, &cage->Pose);
 
-			if (GlobalCounter & 1)
+           if (item->ItemFlags[3] >= 346 && (GlobalCounter & 1) && !cage->ItemFlags[0])
 			{
-				auto cagePosition = cage->Pose.Position;
-				const auto cageRoom = cage->RoomNumber;
-				ExplodeItemNode(cage, 0, 0, 128);
-				KillItem(item->ItemFlags[2]);
-
-				TriggerExplosionSparks(cagePosition.x, cagePosition.y, cagePosition.z, 3, -2, 0, cageRoom);
-				TriggerExplosionSparks(cagePosition.x, cagePosition.y, cagePosition.z, 3, -1, 0, cageRoom);
-
-				for (int i = 0; i < g_Level.NumItems; i++)
-				{
-					auto& candidate = g_Level.Items[i];
-					if (candidate.ObjectNumber == ID_OBELISK)
-						candidate.ItemFlags[2] = NO_VALUE;
-				}
-
-				auto* reward = FindItem(ID_PUZZLE_ITEM1_COMBO1);
-				if (reward != nullptr)
-				{
-					reward->Status = ITEM_NOT_ACTIVE;
-					SoundEffect(SFX_TR4_EXPLOSION1, &reward->Pose);
-					SoundEffect(SFX_TR4_EXPLOSION2, &reward->Pose);
-				}
+               cage->ItemFlags[0] = 1;
+				cage->Status = ITEM_ACTIVE;
+				AddActiveItem(cage->Index);
 			}
 		}
 	}
@@ -180,5 +165,35 @@ void ObeliskControl(short itemNumber)
 				}
 			}
 		}
+	}
+}
+
+void ObeliskCageControl(short itemNumber)
+{
+	auto* cage = &g_Level.Items[itemNumber];
+   if (!cage->ItemFlags[0])
+		return;
+
+	const auto cagePosition = cage->Pose.Position;
+	const auto cageRoom = cage->RoomNumber;
+	ExplodeItemNode(cage, 0, 0, 128);
+	KillItem(itemNumber);
+
+	TriggerExplosionSparks(cagePosition.x, cagePosition.y, cagePosition.z, 3, -2, 0, cageRoom);
+	TriggerExplosionSparks(cagePosition.x, cagePosition.y, cagePosition.z, 3, -1, 0, cageRoom);
+
+	for (int i = 0; i < g_Level.NumItems; i++)
+	{
+		auto& item = g_Level.Items[i];
+		if (item.ObjectNumber == ID_OBELISK)
+			item.ItemFlags[2] = NO_VALUE;
+	}
+
+	auto* reward = FindItem(ID_PUZZLE_ITEM1_COMBO1);
+	if (reward != nullptr)
+	{
+		reward->Status = ITEM_NOT_ACTIVE;
+		SoundEffect(SFX_TR4_EXPLOSION1, &reward->Pose);
+		SoundEffect(SFX_TR4_EXPLOSION2, &reward->Pose);
 	}
 }

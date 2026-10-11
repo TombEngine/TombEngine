@@ -1,4 +1,4 @@
-#include "framework.h"
+﻿#include "framework.h"
 #include "Objects/TR4/tr4_objects.h"
 
 #include "Game/collision/collide_item.h"
@@ -781,6 +781,15 @@ namespace TEN::Entities
 		{
 			obj->Initialize = InitializeObelisk;
 			obj->control = ObeliskControl;
+			obj->collision = ObjectCollision;
+			obj->SetHitEffect(true);
+		}
+
+		obj = &Objects[ID_OBELISK_CAGE];
+		if (obj->loaded)
+		{
+          obj->Initialize = InitializeObeliskCage;
+			obj->control = ObeliskCageControl;
 			obj->collision = ObjectCollision;
 			obj->SetHitEffect(true);
 		}
