@@ -288,6 +288,7 @@ namespace TEN::Renderer
 
 		std::vector<std::string> _debugMessages            = {};
 		int                      _debugPageSelectionFrames = 0;
+		bool                     _isPerformanceOverlayVisible = true; // Shown in debug mode, toggled with F8.
 
 		static constexpr auto GRAPHICS_STATS_HISTORY = 240;
 
@@ -295,8 +296,10 @@ namespace TEN::Renderer
 		std::array<float, GRAPHICS_STATS_HISTORY> _statsNextCpuTimes = {};
 		int                                       _statsHistoryIndex = 0;
 
-		void DrawDebugWindow(const RenderView& view);
-		void DrawDebugMessages();
+		void DrawDebugOverlay(const RenderView& view);
+		void DrawPerformancePanel();
+		void DrawDebugMessagePanel();
+		void DrawDebugPagePanel(const RenderView& view);
 		void DrawDebugPageGroup(const char* group, const std::vector<DebugPageTab>& tabs, const RenderView& view, bool isSelectionPending);
 		void DrawDebugRendererPage(const RenderView& view);
 		void DrawDebugDimensionPage(const RenderView& view);
@@ -789,6 +792,8 @@ namespace TEN::Renderer
 		void UpdateDumpScreenRenderTarget();
 
 		RendererDebugPage GetDebugPage() const;
+		void TogglePerformanceOverlay();
+		bool IsDebugOverlayVisible() const;
 	};
 
 	extern Renderer g_Renderer;

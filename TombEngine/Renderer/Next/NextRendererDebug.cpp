@@ -47,42 +47,32 @@ namespace TEN::Renderer::Next
         return (_debugLinePipeline != nullptr && _debugTrianglePipeline != nullptr);
     }
 
-    // Lines first, then triangles, in one frame vertex buffer.
+    // Lines first, then triangles, in one frame vertex buffer. Collision mesh pages send hundreds of thousands of
+    // primitives, so the vertices are written in place.
     void NextRenderer::CollectDebugPrimitives(const FrameEnvironment& environment)
     {
-        _debugVertexData.clear();
-        _debugLineVertexCount = 0;
-        _debugTriangleVertexCount = 0;
+        int lineCount = (environment.DebugLines != nullptr) ? (int)environment.DebugLines->size() : 0;
+        int triangleCount = (environment.DebugTriangles != nullptr) ? (int)environment.DebugTriangles->size() : 0;
+        _debugLineVertexCount = lineCount * 2;
+        _debugTriangleVertexCount = triangleCount * 3;
 
-        auto addVertex = [this](const Vector3& position, unsigned int color)
+        _debugVertexData.resize((_debugLineVertexCount + _debugTriangleVertexCount) * sizeof(DebugVertex));
+        auto* vertex = (DebugVertex*)_debugVertexData.data();
+
+        for (int i = 0; i < lineCount; i++)
         {
-            auto vertex = DebugVertex{ position, color };
-            const auto* bytes = (const unsigned char*)&vertex;
-            _debugVertexData.insert(_debugVertexData.end(), bytes, bytes + sizeof(vertex));
-        };
-
-        if (environment.DebugLines != nullptr)
-        {
-            for (const auto& line : *environment.DebugLines)
-            {
-                unsigned int color = VectorColorToRGBA(line.Color);
-                addVertex(line.Origin, color);
-                addVertex(line.Target, color);
-            }
-
-            _debugLineVertexCount = (int)environment.DebugLines->size() * 2;
+            const auto& line = (*environment.DebugLines)[i];
+            unsigned int color = VectorColorToRGBA(line.Color);
+            *vertex++ = DebugVertex{ line.Origin, color };
+            *vertex++ = DebugVertex{ line.Target, color };
         }
 
-        if (environment.DebugTriangles != nullptr)
+        for (int i = 0; i < triangleCount; i++)
         {
-            for (const auto& triangle : *environment.DebugTriangles)
-            {
-                unsigned int color = VectorColorToRGBA(triangle.Color);
-                for (const auto& vertex : triangle.Vertices)
-                    addVertex(vertex, color);
-            }
-
-            _debugTriangleVertexCount = (int)environment.DebugTriangles->size() * 3;
+            const auto& triangle = (*environment.DebugTriangles)[i];
+            unsigned int color = VectorColorToRGBA(triangle.Color);
+            for (const auto& position : triangle.Vertices)
+                *vertex++ = DebugVertex{ position, color };
         }
     }
 

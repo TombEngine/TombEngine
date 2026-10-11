@@ -216,13 +216,26 @@ namespace TEN::Physics
 		_orientation = orient;
 	}
 
-	void CollisionMesh::DrawDebug() const
+	void CollisionMesh::DrawDebug(const BoundingSphere* bounds) const
 	{
 		auto rotMatrix = GetRotationMatrix();
 		auto transformMatrix = rotMatrix * GetTranslationMatrix();
 
 		for (const auto& tri : _triangles)
+		{
+			if (bounds != nullptr)
+			{
+				auto box = BoundingBox{};
+				auto vertex0 = Vector3::Transform(tri.GetVertex0(_vertices), transformMatrix);
+				auto vertex1 = Vector3::Transform(tri.GetVertex1(_vertices), transformMatrix);
+				auto vertex2 = Vector3::Transform(tri.GetVertex2(_vertices), transformMatrix);
+				BoundingBox::CreateFromPoints(box, Vector3::Min(Vector3::Min(vertex0, vertex1), vertex2), Vector3::Max(Vector3::Max(vertex0, vertex1), vertex2));
+				if (!bounds->Intersects(box))
+					continue;
+			}
+
 			tri.DrawDebug(transformMatrix, rotMatrix, _vertices);
+		}
 	}
 
 	Matrix CollisionMesh::GetTranslationMatrix() const

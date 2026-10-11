@@ -1498,11 +1498,11 @@ namespace TEN::Renderer
 
 		RenderScene(_gameCamera);
 
-		// ImGui debug window, shown while a debug page is active. Drawn after RenderScene, so it is on top, and before Present.
-		ImGuiSetOverlayVisible(DebugMode && _debugPage != RendererDebugPage::None);
+		// ImGui debug overlay, shown in debug mode with the performance panel or a debug page. Drawn after RenderScene, so it is on top.
+		ImGuiSetOverlayVisible(IsDebugOverlayVisible());
 		ImGuiNewFrame();
 		if (ImGuiIsOverlayVisible())
-			DrawDebugWindow(_gameCamera);
+			DrawDebugOverlay(_gameCamera);
 
 		ImGuiRenderFrame();
 		_nextUi.DebugDrawData = ImGuiGetDrawData();

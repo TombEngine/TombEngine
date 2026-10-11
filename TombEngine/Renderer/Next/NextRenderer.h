@@ -717,6 +717,7 @@ namespace TEN::Renderer::Next
         std::vector<unsigned char>    _imGuiVertexData      = {};
         std::vector<unsigned char>    _imGuiIndexData       = {};
         std::unique_ptr<RHI::ITexture> _imGuiFontTexture    = nullptr;
+        int                            _imGuiFontGeneration = -1;
         FrameStorageBuffer            _overlayInstanceBuffer = {};
         FrameStorageBuffer            _overlayBoneBuffer    = {};
         FrameStorageBuffer            _debrisInstanceBuffer = {};

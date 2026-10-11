@@ -675,6 +675,12 @@ namespace TEN::Input
 			g_Renderer.SwitchDebugPage(KeyMap[SDL_SCANCODE_F10] != 0.0f);
 		dbDebugPage = !debugPageKey;
 
+		// Toggle performance overlay.
+		static bool dbPerformanceOverlay = true;
+		if (KeyMap[SDL_SCANCODE_F8] && dbPerformanceOverlay)
+			g_Renderer.TogglePerformanceOverlay();
+		dbPerformanceOverlay = !KeyMap[SDL_SCANCODE_F8];
+
 		// Cycle pathfinding display.
 		static bool dbPathfindingCycle = true;
 		if (KeyMap[SDL_SCANCODE_TAB] && dbPathfindingCycle &&

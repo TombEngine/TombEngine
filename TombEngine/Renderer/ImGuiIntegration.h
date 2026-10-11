@@ -22,6 +22,10 @@ namespace TEN::Renderer
 	void ImGuiSetOverlayVisible(bool isVisible);
 	bool ImGuiIsOverlayVisible();
 
+	// Scale of the debug overlay for the display height, and the generation of the font atlas built for it.
+	float ImGuiGetUiScale();
+	int ImGuiGetFontGeneration();
+
 	// Draw data of the last ImGuiRenderFrame, for renderers that draw the overlay themselves; null when hidden.
 	const ImDrawData* ImGuiGetDrawData();
 }

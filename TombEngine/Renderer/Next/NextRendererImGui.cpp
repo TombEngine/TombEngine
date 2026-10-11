@@ -3,17 +3,21 @@
 
 #include <imgui.h>
 
+#include "Renderer/ImGuiIntegration.h"
+
 using namespace TEN::Renderer::RHI;
 
 namespace TEN::Renderer::Next
 {
     static_assert(sizeof(ImDrawVert) == 20 && sizeof(ImDrawIdx) == 2, "ImGui vertices must match the overlay vertex layout.");
 
-    // The font atlas built by ImGui, uploaded on first use.
+    // The font atlas built by ImGui, uploaded on first use and again when the overlay scale rebuilds it.
     bool NextRenderer::EnsureImGuiFontTexture()
     {
-        if (_imGuiFontTexture != nullptr)
+        if (_imGuiFontTexture != nullptr && _imGuiFontGeneration == ImGuiGetFontGeneration())
             return true;
+
+        _imGuiFontGeneration = ImGuiGetFontGeneration();
 
         unsigned char* pixels = nullptr;
         int width = 0;

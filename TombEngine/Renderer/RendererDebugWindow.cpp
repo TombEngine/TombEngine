@@ -11,6 +11,7 @@
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Sky/SkyCloudDebug.h"
 #include "Game/Sky/SkyCloudSystem.h"
+#include "Renderer/ImGuiIntegration.h"
 #include "Renderer/Next/NextRenderer.h"
 #include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
@@ -534,13 +535,111 @@ namespace TEN::Renderer
 	}
 
 	// Lines printed by the game code for the current page during the last game update.
-	void Renderer::DrawDebugMessages()
+	// Panels of the debug overlay sit along the screen edges with translucent backgrounds, so the scene stays visible.
+	static bool BeginOverlayPanel(const char* name, const ImVec2& position, const ImVec2& pivot, const ImVec2& minSize, const ImVec2& maxSize, bool* isOpen = nullptr)
 	{
-		if (_debugMessages.empty() || !ImGui::CollapsingHeader("Messages", ImGuiTreeNodeFlags_DefaultOpen))
+		constexpr auto PANEL_BACKGROUND_ALPHA = 0.55f;
+
+		ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
+		ImGui::SetNextWindowSizeConstraints(minSize, maxSize);
+		ImGui::SetNextWindowBgAlpha(PANEL_BACKGROUND_ALPHA);
+
+		auto flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings |
+			ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_AlwaysAutoResize;
+		if (ImGui::Begin(name, isOpen, flags))
+			return true;
+
+		ImGui::End();
+		return false;
+	}
+
+	// Summary of the frame: rate, history, CPU and GPU times and the most expensive GPU passes.
+	void Renderer::DrawPerformancePanel()
+	{
+		constexpr auto GPU_PASSES_SHOWN = 8;
+
+		float scale = ImGuiGetUiScale();
+		float margin = 8.0f * scale;
+		float width = 330.0f * scale;
+		const auto& display = ImGui::GetIO().DisplaySize;
+		if (!BeginOverlayPanel("Performance (F8)", ImVec2(margin, margin), ImVec2(0.0f, 0.0f), ImVec2(width, 0.0f), ImVec2(width, display.y * 0.6f)))
+			return;
+
+		float averageTime = 0.0f;
+		float worstTime = 0.0f;
+		for (float time : _statsFrameTimes)
+		{
+			averageTime += time;
+			worstTime = std::max(worstTime, time);
+		}
+
+		averageTime /= GRAPHICS_STATS_HISTORY;
+
+		ImGui::Text("%.0f FPS   %.2f ms", (averageTime > 0.0f) ? (1000.0f / averageTime) : 0.0f, averageTime);
+		auto overlay = fmt::format("worst {:.1f} ms", worstTime);
+		ImGui::PlotLines("##FrameTimes", _statsFrameTimes.data(), GRAPHICS_STATS_HISTORY, _statsHistoryIndex, overlay.c_str(), 0.0f,
+			std::max(worstTime, 33.4f), ImVec2(-1.0f, 48.0f * scale));
+
+		const auto& stats = g_NextRenderer.GetFrameStats();
+		const auto& gpuTimings = g_NextRenderer.SampleGpuTimings();
+		float gpuTime = 0.0f;
+		for (const auto& timing : gpuTimings)
+			gpuTime += timing.Milliseconds;
+
+		int triangles = 0;
+		for (int categoryTriangles : stats.CategoryTriangles)
+			triangles += categoryTriangles;
+
+		if (BeginStatTable("##Performance"))
+		{
+			AddStatRow("Frontend CPU", "%d ms", _timeFrame + _timeUpdate + _timeRoomsCollector);
+			AddStatRow("Renderer CPU", "%.2f ms", stats.CpuTime);
+			if (gpuTimings.empty())
+				AddStatRow("GPU", "n/a");
+			else
+				AddStatRow("GPU", "%.2f ms", gpuTime);
+
+			AddStatRow("Draw calls", "%d", stats.DrawCalls);
+			AddStatRow("Triangles", "%d", triangles);
+			AddStatRow("Rooms", "%d", stats.RoomsDrawn);
+			AddStatRow("Resolution", "%d x %d", _screenWidth, _screenHeight);
+			AddStatRow("Device", "%s", g_NextRenderer.GetInfo().DeviceName.c_str());
+			ImGui::EndTable();
+		}
+
+		if (!gpuTimings.empty() && ImGui::CollapsingHeader("GPU passes", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			auto sortedTimings = gpuTimings;
+			std::sort(sortedTimings.begin(), sortedTimings.end(), [](const auto& a, const auto& b) { return (a.Milliseconds > b.Milliseconds); });
+
+			int count = std::min((int)sortedTimings.size(), GPU_PASSES_SHOWN);
+			for (int i = 0; i < count; i++)
+			{
+				const auto& timing = sortedTimings[i];
+				auto label = fmt::format("{}  {:.2f} ms", timing.Name, timing.Milliseconds);
+				ImGui::ProgressBar((gpuTime > 0.0f) ? (timing.Milliseconds / gpuTime) : 0.0f, ImVec2(-1.0f, 0.0f), label.c_str());
+			}
+		}
+
+		ImGui::End();
+	}
+
+	// Debug messages of the game code, along the bottom edge.
+	void Renderer::DrawDebugMessagePanel()
+	{
+		if (_debugMessages.empty())
+			return;
+
+		float scale = ImGuiGetUiScale();
+		float margin = 8.0f * scale;
+		const auto& display = ImGui::GetIO().DisplaySize;
+		if (!BeginOverlayPanel("Messages", ImVec2(margin, display.y - margin), ImVec2(0.0f, 1.0f), ImVec2(420.0f * scale, 0.0f), ImVec2(display.x * 0.5f, display.y * 0.35f)))
 			return;
 
 		for (const auto& message : _debugMessages)
 			ImGui::TextUnformatted(message.c_str());
+
+		ImGui::End();
 	}
 
 	// Selected page of a group: its tab becomes the debug page, so the scene debug drawing follows it.
@@ -567,7 +666,6 @@ namespace TEN::Renderer
 				_debugPage = tab.Page;
 
 			(this->*tab.Draw)(view);
-			DrawDebugMessages();
 			if (hasTabBar)
 				ImGui::EndTabItem();
 		}
@@ -576,8 +674,8 @@ namespace TEN::Renderer
 			ImGui::EndTabBar();
 	}
 
-	// Single ImGui window of the debug pages, shown while a debug page is active.
-	void Renderer::DrawDebugWindow(const RenderView& view)
+	// Debug pages in a column along the right edge, grouped by topic in tabs.
+	void Renderer::DrawDebugPagePanel(const RenderView& view)
 	{
 		// Debug pages grouped by topic; the debug keys cycle through them in enum order.
 		static const auto DEBUG_PAGE_TABS = std::vector<DebugPageTab>
@@ -596,16 +694,18 @@ namespace TEN::Renderer
 
 		constexpr const char* DEBUG_PAGE_GROUPS[] = { "Renderer", "Player", "Collision", "Sky" };
 
-		// The frame history keeps running while other pages are shown.
-		_statsFrameTimes[_statsHistoryIndex] = ImGui::GetIO().DeltaTime * 1000.0f;
-		_statsNextCpuTimes[_statsHistoryIndex] = g_NextRenderer.IsActive() ? g_NextRenderer.GetFrameStats().CpuTime : 0.0f;
-		_statsHistoryIndex = (_statsHistoryIndex + 1) % GRAPHICS_STATS_HISTORY;
+		float scale = ImGuiGetUiScale();
+		float margin = 8.0f * scale;
+		const auto& display = ImGui::GetIO().DisplaySize;
+		float width = std::min(460.0f * scale, display.x * 0.4f);
+		float height = display.y - margin * 2.0f;
 
-		ImGui::SetNextWindowSize(ImVec2(560.0f, 720.0f), ImGuiCond_FirstUseEver);
 		bool isOpen = true;
-		if (!ImGui::Begin("Debug", &isOpen, ImGuiWindowFlags_NoCollapse))
+		if (!BeginOverlayPanel("Debug pages (F10, F11)", ImVec2(display.x - margin, margin), ImVec2(1.0f, 0.0f), ImVec2(width, 0.0f), ImVec2(width, height), &isOpen))
 		{
-			ImGui::End();
+			if (!isOpen)
+				_debugPage = RendererDebugPage::None;
+
 			return;
 		}
 
@@ -635,5 +735,37 @@ namespace TEN::Renderer
 
 		if (!isOpen)
 			_debugPage = RendererDebugPage::None;
+	}
+
+	// Debug overlay: the performance panel, then the debug pages and messages while a page is active.
+	void Renderer::DrawDebugOverlay(const RenderView& view)
+	{
+		// The frame history keeps running while other pages are shown.
+		_statsFrameTimes[_statsHistoryIndex] = ImGui::GetIO().DeltaTime * 1000.0f;
+		_statsNextCpuTimes[_statsHistoryIndex] = g_NextRenderer.IsActive() ? g_NextRenderer.GetFrameStats().CpuTime : 0.0f;
+		_statsHistoryIndex = (_statsHistoryIndex + 1) % GRAPHICS_STATS_HISTORY;
+
+		if (_isPerformanceOverlayVisible)
+			DrawPerformancePanel();
+
+		if (_debugPage == RendererDebugPage::None)
+			return;
+
+		DrawDebugPagePanel(view);
+		DrawDebugMessagePanel();
+	}
+
+	void Renderer::TogglePerformanceOverlay()
+	{
+		_isPerformanceOverlayVisible = !_isPerformanceOverlayVisible;
+	}
+
+	bool Renderer::IsDebugOverlayVisible() const
+	{
+		// Benchmark screenshots show the scene alone.
+		if (!DebugMode || TEN::Benchmark::IsBenchmarkActive())
+			return false;
+
+		return (_isPerformanceOverlayVisible || _debugPage != RendererDebugPage::None);
 	}
 }
