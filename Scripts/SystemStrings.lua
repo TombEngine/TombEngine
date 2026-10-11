@@ -76,7 +76,6 @@ local strings =
 	exit_to_title = { "Exit to Title" },
 	gamma = { "Gamma Correction" },
 	general_actions = { "General Actions" },
-	goldrose_item_text = {"Golden rose"},
 	high = { "High" },
 	high_framerate = { "High Framerate" },
 	interaction_highlighter = { "Interaction Highlighter" },
