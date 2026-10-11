@@ -89,7 +89,7 @@ void ObeliskControl(short itemNumber)
 			pos.x = item->Pose.Position.x + 3456 * phd_sin(item->Pose.Orientation.y + ANGLE(90.0f));
 			pos.y = item->Pose.Position.y - CLICK(1);
 			pos.z = item->Pose.Position.z + 3456 * phd_cos(item->Pose.Orientation.y + ANGLE(90.0f));
-			pos2 = g_Level.Items[item->ItemFlags[2]].Pose.Position.ToVector3();
+			pos2 = g_Level.Items[item->ItemFlags[2]].GetObb().Center;
 
 			if (!(GlobalCounter & 3))
 				SpawnElectricity(pos, pos2, (GetRandomControl() & 0x1F) + 32, r, g, b, 24, 1, 32, 5);
@@ -175,14 +175,15 @@ void ObeliskCageControl(short itemNumber)
 		return;
 
 	const auto cagePosition = cage->Pose.Position;
+	const auto cageCenter = cage->GetObb().Center;
 	const auto cageRoom = cage->RoomNumber;
 	ExplodeItemNode(cage, 0, 0, 128);
 	SoundEffect(SFX_TR4_EXPLOSION1, &cage->Pose);
 	SoundEffect(SFX_TR4_EXPLOSION2, &cage->Pose);
 	KillItem(itemNumber);
 
-	TriggerExplosionSparks(cagePosition.x, cagePosition.y, cagePosition.z, 3, -2, 0, cageRoom);
-	TriggerExplosionSparks(cagePosition.x, cagePosition.y, cagePosition.z, 3, -1, 0, cageRoom);
+	TriggerExplosionSparks((int)cageCenter.x, (int)cageCenter.y, (int)cageCenter.z, 3, -2, 0, cageRoom);
+	TriggerExplosionSparks((int)cageCenter.x, (int)cageCenter.y, (int)cageCenter.z, 3, -1, 0, cageRoom);
 
 	for (int i = 0; i < g_Level.NumItems; i++)
 	{
