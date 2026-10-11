@@ -113,19 +113,31 @@ namespace TEN::Entities::Traps
 			{
 				if (item.TriggerFlags == 2)
 				{
-					for (int targetItemNumber : g_Level.Rooms[item.RoomNumber].itemNumbers)
-					{
-						auto* target = &g_Level.Items[targetItemNumber];
+                 ItemInfo* obelisks[3] = {};
+					int obeliskCount = 0;
+					bool validPuzzle = true;
 
-						if (target->ObjectNumber == ID_OBELISK && target->Pose.Orientation.y == -ANGLE(270) &&
-							g_Level.Items[target->ItemFlags[0]].Pose.Orientation.y == ANGLE(90) &&
-							g_Level.Items[target->ItemFlags[1]].Pose.Orientation.y == 0)
+					for (auto& target : g_Level.Items)
+					{
+                        if (target.ObjectNumber != ID_OBELISK)
+							continue;
+
+                      obeliskCount++;
+						const auto ocb = target.TriggerFlags;
+						if (ocb < 1 || ocb > 3 || obelisks[ocb - 1] != nullptr)
 						{
-							target->Flags |= CODE_BITS;
-							g_Level.Items[target->ItemFlags[0]].Flags |= CODE_BITS;
-							g_Level.Items[target->ItemFlags[1]].Flags |= CODE_BITS;
+							validPuzzle = false;
 							break;
 						}
+
+						obelisks[ocb - 1] = &target;
+					}
+
+                 if (validPuzzle && obeliskCount == 3 &&
+						obelisks[0] != nullptr && obelisks[1] != nullptr && obelisks[2] != nullptr)
+					{
+						for (auto* obelisk : obelisks)
+							obelisk->Flags |= CODE_BITS;
 					}
 
 					SoundEffect(SFX_TR4_GENERIC_HEAVY_THUD, &item.Pose);
