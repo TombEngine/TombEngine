@@ -227,9 +227,6 @@ std::optional<bool> HasMiscItem(LaraInfo& lara, GAME_OBJECT_ID objectID)
 	case ID_COMPASS_ITEM:
 		return lara.Inventory.HasCompass;
 
-	case ID_GOLDROSE_ITEM:
-		return (lara.Inventory.TotalGoldRoses > 0);
-
 	case ID_HAMMER_ITEM:
 		return lara.Inventory.HasHammer;
 

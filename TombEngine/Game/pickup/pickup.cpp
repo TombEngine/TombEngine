@@ -218,6 +218,9 @@ int GetInventoryCount(GAME_OBJECT_ID objectID)
 	if (intResult.has_value())
 		return intResult.value();
 
+   if (objectID == ID_HAMMER_ITEM)
+		return int{ Lara.Inventory.HasHammer };
+
 	boolResult = HasMiscItem(Lara, objectID);
 	if (boolResult.has_value())
 		return int{ boolResult.value() };
