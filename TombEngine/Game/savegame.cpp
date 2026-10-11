@@ -541,6 +541,7 @@ const std::vector<unsigned char> SaveGame::Build()
 	inventory.add_has_compass(Lara.Inventory.HasCompass);
 	inventory.add_has_stopwatch(Lara.Inventory.HasStopwatch);
 	inventory.add_has_crowbar(Lara.Inventory.HasCrowbar);
+ inventory.add_has_hammer(Lara.Inventory.HasHammer);
 	inventory.add_has_lasersight(Lara.Inventory.HasLasersight);
 	inventory.add_has_silencer(Lara.Inventory.HasSilencer);
 	inventory.add_has_torch(Lara.Inventory.HasTorch);
@@ -554,6 +555,7 @@ const std::vector<unsigned char> SaveGame::Build()
 	inventory.add_pickups_combo(pickupsComboOffset);
 	inventory.add_small_waterskin(Lara.Inventory.SmallWaterskin);
 	inventory.add_total_flares(Lara.Inventory.TotalFlares);
+    inventory.add_total_goldroses(Lara.Inventory.TotalGoldRoses);
 	inventory.add_total_small_medipacks(Lara.Inventory.TotalSmallMedipacks);
 	inventory.add_total_large_medipacks(Lara.Inventory.TotalLargeMedipacks);
 	auto inventoryOffset = inventory.Finish();
@@ -2157,6 +2159,7 @@ static void ParsePlayer(const Save::SaveGame* s)
 	Lara.Inventory.HasStopwatch = s->lara()->inventory()->has_stopwatch();
 	Lara.Inventory.HasCompass = s->lara()->inventory()->has_compass();
 	Lara.Inventory.HasCrowbar = s->lara()->inventory()->has_crowbar();
+    Lara.Inventory.HasHammer = s->lara()->inventory()->has_hammer();
 	Lara.Inventory.HasLasersight = s->lara()->inventory()->has_lasersight();
 	Lara.Inventory.HasSilencer = s->lara()->inventory()->has_silencer();
 	Lara.Inventory.HasTorch = s->lara()->inventory()->has_torch();
@@ -2166,6 +2169,7 @@ static void ParsePlayer(const Save::SaveGame* s)
 	Lara.Inventory.TotalFlares = s->lara()->inventory()->total_flares();
 	Lara.Inventory.TotalLargeMedipacks = s->lara()->inventory()->total_large_medipacks();
 	Lara.Inventory.TotalSmallMedipacks = s->lara()->inventory()->total_small_medipacks();
+	Lara.Inventory.TotalGoldRoses = s->lara()->inventory()->total_goldroses();
 	Lara.LeftArm.AnimObjectID = (GAME_OBJECT_ID)s->lara()->left_arm()->anim_object_id();
 	Lara.LeftArm.AnimNumber = s->lara()->left_arm()->anim_number();
 	Lara.LeftArm.GunFlash = s->lara()->left_arm()->gun_flash();

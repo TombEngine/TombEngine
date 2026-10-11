@@ -17,13 +17,14 @@ struct ConsumablePickupInfo
 	int Amount;
 };
 
-static std::array<ConsumablePickupInfo, 4> Consumables =
+static std::array<ConsumablePickupInfo, 5> Consumables =
 {
 	{
 		ConsumablePickupInfo{ ID_SMALLMEDI_ITEM, &PlayerInventoryData::TotalSmallMedipacks, 1 },
 		ConsumablePickupInfo{ ID_BIGMEDI_ITEM, &PlayerInventoryData::TotalLargeMedipacks, 1 },
 		ConsumablePickupInfo{ ID_FLARE_INV_ITEM, &PlayerInventoryData::TotalFlares, 12 },
-		ConsumablePickupInfo{ ID_FLARE_ITEM, &PlayerInventoryData::TotalFlares, 1 }
+		ConsumablePickupInfo{ ID_FLARE_ITEM, &PlayerInventoryData::TotalFlares, 1 },
+		ConsumablePickupInfo{ ID_GOLDROSE_ITEM, &PlayerInventoryData::TotalGoldRoses, 1 }
 	}
  };
 
