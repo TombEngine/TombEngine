@@ -565,15 +565,21 @@ namespace TEN::Renderer
 		if (!BeginOverlayPanel("Performance (F8)", ImVec2(margin, margin), ImVec2(0.0f, 0.0f), ImVec2(width, 0.0f), ImVec2(width, display.y * 0.6f)))
 			return;
 
+		// Slots of the history not yet filled are zero and excluded.
 		float averageTime = 0.0f;
 		float worstTime = 0.0f;
+		int frameCount = 0;
 		for (float time : _statsFrameTimes)
 		{
+			if (time <= 0.0f)
+				continue;
+
 			averageTime += time;
 			worstTime = std::max(worstTime, time);
+			frameCount++;
 		}
 
-		averageTime /= GRAPHICS_STATS_HISTORY;
+		averageTime /= std::max(frameCount, 1);
 
 		ImGui::Text("%.0f FPS   %.2f ms", (averageTime > 0.0f) ? (1000.0f / averageTime) : 0.0f, averageTime);
 		auto overlay = fmt::format("worst {:.1f} ms", worstTime);

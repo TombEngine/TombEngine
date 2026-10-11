@@ -1024,6 +1024,7 @@ namespace TEN::Renderer::Next
         bool Initialize(SDL_Window* window, RHI::Backend backend, const std::string& gameDirectory, bool preferLowPowerGpu);
         void Shutdown();
         bool IsActive() const;
+        bool IsPresentedOnWindowThread() const;
 
         void LoadLevel(const LegacyLevelGeometry& geometry);
         void RenderFrame(const RenderView& view, const FrameEnvironment& environment);

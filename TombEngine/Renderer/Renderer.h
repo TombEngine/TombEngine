@@ -265,6 +265,7 @@ namespace TEN::Renderer
 		std::chrono::steady_clock::time_point _lastPresentTime = {};
 		std::chrono::steady_clock::time_point _lastFrameTime   = {};
 		float                                 _frameRate       = 0.0f; // Presented frames per second, smoothed.
+		unsigned long long                    _framePaceTime   = 0;    // Start of the paced frame, in SDL nanosecond ticks.
 		float _fps;
 		int _currentCausticsFrame;
 
@@ -399,6 +400,7 @@ namespace TEN::Renderer
 		void AddNextUiSkinMesh(const RendererObject& moveableObject, const RendererMesh* skinMesh, const Matrix& world);
 		void PresentFrame();
 		void UpdateFrameRate();
+		void PaceFrame();
 		void PrepareDynamicLight(RendererLight& light);
 		void PrepareLaserBarriers(RenderView& view);
 		void PrepareSingleLaserBeam(RenderView& view);

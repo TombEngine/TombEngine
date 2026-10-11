@@ -601,6 +601,29 @@ namespace TEN::Renderer
 		_lastFrameTime = now;
 	}
 
+	// Vulkan presents the latest frame on the window thread at vertical sync, so the game thread is not paced by it. Without
+	// pacing it draws frames faster than the display shows them, and the shown frames are sampled at uneven times, which
+	// makes continuous motion stutter. The game thread therefore starts frames one refresh interval apart.
+	void Renderer::PaceFrame()
+	{
+		if (!g_Configuration.EnableHighFramerate || !Next::g_NextRenderer.IsPresentedOnWindowThread())
+			return;
+
+		auto interval = (unsigned long long)(1000000000.0 / GetScreenRefreshRate());
+		auto deadline = _framePaceTime + interval;
+		auto now = SDL_GetTicksNS();
+
+		// Late frames restart the cadence, so a slow frame is not followed by a burst of unpaced ones.
+		if (now >= deadline)
+		{
+			_framePaceTime = now;
+			return;
+		}
+
+		SDL_DelayPrecise(deadline - now);
+		_framePaceTime = deadline;
+	}
+
 	float Renderer::GetInterpolationFactor(bool forceRawValue) const
 	{
 		return (forceRawValue || g_GameFlow->CurrentFreezeMode == FreezeMode::None) ? _interpolationFactor : 0.0f;

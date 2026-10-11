@@ -256,6 +256,11 @@ namespace TEN::Renderer::Next
         return (_device != nullptr);
     }
 
+    bool NextRenderer::IsPresentedOnWindowThread() const
+    {
+        return (_device != nullptr && _device->RequiresWindowThreadPresent());
+    }
+
     // Pipelines created on first use.
     void NextRenderer::ClearPipelineCaches()
     {
