@@ -113,16 +113,15 @@ namespace TEN::Entities::Traps
 			{
 				if (item.TriggerFlags == 2)
 				{
-                 ItemInfo* obelisks[3] = {};
-					int obeliskCount = 0;
+					ItemInfo* obelisks[3] = {};
 					bool validPuzzle = true;
 
-					for (auto& target : g_Level.Items)
+					for (int i = 0; i < g_Level.NumItems; i++)
 					{
-                        if (target.ObjectNumber != ID_OBELISK)
+						auto& target = g_Level.Items[i];
+						if (target.ObjectNumber != ID_OBELISK)
 							continue;
 
-                      obeliskCount++;
 						const auto ocb = target.TriggerFlags;
 						if (ocb < 1 || ocb > 3 || obelisks[ocb - 1] != nullptr)
 						{
@@ -133,8 +132,7 @@ namespace TEN::Entities::Traps
 						obelisks[ocb - 1] = &target;
 					}
 
-                 if (validPuzzle && obeliskCount == 3 &&
-						obelisks[0] != nullptr && obelisks[1] != nullptr && obelisks[2] != nullptr)
+					if (validPuzzle && obelisks[0] != nullptr && obelisks[1] != nullptr && obelisks[2] != nullptr)
 					{
 						for (auto* obelisk : obelisks)
 							obelisk->Flags |= CODE_BITS;

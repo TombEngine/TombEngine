@@ -22,14 +22,12 @@ namespace
 	bool AreObelisksAligned()
 	{
 		const ItemInfo* obelisks[3] = {};
-		int obeliskCount = 0;
 
-		for (const auto& candidate : g_Level.Items)
+		for (int i = 0; i < g_Level.NumItems; i++)
 		{
+			const auto& candidate = g_Level.Items[i];
 			if (candidate.ObjectNumber != ID_OBELISK)
 				continue;
-
-			obeliskCount++;
 
 			const auto ocb = candidate.TriggerFlags;
 			if (ocb < 1 || ocb > 3 || obelisks[ocb - 1] != nullptr)
@@ -38,8 +36,7 @@ namespace
 			obelisks[ocb - 1] = &candidate;
 		}
 
-		return obeliskCount == 3 &&
-            obelisks[0] != nullptr && obelisks[0]->Pose.Orientation.y == ANGLE(180.0f) &&
+       return obelisks[0] != nullptr && obelisks[0]->Pose.Orientation.y == ANGLE(180.0f) &&
 			obelisks[1] != nullptr && obelisks[1]->Pose.Orientation.y == 0 &&
 			obelisks[2] != nullptr && obelisks[2]->Pose.Orientation.y == ANGLE(90.0f);
 	}
@@ -55,38 +52,19 @@ void InitializeObelisk(short itemNumber)
 	AddActiveItem(itemNumber);
 	item->Status = ITEM_ACTIVE;
 
-    item->ItemFlags[2] = NO_VALUE;
-	int otherObeliskCount = 0;
-
+	item->ItemFlags[2] = NO_VALUE;
 	for (int i = 0; i < g_Level.NumItems; i++)
 	{
-		auto* currentItem = &g_Level.Items[i];
+		const auto* currentItem = &g_Level.Items[i];
 
 		if (currentItem->ObjectNumber == ID_ANIMATING3)
 			item->ItemFlags[2] = i;
-
-		if (item->TriggerFlags == 2 && currentItem->ObjectNumber == ID_OBELISK &&
-			i != itemNumber && otherObeliskCount < 2)
-			item->ItemFlags[otherObeliskCount++] = i;
 	}
-
 }
 
 void ObeliskControl(short itemNumber)
 {
 	auto* item = &g_Level.Items[itemNumber];
-
-	if (item->TriggerFlags == 2)
-	{
-		for (auto& currentItem : g_Level.Items)
-		{
-			if (currentItem.ObjectNumber == ID_PULLEY)
-			{
-				currentItem.ItemFlags[1] = AreObelisksAligned() ? 0 : 1;
-				break;
-			}
-		}
-	}
 
 	auto pos = Vector3::Zero;
 	auto pos2 = Vector3::Zero;
@@ -130,8 +108,9 @@ void ObeliskControl(short itemNumber)
 				TriggerExplosionSparks(cagePosition.x, cagePosition.y, cagePosition.z, 3, -2, 0, cageRoom);
 				TriggerExplosionSparks(cagePosition.x, cagePosition.y, cagePosition.z, 3, -1, 0, cageRoom);
 
-				for (auto& candidate : g_Level.Items)
+				for (int i = 0; i < g_Level.NumItems; i++)
 				{
+					auto& candidate = g_Level.Items[i];
 					if (candidate.ObjectNumber == ID_OBELISK)
 						candidate.ItemFlags[2] = NO_VALUE;
 				}
@@ -187,6 +166,19 @@ void ObeliskControl(short itemNumber)
 		{
 			item->Animation.AnimNumber = 3;
 			item->Animation.FrameNumber = 0;
+		}
+
+		if (item->TriggerFlags == 2)
+		{
+			for (int i = 0; i < g_Level.NumItems; i++)
+			{
+				auto& currentItem = g_Level.Items[i];
+				if (currentItem.ObjectNumber == ID_PULLEY)
+				{
+					currentItem.ItemFlags[1] = AreObelisksAligned() ? 0 : 1;
+					break;
+				}
+			}
 		}
 	}
 }
