@@ -53,7 +53,7 @@ namespace TEN::Renderer
 
 	// Vertical menu positioning templates
 	constexpr auto MenuVerticalControls = 30;
-	constexpr auto MenuVerticalDisplaySettings = 110;
+	constexpr auto MenuVerticalDisplaySettings = 80;
 	constexpr auto MenuVerticalOtherSettings = 50;
 	constexpr auto MenuVerticalBottomCenter = 400;
 	constexpr auto MenuVerticalStatisticsTitle = 150;
@@ -272,14 +272,27 @@ namespace TEN::Renderer
 				AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RENDERER), optionColor, SF(titleOption == 10));
 				AddString(MenuRightSideEntry, y, g_GameFlow->GetString(isDX11 ? STRING_RENDERER_DX11 : STRING_RENDERER_VULKAN), plainColor, SF(titleOption == 10));
 			}
+			GetNextLinePosition(&y);
+
+			// Render scale of the 3D scene, upscaled with FSR 1.
+			{
+				constexpr const char* RENDER_SCALE_STRINGS[(int)RenderScaleMode::Count] =
+				{
+					STRING_RENDER_SCALE_NATIVE, STRING_RENDER_SCALE_ULTRA_QUALITY, STRING_RENDER_SCALE_QUALITY, STRING_RENDER_SCALE_BALANCED, STRING_RENDER_SCALE_PERFORMANCE
+				};
+
+				int renderScale = (int)g_Gui.GetCurrentSettings().Configuration.RenderScale;
+				AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RENDER_SCALE), optionColor, SF(titleOption == 11));
+				AddString(MenuRightSideEntry, y, g_GameFlow->GetString(RENDER_SCALE_STRINGS[renderScale]), plainColor, SF(titleOption == 11));
+			}
 			GetNextBlockPosition(&y);
 
 			// Apply
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 11));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 12));
 			GetNextLinePosition(&y);
 
 			// Cancel
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 12));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 13));
 			break;
 
 		case Menu::OtherSettings:

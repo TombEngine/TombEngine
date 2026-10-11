@@ -600,11 +600,11 @@ namespace TEN::Renderer::Next
         colorTargets[0].Texture = _finalTarget.get();
         colorTargets[0].Load = isFirstPass ? LoadOp::Clear : LoadOp::Load;
         colorTargets[0].ClearColor[3] = 1.0f;
-        colorTargets[1].Texture = _emissiveTarget.get();
+        colorTargets[1].Texture = _overlayTargets.Emissive;
         colorTargets[1].Load = isFirstObjectPass ? LoadOp::Clear : LoadOp::Load;
 
         auto depthTarget = DepthTargetInfo{};
-        depthTarget.Texture = _depthTarget.get();
+        depthTarget.Texture = _overlayTargets.Depth;
         depthTarget.Load = LoadOp::Clear;
         depthTarget.Store = StoreOp::DontCare;
         depthTarget.ClearDepth = 1.0f;
@@ -705,21 +705,21 @@ namespace TEN::Renderer::Next
         if (isGlowActive)
         {
             commandBuffer.PushDebugGroup("Glow");
-            RenderGlow(commandBuffer);
+            BlurEmissive(commandBuffer, _overlayTargets.Emissive, _overlayTargets.Glow);
             commandBuffer.PopDebugGroup();
 
-            TextureSamplerBinding bindings[2] = { { _finalTarget.get(), _linearClampSampler.get() }, { _glowTarget.get(), _linearClampSampler.get() } };
-            RenderFullscreenPass(commandBuffer, _glowCombinePipeline.get(), _antialiasingSource.get(), bindings, 2, "Glow combine");
+            TextureSamplerBinding bindings[2] = { { _finalTarget.get(), _linearClampSampler.get() }, { _overlayTargets.Glow, _linearClampSampler.get() } };
+            RenderFullscreenPass(commandBuffer, _glowCombinePipeline.get(), _overlayTargets.AntialiasingSource, bindings, 2, "Glow combine");
         }
         else
         {
-            commandBuffer.BlitTexture(_finalTarget.get(), _antialiasingSource.get());
+            commandBuffer.BlitTexture(_finalTarget.get(), _overlayTargets.AntialiasingSource);
         }
 
         if (ui.AntialiasingMode != 0)
-            RenderAntialiasing(commandBuffer, ui.AntialiasingMode, _finalTarget.get());
+            RenderAntialiasing(commandBuffer, ui.AntialiasingMode, _overlayTargets.AntialiasingSource, _finalTarget.get());
         else
-            commandBuffer.BlitTexture(_antialiasingSource.get(), _finalTarget.get());
+            commandBuffer.BlitTexture(_overlayTargets.AntialiasingSource, _finalTarget.get());
 
         commandBuffer.PopDebugGroup();
     }

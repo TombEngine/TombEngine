@@ -137,7 +137,7 @@ namespace TEN::Renderer::Next
         commandBuffer.EndRenderPass();
     }
 
-    // Single fullscreen pass from the scene target to the frame target.
+    // Single fullscreen pass from the scene target to the frame target, or to the upscale source below native scale.
     void NextRenderer::RenderPostProcess(ICommandBuffer& commandBuffer)
     {
         const auto& environment = *_frameEnvironment;
@@ -149,8 +149,8 @@ namespace TEN::Renderer::Next
         uniforms.ColorSchemeStrength = (environment.ColorScheme != 0) ? environment.ColorSchemeStrength : 0.0f;
         uniforms.ScreenFade = environment.ScreenFade;
         uniforms.CinematicBarsHeight = environment.CinematicBarsHeight;
-        uniforms.ViewportHeight = (float)_colorTarget->GetDesc().Height;
-        uniforms.ViewportWidth = (float)_colorTarget->GetDesc().Width;
+        uniforms.ViewportHeight = (float)_sceneTarget->GetDesc().Height;
+        uniforms.ViewportWidth = (float)_sceneTarget->GetDesc().Width;
         uniforms.NearPlane = _nearPlane;
         uniforms.FarPlane = _farPlane;
         uniforms.IsDistortionActive = _hasDistortion ? 1 : 0;
@@ -172,9 +172,10 @@ namespace TEN::Renderer::Next
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &uniforms, sizeof(uniforms));
 
         bool isAntialiased = (environment.AntialiasingMode != 0);
+        auto* outputTarget = _isUpscaleActive ? _upscaleSource.get() : _colorTarget.get();
 
         auto colorTarget = ColorTargetInfo{};
-        colorTarget.Texture = isAntialiased ? _antialiasingSource.get() : _colorTarget.get();
+        colorTarget.Texture = isAntialiased ? _antialiasingSource.get() : outputTarget;
         colorTarget.Load = LoadOp::DontCare;
 
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
@@ -196,6 +197,6 @@ namespace TEN::Renderer::Next
         commandBuffer.EndRenderPass();
 
         if (isAntialiased)
-            RenderAntialiasing(commandBuffer, environment.AntialiasingMode, _colorTarget.get());
+            RenderAntialiasing(commandBuffer, environment.AntialiasingMode, _antialiasingSource.get(), outputTarget);
     }
 }

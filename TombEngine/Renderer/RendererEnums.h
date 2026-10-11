@@ -152,6 +152,18 @@ enum class AntialiasingMode
 	High
 };
 
+// Resolution of the 3D scene relative to the screen; the scene is upscaled with AMD FSR 1. The values are stored in the configuration.
+enum class RenderScaleMode
+{
+	Native,
+	UltraQuality,
+	Quality,
+	Balanced,
+	Performance,
+
+	Count
+};
+
 enum class LightMode
 {
 	Dynamic,

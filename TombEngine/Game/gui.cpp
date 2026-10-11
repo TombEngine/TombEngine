@@ -56,6 +56,13 @@ namespace TEN::Gui
 		configuration.GraphicsBackend = (configuration.GraphicsBackend == GraphicsBackend::Vulkan) ? GraphicsBackend::DX11 : GraphicsBackend::Vulkan;
 	}
 
+	// Render scale modes cycle in both directions; the scale applies from the next frame.
+	static void CycleRenderScale(GameConfiguration& configuration, int step)
+	{
+		int count = (int)RenderScaleMode::Count;
+		configuration.RenderScale = (RenderScaleMode)(((int)configuration.RenderScale + step + count) % count);
+	}
+
 	std::vector<std::string> OptionStrings =
 	{
 		STRING_USE,
@@ -537,6 +544,7 @@ namespace TEN::Gui
 			Gamma,
 			SkyQuality,
 			RendererBackend,
+			RenderScale,
 			Save,
 			Cancel,
 
@@ -646,6 +654,11 @@ namespace TEN::Gui
 				ToggleGraphicsBackend(CurrentSettings.Configuration);
 				break;
 
+			case DisplaySettingsOption::RenderScale:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CycleRenderScale(CurrentSettings.Configuration, -1);
+				break;
+
 			}
 		}
 
@@ -736,6 +749,11 @@ namespace TEN::Gui
 			case DisplaySettingsOption::RendererBackend:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				ToggleGraphicsBackend(CurrentSettings.Configuration);
+				break;
+
+			case DisplaySettingsOption::RenderScale:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CycleRenderScale(CurrentSettings.Configuration, 1);
 				break;
 			}
 		}

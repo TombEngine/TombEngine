@@ -166,6 +166,11 @@ namespace TEN::Renderer::Next
         _sceneDepthCopy = nullptr;
         _distortionTarget = nullptr;
         _antialiasingSource = nullptr;
+        _upscaleSource = nullptr;
+        _easuPipeline = nullptr;
+        _rcasPipeline = nullptr;
+        _easuPixelShader = nullptr;
+        _rcasPixelShader = nullptr;
         _fxaaPipeline = nullptr;
         _fxaaPixelShader = nullptr;
         _depthCopyPipeline = nullptr;
@@ -259,6 +264,19 @@ namespace TEN::Renderer::Next
     bool NextRenderer::IsPresentedOnWindowThread() const
     {
         return (_device != nullptr && _device->RequiresWindowThreadPresent());
+    }
+
+    // Anisotropic sampler of the material maps. With a render scale below 1, its mip bias keeps the texture detail
+    // of the window resolution.
+    bool NextRenderer::CreateMaterialSampler()
+    {
+        auto samplerDesc = SamplerDesc{};
+        samplerDesc.AddressU = samplerDesc.AddressV = samplerDesc.AddressW = AddressMode::ClampToEdge;
+        samplerDesc.MaxAnisotropy = 16;
+        samplerDesc.MipLodBias = _materialLodBias;
+        samplerDesc.Name = "AnisotropicClamp";
+        _anisotropicSampler = _device->CreateSampler(samplerDesc);
+        return (_anisotropicSampler != nullptr);
     }
 
     // Pipelines created on first use.
@@ -382,7 +400,7 @@ namespace TEN::Renderer::Next
         if (_skyVertexShader == nullptr || _skyPixelShader == nullptr || _horizonMaskPixelShader == nullptr || !CreateSkyGeometry())
             return false;
 
-        if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources() || !CreateDOFResources() || !CreateSMAAResources() ||
+        if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources() || !CreateDOFResources() || !CreateSMAAResources() || !CreateUpscaleResources() ||
             !CreateSkyReflectionResources() || !CreateAtmosphereResources() || !CreateOverlayResources(TEN::Renderer::Utils::GetAssetPath("Textures/Font.spritefont")) ||
             !CreateDebugPrimitiveResources() || !CreateCloudResources() || !CreateGodRayResources() || !CreateDustStormResources())
             return false;
@@ -406,11 +424,7 @@ namespace TEN::Renderer::Next
         _instanceIndexBuffer = _device->CreateBuffer(BufferDesc{ instanceIndexSize, 0, BufferUsage::Vertex, "InstanceIndices" });
         UploadBuffer(_instanceIndexBuffer.get(), instanceIndices.data(), instanceIndexSize);
 
-        auto samplerDesc = SamplerDesc{};
-        samplerDesc.AddressU = samplerDesc.AddressV = samplerDesc.AddressW = AddressMode::ClampToEdge;
-        samplerDesc.MaxAnisotropy = 16;
-        samplerDesc.Name = "AnisotropicClamp";
-        _anisotropicSampler = _device->CreateSampler(samplerDesc);
+        CreateMaterialSampler();
 
         // Defaults of the legacy renderer for atlas pages without material maps.
         constexpr unsigned char WHITE_PIXEL[4]       = { 255, 255, 255, 255 };
@@ -675,13 +689,14 @@ namespace TEN::Renderer::Next
     }
 
     // Targets sampled by later passes are cleared once at creation: some are written only when their feature is
-    // active, and sampling a texture never written leaves it in an undefined layout on Vulkan.
-    void NextRenderer::ClearSampledTargets()
+    // active, and sampling a texture never written leaves it in an undefined layout on Vulkan. The frame target is cleared
+    // only when it is new: it holds the last scene frame, which menus show as their background.
+    void NextRenderer::ClearSampledTargets(bool includeFrameTargets)
     {
         ITexture* targets[] =
         {
             _distortionTarget.get(), _emissiveTarget.get(), _glowTarget.get(), _reflectionTarget.get(), _dofTargets[0].get(), _dofTargets[1].get(),
-            _antialiasingSource.get(), _colorTarget.get(), _skyReflectionTarget.get()
+            _antialiasingSource.get(), includeFrameTargets ? _colorTarget.get() : nullptr, _skyReflectionTarget.get()
         };
 
         auto* commandBuffer = _device->AcquireCommandBuffer();
@@ -707,13 +722,28 @@ namespace TEN::Renderer::Next
         commandBuffer->Submit();
     }
 
+    // Frame targets have the window resolution; scene targets have the render resolution, which the render scale lowers.
+    // A render scale change keeps the frame targets, so the menu background of the last scene frame survives it.
     bool NextRenderer::EnsureRenderTargets(int width, int height)
     {
-        if (_colorTarget != nullptr && _colorTarget->GetDesc().Width == width && _colorTarget->GetDesc().Height == height)
+        int renderWidth = GetRenderSize(width);
+        int renderHeight = GetRenderSize(height);
+        bool isFrameCurrent = (_colorTarget != nullptr && _colorTarget->GetDesc().Width == width && _colorTarget->GetDesc().Height == height);
+        bool isSceneCurrent = (_sceneTarget != nullptr && _sceneTarget->GetDesc().Width == renderWidth && _sceneTarget->GetDesc().Height == renderHeight);
+        if (isFrameCurrent && isSceneCurrent)
             return true;
 
         _targetPool.Clear();
 
+        bool isCreated = (isFrameCurrent || CreateFrameTargets(width, height)) && (isSceneCurrent || CreateSceneTargets(renderWidth, renderHeight, width));
+        if (isCreated)
+            ClearSampledTargets(!isFrameCurrent);
+
+        return isCreated;
+    }
+
+    bool NextRenderer::CreateFrameTargets(int width, int height)
+    {
         auto colorDesc = TextureDesc{};
         colorDesc.Width = width;
         colorDesc.Height = height;
@@ -725,7 +755,16 @@ namespace TEN::Renderer::Next
 
         colorDesc.Name = "Frame.Final";
         _finalTarget = _device->CreateTexture(colorDesc);
+        return (_colorTarget != nullptr && _finalTarget != nullptr);
+    }
 
+    bool NextRenderer::CreateSceneTargets(int width, int height, int windowWidth)
+    {
+        auto colorDesc = TextureDesc{};
+        colorDesc.Width = width;
+        colorDesc.Height = height;
+        colorDesc.Format = _device->GetSwapchainFormat();
+        colorDesc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler;
         colorDesc.Name = "Scene.Color";
         _sceneTarget = _device->CreateTexture(colorDesc);
 
@@ -739,6 +778,11 @@ namespace TEN::Renderer::Next
         colorDesc.Name = "PostProcess.Result";
         _antialiasingSource = _device->CreateTexture(colorDesc);
 
+        // Below the window resolution, the post-processed and antialiased scene waits here for the upscale pass.
+        _isUpscaleActive = (width != windowWidth);
+        colorDesc.Name = "FSR.Source";
+        _upscaleSource = _isUpscaleActive ? _device->CreateTexture(colorDesc) : nullptr;
+
         colorDesc.Format = PixelFormat::R32Float;
         colorDesc.Name = "Scene.DepthCopy";
         _sceneDepthCopy = _device->CreateTexture(colorDesc);
@@ -751,11 +795,22 @@ namespace TEN::Renderer::Next
         depthDesc.Name = "Scene.Depth";
         _depthTarget = _device->CreateTexture(depthDesc);
 
-        bool isCreated = (_colorTarget != nullptr && _finalTarget != nullptr && _sceneTarget != nullptr && _sceneDepthCopy != nullptr && _distortionTarget != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height) && EnsureGlowTargets(width, height) && EnsureDOFTargets(width, height));
-        if (isCreated)
-            ClearSampledTargets();
+        if (_sceneTarget == nullptr || _sceneDepthCopy == nullptr || _distortionTarget == nullptr || _antialiasingSource == nullptr ||
+            _depthTarget == nullptr || (_isUpscaleActive && _upscaleSource == nullptr))
+        {
+            return false;
+        }
 
-        return isCreated;
+        if (!EnsureSSAOTargets(width, height) || !EnsureGlowTargets(width, height) || !EnsureDOFTargets(width, height))
+            return false;
+
+        // Texture mips are biased by the scale, so the scene keeps the texture detail of the window resolution.
+        float lodBias = _isUpscaleActive ? std::log2((float)width / (float)windowWidth) : 0.0f;
+        if (lodBias == _materialLodBias)
+            return true;
+
+        _materialLodBias = lodBias;
+        return CreateMaterialSampler();
     }
 
     void NextRenderer::UploadBuffer(IBuffer* buffer, const void* data, int size, int offset)
@@ -2438,7 +2493,8 @@ namespace TEN::Renderer::Next
         { "DOF", &NextRenderer::_isDofActive, &NextRenderer::RenderDOF },
         { "Reflections", &NextRenderer::_hasReflectiveMaterials, &NextRenderer::CopyReflectionSource },
         { "Glow", &NextRenderer::_hasEmissiveMaps, &NextRenderer::RenderGlow },
-        { "Post-process", nullptr, &NextRenderer::RenderPostProcess }
+        { "Post-process", nullptr, &NextRenderer::RenderPostProcess },
+        { "Upscale", &NextRenderer::_isUpscaleActive, &NextRenderer::RenderUpscale }
     };
 
     void NextRenderer::RenderScenePass(ICommandBuffer& commandBuffer)
@@ -2495,6 +2551,7 @@ namespace TEN::Renderer::Next
             return;
 
         auto lock = std::lock_guard<std::mutex>(_frameMutex);
+        _renderScale = environment.RenderScale;
         if (!EnsureRenderTargets(width, height))
             return;
 
@@ -2543,7 +2600,7 @@ namespace TEN::Renderer::Next
         framePixelUniforms.CameraDirection = view.Camera.WorldDirection;
         framePixelUniforms.AmbientOcclusionExponent = GetAmbientOcclusionExponent();
         framePixelUniforms.View = view.Camera.View;
-        framePixelUniforms.InverseViewportSize = Vector2(1.0f / width, 1.0f / height);
+        framePixelUniforms.InverseViewportSize = Vector2(1.0f / _sceneTarget->GetDesc().Width, 1.0f / _sceneTarget->GetDesc().Height);
         PrepareCaustics(framePixelUniforms);
         commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 0, &framePixelUniforms, sizeof(framePixelUniforms));
 
@@ -2678,8 +2735,10 @@ namespace TEN::Renderer::Next
         _uploadRing.End();
         commandBuffer->EndCopyPass();
 
+        AcquireOverlayTargets();
         RenderOverlay(*commandBuffer, ui);
         RenderMenuPostProcess(*commandBuffer, ui);
+        ReleaseOverlayTargets();
         DrawImGui(*commandBuffer, ui);
 
         if (!_device->RequiresWindowThreadPresent())

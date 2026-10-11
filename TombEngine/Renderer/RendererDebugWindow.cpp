@@ -106,6 +106,8 @@ namespace TEN::Renderer
 		constexpr const char* SHADOW_NAMES[] = { "none", "player", "all" };
 		constexpr const char* QUALITY_NAMES[] = { "low", "medium", "high" };
 		AddStatRow("Antialiasing", "%s", ANTIALIASING_NAMES[std::clamp((int)g_Configuration.AntialiasingMode, 0, 3)]);
+		constexpr const char* RENDER_SCALE_NAMES[] = { "native", "ultra quality (FSR 1)", "quality (FSR 1)", "balanced (FSR 1)", "performance (FSR 1)" };
+		AddStatRow("Render scale", "%s", RENDER_SCALE_NAMES[std::clamp((int)g_Configuration.RenderScale, 0, (int)RenderScaleMode::Count - 1)]);
 		AddStatRow("Shadows", "%s", SHADOW_NAMES[std::clamp((int)g_Configuration.ShadowType, 0, 2)]);
 		AddStatRow("Shadow map size", "%d", g_Configuration.ShadowMapSize);
 		AddStatRow("Ambient occlusion", YesNo(g_Configuration.EnableAmbientOcclusion));
@@ -608,8 +610,13 @@ namespace TEN::Renderer
 			AddStatRow("Draw calls", "%d", stats.DrawCalls);
 			AddStatRow("Triangles", "%d", triangles);
 			AddStatRow("Rooms", "%d", stats.RoomsDrawn);
-			AddStatRow("Resolution", "%d x %d", _screenWidth, _screenHeight);
-			AddStatRow("Device", "%s", g_NextRenderer.GetInfo().DeviceName.c_str());
+			auto info = g_NextRenderer.GetInfo();
+			if (info.Width > 0 && info.Width != _screenWidth)
+				AddStatRow("Resolution", "%d x %d (FSR 1 from %d x %d)", _screenWidth, _screenHeight, info.Width, info.Height);
+			else
+				AddStatRow("Resolution", "%d x %d", _screenWidth, _screenHeight);
+
+			AddStatRow("Device", "%s", info.DeviceName.c_str());
 			ImGui::EndTable();
 		}
 

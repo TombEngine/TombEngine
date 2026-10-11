@@ -122,6 +122,7 @@ static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 	g_Configuration.AtmosphericSkyQuality = (AtmosphericSkyQuality)std::clamp(config->atmospheric_sky_quality(), (int)AtmosphericSkyQuality::Low, (int)AtmosphericSkyQuality::High);
 	// The retired legacy renderer, stored as 0, uses Vulkan.
 	g_Configuration.GraphicsBackend = (config->graphics_backend() == (int)GraphicsBackend::DX11) ? GraphicsBackend::DX11 : GraphicsBackend::Vulkan;
+	g_Configuration.RenderScale = (RenderScaleMode)std::clamp(config->render_scale(), 0, (int)RenderScaleMode::Count - 1);
 
 	if (config->adapter_name() != nullptr)
 		g_Configuration.AdapterName = config->adapter_name()->str();
@@ -184,6 +185,7 @@ void InitDefaultConfiguration()
 	g_Configuration.Gamma = 1.0f;
 	g_Configuration.AtmosphericSkyQuality = AtmosphericSkyQuality::Medium;
 	g_Configuration.GraphicsBackend = GraphicsBackend::Vulkan;
+	g_Configuration.RenderScale = RenderScaleMode::Native;
 
 	g_Configuration.SoundDevice = 1;
 	g_Configuration.EnableSound = true;
@@ -258,6 +260,7 @@ static std::vector<unsigned char> BuildConfigurationBuffer()
 	builder.add_enable_high_framerate(g_Configuration.EnableHighFramerate);
 	builder.add_atmospheric_sky_quality((int)g_Configuration.AtmosphericSkyQuality);
 	builder.add_graphics_backend((int)g_Configuration.GraphicsBackend);
+	builder.add_render_scale((int)g_Configuration.RenderScale);
 	builder.add_adapter_name(adapterNameOffset);
 	builder.add_sound_device(g_Configuration.SoundDevice);
 	builder.add_enable_reverb(g_Configuration.EnableReverb);

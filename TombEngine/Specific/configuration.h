@@ -44,6 +44,7 @@ struct GameConfiguration
 	bool	   EnableAmbientOcclusion = false;
 	bool	   EnableHighFramerate    = true;
 	AntialiasingMode AntialiasingMode = AntialiasingMode::None;
+	RenderScaleMode RenderScale = RenderScaleMode::Native;
 	AtmosphericSkyQuality AtmosphericSkyQuality = AtmosphericSkyQuality::Medium;
 	GraphicsBackend GraphicsBackend = GraphicsBackend::Vulkan; // Applied at startup.
 

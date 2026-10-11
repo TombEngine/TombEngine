@@ -31,15 +31,20 @@ namespace TEN::Renderer::Next
         return (_glowDownscalePipeline != nullptr && _glowBlurPipeline != nullptr && _glowCombinePipeline != nullptr);
     }
 
-    bool NextRenderer::EnsureGlowTargets(int width, int height)
+    TextureDesc NextRenderer::GetGlowTargetDesc(int width, int height) const
     {
         auto desc = TextureDesc{};
         desc.Width = std::max(width / GLOW_DOWNSCALE_FACTOR, 1);
         desc.Height = std::max(height / GLOW_DOWNSCALE_FACTOR, 1);
         desc.Format = PixelFormat::RGBA8Unorm;
         desc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler;
-
         desc.Name = "Glow";
+        return desc;
+    }
+
+    bool NextRenderer::EnsureGlowTargets(int width, int height)
+    {
+        auto desc = GetGlowTargetDesc(width, height);
         _glowTarget = _device->CreateTexture(desc);
         if (_glowTarget == nullptr)
             return false;
@@ -67,7 +72,12 @@ namespace TEN::Renderer::Next
     // Emissive prepass output, downscaled and blurred into _glowTarget. Levels without emissive maps skip it.
     void NextRenderer::RenderGlow(ICommandBuffer& commandBuffer)
     {
-        const auto& targetDesc = _glowTarget->GetDesc();
+        BlurEmissive(commandBuffer, _emissiveTarget.get(), _glowTarget.get());
+    }
+
+    void NextRenderer::BlurEmissive(ICommandBuffer& commandBuffer, ITexture* emissive, ITexture* glow)
+    {
+        const auto& targetDesc = glow->GetDesc();
 
         auto uniforms = GlowUniforms{};
         uniforms.TexelSize = Vector2(1.0f / targetDesc.Width, 1.0f / targetDesc.Height);
@@ -82,9 +92,9 @@ namespace TEN::Renderer::Next
         };
 
         auto* blurTarget = _targetPool.Acquire(targetDesc);
-        DownscaleTexture(commandBuffer, _emissiveTarget.get(), _glowTarget.get(), "Downscale");
-        drawPass(_glowBlurPipeline.get(), blurTarget, _glowTarget.get(), Vector2::UnitX, "Blur horizontal");
-        drawPass(_glowBlurPipeline.get(), _glowTarget.get(), blurTarget, Vector2::UnitY, "Blur vertical");
+        DownscaleTexture(commandBuffer, emissive, glow, "Downscale");
+        drawPass(_glowBlurPipeline.get(), blurTarget, glow, Vector2::UnitX, "Blur horizontal");
+        drawPass(_glowBlurPipeline.get(), glow, blurTarget, Vector2::UnitY, "Blur vertical");
         _targetPool.Release(blurTarget);
     }
 

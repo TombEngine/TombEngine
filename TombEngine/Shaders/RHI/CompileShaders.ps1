@@ -1,8 +1,9 @@
 # Compiles the RHI shaders offline into DXBC (FXC, for DX11) and SPIR-V (DXC, for SDL GPU / Vulkan).
 # Each .hlsl declares its entry points and resource counts in header lines:
-#   // TEN_SHADER: <Vertex|Pixel|Compute> <Entry> samplers=N storage_textures=N storage_buffers=N uniform_buffers=N [rw_storage_textures=N rw_storage_buffers=N threads=X,Y,Z permutations=DEFINE,...]
+#   // TEN_SHADER: <Vertex|Pixel|Compute> <Entry> samplers=N storage_textures=N storage_buffers=N uniform_buffers=N [rw_storage_textures=N rw_storage_buffers=N threads=X,Y,Z permutations=DEFINE,... hlsl=YEAR]
 # Outputs: <OutputDir>\dxbc\<Name>.<Entry>.dxbc, <OutputDir>\spirv\<Name>.<Entry>.spv, <OutputDir>\<Name>.<Entry>.meta
 # Each permutation adds a variant compiled with DEFINE=1, named <Name>.<Entry>.<DEFINE>.
+# hlsl=YEAR sets the HLSL language version of DXC, for sources written for an older version.
 # SPIR-V needs DXC from the Vulkan SDK (VULKAN_SDK); without it only DXBC is produced.
 
 param(
@@ -148,6 +149,7 @@ foreach ($file in Get-ChildItem -Path $sourceDir -Filter *.hlsl)
             {
                 $dxcArgs = @("-spirv", "-T", $info.Dxc, "-E", $entry, "-Zpr", "-fvk-use-dx-layout", "-fspv-target-env=vulkan1.0", "-Fo", $spirvFile)
                 if ($variant) { $dxcArgs += @("-D", "$variant=1") }
+                if ($meta["hlsl"]) { $dxcArgs += @("-HV", $meta["hlsl"]) }
                 if ($DebugInfo) { $dxcArgs += @("-Zi", "-Od") } else { $dxcArgs += "-O3" }
                 & $dxc @dxcArgs $file.FullName
                 if ($LASTEXITCODE -ne 0)

@@ -85,6 +85,7 @@ namespace TEN::Renderer::Next
         float        ScreenFade          = 1.0f;
         float        CinematicBarsHeight = 0.0f;
         int          AntialiasingMode    = 0; // Legacy AntialiasingMode: FXAA for low, SMAA for medium and high.
+        float        RenderScale         = 1.0f; // Scene resolution relative to the window; below 1, FSR 1 upscales the scene.
 
         // Background video of the legacy video handler: BGRA8 frame, null when no background video plays.
         const unsigned char*                 VideoFrame  = nullptr;
@@ -498,6 +499,29 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IGraphicsPipeline> _glowBlurPipeline        = nullptr;
         std::unique_ptr<RHI::IShader>           _glowCombineShader       = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _glowCombinePipeline     = nullptr; // Menu frames only.
+
+        // FSR 1 upscaling (NextRendererUpscale.cpp). Below native scale, the post-process writes _upscaleSource at render
+        // resolution and the upscale pass writes _colorTarget at window resolution.
+        std::unique_ptr<RHI::IShader>           _easuPixelShader = nullptr;
+        std::unique_ptr<RHI::IShader>           _rcasPixelShader = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _easuPipeline    = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _rcasPipeline    = nullptr;
+        std::unique_ptr<RHI::ITexture>          _upscaleSource   = nullptr;
+        float                                   _renderScale     = 1.0f;
+        float                                   _materialLodBias = 0.0f; // Keeps the texture detail of the window resolution.
+        bool                                    _isUpscaleActive = false;
+
+        // Targets of the overlay objects and the menu post-process, which draw at window resolution: the scene targets
+        // at native scale, pooled targets of the window size below it.
+        struct OverlayTargets
+        {
+            RHI::ITexture* Emissive           = nullptr;
+            RHI::ITexture* Depth              = nullptr;
+            RHI::ITexture* Glow               = nullptr;
+            RHI::ITexture* AntialiasingSource = nullptr;
+        };
+
+        OverlayTargets _overlayTargets = {};
         bool                                    _hasEmissiveMaps         = false;
         std::unique_ptr<RHI::ITexture>          _reflectionTarget        = nullptr; // Half resolution scene of the previous frame.
         bool                                    _hasReflectiveMaterials  = false;
@@ -803,6 +827,8 @@ namespace TEN::Renderer::Next
 
         bool CreatePipelines();
         bool EnsureRenderTargets(int width, int height);
+        bool CreateFrameTargets(int width, int height);
+        bool CreateSceneTargets(int width, int height, int windowWidth);
         std::unique_ptr<RHI::ITexture> CreateLevelTexture(const std::vector<unsigned char>& encodedData, const std::string& name, bool allowMips = true);
         void LoadOverlayImages(const UiFrame& ui);
         void LoadOverlayImage(const std::string& path);
@@ -990,8 +1016,10 @@ namespace TEN::Renderer::Next
         bool  CreateGlowResources();
         bool  EnsureGlowTargets(int width, int height);
         void  RenderGlow(RHI::ICommandBuffer& commandBuffer);
+        void  BlurEmissive(RHI::ICommandBuffer& commandBuffer, RHI::ITexture* emissive, RHI::ITexture* glow);
+        RHI::TextureDesc GetGlowTargetDesc(int width, int height) const;
         void  CopyReflectionSource(RHI::ICommandBuffer& commandBuffer);
-        void  ClearSampledTargets();
+        void  ClearSampledTargets(bool includeFrameTargets);
         void  DownscaleTexture(RHI::ICommandBuffer& commandBuffer, RHI::ITexture* source, RHI::ITexture* target, const char* name);
         float GetAmbientOcclusionExponent() const;
         void  RenderDepthPrepass(RHI::ICommandBuffer& commandBuffer);
@@ -1001,7 +1029,13 @@ namespace TEN::Renderer::Next
         void  RenderFullscreenPass(RHI::ICommandBuffer& commandBuffer, RHI::IGraphicsPipeline* pipeline, RHI::ITexture* target,
                                    const RHI::TextureSamplerBinding* bindings, int bindingCount, const char* name, RHI::LoadOp load = RHI::LoadOp::DontCare);
         bool  CreateSMAAResources();
-        void  RenderAntialiasing(RHI::ICommandBuffer& commandBuffer, int antialiasingMode, RHI::ITexture* target);
+        void  RenderAntialiasing(RHI::ICommandBuffer& commandBuffer, int antialiasingMode, RHI::ITexture* source, RHI::ITexture* target);
+        bool  CreateUpscaleResources();
+        bool  CreateMaterialSampler();
+        int   GetRenderSize(int windowSize) const;
+        void  RenderUpscale(RHI::ICommandBuffer& commandBuffer);
+        void  AcquireOverlayTargets();
+        void  ReleaseOverlayTargets();
 
         // Sprites (NextRendererSprites.cpp).
         bool           CreateSpriteResources();

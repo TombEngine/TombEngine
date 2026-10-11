@@ -1166,6 +1166,10 @@ namespace TEN::Renderer
 		environment.CinematicBarsHeight = CinematicBarsHeight;
 		environment.AntialiasingMode = (int)g_Configuration.AntialiasingMode;
 
+		// Scale factors of the AMD FSR 1 quality modes.
+		constexpr float RENDER_SCALES[(int)RenderScaleMode::Count] = { 1.0f, 1.0f / 1.3f, 1.0f / 1.5f, 1.0f / 1.7f, 0.5f };
+		environment.RenderScale = RENDER_SCALES[std::clamp((int)g_Configuration.RenderScale, 0, (int)RenderScaleMode::Count - 1)];
+
 		// Background video, shown by video animated sets and sprites while it plays.
 		environment.VideoSprite = &_videoSprite;
 		environment.WhiteSprite = &_whiteSprite;

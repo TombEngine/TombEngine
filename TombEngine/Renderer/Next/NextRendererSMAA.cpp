@@ -59,12 +59,12 @@ namespace TEN::Renderer::Next
     }
 
     // FXAA for the low antialiasing mode, SMAA 1x with the medium or ultra preset for the medium and high modes,
-    // from the post-processed image to the target.
-    void NextRenderer::RenderAntialiasing(ICommandBuffer& commandBuffer, int antialiasingMode, ITexture* target)
+    // from the post-processed source image to the target.
+    void NextRenderer::RenderAntialiasing(ICommandBuffer& commandBuffer, int antialiasingMode, ITexture* source, ITexture* target)
     {
         if (antialiasingMode == ANTIALIASING_MODE_LOW)
         {
-            auto binding = TextureSamplerBinding{ _antialiasingSource.get(), _linearClampSampler.get() };
+            auto binding = TextureSamplerBinding{ source, _linearClampSampler.get() };
             RenderFullscreenPass(commandBuffer, _fxaaPipeline.get(), target, &binding, 1, "FXAA");
             return;
         }
@@ -88,9 +88,9 @@ namespace TEN::Renderer::Next
 
         // Edge detection discards texels without edges, so its target and the weights target are cleared.
         auto* linear = _linearClampSampler.get();
-        TextureSamplerBinding edgeBindings[1] = { { _antialiasingSource.get(), _pointClampSampler.get() } };
+        TextureSamplerBinding edgeBindings[1] = { { source, _pointClampSampler.get() } };
         TextureSamplerBinding weightBindings[3] = { { edgesTarget, linear }, { _smaaAreaTexture.get(), linear }, { _smaaSearchTexture.get(), linear } };
-        TextureSamplerBinding blendBindings[2] = { { _antialiasingSource.get(), linear }, { weightsTarget, linear } };
+        TextureSamplerBinding blendBindings[2] = { { source, linear }, { weightsTarget, linear } };
 
         commandBuffer.PushDebugGroup("SMAA");
         RenderFullscreenPass(commandBuffer, resources.Pipelines[0].get(), edgesTarget, edgeBindings, 1, "Edge detection", LoadOp::Clear);
