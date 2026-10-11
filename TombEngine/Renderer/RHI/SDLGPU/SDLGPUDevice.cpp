@@ -1,5 +1,6 @@
 #include "framework.h"
 #include "Renderer/RHI/SDLGPU/SDLGPUDevice.h"
+#include "Renderer/RHI/MemoryTracker.h"
 
 #include <mutex>
 #include <SDL3/SDL_gpu.h>
@@ -218,6 +219,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         SDL_GPUBuffer* Handle = nullptr;
         int            Size   = 0;
         unsigned int   Usage  = 0;
+        MemoryAllocation Allocation = {};
 
         ~SDLGPUBuffer() override { SDL_ReleaseGPUBuffer(Device, Handle); }
         int          GetSize() const override { return Size; }
@@ -231,6 +233,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         SDL_GPUTexture* Handle  = nullptr;
         TextureDesc     Desc    = {};
         bool            IsOwned = true;
+        MemoryAllocation Allocation = {};
 
         ~SDLGPUTexture() override
         {
@@ -293,6 +296,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         SDL_GPUDevice*         Device = nullptr;
         SDL_GPUTransferBuffer* Handle = nullptr;
         int                    Size   = 0;
+        MemoryAllocation       Allocation = {};
 
         ~SDLGPUTransferBuffer() override { SDL_ReleaseGPUTransferBuffer(Device, Handle); }
         int GetSize() const override { return Size; }
@@ -809,6 +813,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             buffer->Handle = handle;
             buffer->Size = desc.Size;
             buffer->Usage = desc.Usage;
+            buffer->Allocation = MemoryAllocation(MemoryCategory::Buffer, desc.Size);
             return buffer;
         }
 
@@ -837,6 +842,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             texture->Device = _device;
             texture->Handle = handle;
             texture->Desc = desc;
+            texture->Allocation = MemoryAllocation(GetTextureMemoryCategory(desc), GetTextureMemorySize(desc));
             return texture;
         }
 
@@ -1033,6 +1039,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             buffer->Device = _device;
             buffer->Handle = handle;
             buffer->Size = size;
+            buffer->Allocation = MemoryAllocation(MemoryCategory::TransferBuffer, size);
             return buffer;
         }
 

@@ -55,10 +55,24 @@ float ReconstructViewDepth(float2 uv)
     return z / w;
 }
 
+// The occlusion target has half the depth resolution, so its pixel centers fall between four depth texels. Position
+// and normal come from the center of one texel, otherwise the depth of one texel is placed at the position of another
+// and slanted surfaces occlude themselves in stripes.
+float2 SnapToDepthTexel(float2 uv)
+{
+    float width = 0.0f;
+    float height = 0.0f;
+    SourceMap.GetDimensions(width, height);
+
+    float2 size = float2(width, height);
+    return (floor(uv * size) + 0.5f) / size;
+}
+
 float PS(PixelInput input) : SV_Target
 {
-    float3 position = ReconstructViewPosition(input.UV);
-    float3 encodedNormal = NormalMap.SampleLevel(NormalMapSampler, input.UV, 0.0f).xyz;
+    float2 uv = SnapToDepthTexel(input.UV);
+    float3 position = ReconstructViewPosition(uv);
+    float3 encodedNormal = NormalMap.SampleLevel(NormalMapSampler, uv, 0.0f).xyz;
 
     // Sky and far geometry have no occlusion.
     if (length(position) >= 40960.0f || length(encodedNormal) <= 0.0001f)

@@ -34,6 +34,7 @@
 #include "Renderer/Next/SkyTypes.h"
 #include "Renderer/RendererEnums.h"
 #include "Renderer/RendererUtils.h"
+#include "Renderer/RHI/MemoryTracker.h"
 #include "Renderer/RenderView.h"
 #include "Renderer/Structures/RendererBone.h"
 #include "Renderer/Structures/RendererDoor.h"
@@ -262,6 +263,8 @@ namespace TEN::Renderer
 
 		TEN::Benchmark::BenchmarkFrameStats _frameStats = {};
 		std::chrono::steady_clock::time_point _lastPresentTime = {};
+		std::chrono::steady_clock::time_point _lastFrameTime   = {};
+		float                                 _frameRate       = 0.0f; // Presented frames per second, smoothed.
 		float _fps;
 		int _currentCausticsFrame;
 
@@ -289,6 +292,8 @@ namespace TEN::Renderer
 		std::vector<std::string> _debugMessages            = {};
 		int                      _debugPageSelectionFrames = 0;
 		bool                     _isPerformanceOverlayVisible = true; // Shown in debug mode, toggled with F8.
+		RHI::MemoryStats         _memoryStats                 = {}; // Video memory, sampled by the performance panel.
+		int                      _memoryStatsFrames           = 0;
 
 		static constexpr auto GRAPHICS_STATS_HISTORY = 240;
 
@@ -298,6 +303,7 @@ namespace TEN::Renderer
 
 		void DrawDebugOverlay(const RenderView& view);
 		void DrawPerformancePanel();
+		void DrawVideoMemoryStats();
 		void DrawDebugMessagePanel();
 		void DrawDebugPagePanel(const RenderView& view);
 		void DrawDebugPageGroup(const char* group, const std::vector<DebugPageTab>& tabs, const RenderView& view, bool isSelectionPending);
@@ -392,6 +398,7 @@ namespace TEN::Renderer
 		void AddNextUiObjectMesh(const RendererMesh* mesh, const Matrix& world, const Matrix* bones = nullptr, int boneCount = 0);
 		void AddNextUiSkinMesh(const RendererObject& moveableObject, const RendererMesh* skinMesh, const Matrix& world);
 		void PresentFrame();
+		void UpdateFrameRate();
 		void PrepareDynamicLight(RendererLight& light);
 		void PrepareLaserBarriers(RenderView& view);
 		void PrepareSingleLaserBeam(RenderView& view);
@@ -765,6 +772,7 @@ namespace TEN::Renderer
 		void SaveOldState();
 
 		float						GetFramerateMultiplier() const;
+		float						GetFrameRate() const;
 		float						GetInterpolationFactor(bool forceRawValue = false) const;
 		Vector2i					GetScreenResolution() const;
 		int							GetScreenRefreshRate() const;

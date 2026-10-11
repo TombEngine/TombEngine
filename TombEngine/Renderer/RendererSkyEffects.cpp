@@ -161,7 +161,7 @@ namespace TEN::Renderer
 	// motion of past frames. The 0.05 and 0.16 factors are the historical shader multipliers.
 	void Renderer::AdvanceCloudLayer(const CloudRenderSettings& settings, CloudRuntimeState& state)
 	{
-		float deltaTime = 1.0f / std::max(GetScreenRefreshRate(), 30);
+		float deltaTime = 1.0f / GetFrameRate();
 		float fbmScale = std::max(settings.AltoFbmScale, 0.001f);
 
 		if (!state.FreezeEvolution)

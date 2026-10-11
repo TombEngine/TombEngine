@@ -569,9 +569,36 @@ namespace TEN::Renderer
 		return s;
 	}
 
+	// Rendered frames per game frame. Code advancing once per rendered frame divides its game frame step by it.
 	float Renderer::GetFramerateMultiplier() const
 	{
-		return g_Configuration.EnableHighFramerate ? (g_Renderer.GetScreenRefreshRate() / (float)FPS) : 1.0f;
+		return (GetFrameRate() / (float)FPS);
+	}
+
+	// Measured rate of presented frames, which differs from the display refresh rate when the frames take longer than a
+	// refresh, or when the renderer presents without waiting for vertical sync.
+	float Renderer::GetFrameRate() const
+	{
+		if (!g_Configuration.EnableHighFramerate || _frameRate <= 0.0f)
+			return (float)FPS;
+
+		return std::clamp(_frameRate, (float)FPS, (float)GetScreenRefreshRate());
+	}
+
+	void Renderer::UpdateFrameRate()
+	{
+		constexpr auto SMOOTHING		= 0.1f;
+		constexpr auto INTERVAL_MIN	= 1.0f / 1000.0f;
+		constexpr auto INTERVAL_MAX	= 0.25f;
+
+		auto now = std::chrono::steady_clock::now();
+		if (_lastFrameTime.time_since_epoch().count() != 0)
+		{
+			float interval = std::clamp(std::chrono::duration<float>(now - _lastFrameTime).count(), INTERVAL_MIN, INTERVAL_MAX);
+			_frameRate = (_frameRate <= 0.0f) ? (1.0f / interval) : Lerp(_frameRate, 1.0f / interval, SMOOTHING);
+		}
+
+		_lastFrameTime = now;
 	}
 
 	float Renderer::GetInterpolationFactor(bool forceRawValue) const

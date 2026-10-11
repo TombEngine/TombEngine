@@ -607,6 +607,8 @@ namespace TEN::Renderer
 			ImGui::EndTable();
 		}
 
+		DrawVideoMemoryStats();
+
 		if (!gpuTimings.empty() && ImGui::CollapsingHeader("GPU passes", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			auto sortedTimings = gpuTimings;
@@ -622,6 +624,36 @@ namespace TEN::Renderer
 		}
 
 		ImGui::End();
+	}
+
+	// Resources the renderer tracks by category, and the video memory the system reports for the process.
+	void Renderer::DrawVideoMemoryStats()
+	{
+		constexpr auto SAMPLE_INTERVAL = 30;
+
+		if (_memoryStatsFrames-- <= 0)
+		{
+			_memoryStats = RHI::GetMemoryStats(g_NextRenderer.GetInfo().DeviceName);
+			_memoryStatsFrames = SAMPLE_INTERVAL;
+		}
+
+		if (!ImGui::CollapsingHeader("Video memory", ImGuiTreeNodeFlags_DefaultOpen) || !BeginStatTable("##VideoMemory"))
+			return;
+
+		const auto& adapter = _memoryStats.Adapter;
+		if (adapter.ProcessBudget > 0)
+			AddStatRow("Process usage", "%.0f of %.0f MB", ToMegabytes(adapter.ProcessUsage), ToMegabytes(adapter.ProcessBudget));
+
+		if (adapter.DedicatedVideoMemory > 0)
+			AddStatRow("Installed", "%.0f MB", ToMegabytes(adapter.DedicatedVideoMemory));
+
+		constexpr const char* CATEGORY_NAMES[] = { "    Textures", "    Render targets", "    Buffers", "    Transfer buffers" };
+
+		AddStatRow("Tracked", "%.1f MB", ToMegabytes(_memoryStats.GetTotal()));
+		for (int i = 0; i < (int)RHI::MemoryCategory::Count; i++)
+			AddStatRow(CATEGORY_NAMES[i], "%.1f MB (%d)", ToMegabytes(_memoryStats.Bytes[i]), _memoryStats.Counts[i]);
+
+		ImGui::EndTable();
 	}
 
 	// Debug messages of the game code, along the bottom edge.

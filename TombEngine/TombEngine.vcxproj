@@ -862,6 +862,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\RHI\SDLGPU\SDLGPUDevice.h" />
     <ClInclude Include="Renderer\RHI\ShaderLibrary.h" />
     <ClInclude Include="Renderer\RHI\RHITest.h" />
+    <ClInclude Include="Renderer\RHI\MemoryTracker.h" />
     <ClInclude Include="Renderer\RHI\TextureCapture.h" />
     <ClInclude Include="Renderer\RHI\RenderTargetPool.h" />
     <ClInclude Include="Renderer\RHI\UploadRing.h" />
@@ -1434,6 +1435,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\RHI\SDLGPU\SDLGPUDevice.cpp" />
     <ClCompile Include="Renderer\RHI\ShaderLibrary.cpp" />
     <ClCompile Include="Renderer\RHI\RHITest.cpp" />
+    <ClCompile Include="Renderer\RHI\MemoryTracker.cpp" />
     <ClCompile Include="Renderer\RHI\TextureCapture.cpp" />
     <ClCompile Include="Renderer\RHI\RenderTargetPool.cpp" />
     <ClCompile Include="Renderer\RHI\UploadRing.cpp" />

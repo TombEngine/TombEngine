@@ -1,5 +1,6 @@
 #include "framework.h"
 #include "Renderer/RHI/DirectX11/DX11Device.h"
+#include "Renderer/RHI/MemoryTracker.h"
 
 #ifdef SDL_PLATFORM_WIN32
 
@@ -210,6 +211,7 @@ namespace TEN::Renderer::RHI::DirectX11
         ComPtr<ID3D11UnorderedAccessView> Uav    = nullptr;
         int                               Size   = 0;
         unsigned int                      Usage  = 0;
+        MemoryAllocation                  Allocation = {};
 
         int          GetSize() const override { return Size; }
         unsigned int GetUsage() const override { return Usage; }
@@ -222,6 +224,7 @@ namespace TEN::Renderer::RHI::DirectX11
         ComPtr<ID3D11ShaderResourceView>  Srv    = nullptr;
         ComPtr<ID3D11UnorderedAccessView> Uav    = nullptr;
         TextureDesc                       Desc   = {};
+        MemoryAllocation                  Allocation = {};
 
         // Views for each (mip, layer) used as a target, created on first use.
         std::unordered_map<int, ComPtr<ID3D11RenderTargetView>> Rtvs = {};
@@ -283,6 +286,7 @@ namespace TEN::Renderer::RHI::DirectX11
         int                        StagingOffset  = 0;
         int                        StagingHeight  = 0;
         int                        StagingRowSize = 0;
+        MemoryAllocation           Allocation     = {};
 
         int GetSize() const override { return (int)Data.size(); }
     };
@@ -1189,6 +1193,7 @@ namespace TEN::Renderer::RHI::DirectX11
             SetDebugName(buffer->Handle.Get(), desc.Name);
             buffer->Size = desc.Size;
             buffer->Usage = desc.Usage;
+            buffer->Allocation = MemoryAllocation(MemoryCategory::Buffer, desc.Size);
             return buffer;
         }
 
@@ -1291,6 +1296,7 @@ namespace TEN::Renderer::RHI::DirectX11
                 _device->CreateUnorderedAccessView(texture->Handle.Get(), nullptr, texture->Uav.GetAddressOf());
 
             SetDebugName(texture->Handle.Get(), desc.Name);
+            texture->Allocation = MemoryAllocation(GetTextureMemoryCategory(desc), GetTextureMemorySize(desc));
             return texture;
         }
 
@@ -1452,6 +1458,7 @@ namespace TEN::Renderer::RHI::DirectX11
         {
             auto buffer = std::make_unique<DX11TransferBuffer>();
             buffer->Data.resize(size);
+            buffer->Allocation = MemoryAllocation(MemoryCategory::TransferBuffer, size);
             return buffer;
         }
 

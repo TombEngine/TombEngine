@@ -1563,6 +1563,8 @@ namespace TEN::Renderer
 	// Every legacy present goes through here: the next renderer composes its frame from the recorded 2D layer.
 	void Renderer::PresentFrame()
 	{
+		UpdateFrameRate();
+
 		if (Next::g_NextRenderer.IsActive())
 		{
 			auto screenResolution = GetScreenResolution();
