@@ -178,7 +178,7 @@ bool PickedUpObject(GAME_OBJECT_ID objectID, std::optional<int> count)
 		!TryAddingAmmo(Lara, objectID, count) &&
 		!TryAddingKeyItem(Lara, objectID, count) &&
 		!TryAddingConsumable(Lara, objectID, count) &&
-        !TryAddMiscItem(Lara, objectID, count))
+        !TryAddMiscItem(Lara, objectID))
 	{
 		// Item isn't any of the above; do nothing.
 		return false;
@@ -235,7 +235,7 @@ void RemoveObjectFromInventory(GAME_OBJECT_ID objectID, std::optional<int> count
 		!TryRemovingAmmo(Lara, objectID, count) && 
 		!TryRemovingKeyItem(Lara, objectID, count) && 
 		!TryRemovingConsumable(Lara, objectID, count) && 
-     !TryRemoveMiscItem(Lara, objectID, count))
+		!TryRemoveMiscItem(Lara, objectID))
 		{
 			// Item isn't any of the above; do nothing.
 		}
