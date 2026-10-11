@@ -1024,7 +1024,8 @@ enum class RemasteredBackResolution
 {
 	None,
 	TankBack,
-	Turn180
+	Turn180,
+	Roll
 };
 
 struct Ammo
@@ -1210,6 +1211,7 @@ struct RemasteredControlData
 	bool IsCrouchStageUp		= false;
 	bool IsCrouchStageUpPending = false;
 	bool IsSprintToggled		= false;
+	bool IsJumpRollSpent		= false;
 
 	int HeadingTurnSign = 0;
 };

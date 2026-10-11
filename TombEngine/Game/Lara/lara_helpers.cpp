@@ -1323,7 +1323,13 @@ void ResetPlayerTurnRateY(ItemInfo& item, short decelRate)
 enum class RemasteredInputScope
 {
 	None,
-	Ground
+	Ground,
+
+	// Mid-air. The solver turns the player, and the transform rewrites the actions.
+	Airborne,
+
+	// Mid-air. The transform rewrites the actions, and the solver does not turn the player.
+	AirborneNoSolve
 };
 
 // Raw and rewritten values of the actions the Remastered input rewrite changed this tick.
@@ -1483,6 +1489,11 @@ static RemasteredInputScope GetPlayerRemasteredTurnParams(const ItemInfo& item, 
 	constexpr auto TURN_STEP_MAX_CRAWL_IDLE = ANGLE(90.0f);
 	constexpr auto TURN_STEP_MAX_CRAWL		= ANGLE(7.0f);
 
+	constexpr auto TURN_RATE_JUMP_PREPARE	  = 1.0f;
+	constexpr auto TURN_STEP_MAX_JUMP_PREPARE = (short)SHRT_MAX;
+	constexpr auto TURN_RATE_AIRBORNE		  = 0.1f;
+	constexpr auto TURN_STEP_MAX_AIRBORNE	  = ANGLE(2.0f);
+
 	if (IsPlayerRemasteredDirectionPushed())
 		return RemasteredInputScope::None;
 
@@ -1555,6 +1566,38 @@ static RemasteredInputScope GetPlayerRemasteredTurnParams(const ItemInfo& item, 
 		stepMax = TURN_STEP_MAX_CRAWL;
 		return RemasteredInputScope::Ground;
 
+	// Jump wind-up. Holstered, she turns toward the stick before the launch. Armed, it plays classic.
+	case LS_JUMP_PREPARE:
+		if (IsPlayerRemasteredWeaponReady(item))
+			return RemasteredInputScope::None;
+
+		rate = TURN_RATE_JUMP_PREPARE;
+		stepMax = TURN_STEP_MAX_JUMP_PREPARE;
+		return RemasteredInputScope::Ground;
+
+	// The back jump keeps its launch heading, armed or not, so its roll push is read the same way.
+	case LS_JUMP_BACK:
+		return RemasteredInputScope::AirborneNoSolve;
+
+	case LS_JUMP_LEFT:
+	case LS_JUMP_RIGHT:
+		if (IsPlayerRemasteredWeaponReady(item))
+			return RemasteredInputScope::None;
+
+		return RemasteredInputScope::AirborneNoSolve;
+
+	// The forward jump is the only jump the solver steers mid-air.
+	case LS_JUMP_FORWARD:
+		rate = TURN_RATE_AIRBORNE;
+		stepMax = TURN_STEP_MAX_AIRBORNE;
+		return RemasteredInputScope::Airborne;
+
+	case LS_JUMP_UP:
+	case LS_FREEFALL:
+	case LS_REACH:
+	case LS_SWAN_DIVE:
+		return RemasteredInputScope::AirborneNoSolve;
+
 	default:
 		return RemasteredInputScope::None;
 	}
@@ -1565,13 +1608,16 @@ bool DoesPlayerRemasteredSolverOwnHeading(const ItemInfo& item)
 {
 	float rate = 0.0f;
 	short stepMax = 0;
-	return (GetPlayerRemasteredTurnParams(item, rate, stepMax) == RemasteredInputScope::Ground);
+	auto scope = GetPlayerRemasteredTurnParams(item, rate, stepMax);
+	return (scope == RemasteredInputScope::Ground || scope == RemasteredInputScope::Airborne);
 }
 
-// True if the camera turns toward the player's movement in the current state.
+// True if the camera turns toward the player's movement. Ground states only.
 bool DoesPlayerRemasteredCameraAssistApply(const ItemInfo& item)
 {
-	return DoesPlayerRemasteredSolverOwnHeading(item);
+	float rate = 0.0f;
+	short stepMax = 0;
+	return (GetPlayerRemasteredTurnParams(item, rate, stepMax) == RemasteredInputScope::Ground);
 }
 
 // Heading the stick points to, relative to the camera. The player's own heading when the stick is centered.
@@ -1811,6 +1857,61 @@ static void UpdatePlayerRemasteredCrouchStages(ItemInfo& item, RemasteredInput& 
 	input.Crouch = ((remastered.CrouchStage != 0) || IsPushed(In::Crouch));
 }
 
+// True if the stick is pushed firmly along one axis toward the player's back (forward jump)
+// or front (back jump). A light push, Look or an already spent push does not roll the player.
+// TODO: Roll the player in a left or right running jump when the stick is pushed the opposite way. -- divezzi, 11.10.26
+static bool IsPlayerRemasteredJumpRollPushed(const ItemInfo& item, const RemasteredInput& input)
+{
+	constexpr auto PUSH_MIN		  = 0.7f; // About half the stick's travel. Keys and the D-pad give 1.0.
+	constexpr auto ROLL_ARC_ANGLE = ANGLE(45.0f);
+
+	const auto& player = GetLaraInfo(item);
+
+	bool isForwardJump = (item.Animation.ActiveState == LS_JUMP_FORWARD);
+	if (!isForwardJump && item.Animation.ActiveState != LS_JUMP_BACK)
+		return false;
+
+	if (input.Look || player.Control.Remastered.IsJumpRollSpent)
+		return false;
+
+	bool isVertical = (input.Forward || input.Back);
+	bool isHorizontal = (input.Left || input.Right);
+	if (isVertical == isHorizontal)
+		return false;
+
+	const auto& moveAxis = player.Control.RefMoveAxis;
+	if (abs(isVertical ? moveAxis.y : moveAxis.x) < PUSH_MIN)
+		return false;
+
+	short rollAngle = isForwardJump ? (short)(item.Pose.Orientation.y + ANGLE(180.0f)) : item.Pose.Orientation.y;
+	short deltaAngle = Geometry::GetShortestAngle(rollAngle, GetPlayerHeadingAngleY(item));
+	return (abs((int)deltaAngle) <= ROLL_ARC_ANGLE);
+}
+
+// The push that made a roll is spent until the stick is released or the jump ends.
+static void UpdatePlayerRemasteredJumpRollLatch(ItemInfo& item)
+{
+	auto& player = GetLaraInfo(item);
+
+	switch (item.Animation.ActiveState)
+	{
+	case LS_JUMP_ROLL_180:
+		player.Control.Remastered.IsJumpRollSpent = true;
+		break;
+
+	case LS_JUMP_FORWARD:
+	case LS_JUMP_BACK:
+		if (player.Control.RefMoveAxis == Vector2::Zero)
+			player.Control.Remastered.IsJumpRollSpent = false;
+
+		break;
+
+	default:
+		player.Control.Remastered.IsJumpRollSpent = false;
+		break;
+	}
+}
+
 // Rewrites the movement actions so the stick moves the player relative to the camera.
 // On the ground the heading solver turns her, so a push becomes Forward, and a push toward the camera a fast 180.
 static void TransformPlayerRemasteredInput(ItemInfo& item, RemasteredInput& input)
@@ -1824,6 +1925,7 @@ static void TransformPlayerRemasteredInput(ItemInfo& item, RemasteredInput& inpu
 	UpdatePlayerRemasteredSprintToggle(item, input);
 	UpdatePlayerRemasteredCrouchStages(item, input);
 	player.Control.RefMoveAxis = GetMoveAxis();
+	UpdatePlayerRemasteredJumpRollLatch(item);
 
 	if (!IsPlayerRemasteredDirectionPushed() && !IsPlayerInRemasteredCombatBackStance(item) &&
 		(item.Animation.ActiveState == LS_WALK_BACK || item.Animation.ActiveState == LS_RUN_BACK))
@@ -1842,8 +1944,26 @@ static void TransformPlayerRemasteredInput(ItemInfo& item, RemasteredInput& inpu
 
 	float turnRate = 0.0f;
 	short turnStepMax = 0;
-	if (GetPlayerRemasteredTurnParams(item, turnRate, turnStepMax) == RemasteredInputScope::None)
+	auto scope = GetPlayerRemasteredTurnParams(item, turnRate, turnStepMax);
+	if (scope == RemasteredInputScope::None)
 		return;
+
+	// Mid-air: no tank turn. Back and Forward roll the player only on the roll push.
+	// Otherwise Forward is held so the landing chains into a run, except in the back jump.
+	if (scope == RemasteredInputScope::Airborne || scope == RemasteredInputScope::AirborneNoSolve)
+	{
+		bool isRollPushed = IsPlayerRemasteredJumpRollPushed(item, input);
+		bool isBackJump = (item.Animation.ActiveState == LS_JUMP_BACK);
+
+		if (isRollPushed)
+			player.Control.Remastered.BackResolution = RemasteredBackResolution::Roll;
+
+		input.Left = false;
+		input.Right = false;
+		input.Back = (isRollPushed && !isBackJump);
+		input.Forward = (isRollPushed || !isBackJump);
+		return;
+	}
 
 	auto dir = player.Control.RefMoveAxis;
 	dir.Normalize();
@@ -1937,8 +2057,12 @@ void HandlePlayerRemasteredHeading(ItemInfo& item)
 
 	player.Control.TurnRate = 0;
 
-	if (player.Control.Remastered.BackResolution == RemasteredBackResolution::TankBack)
+	// No turn on a tank back step or on a mid-air roll push.
+	if (player.Control.Remastered.BackResolution == RemasteredBackResolution::TankBack ||
+		player.Control.Remastered.BackResolution == RemasteredBackResolution::Roll)
+	{
 		return;
+	}
 
 	if (player.Control.IsMoving)
 		return;
