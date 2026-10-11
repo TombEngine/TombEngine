@@ -171,12 +171,14 @@ void ObeliskControl(short itemNumber)
 void ObeliskCageControl(short itemNumber)
 {
 	auto* cage = &g_Level.Items[itemNumber];
-   if (!cage->ItemFlags[0])
+	if (!cage->ItemFlags[0])
 		return;
 
 	const auto cagePosition = cage->Pose.Position;
 	const auto cageRoom = cage->RoomNumber;
 	ExplodeItemNode(cage, 0, 0, 128);
+	SoundEffect(SFX_TR4_EXPLOSION1, &cage->Pose);
+	SoundEffect(SFX_TR4_EXPLOSION2, &cage->Pose);
 	KillItem(itemNumber);
 
 	TriggerExplosionSparks(cagePosition.x, cagePosition.y, cagePosition.z, 3, -2, 0, cageRoom);
@@ -189,11 +191,14 @@ void ObeliskCageControl(short itemNumber)
 			item.ItemFlags[2] = NO_VALUE;
 	}
 
-	auto* reward = FindItem(ID_PUZZLE_ITEM1_COMBO1);
-	if (reward != nullptr)
+	for (int i = 0; i < g_Level.NumItems; i++)
 	{
-		reward->Status = ITEM_NOT_ACTIVE;
-		SoundEffect(SFX_TR4_EXPLOSION1, &reward->Pose);
-		SoundEffect(SFX_TR4_EXPLOSION2, &reward->Pose);
+		auto& item = g_Level.Items[i];
+        if (i == itemNumber || item.Status != ITEM_INVISIBLE)
+			continue;
+
+		if (item.Pose.Position.x / BLOCK(1) == cagePosition.x / BLOCK(1) &&
+			item.Pose.Position.z / BLOCK(1) == cagePosition.z / BLOCK(1))
+			item.Status = ITEM_NOT_ACTIVE;
 	}
 }
