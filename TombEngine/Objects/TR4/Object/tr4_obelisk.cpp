@@ -9,6 +9,7 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Setup.h"
+#include "Renderer/Renderer.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
@@ -112,6 +113,8 @@ namespace TEN::Entities::TR4
 		else
 		{
 			AnimateItem(item);
+			const auto animationNumber = item->Animation.AnimNumber;
+			const auto frameNumber = item->Animation.FrameNumber;
 
 			auto* obj = &Objects[item->ObjectNumber];
 			bool flag = false;
@@ -119,6 +122,8 @@ namespace TEN::Entities::TR4
 			if (item->Animation.AnimNumber == 2)
 			{
 				item->Pose.Orientation.y -= ANGLE(90.0f);
+				item->DisableInterpolation = true;
+				item->DisableAnimBlend();
 
 				if (IsHeld(In::Action))
 				{
@@ -132,6 +137,8 @@ namespace TEN::Entities::TR4
 			if (item->Animation.AnimNumber == 6)
 			{
 				item->Pose.Orientation.y += ANGLE(90.0f);
+				item->DisableInterpolation = true;
+				item->DisableAnimBlend();
 
 				if (!IsHeld(In::Action))
 				{
@@ -151,6 +158,9 @@ namespace TEN::Entities::TR4
 				item->Animation.AnimNumber = 3;
 				item->Animation.FrameNumber = 0;
 			}
+
+           if (item->Animation.AnimNumber != animationNumber || item->Animation.FrameNumber != frameNumber)
+				TEN::Renderer::g_Renderer.UpdateItemAnimations(item->Index, true);
 
 			if (item->TriggerFlags == 2)
 			{
