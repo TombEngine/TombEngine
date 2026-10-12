@@ -101,5 +101,7 @@ bool  HandlePlayerRemasteredDiagonalStep(const ItemInfo& item, CollisionInfo& co
 void  ApplyRemasteredInput(ItemInfo& item);
 void  RestoreRemasteredInput();
 void  HandlePlayerRemasteredHeading(ItemInfo& item);
+bool  DoesRemasteredSolverOwnWaterHeading(const ItemInfo& item);
+void  HandleRemasteredWaterHeading(ItemInfo& item);
 bool  TestRemasteredSafetyGrab(ItemInfo& item, CollisionInfo& coll);
 bool  HandleRemasteredTightropeIdle(ItemInfo& item);

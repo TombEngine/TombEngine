@@ -1738,6 +1738,61 @@ bool DoesPlayerRemasteredCameraAssistApply(const ItemInfo& item)
 	return (GetPlayerRemasteredTurnParams(item, rate, stepMax) == RemasteredInputScope::Ground);
 }
 
+// Turn rate and step cap of the heading solver in the water states it steers. False in any other state,
+// on a script direction push, and with the divesuit, which keeps its own pitch control.
+// isUnderwater is set for the states that also follow the camera pitch and swim on Jump: underwater and the fly cheat.
+static bool GetPlayerRemasteredWaterTurnParams(const ItemInfo& item, float& rate, short& stepMax, bool& isUnderwater)
+{
+	constexpr auto TURN_RATE_UNDERWATER = 1.0f;
+	constexpr auto TURN_RATE_SURFACE	= 0.5f;
+	constexpr auto TURN_STEP_MAX		= ANGLE(179.0f); // Not reached: a step is at most 57 degrees at rate 1.0.
+
+	isUnderwater = false;
+
+	if (IsPlayerRemasteredDirectionPushed())
+		return false;
+
+	const auto& level = *g_GameFlow->GetLevel(CurrentLevel);
+	if (level.GetLaraType() == LaraType::Divesuit)
+		return false;
+
+	switch (item.Animation.ActiveState)
+	{
+	case LS_FLY_CHEAT:
+	case LS_UNDERWATER_IDLE:
+	case LS_UNDERWATER_SWIM_FORWARD:
+	case LS_UNDERWATER_INERTIA:
+		rate = TURN_RATE_UNDERWATER;
+		stepMax = TURN_STEP_MAX;
+		isUnderwater = true;
+		return true;
+
+	case LS_ONWATER_IDLE:
+	case LS_ONWATER_FORWARD:
+	case LS_ONWATER_LEFT:
+	case LS_ONWATER_RIGHT:
+	case LS_ONWATER_BACK:
+		rate = TURN_RATE_SURFACE;
+		stepMax = TURN_STEP_MAX;
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+// True if the heading solver turns the player in the current water state.
+bool DoesRemasteredSolverOwnWaterHeading(const ItemInfo& item)
+{
+	if (!g_Configuration.IsUsingRemasteredControls())
+		return false;
+
+	float rate = 0.0f;
+	short stepMax = 0;
+	bool isUnderwater = false;
+	return GetPlayerRemasteredWaterTurnParams(item, rate, stepMax, isUnderwater);
+}
+
 // Heading the stick points to, relative to the camera. The player's own heading when the stick is centered.
 short GetPlayerHeadingAngleY(const ItemInfo& item)
 {
@@ -1990,6 +2045,9 @@ struct RemasteredInput
 	bool Action	   = false;
 	bool Draw	   = false;
 	bool Look	   = false;
+
+	// Jump is written as held, never clicked.
+	bool IsJumpStroke = false;
 };
 
 static RemasteredInput ReadRemasteredInput()
@@ -2013,7 +2071,8 @@ static RemasteredInput ReadRemasteredInput()
 }
 
 // Writes a rewritten value to the action map, keeping the raw and the written action for the restore.
-static void WriteRemasteredAction(ActionID actionID, bool isHeld)
+// A held value written with isClickSuppressed is updated twice, so it reads as held but not as clicked.
+static void WriteRemasteredAction(ActionID actionID, bool isHeld, bool isClickSuppressed = false)
 {
 	auto& action = ActionMap[actionID];
 	if (action.IsHeld() == isHeld)
@@ -2021,6 +2080,10 @@ static void WriteRemasteredAction(ActionID actionID, bool isHeld)
 
 	RemasteredRawActions.insert_or_assign(actionID, action);
 	action.Update(isHeld);
+
+	if (isHeld && isClickSuppressed)
+		action.Update(isHeld);
+
 	RemasteredWrittenActions.insert_or_assign(actionID, action);
 }
 
@@ -2035,7 +2098,7 @@ static void WriteRemasteredInput(const RemasteredInput& input)
 	WriteRemasteredAction(In::Walk, input.Walk);
 	WriteRemasteredAction(In::Sprint, input.Sprint);
 	WriteRemasteredAction(In::Crouch, input.Crouch);
-	WriteRemasteredAction(In::Jump, input.Jump);
+	WriteRemasteredAction(In::Jump, input.Jump, input.IsJumpStroke);
 	WriteRemasteredAction(In::Roll, input.Roll);
 	WriteRemasteredAction(In::Action, input.Action);
 	WriteRemasteredAction(In::Draw, input.Draw);
@@ -2281,6 +2344,33 @@ static void TransformPlayerRemasteredInput(ItemInfo& item, RemasteredInput& inpu
 	UpdatePlayerRemasteredCrouchStages(item, input);
 	player.Control.RefMoveAxis = GetMoveAxis();
 	UpdatePlayerRemasteredJumpRollLatch(item);
+
+	// Water: the solver turns the player, so the turn keys, side strokes and back stroke are dropped.
+	// The stick is held as Forward and, underwater, also as Jump, the stroke; there the Jump key alone no longer swims,
+	// but a script push of Jump still does. At the surface Jump is left alone, where a Jump press is the dive.
+	float waterRate = 0.0f;
+	short waterStepMax = 0;
+	bool isUnderwater = false;
+	if (GetPlayerRemasteredWaterTurnParams(item, waterRate, waterStepMax, isUnderwater))
+	{
+		bool isPushingStick = (player.Control.RefMoveAxis != Vector2::Zero);
+
+		input.Left = false;
+		input.Right = false;
+		input.StepLeft = false;
+		input.StepRight = false;
+		input.Back = false;
+		input.Forward = isPushingStick;
+
+		// A script clear of Forward stops the stroke. Jump is written as held, never clicked, so a resurface in the same tick does not dive.
+		if (isUnderwater)
+		{
+			input.Jump = ((isPushingStick && !IsCleared(In::Forward)) || IsPushed(In::Jump));
+			input.IsJumpStroke = true;
+		}
+
+		return;
+	}
 
 	// Hanging states: the grip holds until Roll, or until the grab button is released when the grab toggle is off.
 	// Roll is consumed so it does not also ask for a turn, except on the rope, where it is the drop.
@@ -2539,9 +2629,57 @@ void HandlePlayerRemasteredHeading(ItemInfo& item)
 	item.Pose.Orientation.y = ApproachHeadingAngle(item.Pose.Orientation.y, headingAngle, rate, stepMax, player.Control.Remastered.HeadingTurnSign);
 }
 
+// Water: turns the player toward the heading the stick points to and, underwater, pitches her toward the camera elevation.
+// Zeroes the classic turn rate in the water states it steers. Stands down while she aligns, looks, or the stick is centered.
+// Underwater it also holds the roll at zero.
+void HandleRemasteredWaterHeading(ItemInfo& item)
+{
+	constexpr auto PITCH_RATE		= 1.0f;
+	constexpr auto PITCH_STEP_MAX	= ANGLE(11.25f);
+
+	if (!g_Configuration.IsUsingRemasteredControls())
+		return;
+
+	auto& player = GetLaraInfo(item);
+
+	float rate = 0.0f;
+	short stepMax = 0;
+	bool isUnderwater = false;
+	if (!GetPlayerRemasteredWaterTurnParams(item, rate, stepMax, isUnderwater))
+		return;
+
+	player.Control.TurnRate = 0;
+
+	if (player.Control.IsMoving)
+		return;
+
+	if (IsHeld(In::Look))
+		return;
+
+	if (player.Control.RefMoveAxis == Vector2::Zero)
+		return;
+
+	auto& remastered = player.Control.Remastered;
+	short headingAngle = GetPlayerHeadingAngleY(item);
+	item.Pose.Orientation.y = ApproachHeadingAngle(item.Pose.Orientation.y, headingAngle, rate, stepMax, remastered.HeadingTurnSign);
+
+	// Surface swimming stays level.
+	if (!isUnderwater)
+		return;
+
+	// A positive camera elevation puts the camera below the player, looking up, so she pitches up.
+	int pitchTurnSign = 0;
+	item.Pose.Orientation.x = ApproachHeadingAngle(item.Pose.Orientation.x, player.Control.RefCameraOrient.x, PITCH_RATE, PITCH_STEP_MAX, pitchTurnSign);
+	item.Pose.Orientation.z = 0;
+}
+
 void ModulateLaraSwimTurnRates(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
+
+	// Remastered controls: the stick steers in water, so the Forward it holds does not pitch the player down here. -- divezzi, 12.10.26
+	if (DoesRemasteredSolverOwnWaterHeading(*item))
+		return;
 
 	/*if ((IsHeld(In::Forward) || IsHeld(In::Back)))
 	ModulateLaraTurnRateX(item, 0, 0, 0);*/

@@ -531,6 +531,9 @@ void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll)
 	const auto& level = *g_GameFlow->GetLevel(CurrentLevel);
 	bool hasDivesuit = (level.GetLaraType() == LaraType::Divesuit);
 
+	// Remastered controls: the player turns toward the stick direction instead of using the turn rate. -- divezzi, 12.10.26
+	HandleRemasteredWaterHeading(*item);
+
 	// TODO: Subsuit gradually slows down at rate of 0.5 degrees. @Sezz 2022.06.23
 	// Apply and reset turn rate.
 	item->Pose.Orientation.y += player.Control.TurnRate;
@@ -603,6 +606,9 @@ void LaraUnderwater(ItemInfo* item, CollisionInfo* coll)
 
 	const auto& level = *g_GameFlow->GetLevel(CurrentLevel);
 	bool hasDivesuit = (level.GetLaraType() == LaraType::Divesuit);
+
+	// Remastered controls: the player turns toward the stick and pitches toward the camera instead of using the turn rate. -- divezzi, 12.10.26
+	HandleRemasteredWaterHeading(*item);
 
 	// TODO: Subsuit gradually slowed down at rate of 0.5 degrees. @Sezz 2022.06.23
 	// Apply and reset turn rate.

@@ -48,7 +48,10 @@ static const auto PLAYER_IDLE_STATE_IDS = std::vector<int>
 	LS_ROPE_IDLE,
 	LS_TIGHTROPE_IDLE,
 	LS_ONWATER_IDLE,
-	LS_UNDERWATER_IDLE
+	LS_UNDERWATER_IDLE,
+
+	// The fly cheat has no idle state; listed so a frame locked by Look is released once the stick is centered.
+	LS_FLY_CHEAT
 };
 
 // Flex rates
