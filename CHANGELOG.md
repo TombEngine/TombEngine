@@ -51,6 +51,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if property is set and when the sound ID 681 (SFX_TR2_SLAM_DOOR_CLOSE) is playing.
 * Added hit sounds for TR1 enemies when shot.
 * Added splash and bubble effects for CRUMBLING_FLOOR if it falls into water.
+* Added the [turn switch and obelisk puzzle from TR4](https://tombengine.com/docs/tr4-obelisk-puzzle-tomb-engine-setup-guide/).
 * Removed [FIRE_PENDULUM](https://tombengine.com/asset/traps/fire-pendulum/) fog effect if OCB value is 0.
 
 ### Bug fixes
@@ -103,6 +104,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed Z-fighting on DisplayItems.
 * Fixed crashes when shooting if the gunflash object is missing.
 * Fixed vertex move effect speed in water rooms while turning camera on the x-axis.
+* Fixed `TURN_SWITCH` not rotating the `OBELISK` correctly.
 
 ### Lua API changes
 
