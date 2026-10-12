@@ -1066,6 +1066,7 @@ namespace TEN::Gui
 			InvertCameraYAxisOption,
 			SprintToggleOption,
 			CrouchToggleOption,
+			GrabToggleOption,
 			SmoothSprintStepsOption,
 			MouseSensitivity,
 
@@ -1150,7 +1151,7 @@ namespace TEN::Gui
 					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
 				break;
 
-			// Remastered controls: sprint, crouch and smooth sprint steps rows, locked under Classic. -- divezzi, 10.10.26
+			// Remastered controls: sprint, crouch, grab and smooth sprint steps rows, locked under Classic. -- divezzi, 10.10.26
 			case GameplaySettingsOption::SprintToggleOption:
 				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
 				{
@@ -1166,6 +1167,16 @@ namespace TEN::Gui
 				{
 					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 					CurrentSettings.Configuration.EnableCrouchToggle = !CurrentSettings.Configuration.EnableCrouchToggle;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+				break;
+
+			case GameplaySettingsOption::GrabToggleOption:
+				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableGrabToggle = !CurrentSettings.Configuration.EnableGrabToggle;
 				}
 				else
 					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);

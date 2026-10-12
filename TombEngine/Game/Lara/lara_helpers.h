@@ -93,6 +93,7 @@ float GetPlayerJumpVelocity(float height);
 constexpr auto PLAYER_REMASTERED_SPRINT_LEAN_CLAMP = ANGLE(16.1f);
 
 bool  IsRawActionHeld(TEN::Input::ActionID actionID);
+bool  IsRemasteredGrabHeld();
 bool  DoesPlayerRemasteredSolverOwnHeading(const ItemInfo& item);
 bool  DoesPlayerRemasteredCameraAssistApply(const ItemInfo& item);
 short GetPlayerHeadingAngleY(const ItemInfo& item);
@@ -100,3 +101,5 @@ bool  HandlePlayerRemasteredDiagonalStep(const ItemInfo& item, CollisionInfo& co
 void  ApplyRemasteredInput(ItemInfo& item);
 void  RestoreRemasteredInput();
 void  HandlePlayerRemasteredHeading(ItemInfo& item);
+bool  TestRemasteredSafetyGrab(ItemInfo& item, CollisionInfo& coll);
+bool  HandleRemasteredTightropeIdle(ItemInfo& item);

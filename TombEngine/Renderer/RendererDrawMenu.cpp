@@ -286,7 +286,7 @@ namespace TEN::Renderer
 				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? plainColor : disabledColor, SF(titleOption == 8));
 			GetNextLinePosition(&y);
 
-			// Remastered controls: sprint, crouch and smooth sprint steps rows, grayed out under Classic. -- divezzi, 10.10.26
+			// Remastered controls: sprint, crouch, grab and smooth sprint steps rows, grayed out under Classic. -- divezzi, 10.10.26
 			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SPRINT_MODE), optionColor, SF(titleOption == 9));
 			AddString(MenuRightSideEntry, y, Str_InputMode(g_Gui.GetCurrentSettings().Configuration.EnableSprintToggle),
 				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? plainColor : disabledColor, SF(titleOption == 9));
@@ -297,22 +297,27 @@ namespace TEN::Renderer
 				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? plainColor : disabledColor, SF(titleOption == 10));
 			GetNextLinePosition(&y);
 
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SMOOTH_SPRINT_STEPS), optionColor, SF(titleOption == 11));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableSmoothSprintSteps),
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_GRAB_MODE), optionColor, SF(titleOption == 11));
+			AddString(MenuRightSideEntry, y, Str_InputMode(g_Gui.GetCurrentSettings().Configuration.EnableGrabToggle),
 				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? plainColor : disabledColor, SF(titleOption == 11));
 			GetNextLinePosition(&y);
 
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SMOOTH_SPRINT_STEPS), optionColor, SF(titleOption == 12));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableSmoothSprintSteps),
+				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? plainColor : disabledColor, SF(titleOption == 12));
+			GetNextLinePosition(&y);
+
 			// Mouse sensitivity
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MOUSE_SENSITIVITY), optionColor, SF(titleOption == 12));
-			AddString(MenuRightSideEntry, y, std::to_string(g_Gui.GetCurrentSettings().Configuration.MouseSensitivity).c_str(), plainColor, SF(titleOption == 12));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MOUSE_SENSITIVITY), optionColor, SF(titleOption == 13));
+			AddString(MenuRightSideEntry, y, std::to_string(g_Gui.GetCurrentSettings().Configuration.MouseSensitivity).c_str(), plainColor, SF(titleOption == 13));
 			GetNextBlockPosition(&y);
 
 			// Apply
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 13));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 14));
 			GetNextLinePosition(&y);
 
 			// Cancel
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 14));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 15));
 			break;
 
 		case Menu::Display:

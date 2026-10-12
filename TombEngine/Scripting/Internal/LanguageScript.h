@@ -95,6 +95,7 @@
 #define STRING_INVERT_CAMERA_Y_AXIS		"invert_camera_y_axis"
 #define STRING_SPRINT_MODE				"sprint_mode"
 #define STRING_CROUCH_MODE				"crouch_mode"
+#define STRING_GRAB_MODE				"grab_mode"
 #define STRING_SMOOTH_SPRINT_STEPS		"smooth_sprint_steps"
 #define STRING_INPUT_MODE_HOLD			"input_mode_hold"
 #define STRING_INPUT_MODE_TOGGLE		"input_mode_toggle"

@@ -1346,6 +1346,22 @@ bool IsRawActionHeld(ActionID actionID)
 	return it->second.IsHeld();
 }
 
+// Grab and weapon button: Fire under Remastered controls, Action under Classic controls.
+// A script clear of Action holds it off, and a script push of Action presses it.
+bool IsRemasteredGrabHeld()
+{
+	if (!g_Configuration.IsUsingRemasteredControls())
+		return IsHeld(In::Action);
+
+	if (IsCleared(In::Action))
+		return false;
+
+	if (IsPushed(In::Action))
+		return true;
+
+	return IsHeld(In::Fire);
+}
+
 // Steps an angle toward a target by a share of the remaining error, clamped between a minimum and a maximum step.
 // An exact half-turn error keeps the previous turn direction, stored in prevSign.
 static short ApproachHeadingAngle(short fromAngle, short toAngle, float rate, short stepMax, int& prevSign)
@@ -1388,7 +1404,7 @@ static bool IsPlayerInRemasteredCombatBackStance(const ItemInfo& item)
 }
 
 // Hanging, shimmying, monkey swing, ladder, rope and pole states.
-static bool DoesPlayerRemasteredInputOwnGrip(const ItemInfo& item)
+static bool DoesRemasteredInputOwnGrip(const ItemInfo& item)
 {
 	if (!g_Configuration.IsUsingRemasteredControls())
 		return false;
@@ -1437,6 +1453,15 @@ static bool DoesPlayerRemasteredInputOwnGrip(const ItemInfo& item)
 	default:
 		return false;
 	}
+}
+
+// The grip in a hanging state. Roll always lets go. With the grab toggle off, releasing the grab button lets go too.
+static bool GetRemasteredGrip(bool isGrabHeld, bool isRollHeld)
+{
+	if (isRollHeld)
+		return false;
+
+	return (g_Configuration.EnableGrabToggle || isGrabHeld);
 }
 
 static bool IsPlayerRemasteredOnKnees(const ItemInfo& item)
@@ -1488,6 +1513,9 @@ static RemasteredInputScope GetPlayerRemasteredTurnParams(const ItemInfo& item, 
 	constexpr auto TURN_STEP_MAX_WADE		= ANGLE(15.0f);
 	constexpr auto TURN_STEP_MAX_CRAWL_IDLE = ANGLE(90.0f);
 	constexpr auto TURN_STEP_MAX_CRAWL		= ANGLE(7.0f);
+
+	constexpr auto TURN_RATE_MONKEY		= 0.2f;
+	constexpr auto TURN_STEP_MAX_MONKEY = ANGLE(7.0f);
 
 	constexpr auto TURN_RATE_JUMP_PREPARE	  = 1.0f;
 	constexpr auto TURN_STEP_MAX_JUMP_PREPARE = (short)SHRT_MAX;
@@ -1564,6 +1592,17 @@ static RemasteredInputScope GetPlayerRemasteredTurnParams(const ItemInfo& item, 
 	case LS_CRAWL_BACK:
 		rate = TURN_RATE_CRAWL;
 		stepMax = TURN_STEP_MAX_CRAWL;
+		return RemasteredInputScope::Ground;
+
+	case LS_MONKEY_IDLE:
+	case LS_MONKEY_FORWARD:
+	case LS_MONKEY_BACK:
+	case LS_MONKEY_TURN_LEFT:
+	case LS_MONKEY_TURN_RIGHT:
+	case LS_MONKEY_SHIMMY_LEFT:
+	case LS_MONKEY_SHIMMY_RIGHT:
+		rate = TURN_RATE_MONKEY;
+		stepMax = TURN_STEP_MAX_MONKEY;
 		return RemasteredInputScope::Ground;
 
 	// Jump wind-up. Holstered, she turns toward the stick before the launch. Armed, it plays classic.
@@ -1671,6 +1710,188 @@ bool HandlePlayerRemasteredDiagonalStep(const ItemInfo& item, CollisionInfo& col
 
 	coll.CollisionType = CollisionType::None;
 	return true;
+}
+
+// Safety grab probe: taken behind the player, its base 381 units below her feet. The lip must be level
+// across her within 78 units and square to the grid within 35 degrees.
+constexpr auto SAFETY_GRAB_PROBE_HEADING_OFFSET	 = (short)0x7ff8;
+constexpr auto SAFETY_GRAB_PROBE_VERTICAL_OFFSET = 0x17d;
+constexpr auto SAFETY_GRAB_LIP_TOLERANCE		 = 0x4e;
+constexpr auto SAFETY_GRAB_ANGLE_TOLERANCE		 = ANGLE(35.0f);
+
+static bool IsAngleNearCardinal(short angle, short toleranceAngle)
+{
+	short nearestCardinalAngle = (short)(GetQuadrant(angle) * ANGLE(90.0f));
+	return (abs((int)Geometry::GetShortestAngle(angle, nearestCardinalAngle)) <= toleranceAngle);
+}
+
+// Angle of the diagonal lip under the player, and her distance to it. False if the sector has no diagonal split.
+static bool GetRemasteredDiagonalLip(const ItemInfo& item, short& lipAngle, float& lipDistance)
+{
+	auto pointColl = GetPointCollision(item, 0, 0, -LARA_HEIGHT / 2);
+	const auto& sector = pointColl.GetSector();
+
+	short splitAngle = sector.FloorSurface.SplitAngle;
+	if (!sector.IsSurfaceSplit(true) ||
+		(splitAngle != SectorSurfaceData::SPLIT_ANGLE_0 && splitAngle != SectorSurfaceData::SPLIT_ANGLE_1))
+	{
+		return false;
+	}
+
+	int triID = sector.GetSurfaceTriangleID(item.Pose.Position.x, item.Pose.Position.z, true);
+	lipAngle = (short)(splitAngle + ANGLE(triID * 180.0f) + ANGLE(90.0f));
+
+	auto center = GetNearestSectorCenter(item.Pose.Position);
+	lipDistance = ((center.x - item.Pose.Position.x) * phd_sin(lipAngle)) +
+				  ((center.z - item.Pose.Position.z) * phd_cos(lipAngle));
+	return true;
+}
+
+// A diagonal lip is accepted when it is level across the player and she faces it within the tolerance.
+static bool TestRemasteredSafetyGrabDiagonal(ItemInfo& item, const CollisionInfo& probe, short& turnAngle)
+{
+	short lipAngle = 0;
+	float lipDistance = 0.0f;
+	if (!GetRemasteredDiagonalLip(item, lipAngle, lipDistance))
+		return false;
+
+	auto lipProbe = probe;
+	lipProbe.Setup.Mode = CollisionProbeMode::FreeFlat;
+	lipProbe.Setup.ForwardAngle = lipAngle;
+	GetCollisionInfo(&lipProbe, &item, Vector3i(0, SAFETY_GRAB_PROBE_VERTICAL_OFFSET, 0));
+
+	bool isLipLevel = (abs(lipProbe.FrontLeft.Floor - lipProbe.FrontRight.Floor) < SAFETY_GRAB_LIP_TOLERANCE);
+	bool isFacingLip = (abs((int)Geometry::GetShortestAngle(probe.Setup.ForwardAngle, lipAngle)) <= SAFETY_GRAB_ANGLE_TOLERANCE);
+	if (!isLipLevel || !isFacingLip)
+		return false;
+
+	turnAngle = lipAngle;
+	return true;
+}
+
+// Moves the player back from a diagonal lip to the reach radius, if the floor and ceiling there allow it.
+static void ApplyRemasteredSafetyGrabStandOff(ItemInfo& item)
+{
+	constexpr auto STAND_OFF_DISTANCE = LARA_RADIUS * 1.2f;
+
+	short lipAngle = 0;
+	float lipDistance = 0.0f;
+	if (!GetRemasteredDiagonalLip(item, lipAngle, lipDistance))
+		return;
+
+	short pushAngle = (short)(lipAngle + ANGLE(180.0f));
+	float pushDistance = STAND_OFF_DISTANCE - lipDistance;
+	if (pushDistance <= 0.0f)
+		return;
+
+	auto pointColl = GetPointCollision(item, pushAngle, pushDistance, -LARA_HEIGHT / 2);
+	int floorHeight = pointColl.GetFloorHeight();
+	if (floorHeight == NO_HEIGHT || floorHeight <= item.Pose.Position.y)
+		return;
+
+	if (pointColl.GetCeilingHeight() > (item.Pose.Position.y - LARA_HEIGHT))
+		return;
+
+	item.Pose.Translate(pushAngle, pushDistance);
+}
+
+// Safety grab: running off a drop of about a block with the grab button held puts the player into a reach
+// facing the lip she ran off, and the stock reach code catches the ledge.
+bool TestRemasteredSafetyGrab(ItemInfo& item, CollisionInfo& coll)
+{
+	constexpr auto DROP_HEIGHT_MIN		   = BLOCK(1);
+	constexpr auto DROP_HEIGHT_TOLERANCE   = CLICK(0.25f);
+	constexpr auto PROBE_RADIUS_SCALE	   = 1.3f;
+	constexpr auto PROBE_FLOOR_BOUND_LOWER = 0x7f00;
+	constexpr auto PROBE_FLOOR_BOUND_UPPER = -0x180;
+	constexpr auto PROBE_HEIGHT			   = 0x2fa;
+	constexpr auto WATER_DEPTH_MIN		   = 0x1ff;
+	constexpr auto CAUGHT_VELOCITY		   = 10.0f;
+
+	if (!g_Configuration.IsUsingRemasteredControls())
+		return false;
+
+	auto& player = GetLaraInfo(item);
+
+	if (item.Animation.ActiveState != LS_RUN_FORWARD)
+		return false;
+
+	if (coll.Middle.Floor < (DROP_HEIGHT_MIN - DROP_HEIGHT_TOLERANCE))
+		return false;
+
+	if (!IsRemasteredGrabHeld())
+		return false;
+
+	if (player.Control.HandStatus != HandStatus::Free)
+		return false;
+
+	auto probe = coll;
+	probe.Setup.Radius = (int)(coll.Setup.Radius * PROBE_RADIUS_SCALE);
+	probe.Setup.LowerFloorBound = PROBE_FLOOR_BOUND_LOWER;
+	probe.Setup.UpperFloorBound = PROBE_FLOOR_BOUND_UPPER;
+	probe.Setup.LowerCeilingBound = 0;
+	probe.Setup.Height = PROBE_HEIGHT;
+	probe.Setup.ForwardAngle = (short)(item.Pose.Orientation.y + SAFETY_GRAB_PROBE_HEADING_OFFSET);
+	GetCollisionInfo(&probe, &item, Vector3i(0, SAFETY_GRAB_PROBE_VERTICAL_OFFSET, 0));
+
+	bool isLipLevel = (abs(probe.FrontLeft.Floor - probe.FrontRight.Floor) < SAFETY_GRAB_LIP_TOLERANCE);
+	bool isSquareOn = IsAngleNearCardinal(probe.Setup.ForwardAngle, SAFETY_GRAB_ANGLE_TOLERANCE);
+
+	short turnAngle = (short)(GetQuadrant(probe.Setup.ForwardAngle) * ANGLE(90.0f));
+	bool isDiagonalLip = (!isLipLevel || !isSquareOn);
+	if (isDiagonalLip && !TestRemasteredSafetyGrabDiagonal(item, probe, turnAngle))
+		return false;
+
+	int waterHeight = GetPointCollision(item).GetWaterSurfaceHeight();
+	if (waterHeight != NO_HEIGHT && (waterHeight - item.Pose.Position.y) < WATER_DEPTH_MIN)
+		return false;
+
+	player.Control.RefMoveAxis = Vector2::Zero;
+	player.Control.Remastered.SafetyGrabTurnAngle = turnAngle;
+	player.Control.Remastered.SafetyGrabTurnYaw = item.Pose.Orientation.y;
+	player.Control.Remastered.IsSafetyGrabTurning = true;
+
+	if (isDiagonalLip)
+		ApplyRemasteredSafetyGrabStandOff(item);
+
+	SetAnimation(item, LA_REACH);
+	item.Animation.IsAirborne = true;
+	item.Animation.ActiveState = LS_REACH;
+	item.Animation.TargetState = LS_REACH;
+	item.Animation.Velocity.z = CAUGHT_VELOCITY;
+	item.Animation.Velocity.y = 0.0f;
+	return true;
+}
+
+// Tightrope idle: a held push back turns the player once, and held on after the turn she walks.
+// Forward releases the turn latch. False leaves the state to the stock checks.
+bool HandleRemasteredTightropeIdle(ItemInfo& item)
+{
+	auto& remastered = GetLaraInfo(item).Control.Remastered;
+
+	if (IsHeld(In::Forward))
+	{
+		remastered.IsTightropeTurnLatched = false;
+		return false;
+	}
+
+	if (IsHeld(In::Back) && !IsHeld(In::Roll))
+	{
+		if (remastered.IsTightropeTurnLatched)
+		{
+			item.Animation.TargetState = LS_TIGHTROPE_WALK;
+			return true;
+		}
+
+		remastered.IsTightropeTurnLatched = true;
+		item.Animation.TargetState = LS_TIGHTROPE_TURN_180;
+		return true;
+	}
+
+	if (!IsHeld(In::Back))
+		remastered.IsTightropeTurnLatched = false;
+
+	return false;
 }
 
 // Working copy of the general actions, rewritten by the Remastered transform and written back to the action map.
@@ -1848,7 +2069,7 @@ static void UpdatePlayerRemasteredCrouchStages(ItemInfo& item, RemasteredInput& 
 
 	if (player.Control.WaterStatus == WaterStatus::Underwater ||
 		player.Control.WaterStatus == WaterStatus::TreadWater ||
-		DoesPlayerRemasteredInputOwnGrip(item))
+		DoesRemasteredInputOwnGrip(item))
 	{
 		remastered.CrouchStage = 0;
 		remastered.IsCrouchStageUpPending = false;
@@ -1926,6 +2147,20 @@ static void TransformPlayerRemasteredInput(ItemInfo& item, RemasteredInput& inpu
 	UpdatePlayerRemasteredCrouchStages(item, input);
 	player.Control.RefMoveAxis = GetMoveAxis();
 	UpdatePlayerRemasteredJumpRollLatch(item);
+
+	// Hanging states: the grip holds until Roll, or until the grab button is released when the grab toggle is off.
+	// Roll is consumed so it does not also ask for a turn, except on the rope, where it is the drop.
+	if (DoesRemasteredInputOwnGrip(item))
+	{
+		bool isFireCleared = (IsCleared(In::Fire) && !IsPushed(In::Action));
+		input.Action = (!isFireCleared && GetRemasteredGrip(IsRemasteredGrabHeld(), input.Roll));
+
+		if (item.Animation.ActiveState != LS_ROPE_UP)
+			input.Roll = false;
+
+		if (input.Forward && input.Back)
+			input.Back = false;
+	}
 
 	if (!IsPlayerRemasteredDirectionPushed() && !IsPlayerInRemasteredCombatBackStance(item) &&
 		(item.Animation.ActiveState == LS_WALK_BACK || item.Animation.ActiveState == LS_RUN_BACK))
@@ -2041,6 +2276,38 @@ void RestoreRemasteredInput()
 	RemasteredWrittenActions.clear();
 }
 
+// Turns the player toward the lip during the safety grab reach. The turn steps from its own last yaw,
+// so a side deflection added by the stock reach code in between is discarded. True while it turns.
+static bool HandleRemasteredSafetyGrabTurn(ItemInfo& item)
+{
+	constexpr auto TURN_RATE	 = 1.0f;
+	constexpr auto TURN_STEP_MAX = ANGLE(60.0f);
+
+	auto& player = GetLaraInfo(item);
+	auto& remastered = player.Control.Remastered;
+
+	if (!remastered.IsSafetyGrabTurning)
+		return false;
+
+	if (!item.Animation.IsAirborne ||
+		(item.Animation.ActiveState != LS_REACH && item.Animation.ActiveState != LS_FREEFALL))
+	{
+		remastered.IsSafetyGrabTurning = false;
+		return false;
+	}
+
+	item.Pose.Orientation.y = ApproachHeadingAngle(remastered.SafetyGrabTurnYaw, remastered.SafetyGrabTurnAngle, TURN_RATE, TURN_STEP_MAX, remastered.HeadingTurnSign);
+	remastered.SafetyGrabTurnYaw = item.Pose.Orientation.y;
+
+	player.Control.MoveAngle = item.Pose.Orientation.y;
+	player.Control.TurnRate = 0;
+
+	if (item.Pose.Orientation.y == remastered.SafetyGrabTurnAngle)
+		remastered.IsSafetyGrabTurning = false;
+
+	return true;
+}
+
 // Turns the player toward the heading the stick points to, at the turn rate of her current state.
 void HandlePlayerRemasteredHeading(ItemInfo& item)
 {
@@ -2051,6 +2318,9 @@ void HandlePlayerRemasteredHeading(ItemInfo& item)
 		return;
 
 	auto& player = GetLaraInfo(item);
+
+	if (HandleRemasteredSafetyGrabTurn(item))
+		return;
 
 	if (!DoesPlayerRemasteredSolverOwnHeading(item))
 		return;

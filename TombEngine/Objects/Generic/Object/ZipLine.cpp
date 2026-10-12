@@ -53,7 +53,7 @@ namespace TEN::Entities::Traps
 
 		g_Hud.InteractionHighlighter.Test(*laraItem, zipLineItem, InteractionMode::Custom);
 
-		if ((IsHeld(In::Action) &&
+		if ((IsRemasteredGrabHeld() &&
 			laraItem->Animation.ActiveState == LS_IDLE &&
 			!laraItem->Animation.IsAirborne &&
 			player.Control.HandStatus == HandStatus::Free) ||

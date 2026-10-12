@@ -65,6 +65,7 @@ struct GameConfiguration
 	bool InvertCameraYAxis				= false;
 	bool EnableSprintToggle				= false;
 	bool EnableCrouchToggle				= true;
+	bool EnableGrabToggle				= true;
 	bool EnableSmoothSprintSteps		= true;
 
 	// Input

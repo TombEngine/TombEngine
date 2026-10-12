@@ -411,6 +411,19 @@ void lara_as_crawl_idle(ItemInfo* item, CollisionInfo* coll)
 	if (player.Control.Look.IsUsingBinoculars)
 		return;
 
+	// Remastered controls: after the crawl grab's turn, the player hangs from the edge she now faces. -- divezzi, 11.10.26
+	if (g_Configuration.IsUsingRemasteredControls() && player.Control.Remastered.IsCrawlSafetyGrabTurning)
+	{
+		player.Control.Remastered.IsCrawlSafetyGrabTurning = false;
+
+		if (TestLaraCrawlToHang(item, coll))
+		{
+			item->Animation.TargetState = LS_CRAWL_TO_HANG;
+			DoLaraCrawlToHangSnap(item, coll);
+			return;
+		}
+	}
+
 	if (IsHeld(In::Left) || IsHeld(In::Right))
 		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_CRAWL_TURN_RATE_MAX);
 
@@ -450,7 +463,7 @@ void lara_as_crawl_idle(ItemInfo* item, CollisionInfo* coll)
 		{
 			auto crawlVaultContext = TestLaraCrawlVault(item, coll);
 
-			if ((IsHeld(In::Action) || IsHeld(In::Jump)) && crawlVaultContext.Success)
+			if ((IsRemasteredGrabHeld() || IsHeld(In::Jump)) && crawlVaultContext.Success)
 			{
 				item->Animation.TargetState = crawlVaultContext.TargetState;
 				ResetPlayerTurnRateY(*item);
@@ -463,10 +476,19 @@ void lara_as_crawl_idle(ItemInfo* item, CollisionInfo* coll)
 				item->Animation.TargetState = LS_CRAWL_FORWARD;
 				return;
 			}
+
+			// Remastered controls: at a crawlspace edge with nothing to vault, the grab button turns the player around to hang from it. -- divezzi, 11.10.26
+			if (g_Configuration.IsUsingRemasteredControls() && IsRemasteredGrabHeld() &&
+				TestLaraCrawlToHang(item, coll, ANGLE(0.0f)))
+			{
+				player.Control.Remastered.IsCrawlSafetyGrabTurning = true;
+				item->Animation.TargetState = LS_CRAWL_TURN_180;
+				return;
+			}
 		}
 		else if (IsHeld(In::Back))
 		{
-			if (IsHeld(In::Action) && TestLaraCrawlToHang(item, coll))
+			if (IsRemasteredGrabHeld() && TestLaraCrawlToHang(item, coll))
 			{
 				item->Animation.TargetState = LS_CRAWL_TO_HANG;
 				DoLaraCrawlToHangSnap(item, coll);

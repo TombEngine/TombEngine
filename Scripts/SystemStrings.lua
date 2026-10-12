@@ -81,6 +81,7 @@ local strings =
 	gameplay = { "Gameplay" },
 	gamma = { "Gamma Correction" },
 	general_actions = { "General Actions" },
+	grab_mode = { "Grab" },
 	high = { "High" },
 	high_framerate = { "High Framerate" },
 	input_mode_hold = { "Hold" },

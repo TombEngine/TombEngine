@@ -124,6 +124,7 @@ struct ConfigurationT : public flatbuffers::NativeTable {
   bool enable_sprint_toggle = false;
   bool enable_crouch_toggle = true;
   bool enable_smooth_sprint_steps = true;
+  bool enable_grab_toggle = true;
 };
 
 struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -165,7 +166,8 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_INVERT_CAMERA_Y_AXIS = 66,
     VT_ENABLE_SPRINT_TOGGLE = 68,
     VT_ENABLE_CROUCH_TOGGLE = 70,
-    VT_ENABLE_SMOOTH_SPRINT_STEPS = 72
+    VT_ENABLE_SMOOTH_SPRINT_STEPS = 72,
+    VT_ENABLE_GRAB_TOGGLE = 74
   };
   int32_t screen_width() const {
     return GetField<int32_t>(VT_SCREEN_WIDTH, 0);
@@ -272,6 +274,9 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool enable_smooth_sprint_steps() const {
     return GetField<uint8_t>(VT_ENABLE_SMOOTH_SPRINT_STEPS, 1) != 0;
   }
+  bool enable_grab_toggle() const {
+    return GetField<uint8_t>(VT_ENABLE_GRAB_TOGGLE, 1) != 0;
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_SCREEN_WIDTH) &&
@@ -316,6 +321,7 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_ENABLE_SPRINT_TOGGLE) &&
            VerifyField<uint8_t>(verifier, VT_ENABLE_CROUCH_TOGGLE) &&
            VerifyField<uint8_t>(verifier, VT_ENABLE_SMOOTH_SPRINT_STEPS) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_GRAB_TOGGLE) &&
            verifier.EndTable();
   }
   ConfigurationT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -432,6 +438,9 @@ struct ConfigurationBuilder {
   void add_enable_smooth_sprint_steps(bool enable_smooth_sprint_steps) {
     fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_SMOOTH_SPRINT_STEPS, static_cast<uint8_t>(enable_smooth_sprint_steps), 1);
   }
+  void add_enable_grab_toggle(bool enable_grab_toggle) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_GRAB_TOGGLE, static_cast<uint8_t>(enable_grab_toggle), 1);
+  }
   explicit ConfigurationBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -479,7 +488,8 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(
     bool invert_camera_y_axis = false,
     bool enable_sprint_toggle = false,
     bool enable_crouch_toggle = true,
-    bool enable_smooth_sprint_steps = true) {
+    bool enable_smooth_sprint_steps = true,
+    bool enable_grab_toggle = true) {
   ConfigurationBuilder builder_(_fbb);
   builder_.add_remastered_gamepad_bindings(remastered_gamepad_bindings);
   builder_.add_remastered_bindings(remastered_bindings);
@@ -499,6 +509,7 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(
   builder_.add_gamma(gamma);
   builder_.add_screen_height(screen_height);
   builder_.add_screen_width(screen_width);
+  builder_.add_enable_grab_toggle(enable_grab_toggle);
   builder_.add_enable_smooth_sprint_steps(enable_smooth_sprint_steps);
   builder_.add_enable_crouch_toggle(enable_crouch_toggle);
   builder_.add_enable_sprint_toggle(enable_sprint_toggle);
@@ -560,7 +571,8 @@ inline flatbuffers::Offset<Configuration> CreateConfigurationDirect(
     bool invert_camera_y_axis = false,
     bool enable_sprint_toggle = false,
     bool enable_crouch_toggle = true,
-    bool enable_smooth_sprint_steps = true) {
+    bool enable_smooth_sprint_steps = true,
+    bool enable_grab_toggle = true) {
   auto adapter_name__ = adapter_name ? _fbb.CreateString(adapter_name) : 0;
   auto bindings__ = bindings ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>(*bindings) : 0;
   auto remastered_bindings__ = remastered_bindings ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>(*remastered_bindings) : 0;
@@ -601,7 +613,8 @@ inline flatbuffers::Offset<Configuration> CreateConfigurationDirect(
       invert_camera_y_axis,
       enable_sprint_toggle,
       enable_crouch_toggle,
-      enable_smooth_sprint_steps);
+      enable_smooth_sprint_steps,
+      enable_grab_toggle);
 }
 
 flatbuffers::Offset<Configuration> CreateConfiguration(flatbuffers::FlatBufferBuilder &_fbb, const ConfigurationT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -679,6 +692,7 @@ inline void Configuration::UnPackTo(ConfigurationT *_o, const flatbuffers::resol
   { auto _e = enable_sprint_toggle(); _o->enable_sprint_toggle = _e; }
   { auto _e = enable_crouch_toggle(); _o->enable_crouch_toggle = _e; }
   { auto _e = enable_smooth_sprint_steps(); _o->enable_smooth_sprint_steps = _e; }
+  { auto _e = enable_grab_toggle(); _o->enable_grab_toggle = _e; }
 }
 
 inline flatbuffers::Offset<Configuration> Configuration::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ConfigurationT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -724,6 +738,7 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(flatbuffers::FlatB
   auto _enable_sprint_toggle = _o->enable_sprint_toggle;
   auto _enable_crouch_toggle = _o->enable_crouch_toggle;
   auto _enable_smooth_sprint_steps = _o->enable_smooth_sprint_steps;
+  auto _enable_grab_toggle = _o->enable_grab_toggle;
   return TEN::Serialization::Config::CreateConfiguration(
       _fbb,
       _screen_width,
@@ -760,7 +775,8 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(flatbuffers::FlatB
       _invert_camera_y_axis,
       _enable_sprint_toggle,
       _enable_crouch_toggle,
-      _enable_smooth_sprint_steps);
+      _enable_smooth_sprint_steps,
+      _enable_grab_toggle);
 }
 
 inline const TEN::Serialization::Config::Configuration *GetConfiguration(const void *buf) {

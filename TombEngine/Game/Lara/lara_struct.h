@@ -1214,6 +1214,12 @@ struct RemasteredControlData
 	bool IsJumpRollSpent		= false;
 
 	int HeadingTurnSign = 0;
+
+	short SafetyGrabTurnAngle	   = 0;
+	short SafetyGrabTurnYaw		   = 0;
+	bool  IsSafetyGrabTurning	   = false;
+	bool  IsCrawlSafetyGrabTurning = false;
+	bool  IsTightropeTurnLatched   = false;
 };
 
 struct RopeControlData
