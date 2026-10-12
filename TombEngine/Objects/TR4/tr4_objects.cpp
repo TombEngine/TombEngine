@@ -1,4 +1,4 @@
-﻿#include "framework.h"
+#include "framework.h"
 #include "Objects/TR4/tr4_objects.h"
 
 #include "Game/collision/collide_item.h"
