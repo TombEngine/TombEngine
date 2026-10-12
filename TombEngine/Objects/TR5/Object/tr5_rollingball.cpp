@@ -414,7 +414,7 @@ void ClassicRollingBallCollision(short itemNum, ItemInfo* lara, CollisionInfo* c
 }
 
 void ClassicRollingBallControl(short itemNum)
-{	
+{
 	auto* item = &g_Level.Items[itemNum];
 
 	if (item->Status == ITEM_ACTIVE)
@@ -489,7 +489,8 @@ void ClassicRollingBallControl(short itemNum)
 				Camera.bounce = -40 * (BLOCK(10) - distance) / BLOCK(10);
 		}
 
-		int dist, ydist;
+		int dist = 0;
+		int ydist = 0;
 
 		switch (item->ObjectNumber)
 		{

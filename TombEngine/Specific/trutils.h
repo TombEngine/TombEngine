@@ -50,12 +50,12 @@ namespace TEN::Utils
 
 	// Templates
 
-	template <typename R, typename... Args>
-	bool IsFunction(const std::function<R(Args...)>& f, R(*func)(Args...)
-	)
+	// True if the function object stores the given plain function.
+	template <typename TReturn, typename... TArgs>
+	bool IsFunction(const std::function<TReturn(TArgs...)>& function, TReturn(*target)(TArgs...))
 	{
-		auto ptr = f.template target<R(*)(Args...)>();
-		return ptr && *ptr == func;
+		auto* storedTarget = function.template target<TReturn(*)(TArgs...)>();
+		return (storedTarget != nullptr && *storedTarget == target);
 	}
 
 	template <typename TElement>

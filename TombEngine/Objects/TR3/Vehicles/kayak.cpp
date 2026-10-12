@@ -600,8 +600,8 @@ namespace TEN::Entities::Vehicles
 			kayakPos.RoomNumber = kayakItem->RoomNumber;
 
 			probe = GetPointCollision(kayak->OldPose.Position, kayakPos.RoomNumber);
-			bool steepSlope = Geometry::GetSurfaceSlopeAngle(probe.GetFloorNormal()) > KAYAK_SLOPE_ANGLE_MIN;
-			CameraCollisionBounds(&kayakPos, CLICK(1), steepSlope);
+			bool isSteepSlope = Geometry::GetSurfaceSlopeAngle(probe.GetFloorNormal()) > KAYAK_SLOPE_ANGLE_MIN;
+			CameraCollisionBounds(&kayakPos, CLICK(1), isSteepSlope);
 
 			kayakItem->Pose.Position.x = kayakPos.x;
 			kayakItem->Pose.Position.y = kayakPos.y;

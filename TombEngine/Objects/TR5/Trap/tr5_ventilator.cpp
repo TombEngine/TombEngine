@@ -3,12 +3,12 @@
 
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
+#include "Game/collision/Point.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Specific/level.h"
-#include "Game/collision/Point.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
