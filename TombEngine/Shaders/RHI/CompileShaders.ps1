@@ -41,11 +41,23 @@ function Test-SpirvSupport([string]$dxc)
 # DXC of the Vulkan SDK, named dxc.exe on Windows and dxc elsewhere, or one with SPIR-V support on the PATH.
 function Find-Dxc
 {
-    if ($env:VULKAN_SDK)
+    # A Visual Studio started before the SDK installation lacks VULKAN_SDK in its environment, so the variable is
+    # also read from the stored user and machine environment, and the default installation folder is searched last.
+    $sdkPaths = @($env:VULKAN_SDK)
+    if ($IsWindows -ne $false)
+    {
+        $sdkPaths += [Environment]::GetEnvironmentVariable("VULKAN_SDK", "User")
+        $sdkPaths += [Environment]::GetEnvironmentVariable("VULKAN_SDK", "Machine")
+        $sdkPaths += Get-ChildItem -Path "C:\VulkanSDK" -Directory -ErrorAction SilentlyContinue |
+            Sort-Object { try { [version]$_.Name } catch { [version]"0.0" } } -Descending |
+            ForEach-Object { $_.FullName }
+    }
+
+    foreach ($sdkPath in ($sdkPaths | Where-Object { $_ }))
     {
         foreach ($candidate in @("Bin/dxc.exe", "bin/dxc", "Bin/dxc"))
         {
-            $path = Join-Path $env:VULKAN_SDK $candidate
+            $path = Join-Path $sdkPath $candidate
             if (Test-Path $path) { return $path }
         }
     }
@@ -110,6 +122,10 @@ if (-not $fxc)
 if (-not $dxc)
 {
     Write-Warning "dxc not found: SPIR-V shaders are not compiled, the Vulkan backend will be unavailable."
+}
+else
+{
+    Write-Host "Using $dxc"
 }
 
 $dxbcDir = Join-Path $OutputDir "dxbc"
