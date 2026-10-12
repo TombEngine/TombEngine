@@ -675,7 +675,8 @@ namespace TEN::Entities::Vehicles
 		FindNewTarget(*laraItem, weapon);
 		AimWeapon(*laraItem, lara->RightArm, weapon);
 
-		if (IsHeld(In::Fire) && !skidooItem->ItemFlags[0])
+		// Remastered controls: the skidoo guns fire on Action. -- divezzi, 12.10.26
+		if (IsRemasteredVehicleFireHeld() && !skidooItem->ItemFlags[0])
 		{
 			auto angles = EulerAngles(
 				lara->RightArm.Orientation.x,

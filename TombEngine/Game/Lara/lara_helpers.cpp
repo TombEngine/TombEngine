@@ -1402,6 +1402,22 @@ bool IsRemasteredGrabHeld()
 	return IsHeld(In::Fire);
 }
 
+// Vehicle gun button: Action under Remastered controls, where Accelerate and Fire share the gamepad's right trigger.
+// Fire under Classic controls. A script clear of Fire holds it off, and a script push of Fire presses it.
+bool IsRemasteredVehicleFireHeld()
+{
+	if (!g_Configuration.IsUsingRemasteredControls())
+		return IsHeld(In::Fire);
+
+	if (IsCleared(In::Fire))
+		return false;
+
+	if (IsPushed(In::Fire))
+		return true;
+
+	return IsHeld(In::Action);
+}
+
 // Steps an angle toward a target by a share of the remaining error, clamped between a minimum and a maximum step.
 // An exact half-turn error keeps the previous turn direction, stored in prevSign.
 static short ApproachHeadingAngle(short fromAngle, short toAngle, float rate, short stepMax, int& prevSign)
