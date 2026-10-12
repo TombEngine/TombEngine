@@ -24,7 +24,9 @@ namespace TEN::Renderer
 	class Font
 	{
 	public:
-		static constexpr auto TEXTURE_FORMAT_RGBA8 = 28u; // DXGI formats of the font texture.
+		// DXGI formats of the font texture after loading: uncompressed textures are converted to RGBA8.
+		static constexpr auto TEXTURE_FORMAT_RGBA8 = 28u;
+		static constexpr auto TEXTURE_FORMAT_BC1   = 71u;
 		static constexpr auto TEXTURE_FORMAT_BC2   = 74u;
 		static constexpr auto TEXTURE_FORMAT_BC3   = 77u;
 

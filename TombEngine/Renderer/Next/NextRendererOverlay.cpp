@@ -30,7 +30,7 @@ namespace TEN::Renderer::Next
         return toByte(color.x) | (toByte(color.y) << 8) | (toByte(color.z) << 16) | (toByte(color.w) << 24);
     }
 
-    // The game font, read by the shared parser; its texture is RGBA8, BC2 or BC3.
+    // The game font, read by the shared parser, which leaves its texture in RGBA8, BC1, BC2 or BC3.
     bool NextRenderer::LoadFont(const std::string& path)
     {
         _font = FontData{};
@@ -41,13 +41,27 @@ namespace TEN::Renderer::Next
         auto desc = TextureDesc{};
         desc.Width = metrics.TextureWidth;
         desc.Height = metrics.TextureHeight;
-        desc.Format = (metrics.TextureFormat == Font::TEXTURE_FORMAT_BC2) ? PixelFormat::BC2Unorm :
-            ((metrics.TextureFormat == Font::TEXTURE_FORMAT_BC3) ? PixelFormat::BC3Unorm : PixelFormat::RGBA8Unorm);
         desc.Name = "Font";
-        if (metrics.TextureFormat != Font::TEXTURE_FORMAT_RGBA8 && metrics.TextureFormat != Font::TEXTURE_FORMAT_BC2 &&
-            metrics.TextureFormat != Font::TEXTURE_FORMAT_BC3)
+        switch (metrics.TextureFormat)
         {
-            TENLog("Next renderer: unsupported font texture in " + path, LogLevel::Error);
+        case Font::TEXTURE_FORMAT_RGBA8:
+            desc.Format = PixelFormat::RGBA8Unorm;
+            break;
+
+        case Font::TEXTURE_FORMAT_BC1:
+            desc.Format = PixelFormat::BC1Unorm;
+            break;
+
+        case Font::TEXTURE_FORMAT_BC2:
+            desc.Format = PixelFormat::BC2Unorm;
+            break;
+
+        case Font::TEXTURE_FORMAT_BC3:
+            desc.Format = PixelFormat::BC3Unorm;
+            break;
+
+        default:
+            TENLog("Next renderer: unsupported font texture format " + std::to_string(metrics.TextureFormat) + " in " + path, LogLevel::Error);
             return false;
         }
 
