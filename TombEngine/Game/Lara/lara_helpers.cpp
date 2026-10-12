@@ -2044,47 +2044,12 @@ bool HandleRemasteredTightropeIdle(ItemInfo& item)
 	return false;
 }
 
-// Working copy of the general actions, rewritten by the Remastered transform and written back to the action map.
-struct RemasteredInput
+// Working copy of the player input, rewritten by the Remastered transform and written back to the action map.
+struct RemasteredInput : PlayerInput
 {
-	bool Forward   = false;
-	bool Back	   = false;
-	bool Left	   = false;
-	bool Right	   = false;
-	bool StepLeft  = false;
-	bool StepRight = false;
-	bool Walk	   = false;
-	bool Sprint	   = false;
-	bool Crouch	   = false;
-	bool Jump	   = false;
-	bool Roll	   = false;
-	bool Action	   = false;
-	bool Draw	   = false;
-	bool Look	   = false;
-
 	// Jump is written as held, never clicked.
 	bool IsJumpStroke = false;
 };
-
-static RemasteredInput ReadRemasteredInput()
-{
-	auto input = RemasteredInput{};
-	input.Forward	= IsHeld(In::Forward);
-	input.Back		= IsHeld(In::Back);
-	input.Left		= IsHeld(In::Left);
-	input.Right		= IsHeld(In::Right);
-	input.StepLeft	= IsHeld(In::StepLeft);
-	input.StepRight = IsHeld(In::StepRight);
-	input.Walk		= IsHeld(In::Walk);
-	input.Sprint	= IsHeld(In::Sprint);
-	input.Crouch	= IsHeld(In::Crouch);
-	input.Jump		= IsHeld(In::Jump);
-	input.Roll		= IsHeld(In::Roll);
-	input.Action	= IsHeld(In::Action);
-	input.Draw		= IsHeld(In::Draw);
-	input.Look		= IsHeld(In::Look);
-	return input;
-}
 
 // Writes a rewritten value to the action map, keeping the raw and the written action for the restore.
 // A held value written with isClickSuppressed is updated twice, so it reads as held but not as clicked.
@@ -2146,20 +2111,7 @@ static void ResetRemasteredArmedTurn(ItemInfo& item)
 // A script clear holds the action off, even where the rewrite would set it.
 static void MaskRemasteredClearedInput(ItemInfo& item, RemasteredInput& input)
 {
-	input.Forward	= (input.Forward && !IsCleared(In::Forward));
-	input.Back		= (input.Back && !IsCleared(In::Back));
-	input.Left		= (input.Left && !IsCleared(In::Left));
-	input.Right		= (input.Right && !IsCleared(In::Right));
-	input.StepLeft	= (input.StepLeft && !IsCleared(In::StepLeft));
-	input.StepRight = (input.StepRight && !IsCleared(In::StepRight));
-	input.Walk		= (input.Walk && !IsCleared(In::Walk));
-	input.Sprint	= (input.Sprint && !IsCleared(In::Sprint));
-	input.Crouch	= (input.Crouch && !IsCleared(In::Crouch));
-	input.Jump		= (input.Jump && !IsCleared(In::Jump));
-	input.Roll		= (input.Roll && !IsCleared(In::Roll));
-	input.Action	= (input.Action && !IsCleared(In::Action));
-	input.Draw		= (input.Draw && !IsCleared(In::Draw));
-	input.Look		= (input.Look && !IsCleared(In::Look));
+	ApplyClearedActions(input);
 
 	// A script clear of the turn key the armed turn pressed stops the armed turn.
 	auto& player = GetLaraInfo(item);
@@ -2538,7 +2490,7 @@ void ApplyRemasteredInput(ItemInfo& item)
 	if (player.Context.Vehicle != NO_VALUE)
 		return;
 
-	auto input = ReadRemasteredInput();
+	auto input = RemasteredInput{ ReadPlayerInput() };
 	TransformPlayerRemasteredInput(item, input);
 	MaskRemasteredClearedInput(item, input);
 	WriteRemasteredInput(input);

@@ -1114,6 +1114,45 @@ namespace TEN::Input
 		return PushedActions[(int)actionID];
 	}
 
+	PlayerInput ReadPlayerInput()
+	{
+		auto input = PlayerInput{};
+		input.Forward	= IsHeld(In::Forward);
+		input.Back		= IsHeld(In::Back);
+		input.Left		= IsHeld(In::Left);
+		input.Right		= IsHeld(In::Right);
+		input.StepLeft	= IsHeld(In::StepLeft);
+		input.StepRight = IsHeld(In::StepRight);
+		input.Walk		= IsHeld(In::Walk);
+		input.Sprint	= IsHeld(In::Sprint);
+		input.Crouch	= IsHeld(In::Crouch);
+		input.Jump		= IsHeld(In::Jump);
+		input.Roll		= IsHeld(In::Roll);
+		input.Action	= IsHeld(In::Action);
+		input.Draw		= IsHeld(In::Draw);
+		input.Look		= IsHeld(In::Look);
+		return input;
+	}
+
+	// An action a level script cleared this tick is switched back off, even where a control mode rewrite turned it on.
+	void ApplyClearedActions(PlayerInput& input)
+	{
+		input.Forward	= (input.Forward && !IsCleared(In::Forward));
+		input.Back		= (input.Back && !IsCleared(In::Back));
+		input.Left		= (input.Left && !IsCleared(In::Left));
+		input.Right		= (input.Right && !IsCleared(In::Right));
+		input.StepLeft	= (input.StepLeft && !IsCleared(In::StepLeft));
+		input.StepRight = (input.StepRight && !IsCleared(In::StepRight));
+		input.Walk		= (input.Walk && !IsCleared(In::Walk));
+		input.Sprint	= (input.Sprint && !IsCleared(In::Sprint));
+		input.Crouch	= (input.Crouch && !IsCleared(In::Crouch));
+		input.Jump		= (input.Jump && !IsCleared(In::Jump));
+		input.Roll		= (input.Roll && !IsCleared(In::Roll));
+		input.Action	= (input.Action && !IsCleared(In::Action));
+		input.Draw		= (input.Draw && !IsCleared(In::Draw));
+		input.Look		= (input.Look && !IsCleared(In::Look));
+	}
+
 	bool IsDirectionalActionHeld()
 	{
 		return (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right));
