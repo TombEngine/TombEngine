@@ -115,7 +115,7 @@ namespace TEN::Renderer
 		if (levelPtr->GetLensFlareEnabled())
 		{
 			// GetLensFlarePitch/Yaw return TEN short angles (65536 = 360 degrees).
-			constexpr float SHORT_TO_RAD = (DirectX::XM_2PI / 65536.0f);
+			constexpr float SHORT_TO_RAD = (PI_MUL_2 / 65536.0f);
 			float pitch = (float)levelPtr->GetLensFlarePitch() * SHORT_TO_RAD;
 			float yaw   = (float)levelPtr->GetLensFlareYaw()   * SHORT_TO_RAD;
 
@@ -144,8 +144,8 @@ namespace TEN::Renderer
 		// --- Pre-compute moon data ---
 		// Done before the CB fill so phaseBrightness is available to modulate NightSkyBrightness.
 		const auto& moon  = _moonSettings;
-		float moonPitchRad    = moon.Pitch * (DirectX::XM_PI / 180.0f);
-		float moonYawRad      = moon.Yaw   * (DirectX::XM_PI / 180.0f);
+		float moonPitchRad    = moon.Pitch * (PI / 180.0f);
+		float moonYawRad      = moon.Yaw   * (PI / 180.0f);
 		Vector3 moonDir(
 			std::cos(moonPitchRad) * std::sin(moonYawRad),
 			-std::sin(moonPitchRad),
@@ -202,7 +202,7 @@ namespace TEN::Renderer
 		_stAtmosphericSky.SunWarmInfluence      = settings.SunWarmInfluence;
 
 		// Pre-compute cos(half_angle) on CPU to avoid a cos() call per pixel in the shader.
-		_stAtmosphericSky.SunDiskCosRadius  = std::cos(settings.SunDiskSize * (DirectX::XM_PI / 180.0f));
+		_stAtmosphericSky.SunDiskCosRadius  = std::cos(settings.SunDiskSize * (PI / 180.0f));
 		_stAtmosphericSky.SunDiskIntensity  = settings.SunDiskIntensity;
 
 		// --- Moon CB fill ---
@@ -211,7 +211,7 @@ namespace TEN::Renderer
 		_stAtmosphericSky.MoonElevation      = moonElevation;
 		_stAtmosphericSky.MoonColor          = moonColor;
 		_stAtmosphericSky.MoonPhase          = moonPhase;
-		_stAtmosphericSky.MoonDiskCosRadius  = std::cos(moon.DiskSize * (DirectX::XM_PI / 180.0f));
+		_stAtmosphericSky.MoonDiskCosRadius  = std::cos(moon.DiskSize * (PI / 180.0f));
 		_stAtmosphericSky.MoonDiskIntensity  = moon.DiskIntensity;
 		_stAtmosphericSky.MoonGlowIntensity  = moon.GlowIntensity;
 		_stAtmosphericSky.MoonGlowFalloff    = moon.GlowFalloff;

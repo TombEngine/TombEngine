@@ -11,7 +11,7 @@
 #include "Math/Random.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 
-using namespace DirectX::SimpleMath;
+using namespace TEN::Math::Library;
 using namespace TEN::Math::Random;
 
 // Fusebox effect parameters.

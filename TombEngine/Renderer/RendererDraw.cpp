@@ -1393,7 +1393,7 @@ namespace TEN::Renderer
 	// When the atmospheric sky dome is active, star and meteor visibility follows the day/night factor.
 	float Renderer::GetStarfieldAlphaScale() const
 	{
-		constexpr auto SHORT_TO_RAD = DirectX::XM_2PI / 65536.0f;
+		constexpr auto SHORT_TO_RAD = PI_MUL_2 / 65536.0f;
 
 		auto* levelPtr = g_GameFlow->GetLevel(CurrentLevel);
 		if (!_atmosphericSkySettings.Enabled || !levelPtr->GetLensFlareEnabled())

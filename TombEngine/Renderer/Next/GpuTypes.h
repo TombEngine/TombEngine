@@ -5,7 +5,7 @@
 
 namespace TEN::Renderer::Next
 {
-    using namespace DirectX::SimpleMath;
+    using namespace TEN::Math::Library;
 
     // HLSL type names used by the shared definitions.
     using float2   = Vector2;

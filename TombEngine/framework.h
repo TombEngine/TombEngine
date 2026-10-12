@@ -57,11 +57,11 @@
 #include <bass.h>
 #include <bass_fx.h>
 
-// DXTK
-#include <SimpleMath.h>
+// SimpleMath types on GLM
+#include "Math/SimpleMath.h"
 
-using namespace DirectX;
-using namespace DirectX::SimpleMath;
+using namespace TEN::Math::Library;
+using namespace TEN::Math::Collision;
 
 // SDL3
 #include <SDL3/SDL.h>

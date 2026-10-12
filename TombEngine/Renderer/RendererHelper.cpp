@@ -680,7 +680,7 @@ namespace TEN::Renderer
 
 	std::pair<Vector3, Vector3> Renderer::GetRay(const Vector2& pos) const
 	{
-		auto viewport = DirectX::SimpleMath::Viewport(0.0f, 0.0f, (float)_screenWidth, (float)_screenHeight);
+		auto viewport = TEN::Math::Library::Viewport(0.0f, 0.0f, (float)_screenWidth, (float)_screenHeight);
 		auto nearPoint = viewport.Unproject(Vector3(pos.x, pos.y, 0.0f), _gameCamera.Camera.Projection, _gameCamera.Camera.View, Matrix::Identity);
 		auto farPoint = viewport.Unproject(Vector3(pos.x, pos.y, 1.0f), _gameCamera.Camera.Projection, _gameCamera.Camera.View, Matrix::Identity);
 

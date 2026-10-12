@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 #include "Renderer/Structures/RendererBucket.h"
 #include "Renderer/Structures/RendererDecal.h"
 #include "Renderer/Structures/RendererDoor.h"
@@ -12,8 +12,8 @@
 
 namespace TEN::Renderer::Structures
 {
-	using namespace DirectX;
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Collision;
+	using namespace TEN::Math::Library;
 
 	struct RendererRoom
 	{

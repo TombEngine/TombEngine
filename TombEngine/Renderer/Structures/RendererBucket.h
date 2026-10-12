@@ -1,12 +1,12 @@
 #pragma once
 #include <vector>
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 #include "Renderer/RendererEnums.h"
 #include "Renderer/Structures/RendererPolygon.h"
 
 namespace TEN::Renderer::Structures
 {
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 
 	struct RendererBucket
 	{

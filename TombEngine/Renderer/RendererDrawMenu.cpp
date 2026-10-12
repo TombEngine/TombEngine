@@ -1001,7 +1001,7 @@ namespace TEN::Renderer
 			UpdateAnimation(nullptr, *moveableObject, frame, UINT_MAX);
 		}
 
-		auto viewport = DirectX::SimpleMath::Viewport(0.0f, 0.0f, (float)screenRes.x, (float)screenRes.y);
+		auto viewport = TEN::Math::Library::Viewport(0.0f, 0.0f, (float)screenRes.x, (float)screenRes.y);
 		auto pos = viewport.Unproject(Vector3(pos2D.x, pos2D.y, 1.0f), projMatrix, viewMatrix, Matrix::Identity);
 		auto color = NEUTRAL_COLOR;
 		color.w = opacity;

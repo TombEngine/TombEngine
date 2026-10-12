@@ -26,7 +26,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 
 #include "Renderer/VolumetricCloud/VolumetricCloud.h"
 #include "Scripting/Internal/TEN/Flow/SkyLayer/SkyLayer.h"
@@ -41,7 +41,7 @@ namespace TEN::Scripting
 
 namespace TEN::Sky
 {
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 	using namespace TEN::Renderer::VolumetricCloud;
 
 	// ====================================================================

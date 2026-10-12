@@ -1,5 +1,5 @@
 #pragma once
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 #include "Math/Math.h"
 #include "Game/control/box.h"
 #include "Game/items.h"
@@ -88,7 +88,7 @@ namespace TEN::Renderer
 	using namespace TEN::Renderer::Graphics::Vertices;
 	using namespace TEN::Renderer::Structures;
 	using namespace TEN::Renderer::Utils;
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 
 	class Renderer
 	{
@@ -414,7 +414,7 @@ namespace TEN::Renderer
 	public:
 		float ComputeDayNightBlend(float sunElevation) const;
 		float ComputeStarfieldVisibility(float sunElevation) const;
-		float ComputeMoonPhase(const DirectX::SimpleMath::Vector3& sunDir, const DirectX::SimpleMath::Vector3& moonDir) const;
+		float ComputeMoonPhase(const TEN::Math::Library::Vector3& sunDir, const TEN::Math::Library::Vector3& moonDir) const;
 		float ComputeMoonVisibility(float sunElevation) const;
 		AtmosphericSkySettings& GetAtmosphericSkySettings() { return _atmosphericSkySettings; }
 		const AtmosphericSkySettings& GetAtmosphericSkySettings() const { return _atmosphericSkySettings; }

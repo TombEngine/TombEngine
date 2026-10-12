@@ -1,10 +1,10 @@
 #pragma once
 #include <array>
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 
 namespace TEN::Renderer::Structures
 {
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 
 	struct RendererTriangle3D
 	{

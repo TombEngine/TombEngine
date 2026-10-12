@@ -1,9 +1,9 @@
 #pragma once
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 
 namespace TEN::Renderer::Structures
 {
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 
 	constexpr int VIDEO_SPRITE_ID = NO_VALUE;
 

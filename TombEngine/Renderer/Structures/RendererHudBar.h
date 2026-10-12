@@ -1,9 +1,9 @@
 #pragma once
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 
 namespace TEN::Renderer::Structures
 {
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 
 	// HUD bar layout in display space; the next renderer builds its border and inner quads.
 	struct RendererHudBar

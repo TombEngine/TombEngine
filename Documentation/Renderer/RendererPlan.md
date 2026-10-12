@@ -170,7 +170,7 @@ Un render graph completo (dipendenze automatiche, aliasing, pass culling) non se
 - [x] Pass disattivati (effetti spenti) saltati con un flag, senza logica di grafo.
 
 ### 5.5 Dipendenze
-- [ ] Rimuovere DirectXTK salvo la matematica (SimpleMath e' portabile):
+- [x] Rimuovere DirectXTK, matematica compresa. *(SimpleMath sostituita da `Math/SimpleMath.h` su GLM in `Libs/glm`, con la stessa API e la stessa semantica di SimpleMath e DirectXCollision, verificata su input casuali)*:
   - loader di texture proprio: parser DDS (BC con mip) + `SDL_LoadPNG` per i PNG del formato attuale;
   - `SpriteBatch`, `SpriteFont` e `PrimitiveBatch` riscritti sul RHI (quad instanziati, font atlas);
   - screenshot con download + `SDL_SavePNG`.

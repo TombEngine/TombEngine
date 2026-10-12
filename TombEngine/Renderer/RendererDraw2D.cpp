@@ -1,6 +1,6 @@
 #include "framework.h"
 
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 
 #include "Game/camera.h"
 #include "Game/control/control.h"
@@ -26,7 +26,7 @@ TEN::Renderer::RendererHudBar* g_LoadingBar;
 
 namespace TEN::Renderer
 {
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 	using namespace TEN::Renderer::Structures;
 	using namespace TEN::Effects::DisplaySprite;
 	using namespace TEN::Effects::Environment;

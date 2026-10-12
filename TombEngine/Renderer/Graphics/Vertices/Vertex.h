@@ -1,5 +1,5 @@
 #pragma once
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 
 namespace TEN::Renderer::Graphics::Vertices
 {

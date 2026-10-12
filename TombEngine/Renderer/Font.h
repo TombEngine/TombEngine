@@ -1,10 +1,10 @@
 #pragma once
 
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 
 namespace TEN::Renderer
 {
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 
 	// Glyph of a DirectXTK .spritefont file, with its rectangle in the font texture.
 	struct FontGlyph

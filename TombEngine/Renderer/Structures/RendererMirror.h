@@ -5,7 +5,7 @@ namespace TEN::Renderer::Structures
 	struct RendererMirror
 	{
 		int	   RoomNumber		= 0;
-		Plane  Plane			= SimpleMath::Plane();
+		Plane  Plane			= TEN::Math::Library::Plane();
 		Matrix ReflectionMatrix = Matrix::Identity;
 
 		bool ReflectPlayer	  = false;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 
 // ============================================================================
 // GodRayBuffer.h — GPU constant buffer for the god ray shader pass.
@@ -12,7 +12,7 @@
 
 namespace TEN::Renderer::ConstantBuffers
 {
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 
 	struct alignas(16) CGodRayBuffer
 	{

@@ -75,7 +75,7 @@ namespace TEN::Renderer
 		auto* levelPtr = g_GameFlow->GetLevel(CurrentLevel);
 		if (levelPtr->GetLensFlareEnabled())
 		{
-			constexpr float SHORT_TO_RAD = (DirectX::XM_2PI / 65536.0f);
+			constexpr float SHORT_TO_RAD = (PI_MUL_2 / 65536.0f);
 			float pitch = (float)levelPtr->GetLensFlarePitch() * SHORT_TO_RAD;
 			float yaw   = (float)levelPtr->GetLensFlareYaw()   * SHORT_TO_RAD;
 
@@ -117,8 +117,8 @@ namespace TEN::Renderer
 		if (useMoonRays)
 		{
 			// Build moon direction.
-			float moonPitchRad = moon.Pitch * (DirectX::XM_PI / 180.0f);
-			float moonYawRad   = moon.Yaw   * (DirectX::XM_PI / 180.0f);
+			float moonPitchRad = moon.Pitch * (PI / 180.0f);
+			float moonYawRad   = moon.Yaw   * (PI / 180.0f);
 			rayDir = Vector3(
 				std::cos(moonPitchRad) * std::sin(moonYawRad),
 				-std::sin(moonPitchRad),
@@ -225,7 +225,7 @@ namespace TEN::Renderer
 		}
 
 		// --- Auto-strength ---
-		float rayElevation = useMoonRays ? std::sin(moon.Pitch * (DirectX::XM_PI / 180.0f)) : sunElevation;
+		float rayElevation = useMoonRays ? std::sin(moon.Pitch * (PI / 180.0f)) : sunElevation;
 		float autoStrength = ComputeGodRayAutoStrength(rayElevation, cloudCoverage);
 
 		// Fade: for sun rays, fade out when sun is below horizon.
@@ -233,7 +233,7 @@ namespace TEN::Renderer
 		float belowHorizonFade;
 		if (useMoonRays)
 		{
-			float moonElev = std::sin(moon.Pitch * (DirectX::XM_PI / 180.0f));
+			float moonElev = std::sin(moon.Pitch * (PI / 180.0f));
 			belowHorizonFade = std::clamp(1.0f + moonElev * 8.0f, 0.0f, 1.0f);
 		}
 		else

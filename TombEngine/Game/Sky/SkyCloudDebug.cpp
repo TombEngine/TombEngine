@@ -1487,7 +1487,7 @@ namespace TEN::Sky
 				float sunElev = std::sin(sunPitchRad);
 				float moonVis = g_Renderer.ComputeMoonVisibility(sunElev);
 
-				DirectX::SimpleMath::Vector3 sunDir(
+				TEN::Math::Library::Vector3 sunDir(
 					std::cos(sunPitchRad) * std::sin(sunYawRad),
 					-std::sin(sunPitchRad),
 					std::cos(sunPitchRad) * std::cos(sunYawRad));
@@ -1495,7 +1495,7 @@ namespace TEN::Sky
 
 				float moonPitchRad = moon.Pitch * (3.14159265f / 180.0f);
 				float moonYawRad   = moon.Yaw * (3.14159265f / 180.0f);
-				DirectX::SimpleMath::Vector3 moonDir(
+				TEN::Math::Library::Vector3 moonDir(
 					std::cos(moonPitchRad) * std::sin(moonYawRad),
 					-std::sin(moonPitchRad),
 					std::cos(moonPitchRad) * std::cos(moonYawRad));
@@ -1793,7 +1793,7 @@ namespace TEN::Sky
 		{
 			float pitch = (float)levelPtr->GetLensFlarePitch();
 			float yaw   = (float)levelPtr->GetLensFlareYaw();
-			float elev  = std::sin(DirectX::XMConvertToRadians(pitch));
+			float elev  = std::sin((pitch * RADIAN));
 			ImGui::Text("  Pitch: %.1f  Yaw: %.1f  Elevation: %.3f", pitch, yaw, elev);
 
 			auto col = levelPtr->GetLensFlareEvaluatedColor();
@@ -1994,7 +1994,7 @@ namespace TEN::Sky
 			float elev = 1.0f;
 			if (levelPtr && levelPtr->GetLensFlareEnabled())
 			{
-				constexpr float SHORT_TO_RAD = (DirectX::XM_2PI / 65536.0f);
+				constexpr float SHORT_TO_RAD = (PI_MUL_2 / 65536.0f);
 				float pitch = (float)levelPtr->GetLensFlarePitch() * SHORT_TO_RAD;
 				elev = std::sin(pitch);
 			}
