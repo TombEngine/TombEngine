@@ -49,17 +49,28 @@ namespace TEN::Entities::Traps
 		if (waterSurfaceHeight == NO_HEIGHT)
 			return;
 
-		int distanceToWater = part.y - waterSurfaceHeight;
-		int maxReach = -yStep * part.sLife;
+		int simulatedY = part.y;
+		int simulatedYVelocity = part.yVel;
+		int newLife = part.sLife;
+		bool reachesWater = false;
 
-		// Water lies beyond the particle's maximum reach; keep behaviour as is.
-		if (distanceToWater >= maxReach)
+		for (int elapsedLife = 1; elapsedLife < part.sLife; elapsedLife++)
+		{
+			if (part.friction & 0xF0)
+				simulatedYVelocity -= simulatedYVelocity >> (part.friction >> 4);
+
+			simulatedY += simulatedYVelocity >> 5;
+
+			if (simulatedY <= waterSurfaceHeight)
+			{
+				newLife = elapsedLife;
+				reachesWater = true;
+				break;
+			}
+		}
+
+		if (!reachesWater)
 			return;
-
-		// Shorten lifetime in proportion to the distance to the water surface and fade over the remaining life.
-		int newLife = (part.sLife * distanceToWater) / maxReach;
-		if (newLife < 2)
-			newLife = 2;
 
 		part.life = part.sLife = newLife;
 

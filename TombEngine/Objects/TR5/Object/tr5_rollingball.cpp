@@ -495,21 +495,24 @@ void ClassicRollingBallControl(short itemNum)
 		switch (item->ObjectNumber)
 		{
 			case ID_BIG_ROLLING_BALL:
+			{
 				dist = BIG_ROLLING_BALL_RADIUS;
 				ydist = BIG_ROLLING_BALL_HEIGHT;
 				break;
+			}
 
-			case ID_CLASSIC_ROLLING_BALL:
-			case ID_ROLLING_BARRELS:
-				dist = CLASSIC_ROLLING_BALL_RADIUS;
-				ydist = CLASSIC_ROLLING_BALL_HEIGHT;
-				break;
-
-			default:
+			case ID_MULTIPLE_BOULDERS:
 			{
 				auto bounds = GameBoundingBox(item);
 				dist = bounds.GetDepth();
 				ydist = bounds.GetHeight();
+				break;
+			}
+
+			default:
+			{
+				dist = CLASSIC_ROLLING_BALL_RADIUS;
+				ydist = CLASSIC_ROLLING_BALL_HEIGHT;
 				break;
 			}
 		}
