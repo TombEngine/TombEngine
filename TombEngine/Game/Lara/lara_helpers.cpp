@@ -393,6 +393,8 @@ void HandlePlayerQuickActions(ItemInfo& item)
 	/*if (IsClicked(In::Weapon10) && player.Weapons[(int)LaraWeaponType::].Present)
 		requestedGunType = LaraWeaponType::;*/
 
+	// TODO: Add gamepad quick weapon selection (e.g. DualSense touchpad combined with other inputs) here, setting requestedGunType. -- divezzi, 12.10.26
+
 	if (requestedGunType != LaraWeaponType::None)
 	{
 		player.Control.Weapon.RequestGunType = requestedGunType;
@@ -1283,6 +1285,24 @@ void ModulateLaraTurnRateX(ItemInfo* item, short accelRate, short minTurnRate, s
 	//lara->Control.TurnRate.x = ModulateLaraTurnRate(lara->Control.TurnRate.x, accelRate, minTurnRate, maxTurnRate, AxisMap[InputAxis::Move].y, invert);
 }
 
+// Remastered controls: turn states whose turn keys turn the player at the full rate, since the stick's x axis is camera-relative. -- divezzi, 12.10.26
+static bool IsRemasteredUnscaledTurnState(const ItemInfo& item)
+{
+	if (!g_Configuration.IsUsingRemasteredControls())
+		return false;
+
+	switch (item.Animation.ActiveState)
+	{
+	case LS_TURN_LEFT_SLOW:
+	case LS_TURN_RIGHT_SLOW:
+	case LS_TURN_LEFT_FAST:
+	case LS_TURN_RIGHT_FAST:
+		return true;
+	}
+
+	return false;
+}
+
 void ModulateLaraTurnRateY(ItemInfo* item, short accelRate, short minTurnRate, short maxTurnRate, bool invert)
 {
 	auto* lara = GetLaraInfo(item);
@@ -1294,7 +1314,24 @@ void ModulateLaraTurnRateY(ItemInfo* item, short accelRate, short minTurnRate, s
 		axisCoeff = std::min(1.2f, abs(axisCoeff)) * sign;
 	}
 
+	bool isUnscaledOverride = false;
+	if (IsRemasteredUnscaledTurnState(*item) &&
+		(lara->Control.Remastered.IsArmedTurning || IsHeld(In::Left) || IsHeld(In::Right)))
+	{
+		bool isTurningLeft = (item->Animation.ActiveState == LS_TURN_LEFT_SLOW ||
+							  item->Animation.ActiveState == LS_TURN_LEFT_FAST);
+		axisCoeff = isTurningLeft ? -1.0f : 1.0f;
+		isUnscaledOverride = true;
+	}
+
 	lara->Control.TurnRate/*.y*/ = ModulateLaraTurnRate(lara->Control.TurnRate/*.y*/, accelRate, minTurnRate, maxTurnRate, axisCoeff, invert);
+
+	// Remastered controls: the armed turn does not overshoot the heading it turns to. -- divezzi, 12.10.26
+	if (isUnscaledOverride && lara->Control.Remastered.IsArmedTurning)
+	{
+		short errorMax = (short)abs((int)lara->Control.Remastered.ArmedTurnErrorY);
+		lara->Control.TurnRate = std::clamp(lara->Control.TurnRate, (short)-errorMax, (short)errorMax);
+	}
 }
 
 static short ResetPlayerTurnRate(short turnRate, short decelRate)
@@ -1329,7 +1366,10 @@ enum class RemasteredInputScope
 	Airborne,
 
 	// Mid-air. The transform rewrites the actions, and the solver does not turn the player.
-	AirborneNoSolve
+	AirborneNoSolve,
+
+	// Weapons ready, standing. The transform presses the turn keys and the stock turn states turn the player.
+	ArmedSynthesis
 };
 
 // Raw and rewritten values of the actions the Remastered input rewrite changed this tick.
@@ -1401,6 +1441,34 @@ static bool IsPlayerInRemasteredCombatBackStance(const ItemInfo& item)
 	return ((player.Control.HandStatus == HandStatus::WeaponReady ||
 			 player.Control.HandStatus == HandStatus::WeaponDraw) &&
 			player.Control.Weapon.GunType != LaraWeaponType::Torch);
+}
+
+static bool IsRemasteredStandingState(const ItemInfo& item)
+{
+	switch (item.Animation.ActiveState)
+	{
+	case LS_IDLE:
+	case LS_SOFT_SPLAT:
+	case LS_TURN_LEFT_SLOW:
+	case LS_TURN_RIGHT_SLOW:
+	case LS_TURN_LEFT_FAST:
+	case LS_TURN_RIGHT_FAST:
+	case LS_JUMP_PREPARE:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+static bool IsPlayerLockedOnTarget(const ItemInfo& item)
+{
+	const auto& player = GetLaraInfo(item);
+
+	if (player.TargetEntity == nullptr)
+		return false;
+
+	return (player.LeftArm.Locked || player.RightArm.Locked);
 }
 
 // Hanging, shimmying, monkey swing, ladder, rope and pole states.
@@ -1522,10 +1590,12 @@ static RemasteredInputScope GetPlayerRemasteredTurnParams(const ItemInfo& item, 
 	constexpr auto TURN_RATE_AIRBORNE		  = 0.1f;
 	constexpr auto TURN_STEP_MAX_AIRBORNE	  = ANGLE(2.0f);
 
+	constexpr auto TURN_RATE_AIM_LOCKED		= 0.25f;
+	constexpr auto TURN_STEP_MAX_AIM_LOCKED = ANGLE(7.0f);
+
 	if (IsPlayerRemasteredDirectionPushed())
 		return RemasteredInputScope::None;
 
-	// TODO: Armed standing plays classic until armed turning is added. -- divezzi, 10.10.26
 	if (IsPlayerRemasteredWeaponReady(item))
 	{
 		switch (item.Animation.ActiveState)
@@ -1536,7 +1606,7 @@ static RemasteredInputScope GetPlayerRemasteredTurnParams(const ItemInfo& item, 
 		case LS_TURN_RIGHT_SLOW:
 		case LS_TURN_LEFT_FAST:
 		case LS_TURN_RIGHT_FAST:
-			return RemasteredInputScope::None;
+			return RemasteredInputScope::ArmedSynthesis;
 		}
 	}
 
@@ -1558,8 +1628,17 @@ static RemasteredInputScope GetPlayerRemasteredTurnParams(const ItemInfo& item, 
 		return RemasteredInputScope::Ground;
 
 	case LS_RUN_FORWARD:
-		rate = TURN_RATE_RUN;
-		stepMax = TURN_STEP_MAX_RUN;
+		if (IsPlayerLockedOnTarget(item))
+		{
+			rate = TURN_RATE_AIM_LOCKED;
+			stepMax = TURN_STEP_MAX_AIM_LOCKED;
+		}
+		else
+		{
+			rate = TURN_RATE_RUN;
+			stepMax = TURN_STEP_MAX_RUN;
+		}
+
 		return RemasteredInputScope::Ground;
 
 	case LS_SPRINT:
@@ -1978,8 +2057,15 @@ static void ResetPlayerRemasteredClearedLatches(ItemInfo& item)
 	}
 }
 
+static void ResetRemasteredArmedTurn(ItemInfo& item)
+{
+	auto& remastered = GetLaraInfo(item).Control.Remastered;
+	remastered.IsArmedTurning = false;
+	remastered.ArmedTurnErrorY = 0;
+}
+
 // A script clear holds the action off, even where the rewrite would set it.
-static void MaskPlayerRemasteredClearedInput(RemasteredInput& input)
+static void MaskRemasteredClearedInput(ItemInfo& item, RemasteredInput& input)
 {
 	input.Forward	= (input.Forward && !IsCleared(In::Forward));
 	input.Back		= (input.Back && !IsCleared(In::Back));
@@ -1995,6 +2081,15 @@ static void MaskPlayerRemasteredClearedInput(RemasteredInput& input)
 	input.Action	= (input.Action && !IsCleared(In::Action));
 	input.Draw		= (input.Draw && !IsCleared(In::Draw));
 	input.Look		= (input.Look && !IsCleared(In::Look));
+
+	// A script clear of the turn key the armed turn pressed stops the armed turn.
+	auto& player = GetLaraInfo(item);
+	if ((IsCleared(In::Left) || IsCleared(In::Right)) &&
+		player.Control.Remastered.IsArmedTurning && !(input.Left || input.Right))
+	{
+		player.Control.TurnRate = 0;
+		ResetRemasteredArmedTurn(item);
+	}
 }
 
 // Sprint toggle: a press while running latches the sprint, the next press or leaving the run releases it.
@@ -2133,12 +2228,51 @@ static void UpdatePlayerRemasteredJumpRollLatch(ItemInfo& item)
 	}
 }
 
+// Presses the turn key toward a target heading while the error is at least minAngle, so the stock turn states turn
+// the player. With the stick centered while turning, Walk and the sidesteps are released.
+static void SynthesizeRemasteredTurnActions(ItemInfo& item, RemasteredInput& input, short toAngle, short minAngle)
+{
+	auto& player = GetLaraInfo(item);
+	auto& remastered = player.Control.Remastered;
+
+	short deltaAngle = Geometry::GetShortestAngle(item.Pose.Orientation.y, toAngle);
+
+	input.Left = false;
+	input.Right = false;
+
+	if (abs((int)deltaAngle) >= (int)minAngle)
+	{
+		if (deltaAngle > 0)
+		{
+			input.Right = true;
+		}
+		else
+		{
+			input.Left = true;
+		}
+	}
+
+	if (!(input.Left || input.Right) && remastered.IsArmedTurning)
+		player.Control.TurnRate = 0;
+
+	remastered.IsArmedTurning = (input.Left || input.Right);
+	remastered.ArmedTurnErrorY = remastered.IsArmedTurning ? deltaAngle : (short)0;
+
+	if (remastered.IsArmedTurning && player.Control.RefMoveAxis == Vector2::Zero)
+	{
+		input.Walk = false;
+		input.StepLeft = false;
+		input.StepRight = false;
+	}
+}
+
 // Rewrites the movement actions so the stick moves the player relative to the camera.
 // On the ground the heading solver turns her, so a push becomes Forward, and a push toward the camera a fast 180.
 static void TransformPlayerRemasteredInput(ItemInfo& item, RemasteredInput& input)
 {
 	constexpr auto BACK_ARC_MIN_ANGLE	= ANGLE(135.0f);
 	constexpr auto CRAWL_BACK_ARC_ANGLE = ANGLE(45.0f);
+	constexpr auto ARMED_TURN_MIN_ANGLE = ANGLE(1.0f);
 
 	auto& player = GetLaraInfo(item);
 
@@ -2169,11 +2303,28 @@ static void TransformPlayerRemasteredInput(ItemInfo& item, RemasteredInput& inpu
 	}
 
 	if (IsPlayerRemasteredDirectionPushed())
+	{
+		ResetRemasteredArmedTurn(item);
 		return;
+	}
 
+	// Stick centered: with weapons ready the player turns to face the camera direction, otherwise she stops turning.
 	if (player.Control.RefMoveAxis == Vector2::Zero)
 	{
-		player.Control.TurnRate = 0;
+		float armedRate = 0.0f;
+		short armedStepMax = 0;
+		if (!input.Look && !input.Jump &&
+			(Camera.type == CameraType::Chase || Camera.type == CameraType::Combat) &&
+			GetPlayerRemasteredTurnParams(item, armedRate, armedStepMax) == RemasteredInputScope::ArmedSynthesis)
+		{
+			SynthesizeRemasteredTurnActions(item, input, player.Control.RefCameraOrient.y, ARMED_TURN_MIN_ANGLE);
+		}
+		else
+		{
+			ResetRemasteredArmedTurn(item);
+			player.Control.TurnRate = 0;
+		}
+
 		return;
 	}
 
@@ -2182,6 +2333,8 @@ static void TransformPlayerRemasteredInput(ItemInfo& item, RemasteredInput& inpu
 	auto scope = GetPlayerRemasteredTurnParams(item, turnRate, turnStepMax);
 	if (scope == RemasteredInputScope::None)
 		return;
+
+	ResetRemasteredArmedTurn(item);
 
 	// Mid-air: no tank turn. Back and Forward roll the player only on the roll push.
 	// Otherwise Forward is held so the landing chains into a run, except in the back jump.
@@ -2221,6 +2374,35 @@ static void TransformPlayerRemasteredInput(ItemInfo& item, RemasteredInput& inpu
 		}
 	}
 
+	// Weapons drawn, standing: a pure push toward the camera steps the player back without turning her.
+	bool isBackAlone = (input.Back && !input.Left && !input.Right);
+	if (isBackAlone && IsPlayerInRemasteredCombatBackStance(item) && IsRemasteredStandingState(item))
+	{
+		player.Control.Remastered.BackResolution = RemasteredBackResolution::TankBack;
+		input.Forward = false;
+		input.Left = false;
+		input.Right = false;
+		return;
+	}
+
+	// Weapons ready, standing: the turn keys turn the player toward the stick, and Forward is pressed so she moves.
+	if (scope == RemasteredInputScope::ArmedSynthesis)
+	{
+		input.Left = false;
+		input.Right = false;
+
+		if (input.Look)
+			return;
+
+		if (input.Jump)
+			return;
+
+		SynthesizeRemasteredTurnActions(item, input, GetPlayerHeadingAngleY(item), ARMED_TURN_MIN_ANGLE);
+		input.Forward = true;
+		input.Back = false;
+		return;
+	}
+
 	input.Left = false;
 	input.Right = false;
 	input.StepLeft = false;
@@ -2252,7 +2434,7 @@ void ApplyRemasteredInput(ItemInfo& item)
 
 	auto input = ReadRemasteredInput();
 	TransformPlayerRemasteredInput(item, input);
-	MaskPlayerRemasteredClearedInput(input);
+	MaskRemasteredClearedInput(item, input);
 	WriteRemasteredInput(input);
 }
 

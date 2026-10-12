@@ -581,6 +581,68 @@ static void ClearPlayerTargets(ItemInfo& playerItem)
 	player.LastTargets.fill(nullptr);
 }
 
+// Remastered controls: the weapon draw runs twice per tick, except while the body animation blends. -- divezzi, 12.10.26
+static bool NeedsSecondWeaponPass(const ItemInfo& laraItem, const LaraInfo& player)
+{
+	return (g_Configuration.IsUsingRemasteredControls() &&
+			player.Control.HandStatus == HandStatus::WeaponDraw &&
+			!laraItem.Animation.Blend.IsEnabled());
+}
+
+static bool IsRemasteredDrawHeld(const LaraInfo& player)
+{
+	return (IsHeld(In::Draw) || player.Control.Remastered.IsDrawToggled);
+}
+
+static void UpdateRemasteredDrawToggle(LaraInfo& player)
+{
+	auto& remastered = player.Control.Remastered;
+	if (!remastered.IsDrawToggled)
+		return;
+
+	if (IsHeld(In::Draw) ||
+		(player.Control.HandStatus == HandStatus::Free &&
+		 player.Control.Weapon.RequestGunType == player.Control.Weapon.GunType))
+	{
+		remastered.IsDrawToggled = false;
+	}
+}
+
+// Remastered controls: a script draw keeps the weapons out until the player holds Draw. -- divezzi, 12.10.26
+void SetRemasteredDrawToggle(ItemInfo& laraItem)
+{
+	if (!g_Configuration.IsUsingRemasteredControls())
+		return;
+
+	auto& player = GetLaraInfo(laraItem);
+	player.Control.Remastered.IsDrawToggled = true;
+}
+
+static void SetRemasteredHolsters(LaraInfo& player, LaraWeaponType weaponType)
+{
+	auto slot = GetWeaponHolsterSlot(weaponType);
+	if (slot == HolsterSlot::Empty || !player.Weapons[(int)weaponType].Present)
+		return;
+
+	auto& holsterInfo = player.Control.Weapon.HolsterInfo;
+	switch (weaponType)
+	{
+	case LaraWeaponType::Pistol:
+	case LaraWeaponType::Uzi:
+		holsterInfo.LeftHolster = slot;
+		holsterInfo.RightHolster = slot;
+		break;
+
+	case LaraWeaponType::Revolver:
+		holsterInfo.RightHolster = slot;
+		break;
+
+	default:
+		holsterInfo.BackHolster = slot;
+		break;
+	}
+}
+
 void HandleWeapon(ItemInfo& laraItem)
 {
 	auto& player = *GetLaraInfo(&laraItem);
@@ -606,6 +668,10 @@ void HandleWeapon(ItemInfo& laraItem)
 		return;
 	}
 
+	// Remastered controls: a script draw toggle ends once Draw is held or the weapons are put away. -- divezzi, 12.10.26
+	if (g_Configuration.IsUsingRemasteredControls())
+		UpdateRemasteredDrawToggle(player);
+
 	if (laraItem.HitPoints <= 0)
 	{
 		player.Control.HandStatus = HandStatus::Free;
@@ -615,8 +681,12 @@ void HandleWeapon(ItemInfo& laraItem)
 		// Draw weapon.
 		if (IsHeld(In::Draw))
 		{
+			// Remastered controls fix: without this, a weapon chosen while Draw is held is dropped and the last weapon is drawn again. -- divezzi, 12.10.26
+			bool isSelectionPending = (g_Configuration.IsUsingRemasteredControls() &&
+									   player.Control.Weapon.RequestGunType != player.Control.Weapon.GunType);
+
 			// No weapon; no actions.
-			if (player.Control.Weapon.LastGunType != LaraWeaponType::None)
+			if (player.Control.Weapon.LastGunType != LaraWeaponType::None && !isSelectionPending)
 				player.Control.Weapon.RequestGunType = player.Control.Weapon.LastGunType;
 		}
 		// Draw flare.
@@ -635,6 +705,11 @@ void HandleWeapon(ItemInfo& laraItem)
 			}
 		}
 
+		// Remastered controls: a weapon chosen while Draw is not held is only selected, and Draw brings it out. -- divezzi, 12.10.26
+		bool isSelectOnly = (g_Configuration.IsUsingRemasteredControls() && !IsRemasteredDrawHeld(player) &&
+							 player.Control.Weapon.RequestGunType != LaraWeaponType::Flare &&
+							 player.Control.Weapon.RequestGunType != LaraWeaponType::None);
+
 		if ((IsHeld(In::Draw) && player.Control.Weapon.LastGunType != LaraWeaponType::None) ||
 			player.Control.Weapon.RequestGunType != player.Control.Weapon.GunType)
 		{
@@ -646,12 +721,13 @@ void HandleWeapon(ItemInfo& laraItem)
 				if (player.Control.Weapon.GunType == LaraWeaponType::Flare)
 					player.Control.Weapon.RequestGunType = LaraWeaponType::Flare;
 			}
-			else if (player.Control.Weapon.RequestGunType == LaraWeaponType::Flare ||
+			else if (!isSelectOnly &&
+				(player.Control.Weapon.RequestGunType == LaraWeaponType::Flare ||
 				(player.Context.Vehicle == NO_VALUE &&
 					(player.Control.Weapon.RequestGunType == LaraWeaponType::HarpoonGun ||
 						player.Control.WaterStatus == WaterStatus::Dry ||
 						(player.Control.WaterStatus == WaterStatus::Wade &&
-							player.Context.WaterSurfaceDist > -GetWeaponInfo(player.Control.Weapon.GunType).GunHeight))))
+							player.Context.WaterSurfaceDist > -GetWeaponInfo(player.Control.Weapon.GunType).GunHeight)))))
 			{
 				if (player.Control.Weapon.GunType == LaraWeaponType::Flare)
 				{
@@ -677,12 +753,18 @@ void HandleWeapon(ItemInfo& laraItem)
 				{
 					player.Control.Weapon.RequestGunType = LaraWeaponType::Flare;
 				}
+
+				// Remastered controls: the holsters show a weapon as soon as it is selected. -- divezzi, 12.10.26
+				if (g_Configuration.IsUsingRemasteredControls())
+					SetRemasteredHolsters(player, player.Control.Weapon.LastGunType);
 			}
 		}
 	}
 	else if (player.Control.HandStatus == HandStatus::WeaponReady)
 	{
-		if (IsHeld(In::Draw) ||
+		// Remastered controls: weapons stay drawn while Draw is held and are holstered on release. -- divezzi, 12.10.26
+		bool isHolsterRequested = g_Configuration.IsUsingRemasteredControls() ? !IsRemasteredDrawHeld(player) : IsHeld(In::Draw);
+		if (isHolsterRequested ||
 			player.Control.Weapon.RequestGunType != player.Control.Weapon.GunType)
 		{
 			player.Control.HandStatus = HandStatus::WeaponUndraw;
@@ -727,6 +809,10 @@ void HandleWeapon(ItemInfo& laraItem)
 				Camera.type = CameraType::Combat;
 
 			DrawPistols(laraItem, player.Control.Weapon.GunType);
+
+			if (NeedsSecondWeaponPass(laraItem, player))
+				DrawPistols(laraItem, player.Control.Weapon.GunType);
+
 			break;
 
 		case LaraWeaponType::Shotgun:
@@ -739,6 +825,10 @@ void HandleWeapon(ItemInfo& laraItem)
 				Camera.type = CameraType::Combat;
 
 			DrawShotgun(laraItem, player.Control.Weapon.GunType);
+
+			if (NeedsSecondWeaponPass(laraItem, player))
+				DrawShotgun(laraItem, player.Control.Weapon.GunType);
+
 			break;
 
 		case LaraWeaponType::Flare:
@@ -788,7 +878,7 @@ void HandleWeapon(ItemInfo& laraItem)
 		break;
 
 	case HandStatus::WeaponReady:
-		if (!IsHeld(In::Action) || !GetAmmo(player, player.Control.Weapon.GunType))
+		if (!IsRemasteredGrabHeld() || !GetAmmo(player, player.Control.Weapon.GunType))
 		{
 			laraItem.Model.MeshIndex[LM_HEAD] = laraItem.Model.BaseMesh + LM_HEAD;
 		}
@@ -803,7 +893,7 @@ void HandleWeapon(ItemInfo& laraItem)
 			Camera.type = CameraType::Combat;
 		}
 
-		if (IsHeld(In::Action) && !player.Control.Look.IsUsingLasersight)
+		if (IsRemasteredGrabHeld() && !player.Control.Look.IsUsingLasersight)
 		{
 			if (!GetAmmo(player, player.Control.Weapon.GunType))
 			{

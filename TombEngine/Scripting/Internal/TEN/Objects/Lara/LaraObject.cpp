@@ -321,6 +321,10 @@ void LaraObject::SetWeaponType(LaraWeaponType weaponType, sol::optional<bool> ac
 			if (weaponInHands)
 				TENLog("SetWeaponType: can't switch weapon without activation because another weapon is drawn.", LogLevel::Warning, LogConfig::All);
 
+			// Remastered controls: the drawn weapon stays out until the player holds Draw. -- divezzi, 12.10.26
+			if (activate.value_or(false))
+				SetRemasteredDrawToggle(*_moveable);
+
 			if (lara->Control.HandStatus == HandStatus::Free &&
 				lara->Control.Weapon.GunType == lara->Control.Weapon.RequestGunType)
 			{
@@ -407,6 +411,11 @@ void LaraObject::SetLaserSight(LaraWeaponType weaponType, TypeOrNil<bool> activa
 			lara->Control.Weapon.LastGunType = weaponType;
 		else
 			lara->Control.Weapon.RequestGunType = weaponType;
+
+		// Remastered controls: the drawn weapon stays out until the player holds Draw. -- divezzi, 12.10.26
+		if (convertedActivate)
+			SetRemasteredDrawToggle(*_moveable);
+
 		break;
 
 	default:

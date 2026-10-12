@@ -1207,10 +1207,14 @@ struct RemasteredControlData
 {
 	RemasteredBackResolution BackResolution = RemasteredBackResolution::None;
 
+	bool  IsArmedTurning	= false;
+	short ArmedTurnErrorY	= 0;
+
 	int	 CrouchStage			= 0;
 	bool IsCrouchStageUp		= false;
 	bool IsCrouchStageUpPending = false;
 	bool IsSprintToggled		= false;
+	bool IsDrawToggled			= false;
 	bool IsJumpRollSpent		= false;
 
 	int HeadingTurnSign = 0;

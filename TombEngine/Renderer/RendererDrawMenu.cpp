@@ -113,15 +113,17 @@ namespace TEN::Renderer
 		return (userKeyID != KEY_UNASSIGNED) ? userKeyID : defaultKeyID;
 	}
 
-	std::vector<bool> GetBindingConflictMask(ActionID baseActionID, int actionCount)
+	std::vector<bool> GetBindingConflictMask(const std::vector<ActionID>& actionIDs)
 	{
+		int actionCount = (int)actionIDs.size();
+
 		std::vector<bool> conflicts(actionCount, false);
 		std::unordered_map<int, int> firstActionIndexByBinding = {};
 		firstActionIndexByBinding.reserve(actionCount);
 
 		for (int i = 0; i < actionCount; i++)
 		{
-			int keyID = GetEffectiveBoundKeyID((ActionID)((int)baseActionID + i));
+			int keyID = GetEffectiveBoundKeyID(actionIDs[i]);
 			if (keyID == KEY_UNASSIGNED)
 				continue;
 
@@ -430,7 +432,9 @@ namespace TEN::Renderer
 			{
 				// Set up needed parameters.
 				y = MenuVerticalControls;
-				auto bindingConflicts = GetBindingConflictMask(In::Forward, (int)GeneralActionStrings.size());
+				auto pageActionIDs = GetPageActionIDs(Menu::GeneralActions);
+				auto pageActionStrings = GetPageActionStrings(Menu::GeneralActions);
+				auto bindingConflicts = GetBindingConflictMask(pageActionIDs);
 
 				// Arrows
 				AddString(RIGHT_ARROW_X_OFFSET, y, RIGHT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -441,9 +445,9 @@ namespace TEN::Renderer
 				GetNextBlockPosition(&y);
 
 				// General action listing
-				for (int k = 0; k < GeneralActionStrings.size(); k++)
+				for (int k = 0; k < pageActionStrings.size(); k++)
 				{
-					AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(GeneralActionStrings[k].c_str()), plainColor, SF(titleOption == k));
+					AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(pageActionStrings[k].c_str()), plainColor, SF(titleOption == k));
 
 					if (g_Gui.GetCurrentSettings().NewKeyWaitTimer > 0.0f && titleOption == k)
 					{
@@ -451,26 +455,26 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						auto actionID = (ActionID)((int)In::Forward + k);
+						auto actionID = pageActionIDs[k];
 						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
-					if (k < (GeneralActionStrings.size() - 1))
+					if (k < (pageActionStrings.size() - 1))
 						GetNextNarrowLinePosition(&y);
 				}
 
 				y = CONTROL_SETTINGS_BLOCK_Y_OFFSET;
 
 				// Reset to defaults
-				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_RESET_TO_DEFAULTS), optionColor, SF_Center(titleOption == GeneralActionStrings.size()));
+				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_RESET_TO_DEFAULTS), optionColor, SF_Center(titleOption == pageActionStrings.size()));
 				GetNextLinePosition(&y);
 
 				// Apply
-				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == (GeneralActionStrings.size() + 1)));
+				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == (pageActionStrings.size() + 1)));
 				GetNextLinePosition(&y);
 
 				// Cancel
-				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == (GeneralActionStrings.size() + 2)));
+				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == (pageActionStrings.size() + 2)));
 				break;
 			}
 
@@ -478,7 +482,9 @@ namespace TEN::Renderer
 			{
 				// Set up needed parameters.
 				y = MenuVerticalControls;
-				auto bindingConflicts = GetBindingConflictMask(In::Accelerate, (int)VehicleActionStrings.size());
+				auto pageActionIDs = GetPageActionIDs(Menu::VehicleActions);
+				auto pageActionStrings = GetPageActionStrings(Menu::VehicleActions);
+				auto bindingConflicts = GetBindingConflictMask(pageActionIDs);
 
 				// Arrows
 				AddString(MenuLeftSideEntry, y, LEFT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -489,12 +495,10 @@ namespace TEN::Renderer
 				AddString(MenuCenterEntry, y, titleString.c_str(), headerColor, SF_Center());
 				GetNextBlockPosition(&y);
 
-				int baseIndex = (int)In::Accelerate;
-
 				// Vehicle action listing
-				for (int k = 0; k < VehicleActionStrings.size(); k++)
+				for (int k = 0; k < pageActionStrings.size(); k++)
 				{
-					AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(VehicleActionStrings[k].c_str()), plainColor, SF(titleOption == k));
+					AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(pageActionStrings[k].c_str()), plainColor, SF(titleOption == k));
 
 					if (g_Gui.GetCurrentSettings().NewKeyWaitTimer > 0.0f && titleOption == k)
 					{
@@ -502,11 +506,11 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						auto actionID = (ActionID)(baseIndex + k);
+						auto actionID = pageActionIDs[k];
 						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
-					if (k < (VehicleActionStrings.size() - 1))
+					if (k < (pageActionStrings.size() - 1))
 					{
 						GetNextNarrowLinePosition(&y);
 					}
@@ -519,15 +523,15 @@ namespace TEN::Renderer
 				y = CONTROL_SETTINGS_BLOCK_Y_OFFSET;
 
 				// Reset to defaults
-				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_RESET_TO_DEFAULTS), optionColor, SF_Center(titleOption == VehicleActionStrings.size()));
+				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_RESET_TO_DEFAULTS), optionColor, SF_Center(titleOption == pageActionStrings.size()));
 				GetNextLinePosition(&y);
 
 				// Apply
-				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == (VehicleActionStrings.size() + 1)));
+				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == (pageActionStrings.size() + 1)));
 				GetNextLinePosition(&y);
 
 				// Cancel
-				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == (VehicleActionStrings.size() + 2)));
+				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == (pageActionStrings.size() + 2)));
 				break;
 			}
 
@@ -535,7 +539,9 @@ namespace TEN::Renderer
 			{
 				// Set up needed parameters.
 				y = MenuVerticalControls;
-				auto bindingConflicts = GetBindingConflictMask(In::Flare, (int)QuickActionStrings.size());
+				auto pageActionIDs = GetPageActionIDs(Menu::QuickActions);
+				auto pageActionStrings = GetPageActionStrings(Menu::QuickActions);
+				auto bindingConflicts = GetBindingConflictMask(pageActionIDs);
 
 				// Arrows
 				AddString(MenuLeftSideEntry, y, LEFT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -546,12 +552,10 @@ namespace TEN::Renderer
 				AddString(MenuCenterEntry, y, titleString.c_str(), headerColor, SF_Center());
 				GetNextBlockPosition(&y);
 
-				int baseIndex = (int)In::Flare;
-
 				// Quick action listing
-				for (int k = 0; k < QuickActionStrings.size(); k++)
+				for (int k = 0; k < pageActionStrings.size(); k++)
 				{
-					AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(QuickActionStrings[k].c_str()), plainColor, SF(titleOption == k));
+					AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(pageActionStrings[k].c_str()), plainColor, SF(titleOption == k));
 
 					if (g_Gui.GetCurrentSettings().NewKeyWaitTimer > 0.0f && titleOption == k)
 					{
@@ -559,26 +563,26 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						auto actionID = (ActionID)(baseIndex + k);
+						auto actionID = pageActionIDs[k];
 						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
-					if (k < (QuickActionStrings.size() - 1))
+					if (k < (pageActionStrings.size() - 1))
 						GetNextNarrowLinePosition(&y);
 				}
 
 				y = CONTROL_SETTINGS_BLOCK_Y_OFFSET;
 
 				// Reset to defaults
-				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_RESET_TO_DEFAULTS), optionColor, SF_Center(titleOption == QuickActionStrings.size()));
+				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_RESET_TO_DEFAULTS), optionColor, SF_Center(titleOption == pageActionStrings.size()));
 				GetNextLinePosition(&y);
 
 				// Apply
-				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == (QuickActionStrings.size() + 1)));
+				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == (pageActionStrings.size() + 1)));
 				GetNextLinePosition(&y);
 
 				// Cancel
-				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == (QuickActionStrings.size() + 2)));
+				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == (pageActionStrings.size() + 2)));
 				break;
 			}
 
@@ -586,7 +590,9 @@ namespace TEN::Renderer
 			{
 				// Setup needed parameters.
 				y = MenuVerticalControls;
-				auto bindingConflicts = GetBindingConflictMask(In::Select, (int)MenuActionStrings.size());
+				auto pageActionIDs = GetPageActionIDs(Menu::MenuActions);
+				auto pageActionStrings = GetPageActionStrings(Menu::MenuActions);
+				auto bindingConflicts = GetBindingConflictMask(pageActionIDs);
 
 				// Arrows
 				AddString(MenuLeftSideEntry, y, LEFT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -596,12 +602,10 @@ namespace TEN::Renderer
 				AddString(MenuCenterEntry, y, titleString.c_str(), headerColor, SF_Center());
 				GetNextBlockPosition(&y);
 
-				int baseIndex = (int)In::Select;
-
 				// Menu action listing.
-				for (int k = 0; k < MenuActionStrings.size(); k++)
+				for (int k = 0; k < pageActionStrings.size(); k++)
 				{
-					AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(MenuActionStrings[k].c_str()), plainColor, SF(titleOption == k));
+					AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(pageActionStrings[k].c_str()), plainColor, SF(titleOption == k));
 
 					if (g_Gui.GetCurrentSettings().NewKeyWaitTimer > 0.0f && titleOption == k)
 					{
@@ -609,26 +613,26 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						auto actionID = (ActionID)(baseIndex + k);
+						auto actionID = pageActionIDs[k];
 						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
-					if (k < (MenuActionStrings.size() - 1))
+					if (k < (pageActionStrings.size() - 1))
 						GetNextNarrowLinePosition(&y);
 				}
 
 				y = CONTROL_SETTINGS_BLOCK_Y_OFFSET;
 
 				// Reset to defaults
-				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_RESET_TO_DEFAULTS), optionColor, SF_Center(titleOption == MenuActionStrings.size()));
+				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_RESET_TO_DEFAULTS), optionColor, SF_Center(titleOption == pageActionStrings.size()));
 				GetNextLinePosition(&y);
 
 				// Apply
-				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == (MenuActionStrings.size() + 1)));
+				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == (pageActionStrings.size() + 1)));
 				GetNextLinePosition(&y);
 
 				// Cancel
-				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == (MenuActionStrings.size() + 2)));
+				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == (pageActionStrings.size() + 2)));
 				break;
 			}
 		}

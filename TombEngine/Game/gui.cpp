@@ -123,6 +123,68 @@ namespace TEN::Gui
 		STRING_ACTIONS_LOAD
 	};
 
+	// Remastered controls: the Controls pages as action lists; the General page adds Fire, which shoots and grabs on foot. -- divezzi, 12.10.26
+	static std::vector<ActionID> BuildContiguousActionIDs(ActionID baseActionID, int count)
+	{
+		auto actionIDs = std::vector<ActionID>{};
+		actionIDs.reserve(count);
+
+		for (int i = 0; i < count; i++)
+			actionIDs.push_back((ActionID)((int)baseActionID + i));
+
+		return actionIDs;
+	}
+
+	std::vector<ActionID> GetPageActionIDs(Menu menu)
+	{
+		switch (menu)
+		{
+		case Menu::VehicleActions:
+			return BuildContiguousActionIDs(In::Accelerate, (int)VehicleActionStrings.size());
+
+		case Menu::QuickActions:
+			return BuildContiguousActionIDs(In::Flare, (int)QuickActionStrings.size());
+
+		case Menu::MenuActions:
+			return BuildContiguousActionIDs(In::Select, (int)MenuActionStrings.size());
+
+		default:
+		case Menu::GeneralActions:
+		{
+			auto actionIDs = BuildContiguousActionIDs(In::Forward, (int)GeneralActionStrings.size());
+			if (g_Configuration.IsUsingRemasteredControls())
+				actionIDs.push_back(In::Fire);
+
+			return actionIDs;
+		}
+		}
+	}
+
+	std::vector<std::string> GetPageActionStrings(Menu menu)
+	{
+		switch (menu)
+		{
+		case Menu::VehicleActions:
+			return VehicleActionStrings;
+
+		case Menu::QuickActions:
+			return QuickActionStrings;
+
+		case Menu::MenuActions:
+			return MenuActionStrings;
+
+		default:
+		case Menu::GeneralActions:
+		{
+			auto strings = GeneralActionStrings;
+			if (g_Configuration.IsUsingRemasteredControls())
+				strings.push_back(STRING_ACTIONS_FIRE);
+
+			return strings;
+		}
+		}
+	}
+
 	bool GuiController::GuiIsPulsed(ActionID actionID) const
 	{
 		constexpr auto DELAY		 = 0.1f;
@@ -761,26 +823,8 @@ namespace TEN::Gui
 
 	void GuiController::HandleControlSettingsInput(ItemInfo* item, bool fromPauseMenu)
 	{
-		unsigned int numControlSettingsOptions = 0;
-		switch (MenuToDisplay)
-		{
-		default:
-		case Menu::GeneralActions:
-			numControlSettingsOptions = (int)GeneralActionStrings.size() + 2;
-			break;
-
-		case Menu::VehicleActions:
-			numControlSettingsOptions = (int)VehicleActionStrings.size() + 2;
-			break;
-
-		case Menu::QuickActions:
-			numControlSettingsOptions = (int)QuickActionStrings.size() + 2;
-			break;
-
-		case Menu::MenuActions:
-			numControlSettingsOptions = (int)MenuActionStrings.size() + 2;
-			break;
-		}
+		auto pageActionIDs = GetPageActionIDs(MenuToDisplay);
+		unsigned int numControlSettingsOptions = (unsigned int)pageActionIDs.size() + 2;
 
 		OptionCount = numControlSettingsOptions;
 		CurrentSettings.NewKeyWaitTimer = 0.0f;
@@ -849,30 +893,11 @@ namespace TEN::Gui
 
 						if (selectedKeyID != KEY_UNASSIGNED && !GetKeyName(selectedKeyID).empty())
 						{
-							unsigned int baseIndex = 0;
-							switch (MenuToDisplay)
-							{
-							case Menu::VehicleActions:
-								baseIndex = (unsigned int)GeneralActionStrings.size();
-								break;
-
-							case Menu::QuickActions:
-								baseIndex = unsigned int(GeneralActionStrings.size() + VehicleActionStrings.size());
-								break;
-
-							case Menu::MenuActions:
-								baseIndex = unsigned int(GeneralActionStrings.size() + VehicleActionStrings.size() + QuickActionStrings.size());
-								break;
-
-							default:
-								break;
-							}
-
 							// Remastered controls: stores a gamepad key in the custom gamepad profile. -- divezzi, 08.10.26
 							bool isRemasteredGamepadKey = g_Configuration.IsUsingRemasteredControls() && selectedKeyID >= KEY_OFFSET_GAMEPAD;
 							auto profileID = isRemasteredGamepadKey ? BindingProfileID::CustomGamepad : BindingProfileID::Custom;
 
-							g_Bindings.SetKeyBinding(profileID, ActionID(baseIndex + SelectedOption), selectedKeyID);
+							g_Bindings.SetKeyBinding(profileID, pageActionIDs[SelectedOption], selectedKeyID);
 							DefaultConflict();
 
 							CurrentSettings.NewKeyWaitTimer = 0;
@@ -2383,7 +2408,9 @@ namespace TEN::Gui
 					return;
 			}
 
-			if (player.Control.HandStatus == HandStatus::Free &&
+			// Remastered controls: picking the current weapon in the inventory does not draw it; holding Draw does. -- divezzi, 12.10.26
+			if (!g_Configuration.IsUsingRemasteredControls() &&
+				player.Control.HandStatus == HandStatus::Free &&
 				player.Control.Weapon.GunType == player.Control.Weapon.RequestGunType)
 			{
 				InitializeNewWeapon(item);
@@ -2451,7 +2478,8 @@ namespace TEN::Gui
 					return;
 			}
 
-			if (player.Control.HandStatus == HandStatus::Free &&
+			if (!g_Configuration.IsUsingRemasteredControls() &&
+				player.Control.HandStatus == HandStatus::Free &&
 				player.Control.Weapon.GunType == player.Control.Weapon.RequestGunType)
 			{
 				player.Control.HandStatus = HandStatus::WeaponDraw;

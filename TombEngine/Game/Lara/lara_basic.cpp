@@ -907,10 +907,17 @@ void lara_as_turn_slow(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
+	// Remastered controls: with weapons ready the slow turn goes straight to the fast turn. -- divezzi, 12.10.26
+	bool isArmedFastTurn = (g_Configuration.IsUsingRemasteredControls() &&
+							player.Control.HandStatus == HandStatus::WeaponReady &&
+							player.Control.Weapon.GunType != LaraWeaponType::Torch &&
+							!isWading);
+
 	if (IsHeld(In::Left) && item->Animation.ActiveState == LS_TURN_LEFT_SLOW)
 	{
-		if (player.Control.TurnRate/*.y*/ < -LARA_SLOW_MED_TURN_RATE_MAX &&
-			!isWading)
+		if (isArmedFastTurn ||
+			(player.Control.TurnRate/*.y*/ < -LARA_SLOW_MED_TURN_RATE_MAX &&
+			!isWading))
 		{
 			item->Animation.TargetState = LS_TURN_LEFT_FAST;
 		}
@@ -923,8 +930,9 @@ void lara_as_turn_slow(ItemInfo* item, CollisionInfo* coll)
 	}
 	else if (IsHeld(In::Right) && item->Animation.ActiveState == LS_TURN_RIGHT_SLOW)
 	{
-		if (player.Control.TurnRate/*.y*/ > LARA_SLOW_MED_TURN_RATE_MAX &&
-			!isWading)
+		if (isArmedFastTurn ||
+			(player.Control.TurnRate/*.y*/ > LARA_SLOW_MED_TURN_RATE_MAX &&
+			!isWading))
 		{
 			item->Animation.TargetState = LS_TURN_RIGHT_FAST;
 		}

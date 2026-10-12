@@ -247,4 +247,7 @@ namespace TEN::Gui
 	extern std::vector<std::string> VehicleActionStrings;
 	extern std::vector<std::string> QuickActionStrings;
 	extern std::vector<std::string> MenuActionStrings;
+
+	std::vector<ActionID> GetPageActionIDs(Menu menu);
+	std::vector<std::string> GetPageActionStrings(Menu menu);
 }
