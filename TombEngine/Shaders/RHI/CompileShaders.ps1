@@ -4,7 +4,8 @@
 # Outputs: <OutputDir>\dxbc\<Name>.<Entry>.dxbc, <OutputDir>\spirv\<Name>.<Entry>.spv, <OutputDir>\<Name>.<Entry>.meta
 # Each permutation adds a variant compiled with DEFINE=1, named <Name>.<Entry>.<DEFINE>.
 # hlsl=YEAR sets the HLSL language version of DXC, for sources written for an older version.
-# SPIR-V needs DXC from the Vulkan SDK (VULKAN_SDK); without it only DXBC is produced.
+# DXBC needs FXC from the Windows SDK; without it only SPIR-V is produced and the DirectX 11 backend is unavailable.
+# SPIR-V needs DXC from the Vulkan SDK (VULKAN_SDK) or the PATH; without it only DXBC is produced. At least one is required.
 
 param(
     [Parameter(Mandatory = $true)][string]$OutputDir,
@@ -21,6 +22,36 @@ function Find-Fxc
         Where-Object { $_.FullName -match '\\x64\\fxc\.exe$' } |
         Sort-Object FullName -Descending
     if ($candidates) { return $candidates[0].FullName }
+    return $null
+}
+
+# Compiles an empty pixel shader to SPIR-V: the DXC of the Windows SDK is built without SPIR-V code generation.
+function Test-SpirvSupport([string]$dxc)
+{
+    $ErrorActionPreference = "Continue"
+    $source = Join-Path ([IO.Path]::GetTempPath()) "ten_spirv_probe.hlsl"
+    $output = Join-Path ([IO.Path]::GetTempPath()) "ten_spirv_probe.spv"
+    Set-Content -Path $source -Value "float4 main() : SV_Target { return 0; }" -Encoding ascii
+    & $dxc -spirv -T ps_6_0 -E main -Fo $output $source 2>&1 | Out-Null
+    $isSupported = ($LASTEXITCODE -eq 0)
+    Remove-Item $source, $output -ErrorAction SilentlyContinue
+    return $isSupported
+}
+
+# DXC of the Vulkan SDK, named dxc.exe on Windows and dxc elsewhere, or one with SPIR-V support on the PATH.
+function Find-Dxc
+{
+    if ($env:VULKAN_SDK)
+    {
+        foreach ($candidate in @("Bin/dxc.exe", "bin/dxc", "Bin/dxc"))
+        {
+            $path = Join-Path $env:VULKAN_SDK $candidate
+            if (Test-Path $path) { return $path }
+        }
+    }
+
+    $command = Get-Command dxc -ErrorAction SilentlyContinue
+    if ($command -and (Test-SpirvSupport $command.Source)) { return $command.Source }
     return $null
 }
 
@@ -65,19 +96,20 @@ function Get-NewestDependencyTime([string]$path, [hashtable]$visited)
 }
 
 $fxc = Find-Fxc
-if (-not $fxc)
+$dxc = Find-Dxc
+if (-not $fxc -and -not $dxc)
 {
-    throw "fxc.exe not found in the Windows SDK."
+    throw "Neither fxc (Windows SDK) nor dxc (Vulkan SDK) was found."
 }
 
-$dxc = $null
-if ($env:VULKAN_SDK -and (Test-Path "$env:VULKAN_SDK\Bin\dxc.exe"))
+if (-not $fxc)
 {
-    $dxc = "$env:VULKAN_SDK\Bin\dxc.exe"
+    Write-Warning "fxc not found: DXBC shaders are not compiled, the DirectX 11 backend will be unavailable."
 }
-else
+
+if (-not $dxc)
 {
-    Write-Warning "VULKAN_SDK not found: SPIR-V shaders are not compiled, the Vulkan backend will be unavailable."
+    Write-Warning "dxc not found: SPIR-V shaders are not compiled, the Vulkan backend will be unavailable."
 }
 
 $dxbcDir = Join-Path $OutputDir "dxbc"
@@ -126,23 +158,26 @@ foreach ($file in Get-ChildItem -Path $sourceDir -Filter *.hlsl)
             $spirvFile = Join-Path $spirvDir "$base.spv"
             $metaFile = Join-Path $OutputDir "$base.meta"
 
-            if ((Test-UpToDate $dxbcFile $newestInput) -and (Test-UpToDate $metaFile $newestInput) -and (-not $dxc -or (Test-UpToDate $spirvFile $newestInput)))
+            if ((-not $fxc -or (Test-UpToDate $dxbcFile $newestInput)) -and (Test-UpToDate $metaFile $newestInput) -and (-not $dxc -or (Test-UpToDate $spirvFile $newestInput)))
             {
                 continue
             }
 
             Write-Host "Compiling $base ($stage)"
 
-            $fxcArgs = @("/nologo", "/T", $info.Fxc, "/E", $entry, "/Zpr", "/Fo", $dxbcFile)
-            if ($variant) { $fxcArgs += @("/D", "$variant=1") }
-            if ($DebugInfo) { $fxcArgs += @("/Zi", "/Od") } else { $fxcArgs += "/O3" }
-            & $fxc @fxcArgs $file.FullName | Out-Null
-            if ($LASTEXITCODE -ne 0)
+            if ($fxc)
             {
-                & $fxc @fxcArgs $file.FullName
-                Write-Error "FXC failed for $base" -ErrorAction Continue
-                $failed = $true
-                continue
+                $fxcArgs = @("/nologo", "/T", $info.Fxc, "/E", $entry, "/Zpr", "/Fo", $dxbcFile)
+                if ($variant) { $fxcArgs += @("/D", "$variant=1") }
+                if ($DebugInfo) { $fxcArgs += @("/Zi", "/Od") } else { $fxcArgs += "/O3" }
+                & $fxc @fxcArgs $file.FullName | Out-Null
+                if ($LASTEXITCODE -ne 0)
+                {
+                    & $fxc @fxcArgs $file.FullName
+                    Write-Error "FXC failed for $base" -ErrorAction Continue
+                    $failed = $true
+                    continue
+                }
             }
 
             if ($dxc)
