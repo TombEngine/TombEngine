@@ -12,6 +12,16 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
 * Added gamma correction setting.
 * Added native support for DualShock, DualSense and Switch Pro controllers.
+* Added Remastered control mode, selectable in the Gameplay options menu:
+  * Camera-relative player movement on land, in water and in fly mode.
+  * Orbit camera with mouse look, camera collision and vertical axis inversion option.
+  * Camera-relative standing jumps and mid-air rolls.
+  * Grabbing with Fire input action, with safety grab and crawlspace edge grab.
+  * Hold-to-aim weapon handling with Draw input action and shooting with Fire input action.
+  * Firing SNOWMOBILE and UPV weapons with Action input.
+  * Separate default key bindings for keyboard and gamepad, usable at the same time.
+  * Toggle options for sprint, look, crouch and grab, and smooth sprint steps option.
+* Reorganized options menu into Controls, Display, Gameplay and Sound pages.
 * Added animation blending support and blended transitions for hardcoded animation changes.
 * Added root motion support.
 * Added [WRAITH4](https://tombengine.com/asset/enemy/wraith-and-wraith-trap/) object. Object supports properties to create custom wraiths.
@@ -153,6 +163,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `CustomDiary:UnlockPage` function to unlock individual pages in the order the function is called. The unlock mode is detected automatically on the first unlock call.
 * Added optional `area` parameter for text entries in the `CustomDiary` module to enable automatic word wrapping.
 * Updated `EmitLight()`, `EmitSpotLight()` and `EmitFogBulb()` to accept fractional values, allowing smooth scaling of radius/falloff/distance.
+* Updated `Lara:SetWeaponType` and `Lara:SetLaserSight` to keep drawn weapon out in Remastered control mode as long as Draw input action is held.
+* Updated `Input.GetActionBinding` to return gamepad binding in Remastered control mode if gamepad was used last.
 * Removed `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
 * Renamed `ENTER`, `INSIDE` and `LEAVE` entries in `Logic.EventType` enum to `VOLUME_ENTER`, `VOLUME_INSIDE` and `VOLUME_LEAVE`.
 * Renamed `Snow`, `Rain` and `None` entries in `Flow.WeatherType` enum to `SNOW`, `RAIN` and `NONE`.
