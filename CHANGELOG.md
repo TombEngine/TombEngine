@@ -88,7 +88,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed flyby camera jitter by converting the spline type to floating-point.
 * Fixed Lara not focusing on camera targets properly when at a different height.
 * Fixed look key not breaking out of a camera target once it was triggered.
-* Fixed camera sliding into position at the start of a level.
 * Fixed occasional flame emitter sprite jitter.
 * Fixed incorrect static mesh interpolation after a large position change.
 * Fixed interaction highlighter appearing for underwater pushable objects.
