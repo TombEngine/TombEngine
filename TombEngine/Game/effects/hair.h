@@ -84,7 +84,7 @@ namespace TEN::Effects::Hair
 		// Utilities
 
 		void Initialize();
-		void Update(ItemInfo& item);
+		void Update(ItemInfo& item, bool recursive = false);
 	};
 
 	extern HairEffectController HairEffect;
