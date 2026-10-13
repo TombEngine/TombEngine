@@ -16,17 +16,14 @@ using namespace TEN::Math;
 
 namespace TEN::Entities::Effects
 {
-    namespace
-    {
-        constexpr int PLANET_EFFECT_LINK_COUNT = 4;
-        constexpr int PLANET_EFFECT_LINK_FLAG_OFFSET = 2;
-        constexpr int PLANET_EFFECT_ELECTRICITY_FLAGS = (int)ElectricityFlags::Spline | (int)ElectricityFlags::ThinIn | (int)ElectricityFlags::ThinOut;
+    constexpr int PLANET_EFFECT_LINK_COUNT = 4;
+    constexpr int PLANET_EFFECT_LINK_FLAG_OFFSET = 2;
+    constexpr int PLANET_EFFECT_ELECTRICITY_FLAGS = (int)ElectricityFlags::Spline | (int)ElectricityFlags::ThinIn | (int)ElectricityFlags::ThinOut;
 
-        void SpawnPlanetArc(const Vector3& origin, const Vector3& target, unsigned char green, unsigned char blue)
-        {
-            SpawnElectricity(origin, target, Random::GenerateInt(32, 63), 0, green, blue, 32,
-                PLANET_EFFECT_ELECTRICITY_FLAGS, 32, 3);
-        }
+    void SpawnPlanetArc(const Vector3& origin, const Vector3& target, unsigned char green, unsigned char blue)
+    {
+        SpawnElectricity(origin, target, Random::GenerateInt(32, 63), 0, green, blue, 32,
+            PLANET_EFFECT_ELECTRICITY_FLAGS, 32, 3);
     }
 
     void InitializePlanetEffect(short itemNumber)
