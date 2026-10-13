@@ -665,7 +665,7 @@ void ChaseCamera(ItemInfo* item)
 	}
 
 	auto ideal = Ideals[indexOfFarthestIdeal];
-	CameraCollisionBounds(&ideal, CLICK(1.5f), 1);
+	CameraCollisionBounds(&ideal, CLICK(1.5f), true);
 	MoveCamera(&ideal, Camera.speed);
 }
 
@@ -813,7 +813,7 @@ void CombatCamera(ItemInfo* item)
 
 	// Handle room collision.
 	auto ideal = Ideals[indexOfFarthestIdeal];
-	CameraCollisionBounds(&ideal, CLICK(1.5f), 1);
+	CameraCollisionBounds(&ideal, CLICK(1.5f), true);
 
 	// Snap position of fixed camera type.
 	if (Camera.oldType == CameraType::Fixed)
