@@ -1372,20 +1372,6 @@ enum class RemasteredInputScope
 	ArmedSynthesis
 };
 
-// Raw and rewritten values of the actions the Remastered input rewrite changed this tick.
-static auto RemasteredRawActions	 = std::unordered_map<ActionID, Action>{};
-static auto RemasteredWrittenActions = std::unordered_map<ActionID, Action>{};
-
-// Held state of an action as pressed, before the Remastered input rewrite.
-bool IsRawActionHeld(ActionID actionID)
-{
-	auto it = RemasteredRawActions.find(actionID);
-	if (it == RemasteredRawActions.end())
-		return IsHeld(actionID);
-
-	return it->second.IsHeld();
-}
-
 // Grab and weapon button: Fire under Remastered controls, Action under Classic controls.
 // A script clear of Action holds it off, and a script push of Action presses it.
 bool IsRemasteredGrabHeld()
@@ -2044,48 +2030,6 @@ bool HandleRemasteredTightropeIdle(ItemInfo& item)
 	return false;
 }
 
-// Working copy of the player input, rewritten by the Remastered transform and written back to the action map.
-struct RemasteredInput : PlayerInput
-{
-	// Jump is written as held, never clicked.
-	bool IsJumpStroke = false;
-};
-
-// Writes a rewritten value to the action map, keeping the raw and the written action for the restore.
-// A held value written with isClickSuppressed is updated twice, so it reads as held but not as clicked.
-static void WriteRemasteredAction(ActionID actionID, bool isHeld, bool isClickSuppressed = false)
-{
-	auto& action = ActionMap[actionID];
-	if (action.IsHeld() == isHeld)
-		return;
-
-	RemasteredRawActions.insert_or_assign(actionID, action);
-	action.Update(isHeld);
-
-	if (isHeld && isClickSuppressed)
-		action.Update(isHeld);
-
-	RemasteredWrittenActions.insert_or_assign(actionID, action);
-}
-
-static void WriteRemasteredInput(const RemasteredInput& input)
-{
-	WriteRemasteredAction(In::Forward, input.Forward);
-	WriteRemasteredAction(In::Back, input.Back);
-	WriteRemasteredAction(In::Left, input.Left);
-	WriteRemasteredAction(In::Right, input.Right);
-	WriteRemasteredAction(In::StepLeft, input.StepLeft);
-	WriteRemasteredAction(In::StepRight, input.StepRight);
-	WriteRemasteredAction(In::Walk, input.Walk);
-	WriteRemasteredAction(In::Sprint, input.Sprint);
-	WriteRemasteredAction(In::Crouch, input.Crouch);
-	WriteRemasteredAction(In::Jump, input.Jump, input.IsJumpStroke);
-	WriteRemasteredAction(In::Roll, input.Roll);
-	WriteRemasteredAction(In::Action, input.Action);
-	WriteRemasteredAction(In::Draw, input.Draw);
-	WriteRemasteredAction(In::Look, input.Look);
-}
-
 // A script clear of Sprint or Crouch resets its toggle.
 static void ResetPlayerRemasteredClearedLatches(ItemInfo& item)
 {
@@ -2109,7 +2053,7 @@ static void ResetRemasteredArmedTurn(ItemInfo& item)
 }
 
 // A script clear holds the action off, even where the rewrite would set it.
-static void MaskRemasteredClearedInput(ItemInfo& item, RemasteredInput& input)
+static void MaskRemasteredClearedInput(ItemInfo& item, PlayerInput& input)
 {
 	ApplyClearedActions(input);
 
@@ -2124,7 +2068,7 @@ static void MaskRemasteredClearedInput(ItemInfo& item, RemasteredInput& input)
 }
 
 // Sprint toggle: a press while running latches the sprint, the next press or leaving the run releases it.
-static void UpdatePlayerRemasteredSprintToggle(ItemInfo& item, RemasteredInput& input)
+static void UpdatePlayerRemasteredSprintToggle(ItemInfo& item, PlayerInput& input)
 {
 	auto& remastered = GetLaraInfo(item).Control.Remastered;
 	bool isRunning = (item.Animation.ActiveState == LS_RUN_FORWARD || item.Animation.ActiveState == LS_SPRINT);
@@ -2153,14 +2097,14 @@ static void UpdatePlayerRemasteredSprintToggle(ItemInfo& item, RemasteredInput& 
 }
 
 // Crouch stages: standing, crouched, on knees. A press on knees rises one stage to the crouch.
-static void UpdatePlayerRemasteredCrouchStages(ItemInfo& item, RemasteredInput& input)
+static void UpdatePlayerRemasteredCrouchStages(ItemInfo& item, PlayerInput& input)
 {
 	auto& player = GetLaraInfo(item);
 	auto& remastered = player.Control.Remastered;
 
 	if (!g_Configuration.EnableCrouchToggle)
 	{
-		remastered.CrouchStage = IsHeld(In::Crouch) ? 1 : 0;
+		remastered.CrouchStage = input.Crouch ? 1 : 0;
 		remastered.IsCrouchStageUpPending = false;
 	}
 	else if (IsClicked(In::Crouch) && !IsPushed(In::Crouch))
@@ -2207,7 +2151,7 @@ static void UpdatePlayerRemasteredCrouchStages(ItemInfo& item, RemasteredInput& 
 // True if the stick is pushed firmly along one axis toward the player's back (forward jump)
 // or front (back jump). A light push, Look or an already spent push does not roll the player.
 // TODO: Roll the player in a left or right running jump when the stick is pushed the opposite way. -- divezzi, 11.10.26
-static bool IsPlayerRemasteredJumpRollPushed(const ItemInfo& item, const RemasteredInput& input)
+static bool IsPlayerRemasteredJumpRollPushed(const ItemInfo& item, const PlayerInput& input)
 {
 	constexpr auto PUSH_MIN		  = 0.7f; // About half the stick's travel. Keys and the D-pad give 1.0.
 	constexpr auto ROLL_ARC_ANGLE = ANGLE(45.0f);
@@ -2261,7 +2205,7 @@ static void UpdatePlayerRemasteredJumpRollLatch(ItemInfo& item)
 
 // Presses the turn key toward a target heading while the error is at least minAngle, so the stock turn states turn
 // the player. With the stick centered while turning, Walk and the sidesteps are released.
-static void SynthesizeRemasteredTurnActions(ItemInfo& item, RemasteredInput& input, short toAngle, short minAngle)
+static void SynthesizeRemasteredTurnActions(ItemInfo& item, PlayerInput& input, short toAngle, short minAngle)
 {
 	auto& player = GetLaraInfo(item);
 	auto& remastered = player.Control.Remastered;
@@ -2299,7 +2243,7 @@ static void SynthesizeRemasteredTurnActions(ItemInfo& item, RemasteredInput& inp
 
 // Rewrites the movement actions so the stick moves the player relative to the camera.
 // On the ground the heading solver turns her, so a push becomes Forward, and a push toward the camera a fast 180.
-static void TransformPlayerRemasteredInput(ItemInfo& item, RemasteredInput& input)
+static void TransformPlayerRemasteredInput(ItemInfo& item, PlayerInput& input, PlayerInput& heldWithoutClickInput)
 {
 	constexpr auto BACK_ARC_MIN_ANGLE	= ANGLE(135.0f);
 	constexpr auto CRAWL_BACK_ARC_ANGLE = ANGLE(45.0f);
@@ -2334,7 +2278,7 @@ static void TransformPlayerRemasteredInput(ItemInfo& item, RemasteredInput& inpu
 		if (isUnderwater)
 		{
 			input.Jump = ((isPushingStick && !IsCleared(In::Forward)) || IsPushed(In::Jump));
-			input.IsJumpStroke = true;
+			heldWithoutClickInput.Jump = true;
 		}
 
 		return;
@@ -2490,30 +2434,11 @@ void ApplyRemasteredInput(ItemInfo& item)
 	if (player.Context.Vehicle != NO_VALUE)
 		return;
 
-	auto input = RemasteredInput{ ReadPlayerInput() };
-	TransformPlayerRemasteredInput(item, input);
+	auto input = ReadPlayerInput();
+	auto heldWithoutClickInput = PlayerInput{};
+	TransformPlayerRemasteredInput(item, input, heldWithoutClickInput);
 	MaskRemasteredClearedInput(item, input);
-	WriteRemasteredInput(input);
-}
-
-void RestoreRemasteredInput()
-{
-	for (const auto& [actionID, writtenAction] : RemasteredWrittenActions)
-	{
-		// An action changed by player code during the tick, such as a look-around clear, keeps that change.
-		const auto& action = ActionMap[actionID];
-		if (action.GetValue() != writtenAction.GetValue() ||
-			action.GetTimeActive() != writtenAction.GetTimeActive() ||
-			action.GetTimeInactive() != writtenAction.GetTimeInactive())
-		{
-			continue;
-		}
-
-		ActionMap[actionID] = RemasteredRawActions[actionID];
-	}
-
-	RemasteredRawActions.clear();
-	RemasteredWrittenActions.clear();
+	WritePlayerInput(input, heldWithoutClickInput);
 }
 
 // Turns the player toward the lip during the safety grab reach. The turn steps from its own last yaw,

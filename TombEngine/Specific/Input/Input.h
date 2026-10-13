@@ -86,8 +86,7 @@ namespace TEN::Input
 		bool Look	   = false;
 	};
 
-	// NOTE: PlayerInput holds the general actions. Update its readers and writers when this group changes.
-	static_assert((int)In::Accelerate == 14, "General action group size changed.");
+	// NOTE: PlayerInput holds the general actions. Update PLAYER_INPUT_ACTIONS in Input.cpp when this group changes.
 
 	extern std::unordered_map<int, float>				  KeyMap;
 	extern std::unordered_map<ActionID, Action>			  ActionMap;
@@ -127,6 +126,9 @@ namespace TEN::Input
 
 	PlayerInput ReadPlayerInput();
 	void		ApplyClearedActions(PlayerInput& input);
+	void		WritePlayerInput(const PlayerInput& input, const PlayerInput& heldWithoutClickInput = PlayerInput{});
+	void		RestorePlayerInput();
+	bool		IsRawActionHeld(ActionID actionID);
 
 	bool IsDirectionalActionHeld();
 	bool IsWakeActionHeld();

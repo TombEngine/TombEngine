@@ -47,6 +47,31 @@ namespace TEN::Input
 	auto ClearedActions = std::array<bool, (int)ActionID::Count>{};
 	auto PushedActions	= std::array<bool, (int)ActionID::Count>{};
 
+	// General actions held in PlayerInput.
+	constexpr std::pair<ActionID, bool PlayerInput::*> PLAYER_INPUT_ACTIONS[] =
+	{
+		{ In::Forward, &PlayerInput::Forward },
+		{ In::Back, &PlayerInput::Back },
+		{ In::Left, &PlayerInput::Left },
+		{ In::Right, &PlayerInput::Right },
+		{ In::StepLeft, &PlayerInput::StepLeft },
+		{ In::StepRight, &PlayerInput::StepRight },
+		{ In::Walk, &PlayerInput::Walk },
+		{ In::Sprint, &PlayerInput::Sprint },
+		{ In::Crouch, &PlayerInput::Crouch },
+		{ In::Jump, &PlayerInput::Jump },
+		{ In::Roll, &PlayerInput::Roll },
+		{ In::Action, &PlayerInput::Action },
+		{ In::Draw, &PlayerInput::Draw },
+		{ In::Look, &PlayerInput::Look }
+	};
+	static_assert((int)std::size(PLAYER_INPUT_ACTIONS) == (int)In::Accelerate, "General action group size changed.");
+	static_assert(sizeof(PlayerInput) == (sizeof(bool) * std::size(PLAYER_INPUT_ACTIONS)), "PlayerInput field missing from PLAYER_INPUT_ACTIONS.");
+
+	// Raw and written values of the actions WritePlayerInput() changed this tick.
+	static auto RawActions	   = std::unordered_map<ActionID, Action>{};
+	static auto WrittenActions = std::unordered_map<ActionID, Action>{};
+
 	static bool HasMatchingBindings(const BindingProfile& bindingProfile)
 	{
 		for (const auto& [actionID, keyID] : bindingProfile)
@@ -1117,40 +1142,76 @@ namespace TEN::Input
 	PlayerInput ReadPlayerInput()
 	{
 		auto input = PlayerInput{};
-		input.Forward	= IsHeld(In::Forward);
-		input.Back		= IsHeld(In::Back);
-		input.Left		= IsHeld(In::Left);
-		input.Right		= IsHeld(In::Right);
-		input.StepLeft	= IsHeld(In::StepLeft);
-		input.StepRight = IsHeld(In::StepRight);
-		input.Walk		= IsHeld(In::Walk);
-		input.Sprint	= IsHeld(In::Sprint);
-		input.Crouch	= IsHeld(In::Crouch);
-		input.Jump		= IsHeld(In::Jump);
-		input.Roll		= IsHeld(In::Roll);
-		input.Action	= IsHeld(In::Action);
-		input.Draw		= IsHeld(In::Draw);
-		input.Look		= IsHeld(In::Look);
+		for (const auto& [actionID, field] : PLAYER_INPUT_ACTIONS)
+			input.*field = IsHeld(actionID);
+
 		return input;
 	}
 
 	// An action a level script cleared this tick is switched back off, even where a control mode rewrite turned it on.
 	void ApplyClearedActions(PlayerInput& input)
 	{
-		input.Forward	= (input.Forward && !IsCleared(In::Forward));
-		input.Back		= (input.Back && !IsCleared(In::Back));
-		input.Left		= (input.Left && !IsCleared(In::Left));
-		input.Right		= (input.Right && !IsCleared(In::Right));
-		input.StepLeft	= (input.StepLeft && !IsCleared(In::StepLeft));
-		input.StepRight = (input.StepRight && !IsCleared(In::StepRight));
-		input.Walk		= (input.Walk && !IsCleared(In::Walk));
-		input.Sprint	= (input.Sprint && !IsCleared(In::Sprint));
-		input.Crouch	= (input.Crouch && !IsCleared(In::Crouch));
-		input.Jump		= (input.Jump && !IsCleared(In::Jump));
-		input.Roll		= (input.Roll && !IsCleared(In::Roll));
-		input.Action	= (input.Action && !IsCleared(In::Action));
-		input.Draw		= (input.Draw && !IsCleared(In::Draw));
-		input.Look		= (input.Look && !IsCleared(In::Look));
+		for (const auto& [actionID, field] : PLAYER_INPUT_ACTIONS)
+		{
+			if (IsCleared(actionID))
+				input.*field = false;
+		}
+	}
+
+	// Writes a rewritten value to the action map, keeping the raw and the written action for the restore.
+	// A held value written with isHeldWithoutClick is updated twice, so it reads as held but not as clicked.
+	static void WritePlayerInputAction(ActionID actionID, bool isHeld, bool isHeldWithoutClick)
+	{
+		auto& action = ActionMap[actionID];
+		if (action.IsHeld() == isHeld)
+			return;
+
+		RawActions.insert_or_assign(actionID, action);
+		action.Update(isHeld);
+
+		if (isHeld && isHeldWithoutClick)
+			action.Update(isHeld);
+
+		WrittenActions.insert_or_assign(actionID, action);
+	}
+
+	// Writes a rewritten PlayerInput to the action map for the player's tick, until RestorePlayerInput().
+	// An action set in heldWithoutClickInput is written as held but not clicked.
+	void WritePlayerInput(const PlayerInput& input, const PlayerInput& heldWithoutClickInput)
+	{
+		for (const auto& [actionID, field] : PLAYER_INPUT_ACTIONS)
+			WritePlayerInputAction(actionID, input.*field, heldWithoutClickInput.*field);
+	}
+
+	// Puts the raw actions back after the player's tick.
+	void RestorePlayerInput()
+	{
+		for (const auto& [actionID, writtenAction] : WrittenActions)
+		{
+			// An action changed by player code during the tick, such as a look-around clear, keeps that change.
+			const auto& action = ActionMap[actionID];
+			if (action.GetValue() != writtenAction.GetValue() ||
+				action.GetTimeActive() != writtenAction.GetTimeActive() ||
+				action.GetTimeInactive() != writtenAction.GetTimeInactive())
+			{
+				continue;
+			}
+
+			ActionMap[actionID] = RawActions[actionID];
+		}
+
+		RawActions.clear();
+		WrittenActions.clear();
+	}
+
+	// Held state of an action as pressed, before WritePlayerInput().
+	bool IsRawActionHeld(ActionID actionID)
+	{
+		auto it = RawActions.find(actionID);
+		if (it == RawActions.end())
+			return IsHeld(actionID);
+
+		return it->second.IsHeld();
 	}
 
 	bool IsDirectionalActionHeld()

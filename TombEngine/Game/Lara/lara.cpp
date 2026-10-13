@@ -742,10 +742,10 @@ void UpdateLara(ItemInfo* item, bool isTitle)
 	// Control player.
 	InItemControlLoop = true;
 
-	// Remastered controls: movement actions are rewritten for the player's tick, then restored. -- divezzi, 10.10.26
+	// Remastered controls: the player input is rewritten for the player's tick, then restored. -- divezzi, 10.10.26
 	ApplyRemasteredInput(*item);
 	LaraControl(item, &LaraCollision);
-	RestoreRemasteredInput();
+	RestorePlayerInput();
 	HandlePlayerFlyCheat(*item);
 	InItemControlLoop = false;
 	KillMoveItems();
