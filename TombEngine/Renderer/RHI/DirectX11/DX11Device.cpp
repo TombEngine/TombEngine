@@ -14,7 +14,9 @@ using Microsoft::WRL::ComPtr;
 
 namespace TEN::Renderer::RHI::DirectX11
 {
-    constexpr auto UNIFORM_BUFFER_SIZE   = 16384;
+    constexpr auto UNIFORM_BUFFER_SIZE    = 16384;
+    constexpr auto UNIFORM_RING_SIZE      = 4 * 1024 * 1024; // Uniform pushes of the D3D11.1 path; wraps with a discard.
+    constexpr auto UNIFORM_RING_ALIGNMENT = 256;             // Constant buffer offsets are multiples of 16 constants.
     constexpr auto SWAPCHAIN_BUFFER_COUNT = 2;
     constexpr auto MAX_SRV_SLOTS         = 32;
 
@@ -758,6 +760,13 @@ namespace TEN::Renderer::RHI::DirectX11
         ID3D11DeviceContext*                 Context    = nullptr;
         ComPtr<ID3DUserDefinedAnnotation>    Annotation = nullptr;
         ComPtr<ID3D11Buffer>                 UniformBuffers[3][MAX_UNIFORM_SLOTS] = {};
+
+        // D3D11.1 path, when the driver supports it: one ring of all uniform pushes, bound by range. The last data
+        // of every slot is kept, so the slots in use are written again when the ring wraps.
+        ComPtr<ID3D11DeviceContext1>         Context1          = nullptr;
+        ComPtr<ID3D11Buffer>                 UniformRing       = nullptr;
+        int                                  UniformRingOffset = 0;
+        std::vector<unsigned char>           LastUniforms[3][MAX_UNIFORM_SLOTS] = {};
         DX11RenderPass                       RenderPass  = {};
         DX11CopyPass                         CopyPass    = {};
         DX11ComputePass                      ComputePass = {};
@@ -890,6 +899,105 @@ namespace TEN::Renderer::RHI::DirectX11
                 return;
             }
 
+            if (UniformRing != nullptr)
+                PushRingUniforms(stage, slot, data, size);
+            else
+                PushSlotUniforms(stage, slot, data, size);
+        }
+
+        static int GetRingUniformSize(int size)
+        {
+            int alignedSize = (size + UNIFORM_RING_ALIGNMENT - 1) / UNIFORM_RING_ALIGNMENT * UNIFORM_RING_ALIGNMENT;
+            return std::max(alignedSize, UNIFORM_RING_ALIGNMENT);
+        }
+
+        // D3D11.1 path: the data goes to the next aligned range of the ring, mapped without overwriting the ranges the
+        // GPU may still read, and only that range is bound. No buffer is renamed per push.
+        void PushRingUniforms(ShaderStage stage, int slot, const void* data, int size)
+        {
+            auto& lastData = LastUniforms[(int)stage][slot];
+            lastData.assign((const unsigned char*)data, (const unsigned char*)data + size);
+
+            if ((UniformRingOffset + GetRingUniformSize(size)) > UNIFORM_RING_SIZE)
+            {
+                RewriteRingUniforms();
+                return;
+            }
+
+            auto mapped = D3D11_MAPPED_SUBRESOURCE{};
+            if (FAILED(Context->Map(UniformRing.Get(), 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0, &mapped)))
+                return;
+
+            int offset = WriteRingUniforms(mapped, data, size);
+            Context->Unmap(UniformRing.Get(), 0);
+            BindRingUniforms(stage, slot, offset, size);
+        }
+
+        // Discarding renames the ring, so the ranges of all bound slots point to the old contents. Every slot is
+        // written again at the start of the new ring and bound to its new range.
+        void RewriteRingUniforms()
+        {
+            auto mapped = D3D11_MAPPED_SUBRESOURCE{};
+            if (FAILED(Context->Map(UniformRing.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
+                return;
+
+            UniformRingOffset = 0;
+            int offsets[3][MAX_UNIFORM_SLOTS] = {};
+            for (int stage = 0; stage < 3; stage++)
+            {
+                for (int slot = 0; slot < MAX_UNIFORM_SLOTS; slot++)
+                {
+                    const auto& lastData = LastUniforms[stage][slot];
+                    if (!lastData.empty())
+                        offsets[stage][slot] = WriteRingUniforms(mapped, lastData.data(), (int)lastData.size());
+                }
+            }
+
+            Context->Unmap(UniformRing.Get(), 0);
+
+            for (int stage = 0; stage < 3; stage++)
+            {
+                for (int slot = 0; slot < MAX_UNIFORM_SLOTS; slot++)
+                {
+                    const auto& lastData = LastUniforms[stage][slot];
+                    if (!lastData.empty())
+                        BindRingUniforms((ShaderStage)stage, slot, offsets[stage][slot], (int)lastData.size());
+                }
+            }
+        }
+
+        int WriteRingUniforms(const D3D11_MAPPED_SUBRESOURCE& mapped, const void* data, int size)
+        {
+            int offset = UniformRingOffset;
+            memcpy((unsigned char*)mapped.pData + offset, data, size);
+            UniformRingOffset += GetRingUniformSize(size);
+            return offset;
+        }
+
+        void BindRingUniforms(ShaderStage stage, int slot, int offset, int size)
+        {
+            auto* handle = UniformRing.Get();
+            auto firstConstant = (UINT)(offset / 16);
+            auto constantCount = (UINT)(GetRingUniformSize(size) / 16);
+            switch (stage)
+            {
+            case ShaderStage::Vertex:
+                Context1->VSSetConstantBuffers1(slot, 1, &handle, &firstConstant, &constantCount);
+                break;
+
+            case ShaderStage::Pixel:
+                Context1->PSSetConstantBuffers1(slot, 1, &handle, &firstConstant, &constantCount);
+                break;
+
+            case ShaderStage::Compute:
+                Context1->CSSetConstantBuffers1(slot, 1, &handle, &firstConstant, &constantCount);
+                break;
+            }
+        }
+
+        // Path without the D3D11.1 options: one buffer per stage and slot, discarded on every push.
+        void PushSlotUniforms(ShaderStage stage, int slot, const void* data, int size)
+        {
             auto& buffer = UniformBuffers[(int)stage][slot];
             auto mapped = D3D11_MAPPED_SUBRESOURCE{};
             if (FAILED(Context->Map(buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
@@ -1065,6 +1173,7 @@ namespace TEN::Renderer::RHI::DirectX11
                     device->CreateBuffer(&uniformDesc, nullptr, _commandBuffer.UniformBuffers[stage][slot].GetAddressOf());
             }
 
+            CreateUniformRing(device.Get(), context);
             UpdateSwapchainTexture();
         }
 
@@ -1072,6 +1181,38 @@ namespace TEN::Renderer::RHI::DirectX11
         {
             _context->ClearState();
             _context->Flush();
+        }
+
+        // Constant buffer offsets and no-overwrite maps of dynamic constant buffers are D3D11.1 driver options, also
+        // available on feature level 11_0 hardware. The environment variable TEN_DX11_SLOT_UNIFORMS forces the path
+        // with one buffer per slot, to compare both.
+        void CreateUniformRing(ID3D11Device* device, const ComPtr<ID3D11DeviceContext>& context)
+        {
+            auto options = D3D11_FEATURE_DATA_D3D11_OPTIONS{};
+            bool isSupported = SUCCEEDED(device->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS, &options, sizeof(options))) &&
+                               options.ConstantBufferOffsetting && options.MapNoOverwriteOnDynamicConstantBuffer &&
+                               SUCCEEDED(context.As(&_commandBuffer.Context1));
+            bool isForcedOff = (SDL_getenv("TEN_DX11_SLOT_UNIFORMS") != nullptr);
+
+            if (isSupported && !isForcedOff)
+            {
+                auto desc = D3D11_BUFFER_DESC{};
+                desc.ByteWidth = UNIFORM_RING_SIZE;
+                desc.Usage = D3D11_USAGE_DYNAMIC;
+                desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+                desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+                // The first push finds the ring full, so its first map discards.
+                if (SUCCEEDED(device->CreateBuffer(&desc, nullptr, _commandBuffer.UniformRing.GetAddressOf())))
+                    _commandBuffer.UniformRingOffset = UNIFORM_RING_SIZE;
+            }
+
+            if (_commandBuffer.UniformRing != nullptr)
+                TENLog("DX11: uniform data in a ring bound by offset (D3D11.1).", LogLevel::Info);
+            else if (isSupported)
+                TENLog("DX11: uniform data in one buffer per slot (forced).", LogLevel::Info);
+            else
+                TENLog("DX11: uniform data in one buffer per slot, the D3D11.1 options are not available.", LogLevel::Info);
         }
 
         void UpdateSwapchainTexture()
