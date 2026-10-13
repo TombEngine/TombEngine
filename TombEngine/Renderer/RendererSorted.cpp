@@ -114,7 +114,7 @@ namespace TEN::Renderer
 			break;
 
 		case RendererObjectType::Sprite:
-			key.Primary = object.Sprite->Sprite;
+			key.Primary = object.Sprite->Sprite->Texture;
 			key.Extra =
 				(unsigned long long)(unsigned int)(int)(distance / SPRITE_GROUP_DEPTH_BAND) |
 				((unsigned long long)object.Sprite->BlendMode << 32) |
@@ -351,10 +351,13 @@ namespace TEN::Renderer
 		return ranks;
 	}
 
-	// Keys order clusters first and distance (far to near) second, so polygons of a single-group
-	// cluster stay contiguous while polygons of overlapping objects interleave by depth.
+	// Keys order clusters first, distance (far to near) second and blend mode priority third, so polygons of a
+	// single-group cluster stay contiguous, polygons of overlapping objects interleave by depth, and polygons at the
+	// same distance keep the fixed blend mode order (issue #1793) instead of their collection order.
 	static void BuildSortKeys(RenderView& view, const std::vector<SortedGroup>& groups, const std::vector<int>& clusterRanks)
 	{
+		constexpr auto DISTANCE_MAX = 0xFFFFFF; // 24 bits, about 16,000 sectors.
+
 		const auto* objects = view.TransparentObjectsToDraw.data();
 		int polygonCount = (int)view.TransparentPolygonsToDraw.size();
 		view.TransparentSortKeys.resize(polygonCount);
@@ -362,10 +365,11 @@ namespace TEN::Renderer
 		for (int i = 0; i < polygonCount; i++)
 		{
 			const auto& polygon = view.TransparentPolygonsToDraw[i];
-			int clusterRank = clusterRanks[groups[objects[polygon.ObjectIndex].GroupIndex].Cluster];
+			const auto& group = groups[objects[polygon.ObjectIndex].GroupIndex];
+			int clusterRank = clusterRanks[group.Cluster];
 
-			auto invertedDistance = (unsigned int)(INT_MAX - std::max(polygon.Distance, 0));
-			view.TransparentSortKeys[i].Key = ((unsigned long long)clusterRank << 32) | invertedDistance;
+			auto invertedDistance = (unsigned int)(DISTANCE_MAX - std::clamp(polygon.Distance, 0, DISTANCE_MAX));
+			view.TransparentSortKeys[i].Key = ((unsigned long long)clusterRank << 32) | ((unsigned long long)invertedDistance << 8) | (unsigned int)group.BlendPriority;
 			view.TransparentSortKeys[i].Index = i;
 		}
 	}
@@ -1140,11 +1144,9 @@ namespace TEN::Renderer
 		_stInstancedSpriteBuffer.Sprites[0].World = object->Sprite->Type != SpriteType::ThreeD ?
 			GetWorldMatrixForSprite(*object->Sprite, view) :
 			Matrix::Identity;
-		_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
+		_stInstancedSpriteBuffer.Sprites[0].PerVertexData = 1;
 		_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = object->Sprite->SoftParticle ? 1 : 0;
 		_stInstancedSpriteBuffer.Sprites[0].RenderType = (int)object->Sprite->renderType;
-
-		PackSpriteTextureCoordinates(0, object->Sprite->Sprite);
 
         UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(), (int)sizeof(InstancedSprite));
 
@@ -1213,11 +1215,9 @@ namespace TEN::Renderer
 		}
 
 		_stInstancedSpriteBuffer.Sprites[0].World = Matrix::Identity;
-		_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
+		_stInstancedSpriteBuffer.Sprites[0].PerVertexData = 1;
 		_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = objectInfo->Sprite->SoftParticle ? 1 : 0;
 		_stInstancedSpriteBuffer.Sprites[0].RenderType = (int)objectInfo->Sprite->renderType;
-
-		PackSpriteTextureCoordinates(0, objectInfo->Sprite->Sprite);
 
 		// Only Sprites[0] is used, so upload just the CB prefix.
 		UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(), (int)sizeof(InstancedSprite));

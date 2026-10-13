@@ -295,7 +295,7 @@ namespace TEN::Renderer
 					_stInstancedSpriteBuffer.Sprites[i].World = GetWorldMatrixForSprite(spriteToDraw, view);
 					_stInstancedSpriteBuffer.Sprites[i].Color = spriteToDraw.color;
 					_stInstancedSpriteBuffer.Sprites[i].IsBillboard = 1.0f;
-					_stInstancedSpriteBuffer.Sprites[i].PerVertexColor = 0;
+					_stInstancedSpriteBuffer.Sprites[i].PerVertexData = 0;
 					_stInstancedSpriteBuffer.Sprites[i].IsSoftParticle = spriteToDraw.SoftParticle ? 1.0f : 0.0f;
 					_stInstancedSpriteBuffer.Sprites[i].RenderType = (int)spriteToDraw.renderType;
 
@@ -345,11 +345,10 @@ namespace TEN::Renderer
 			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = spriteBucket.IsSoftParticle ? 1.0f : 0.0f;
 			_stInstancedSpriteBuffer.Sprites[0].RenderType = (int)spriteBucket.RenderType;
 
-			_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
+			_stInstancedSpriteBuffer.Sprites[0].PerVertexData = 1;
 			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = spriteBucket.IsSoftParticle ? 1.0f : 0.0f;
 
 			SetBlendMode(spriteBucket.BlendMode);
-			PackSpriteTextureCoordinates(0, spriteBucket.Sprite);
             UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(), (int)sizeof(InstancedSprite));
 			BindTexture(TextureRegister::ColorMap, spriteBucket.Sprite->Texture, SamplerStateRegister::LinearClamp);
 

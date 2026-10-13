@@ -77,8 +77,8 @@ A group is the unit that can draw as one batch. Group identity is a `GroupKey` b
 | Moveable, hair | item + bucket + object type |
 | Static | static + bucket |
 | Effect | effect + bucket |
-| Swarm (`MoveableAsStatic`) | bucket + rounded world translation (3 x 21 bits); swarms have no stable instance pointer |
-| Sprite | texture + 4-block depth band + blend mode, sprite type, render type, soft particle flag |
+| Swarm (`MoveableAsStatic`) | collected object; unique per instance and bucket, as swarms have no persistent renderer object |
+| Sprite | texture + 4-block depth band + blend mode, sprite type, render type, soft particle flag; UVs come from the vertices, so different sprites of one texture share a batch |
 
 All polygons of one object are contiguous, so the key and its hash map lookup are resolved only when
 `ObjectIndex` changes. The other polygons only add their distance to the group.
@@ -124,13 +124,15 @@ polygon; in the common case the sort runs once.
 ![Sort key layout](TransparentSorting/sort-key.svg)
 
 ```cpp
-key = ((unsigned long long)clusterRank << 32) | (unsigned int)(INT_MAX - distance);
+key = ((unsigned long long)clusterRank << 32) | ((unsigned long long)(0xFFFFFF - distance) << 8) | blendPriority;
 ```
 
-Ascending keys give clusters in draw order and polygons far to near inside each cluster.
+Ascending keys give clusters in draw order and polygons far to near inside each cluster. Polygons at the same
+distance follow the blend mode priority of their group, as clusters at the same depth do. Distances are clamped
+to 24 bits, about 16,000 sectors.
 `RadixSortKeys` is a stable LSD radix sort with 8-bit digits. It builds all eight digit histograms
 in one read pass and skips every digit that is equal for all keys, so a typical scene needs three
-passes. The scratch buffer `_sortKeysScratch` is kept across frames.
+passes, or four when overlapping objects mix blend modes. The scratch buffer `_sortKeysScratch` is kept across frames.
 
 ---
 

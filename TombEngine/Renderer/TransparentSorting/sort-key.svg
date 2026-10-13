@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 180" role="img" aria-label="A 64-bit sort key split into eight 8-bit digits. Digits 7 to 4 hold the cluster rank, digits 3 to 0 hold INT_MAX minus distance. In the vase scene only digit 4 and digits 1 and 0 vary; the other five are skipped, so the radix sort runs 3 passes instead of 8.">
-  <title>A 64-bit sort key split into eight 8-bit digits. Digits 7 to 4 hold the cluster rank, digits 3 to 0 hold INT_MAX minus distance. In the vase scene only digit 4 and digits 1 and 0 vary; the other five are skipped, so the radix sort runs 3 passes instead of 8.</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 180" role="img" aria-label="A 64-bit sort key split into eight 8-bit digits. Digits 7 to 4 hold the cluster rank, digits 3 to 1 hold 0xFFFFFF minus distance and digit 0 holds the blend mode priority. In a typical scene only digits 4, 2 and 1 vary, plus digit 0 when overlapping objects mix blend modes; the other digits are skipped, so the radix sort runs 3 or 4 passes instead of 8.">
+  <title>A 64-bit sort key split into eight 8-bit digits. Digits 7 to 4 hold the cluster rank, digits 3 to 1 hold 0xFFFFFF minus distance and digit 0 holds the blend mode priority. In a typical scene only digits 4, 2 and 1 vary, plus digit 0 when overlapping objects mix blend modes; the other digits are skipped, so the radix sort runs 3 or 4 passes instead of 8.</title>
   <style>
     text { font-family: "Segoe UI", system-ui, -apple-system, Helvetica, Arial, sans-serif; font-size: 12px; fill: #18202B; }
     .small { font-size: 11px; }
@@ -58,17 +58,20 @@
   <rect x="286" y="32" width="68" height="34" class="skip"/><text x="320" y="54" text-anchor="middle" class="mono muted">d5</text>
   <rect x="354" y="32" width="68" height="34" class="after"/><text x="388" y="54" text-anchor="middle" class="mono on">d4</text>
   <rect x="422" y="32" width="68" height="34" class="skip"/><text x="456" y="54" text-anchor="middle" class="mono muted">d3</text>
-  <rect x="490" y="32" width="68" height="34" class="skip"/><text x="524" y="54" text-anchor="middle" class="mono muted">d2</text>
+  <rect x="490" y="32" width="68" height="34" class="after"/><text x="524" y="54" text-anchor="middle" class="mono on">d2</text>
   <rect x="558" y="32" width="68" height="34" class="after"/><text x="592" y="54" text-anchor="middle" class="mono on">d1</text>
-  <rect x="626" y="32" width="68" height="34" class="after"/><text x="660" y="54" text-anchor="middle" class="mono on">d0</text>
+  <rect x="626" y="32" width="68" height="34" class="after-soft"/><text x="660" y="54" text-anchor="middle" class="mono">d0</text>
 
   <path class="wire" d="M150 78 V84 H422 V78"/>
   <text x="286" y="100" text-anchor="middle" class="label">Cluster rank</text>
   <text x="286" y="116" text-anchor="middle" class="small muted">ascending = draw order</text>
-  <path class="wire" d="M422 78 V84 H694 V78"/>
-  <text x="558" y="100" text-anchor="middle" class="label mono">INT_MAX - distance</text>
-  <text x="558" y="116" text-anchor="middle" class="small muted">ascending = far to near</text>
+  <path class="wire" d="M422 78 V84 H626 V78"/>
+  <text x="524" y="100" text-anchor="middle" class="label mono">0xFFFFFF - distance</text>
+  <text x="524" y="116" text-anchor="middle" class="small muted">ascending = far to near</text>
+  <path class="wire" d="M626 78 V84 H694 V78"/>
+  <text x="660" y="100" text-anchor="middle" class="label">Blend priority</text>
+  <text x="660" y="116" text-anchor="middle" class="small muted">equal distance</text>
 
-  <text x="20" y="150" class="small"><tspan class="t-after label">3 passes of 8</tspan> in the vase scene.</text>
-  <text x="20" y="168" class="small muted">Under 256 clusters leave d5 to d7 at zero; distances under 65,536 units (64 sectors) keep d2 and d3 constant.</text>
+  <text x="20" y="150" class="small"><tspan class="t-after label">3 passes of 8</tspan> in a typical scene, 4 when overlapping objects mix blend modes.</text>
+  <text x="20" y="168" class="small muted">Under 256 clusters leave d5 to d7 at zero; distances under 65,536 units (64 sectors) keep d3 constant.</text>
 </svg>
