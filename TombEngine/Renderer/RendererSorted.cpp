@@ -107,13 +107,10 @@ namespace TEN::Renderer
 			break;
 
 		case RendererObjectType::MoveableAsStatic:
-			// No stable instance pointer exists for swarm objects: the world translation
-			// tells instances of the same mesh apart (e.g. two bats sharing buckets).
-			key.Primary = object.Bucket;
-			key.Extra =
-				((unsigned long long)(std::lround(object.World._41) & 0x1FFFFF)) |
-				((unsigned long long)(std::lround(object.World._42) & 0x1FFFFF) << 21) |
-				((unsigned long long)(std::lround(object.World._43) & 0x1FFFFF) << 42);
+			// Swarm instances have no persistent renderer object, but the collected object is unique per instance
+			// and bucket and stays in place while groups are built. A position key would merge instances that only
+			// differ in rotation or scale, drawing them all with the world matrix of the first one.
+			key.Primary = &object;
 			break;
 
 		case RendererObjectType::Sprite:
