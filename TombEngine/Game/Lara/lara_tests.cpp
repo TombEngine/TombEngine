@@ -1597,7 +1597,7 @@ std::optional<VaultTestResult> TestLaraVault(ItemInfo* item, CollisionInfo* coll
 
 	// Auto jump to monkey swing.
 	vaultResult = TestLaraAutoMonkeySwingJump(item, coll);
-	if (vaultResult.has_value() && !torchInHand && g_Configuration.EnableAutoMonkeySwingJump)
+	if (vaultResult.has_value() && !torchInHand && g_Configuration.IsAutoMonkeySwingJumpEnabled())
 	{
 		vaultResult->TargetState = LS_AUTO_JUMP;
 		if (!TestStateDispatch(*item, vaultResult->TargetState))

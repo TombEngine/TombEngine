@@ -47,6 +47,7 @@ table Configuration {
 	enable_crouch_toggle: bool = true;
 	enable_smooth_sprint_steps: bool = true;
 	enable_grab_toggle: bool = true;
+	enable_look_toggle: bool;
 }
 
 root_type Configuration;

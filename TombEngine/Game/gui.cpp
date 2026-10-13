@@ -1027,7 +1027,7 @@ namespace TEN::Gui
 				}
 
 				MenuToDisplay = Menu::Options;
-				SelectedOption = 3;
+				SelectedOption = 0;
 			}
 		}
 	}
@@ -1042,17 +1042,17 @@ namespace TEN::Gui
 	{
 		enum OptionsOption
 		{
-			Sound,
+			Controls,
 			Display,
 			Gameplay,
-			Controls
+			Sound
 		};
 
 		switch (SelectedOption)
 		{
-		case OptionsOption::Sound:
-			FillSoundOptions();
-			MenuToDisplay = Menu::Sound;
+		case OptionsOption::Controls:
+			BackupOptions();
+			MenuToDisplay = Menu::GeneralActions;
 			SelectedOption = 0;
 			break;
 
@@ -1068,9 +1068,9 @@ namespace TEN::Gui
 			SelectedOption = 0;
 			break;
 
-		case OptionsOption::Controls:
-			BackupOptions();
-			MenuToDisplay = Menu::GeneralActions;
+		case OptionsOption::Sound:
+			FillSoundOptions();
+			MenuToDisplay = Menu::Sound;
 			SelectedOption = 0;
 			break;
 		}
@@ -1080,16 +1080,16 @@ namespace TEN::Gui
 	{
 		enum GameplaySettingsOption
 		{
-			Subtitles,
 			ControlModeOption,
-			AutoMonkeySwingJump,
-			AutoTargeting,
 			TargetHighlighter,
 			InteractionHighlighter,
 			ToggleRumble,
 			ThumbstickCameraControl,
+			AutoMonkeySwingJump,
+			AutoTargeting,
 			InvertCameraYAxisOption,
 			SprintToggleOption,
+			LookToggleOption,
 			CrouchToggleOption,
 			GrabToggleOption,
 			SmoothSprintStepsOption,
@@ -1114,16 +1114,25 @@ namespace TEN::Gui
 				break;
 
 			case GameplaySettingsOption::AutoMonkeySwingJump:
+				// Remastered controls: locked, always off. -- divezzi, 12.10.26
+				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
+				{
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+					break;
+				}
+
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableAutoMonkeySwingJump = !CurrentSettings.Configuration.EnableAutoMonkeySwingJump;
 				break;
 
-			case GameplaySettingsOption::Subtitles:
-				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableSubtitles = !CurrentSettings.Configuration.EnableSubtitles;
-				break;
-
 			case GameplaySettingsOption::AutoTargeting:
+				// Remastered controls: locked, always on. -- divezzi, 12.10.26
+				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
+				{
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+					break;
+				}
+
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableAutoTargeting = !CurrentSettings.Configuration.EnableAutoTargeting;
 				break;
@@ -1176,12 +1185,22 @@ namespace TEN::Gui
 					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
 				break;
 
-			// Remastered controls: sprint, crouch, grab and smooth sprint steps rows, locked under Classic. -- divezzi, 10.10.26
+			// Remastered controls: toggle rows and Smooth Sprint Steps, locked under Classic. -- divezzi, 10.10.26
 			case GameplaySettingsOption::SprintToggleOption:
 				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
 				{
 					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 					CurrentSettings.Configuration.EnableSprintToggle = !CurrentSettings.Configuration.EnableSprintToggle;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+				break;
+
+			case GameplaySettingsOption::LookToggleOption:
+				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableLookToggle = !CurrentSettings.Configuration.EnableLookToggle;
 				}
 				else
 					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
@@ -1303,6 +1322,8 @@ namespace TEN::Gui
 			MusicVolume,
 			SfxVolume,
 
+			Subtitles,
+
 			Apply,
 			Cancel,
 
@@ -1318,6 +1339,11 @@ namespace TEN::Gui
 			case SoundSettingsOption::Reverb:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableReverb = !CurrentSettings.Configuration.EnableReverb;
+				break;
+
+			case SoundSettingsOption::Subtitles:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.EnableSubtitles = !CurrentSettings.Configuration.EnableSubtitles;
 				break;
 			}
 		}
@@ -1438,7 +1464,7 @@ namespace TEN::Gui
 			}
 
 			MenuToDisplay = Menu::Options;
-			SelectedOption = 0;
+			SelectedOption = 3;
 			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 		}
 	}

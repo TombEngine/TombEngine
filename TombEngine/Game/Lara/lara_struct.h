@@ -1214,6 +1214,7 @@ struct RemasteredControlData
 	bool IsCrouchStageUp		= false;
 	bool IsCrouchStageUpPending = false;
 	bool IsSprintToggled		= false;
+	bool IsLookToggled			= false;
 	bool IsDrawToggled			= false;
 	bool IsJumpRollSpent		= false;
 

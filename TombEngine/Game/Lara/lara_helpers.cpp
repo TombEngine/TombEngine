@@ -2030,13 +2030,16 @@ bool HandleRemasteredTightropeIdle(ItemInfo& item)
 	return false;
 }
 
-// A script clear of Sprint or Crouch resets its toggle.
+// A script clear of Sprint, Look or Crouch resets its toggle.
 static void ResetPlayerRemasteredClearedLatches(ItemInfo& item)
 {
 	auto& player = GetLaraInfo(item);
 
 	if (IsCleared(In::Sprint))
 		player.Control.Remastered.IsSprintToggled = false;
+
+	if (IsCleared(In::Look))
+		player.Control.Remastered.IsLookToggled = false;
 
 	if (IsCleared(In::Crouch))
 	{
@@ -2094,6 +2097,27 @@ static void UpdatePlayerRemasteredSprintToggle(ItemInfo& item, PlayerInput& inpu
 
 	if (g_Configuration.EnableSprintToggle && isRunning)
 		input.Sprint = (remastered.IsSprintToggled || IsPushed(In::Sprint));
+}
+
+// Look toggle: a press latches Look and the next press releases it. The latched Look is written held, never clicked.
+// Off while locked on a target, where each press switches target, and in states that cannot look.
+static void UpdateRemasteredLookToggle(ItemInfo& item, PlayerInput& input, PlayerInput& heldWithoutClickInput)
+{
+	auto& player = GetLaraInfo(item);
+	auto& remastered = player.Control.Remastered;
+
+	if (!g_Configuration.EnableLookToggle || IsPlayerLockedOnTarget(item) ||
+		player.Control.Look.Mode == LookMode::None)
+	{
+		remastered.IsLookToggled = false;
+		return;
+	}
+
+	if (IsClicked(In::Look) && !IsPushed(In::Look))
+		remastered.IsLookToggled = !remastered.IsLookToggled;
+
+	input.Look = (remastered.IsLookToggled || IsPushed(In::Look));
+	heldWithoutClickInput.Look = true;
 }
 
 // Crouch stages: standing, crouched, on knees. A press on knees rises one stage to the crouch.
@@ -2253,6 +2277,7 @@ static void TransformPlayerRemasteredInput(ItemInfo& item, PlayerInput& input, P
 
 	ResetPlayerRemasteredClearedLatches(item);
 	UpdatePlayerRemasteredSprintToggle(item, input);
+	UpdateRemasteredLookToggle(item, input, heldWithoutClickInput);
 	UpdatePlayerRemasteredCrouchStages(item, input);
 	player.Control.RefMoveAxis = GetMoveAxis();
 	UpdatePlayerRemasteredJumpRollLatch(item);

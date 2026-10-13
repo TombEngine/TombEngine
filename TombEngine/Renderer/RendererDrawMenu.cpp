@@ -53,7 +53,7 @@ namespace TEN::Renderer
 	constexpr auto MenuVerticalControls = 30;
 	constexpr auto MenuVerticalGameplaySettings = 50;
 	constexpr auto MenuVerticalDisplaySettings = 110;
-	constexpr auto MenuVerticalSoundSettings = 180;
+	constexpr auto MenuVerticalSoundSettings = 165;
 	constexpr auto MenuVerticalBottomCenter = 400;
 	constexpr auto MenuVerticalStatisticsTitle = 150;
 	constexpr auto MenuVerticalOptionsTitle = 350;
@@ -94,11 +94,6 @@ namespace TEN::Renderer
 	inline const std::string Str_ControlMode(ControlMode controlMode)
 	{
 		return g_GameFlow->GetString(controlMode == ControlMode::RemasteredControls ? STRING_CONTROL_MODE_REMASTERED : STRING_CONTROL_MODE_CLASSIC);
-	}
-
-	inline const std::string Str_InputMode(bool isToggle)
-	{
-		return g_GameFlow->GetString(isToggle ? STRING_INPUT_MODE_TOGGLE : STRING_INPUT_MODE_HOLD);
 	}
 
 	inline const int GetEffectiveBoundKeyID(ActionID actionID)
@@ -214,8 +209,8 @@ namespace TEN::Renderer
 			// Setup needed parameters
 			y = initialY;
 
-			// Sound
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_SOUND), plainColor, SF_Center(titleOption == 0));
+			// Controls
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CONTROLS), plainColor, SF_Center(titleOption == 0));
 			GetNextLinePosition(&y);
 
 			// Display
@@ -226,8 +221,8 @@ namespace TEN::Renderer
 			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_GAMEPLAY), plainColor, SF_Center(titleOption == 2));
 			GetNextLinePosition(&y);
 
-			// Controls
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CONTROLS), plainColor, SF_Center(titleOption == 3));
+			// Sound
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_SOUND), plainColor, SF_Center(titleOption == 3));
 			break;
 
 		case Menu::Gameplay:
@@ -238,69 +233,72 @@ namespace TEN::Renderer
 			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_GAMEPLAY), headerColor, SF_Center());
 			GetNextBlockPosition(&y);
 
-			// Subtitles
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SUBTITLES), optionColor, SF(titleOption == 0));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableSubtitles), plainColor, SF(titleOption == 0));
-			GetNextLinePosition(&y);
-
 			// Remastered controls: draws the control mode row. -- divezzi, 08.10.26
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_CONTROL_MODE), optionColor, SF(titleOption == 1));
-			AddString(MenuRightSideEntry, y, Str_ControlMode(g_Gui.GetCurrentSettings().Configuration.ControlMode), plainColor, SF(titleOption == 1));
-			GetNextLinePosition(&y);
-
-			// Auto monkey swing jump
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_MONKEY_SWING_JUMP), optionColor, SF(titleOption == 2));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableAutoMonkeySwingJump), plainColor, SF(titleOption == 2));
-			GetNextLinePosition(&y);
-
-			// Auto targeting
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_TARGETING), optionColor, SF(titleOption == 3));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableAutoTargeting), plainColor, SF(titleOption == 3));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_CONTROL_MODE), optionColor, SF(titleOption == 0));
+			AddString(MenuRightSideEntry, y, Str_ControlMode(g_Gui.GetCurrentSettings().Configuration.ControlMode), plainColor, SF(titleOption == 0));
 			GetNextLinePosition(&y);
 
 			// Target highlighter
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TARGET_HIGHLIGHTER), optionColor, SF(titleOption == 4));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TARGET_HIGHLIGHTER), optionColor, SF(titleOption == 1));
 			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableTargetHighlighter),
-				g_GameFlow->GetSettings()->Hud.TargetHighlighter ? plainColor : disabledColor, SF(titleOption == 4));
+				g_GameFlow->GetSettings()->Hud.TargetHighlighter ? plainColor : disabledColor, SF(titleOption == 1));
 			GetNextLinePosition(&y);
 
 			// Interaction highlighter
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_INTERACTION_HIGHLIGHTER), optionColor, SF(titleOption == 5));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_INTERACTION_HIGHLIGHTER), optionColor, SF(titleOption == 2));
 			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableInteractionHighlighter),
-				g_GameFlow->GetSettings()->Hud.InteractionHighlighter ? plainColor : disabledColor, SF(titleOption == 5));
+				g_GameFlow->GetSettings()->Hud.InteractionHighlighter ? plainColor : disabledColor, SF(titleOption == 2));
 			GetNextLinePosition(&y);
 
 			// Vibration
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RUMBLE), optionColor, SF(titleOption == 6));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableRumble), plainColor, SF(titleOption == 6));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RUMBLE), optionColor, SF(titleOption == 3));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableRumble), plainColor, SF(titleOption == 3));
 			GetNextLinePosition(&y);
 
 			// Thumbstick camera
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_THUMBSTICK_CAMERA), optionColor, SF(titleOption == 7));
-			// Remastered controls: value grayed out under Remastered controls. -- divezzi, 08.10.26
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_THUMBSTICK_CAMERA), optionColor, SF(titleOption == 4));
+			// Remastered controls: grayed out, as the Remastered camera does not read it. -- divezzi, 08.10.26
 			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableThumbstickCamera),
-				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? disabledColor : plainColor, SF(titleOption == 7));
+				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? disabledColor : plainColor, SF(titleOption == 4));
+			GetNextLinePosition(&y);
+
+			// Auto monkey swing jump
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_MONKEY_SWING_JUMP), optionColor, SF(titleOption == 5));
+			// Remastered controls: this and the next row show the forced value, grayed out. -- divezzi, 12.10.26
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.IsAutoMonkeySwingJumpEnabled()),
+				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? disabledColor : plainColor, SF(titleOption == 5));
+			GetNextLinePosition(&y);
+
+			// Auto targeting
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_TARGETING), optionColor, SF(titleOption == 6));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.IsAutoTargetingEnabled()),
+				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? disabledColor : plainColor, SF(titleOption == 6));
 			GetNextLinePosition(&y);
 
 			// Remastered controls: invert camera Y row, grayed out under Classic. -- divezzi, 08.10.26
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_INVERT_CAMERA_Y_AXIS), optionColor, SF(titleOption == 8));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_INVERT_CAMERA_Y_AXIS), optionColor, SF(titleOption == 7));
 			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.InvertCameraYAxis),
+				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? plainColor : disabledColor, SF(titleOption == 7));
+			GetNextLinePosition(&y);
+
+			// Remastered controls: toggle rows and Smooth Sprint Steps, grayed out under Classic. -- divezzi, 10.10.26
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TOGGLE_SPRINT), optionColor, SF(titleOption == 8));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableSprintToggle),
 				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? plainColor : disabledColor, SF(titleOption == 8));
 			GetNextLinePosition(&y);
 
-			// Remastered controls: sprint, crouch, grab and smooth sprint steps rows, grayed out under Classic. -- divezzi, 10.10.26
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SPRINT_MODE), optionColor, SF(titleOption == 9));
-			AddString(MenuRightSideEntry, y, Str_InputMode(g_Gui.GetCurrentSettings().Configuration.EnableSprintToggle),
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TOGGLE_LOOK), optionColor, SF(titleOption == 9));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableLookToggle),
 				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? plainColor : disabledColor, SF(titleOption == 9));
 			GetNextLinePosition(&y);
 
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_CROUCH_MODE), optionColor, SF(titleOption == 10));
-			AddString(MenuRightSideEntry, y, Str_InputMode(g_Gui.GetCurrentSettings().Configuration.EnableCrouchToggle),
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TOGGLE_CROUCH), optionColor, SF(titleOption == 10));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableCrouchToggle),
 				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? plainColor : disabledColor, SF(titleOption == 10));
 			GetNextLinePosition(&y);
 
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_GRAB_MODE), optionColor, SF(titleOption == 11));
-			AddString(MenuRightSideEntry, y, Str_InputMode(g_Gui.GetCurrentSettings().Configuration.EnableGrabToggle),
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TOGGLE_GRAB), optionColor, SF(titleOption == 11));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableGrabToggle),
 				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? plainColor : disabledColor, SF(titleOption == 11));
 			GetNextLinePosition(&y);
 
@@ -417,14 +415,19 @@ namespace TEN::Renderer
 			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SFX_VOLUME), optionColor, SF(titleOption == 3));
 
 			DrawBar(g_Gui.GetCurrentSettings().Configuration.SfxVolume / 100.0f, *g_SFXVolumeBar, ID_SFX_BAR_TEXTURE, 0, false);
+			GetNextLinePosition(&y);
+
+			// Subtitles
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SUBTITLES), optionColor, SF(titleOption == 4));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableSubtitles), plainColor, SF(titleOption == 4));
 			GetNextBlockPosition(&y);
 
 			// Apply
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 4));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 5));
 			GetNextLinePosition(&y);
 
 			// Cancel
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 5));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 6));
 
 			break;
 

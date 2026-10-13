@@ -64,6 +64,7 @@ struct GameConfiguration
 	bool EnableThumbstickCamera			= false;
 	bool InvertCameraYAxis				= false;
 	bool EnableSprintToggle				= false;
+	bool EnableLookToggle				= false;
 	bool EnableCrouchToggle				= true;
 	bool EnableGrabToggle				= true;
 	bool EnableSmoothSprintSteps		= true;
@@ -84,6 +85,10 @@ struct GameConfiguration
 
 	bool IsUsingClassicControls() const			{ return ControlMode == ControlMode::Classic; }
 	bool IsUsingRemasteredControls() const		{ return ControlMode == ControlMode::RemasteredControls; }
+
+	// Remastered controls: Auto Targeting forced on, Auto Monkey Jump forced off; saved values unchanged. -- divezzi, 12.10.26
+	bool IsAutoTargetingEnabled() const			{ return (IsUsingRemasteredControls() || EnableAutoTargeting); }
+	bool IsAutoMonkeySwingJumpEnabled() const	{ return (!IsUsingRemasteredControls() && EnableAutoMonkeySwingJump); }
 };
 
 void InitDefaultConfiguration();

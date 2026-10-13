@@ -1126,7 +1126,7 @@ bool IsTargetOccludedByObjects(ItemInfo& playerItem, Vector3 origin, Vector3 tar
 
 void FindNewTarget(ItemInfo& laraItem, const WeaponInfo& weaponInfo)
 {
-	if (!g_Configuration.EnableAutoTargeting)
+	if (!g_Configuration.IsAutoTargetingEnabled())
 		return;
 
 	auto& player = *GetLaraInfo(&laraItem);

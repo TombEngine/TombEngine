@@ -164,6 +164,7 @@ static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 	g_Configuration.EnableThumbstickCamera = config->enable_thumbstick_camera();
 	g_Configuration.InvertCameraYAxis = config->invert_camera_y_axis();
 	g_Configuration.EnableSprintToggle = config->enable_sprint_toggle();
+	g_Configuration.EnableLookToggle = config->enable_look_toggle();
 	g_Configuration.EnableCrouchToggle = config->enable_crouch_toggle();
 	g_Configuration.EnableGrabToggle = config->enable_grab_toggle();
 	g_Configuration.EnableSmoothSprintSteps = config->enable_smooth_sprint_steps();
@@ -235,6 +236,7 @@ void InitDefaultConfiguration()
 	g_Configuration.EnableThumbstickCamera = false;
 	g_Configuration.InvertCameraYAxis = false;
 	g_Configuration.EnableSprintToggle = false;
+	g_Configuration.EnableLookToggle = false;
 	g_Configuration.EnableCrouchToggle = true;
 	g_Configuration.EnableGrabToggle = true;
 	g_Configuration.EnableSmoothSprintSteps = true;
@@ -328,6 +330,7 @@ static std::vector<unsigned char> BuildConfigurationBuffer()
 	builder.add_remastered_gamepad_bindings(remasteredGamepadBindingsOffset);
 	builder.add_invert_camera_y_axis(g_Configuration.InvertCameraYAxis);
 	builder.add_enable_sprint_toggle(g_Configuration.EnableSprintToggle);
+	builder.add_enable_look_toggle(g_Configuration.EnableLookToggle);
 	builder.add_enable_crouch_toggle(g_Configuration.EnableCrouchToggle);
 	builder.add_enable_grab_toggle(g_Configuration.EnableGrabToggle);
 	builder.add_enable_smooth_sprint_steps(g_Configuration.EnableSmoothSprintSteps);
