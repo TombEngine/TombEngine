@@ -7,6 +7,7 @@
 #include "Game/effects/Electricity.h"
 #include "Game/items.h"
 #include "Game/Setup.h"
+#include "Math/Random.h"
 #include "Objects/Effects/enemy_missile.h"
 #include "Objects/Effects/flame_emitters.h"
 #include "Objects/Effects/LensFlare.h"
@@ -21,43 +22,41 @@ using namespace TEN::Entities::Effects;
 
 namespace
 {
+  // OCB 1 is the master effect; OCBs 2-5 are the linked beam nodes.
 	constexpr int PLANET_EFFECT_LINK_COUNT = 4;
 	constexpr int PLANET_EFFECT_LINK_FLAG_OFFSET = 2;
 	constexpr int PLANET_EFFECT_ELECTRICITY_FLAGS =	(int)ElectricityFlags::Spline | (int)ElectricityFlags::ThinIn | (int)ElectricityFlags::ThinOut;
+
+	void SpawnPlanetArc(const Vector3& origin, const Vector3& target, unsigned char green, unsigned char blue)
+	{
+		SpawnElectricity(origin, target, (GetRandomControl() & 0x1F) + 32, 0, green, blue, 32,
+			PLANET_EFFECT_ELECTRICITY_FLAGS, 32, 3);
+	}
 
 	void InitializePlanetEffect(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
 		item.MeshBits.ClearAll();
 		item.ItemFlags[0] = NO_VALUE;
+		item.ItemFlags[1] = NO_VALUE;
+
+		// Match the pushable by OCB and let the master cache the other effect nodes.
+		if (item.TriggerFlags == 1)
+			for (int i = 0; i < PLANET_EFFECT_LINK_COUNT; i++)
+				item.ItemFlags[PLANET_EFFECT_LINK_FLAG_OFFSET + i] = NO_VALUE;
 
 		for (int i = 0; i < g_Level.NumItems; i++)
 		{
 			auto& candidate = g_Level.Items[i];
-			if (candidate.ObjectNumber >= ID_PUSHABLE_OBJECT1 && candidate.ObjectNumber <= ID_PUSHABLE_OBJECT5 &&
-				candidate.TriggerFlags == item.TriggerFlags)
-			{
+         if (item.ItemFlags[0] == NO_VALUE && candidate.TriggerFlags == item.TriggerFlags &&
+				candidate.ObjectNumber >= ID_PUSHABLE_OBJECT1 && candidate.ObjectNumber <= ID_PUSHABLE_OBJECT5)
 				item.ItemFlags[0] = (short)i;
-				break;
-			}
-		}
 
-		if (item.TriggerFlags == 1)
-		{
-			for (int i = 0; i < PLANET_EFFECT_LINK_COUNT; i++)
+			if (item.TriggerFlags == 1 && i != itemNumber && candidate.ObjectNumber == ID_PLANET_EFFECT &&
+				candidate.TriggerFlags >= 2 && candidate.TriggerFlags <= 5 &&
+				item.ItemFlags[candidate.TriggerFlags] == NO_VALUE)
 			{
-				item.ItemFlags[PLANET_EFFECT_LINK_FLAG_OFFSET + i] = NO_VALUE;
-				const auto linkOcb = i + 2;
-
-				for (int j = 0; j < g_Level.NumItems; j++)
-				{
-					auto& candidate = g_Level.Items[j];
-					if (candidate.ObjectNumber == ID_PLANET_EFFECT && &candidate != &item && candidate.TriggerFlags == linkOcb)
-					{
-						item.ItemFlags[PLANET_EFFECT_LINK_FLAG_OFFSET + i] = (short)j;
-						break;
-					}
-				}
+				item.ItemFlags[candidate.TriggerFlags] = (short)i;
 			}
 		}
 
@@ -69,11 +68,16 @@ namespace
 	{
 		auto& item = g_Level.Items[itemNumber];
 		if (!TriggerActive(&item))
+		{
+			item.ItemFlags[1] = NO_VALUE;
 			return;
+		}
 
 		if (item.ItemFlags[0] >= 0 && item.ItemFlags[0] < g_Level.NumItems)
 		{
 			auto& pushable = g_Level.Items[item.ItemFlags[0]];
+
+			// Negative OCBs prevent further interaction with this pushable.
 			pushable.TriggerFlags = -pushable.TriggerFlags;
 			item.ItemFlags[0] = NO_VALUE;
 		}
@@ -84,22 +88,32 @@ namespace
 		if (item.TriggerFlags != 1)
 			return;
 
+		// Wait until all four linked effects have their activation code bits set.
 		std::array<ItemInfo*, PLANET_EFFECT_LINK_COUNT> linkedEffects = {};
 		for (int i = 0; i < PLANET_EFFECT_LINK_COUNT; i++)
 		{
 			const int linkedItemNumber = item.ItemFlags[PLANET_EFFECT_LINK_FLAG_OFFSET + i];
 			if (linkedItemNumber < 0 || linkedItemNumber >= g_Level.NumItems)
+			{
+				item.ItemFlags[1] = NO_VALUE;
 				return;
+			}
 
 			linkedEffects[i] = &g_Level.Items[linkedItemNumber];
 			if (linkedEffects[i]->ObjectNumber != ID_PLANET_EFFECT ||
 				(linkedEffects[i]->Flags & IFLAG_ACTIVATION_MASK) != IFLAG_ACTIVATION_MASK)
+			{
+				item.ItemFlags[1] = NO_VALUE;
 				return;
+			}
 		}
 
 		auto* animatingItem = FindItem(ID_ANIMATING4);
 		if (animatingItem == nullptr)
+		{
+			item.ItemFlags[1] = NO_VALUE;
 			return;
+		}
 
 		const auto origin = GetJointPosition(item, 0).ToVector3();
 		const auto anchor = GetJointPosition(*animatingItem, 0).ToVector3();
@@ -109,13 +123,21 @@ namespace
 		SpawnElectricityGlow(origin, 28, 0, green, blue);
 		SpawnElectricityGlow(anchor, 32, 0, green, blue);
 
+        // Refresh lightning arcs every four frames.
 		if (!(GlobalCounter & 3))
-		{
-			SpawnElectricity(origin, anchor, (GetRandomControl() & 0x1F) + 32, 0, green, blue, 32,
-				PLANET_EFFECT_ELECTRICITY_FLAGS, 32, 3);
-		}
-		SoundEffect(SFX_TR4_ELECTRIC_ARCING_LOOP, &item.Pose);
+			SpawnPlanetArc(origin, anchor, green, blue);
 
+		// Keep one random source for the loop; it is reselected after deactivation.
+		if (item.ItemFlags[1] < 0 || item.ItemFlags[1] > PLANET_EFFECT_LINK_COUNT + 1)
+		{
+            item.ItemFlags[1] = (short)Random::GenerateInt(0, PLANET_EFFECT_LINK_COUNT + 1);
+		}
+
+		ItemInfo* soundSource = item.ItemFlags[1] == 0 ? &item :
+			item.ItemFlags[1] <= PLANET_EFFECT_LINK_COUNT ? linkedEffects[item.ItemFlags[1] - 1] : animatingItem;
+		SoundEffect(SFX_TR4_ELECTRIC_ARCING_LOOP, &soundSource->Pose);
+
+     // Continue the beam path from the master through OCBs 2-5.
 		auto previousPosition = origin;
 		for (auto* linkedEffect : linkedEffects)
 		{
@@ -123,8 +145,7 @@ namespace
 			SpawnElectricityGlow(position, 28, 0, green, blue);
 
 			if (!(GlobalCounter & 3))
-				SpawnElectricity(position, previousPosition, (GetRandomControl() & 0x1F) + 32, 0, green, blue, 32,
-					PLANET_EFFECT_ELECTRICITY_FLAGS, 32, 3);
+              SpawnPlanetArc(position, previousPosition, green, blue);
 
 			previousPosition = position;
 		}
