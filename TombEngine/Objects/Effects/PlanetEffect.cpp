@@ -100,15 +100,15 @@ namespace TEN::Entities::Effects
             }
         }
 
-        auto* animatingItem = FindItem(ID_ANIMATING4);
-        if (animatingItem == nullptr)
+      auto* targetItem = FindItem(ID_PLANET_EFFECT_TARGET);
+        if (targetItem == nullptr)
         {
             item.ItemFlags[1] = NO_VALUE;
             return;
         }
 
         const auto origin = GetJointPosition(item, 0).ToVector3();
-        const auto anchor = GetJointPosition(*animatingItem, 0).ToVector3();
+        const auto anchor = GetJointPosition(*targetItem, 0).ToVector3();
         const auto blue = (unsigned char)((GetRandomControl() & 0x1F) + 224);
         const auto green = (unsigned char)(blue - (GetRandomControl() & 0x3F));
 
@@ -122,7 +122,7 @@ namespace TEN::Entities::Effects
             item.ItemFlags[1] = (short)Random::GenerateInt(0, PLANET_EFFECT_LINK_COUNT + 1);
 
         ItemInfo* soundSource = item.ItemFlags[1] == 0 ? &item :
-            item.ItemFlags[1] <= PLANET_EFFECT_LINK_COUNT ? linkedEffects[item.ItemFlags[1] - 1] : animatingItem;
+            item.ItemFlags[1] <= PLANET_EFFECT_LINK_COUNT ? linkedEffects[item.ItemFlags[1] - 1] : targetItem;
         SoundEffect(SFX_TR4_ELECTRIC_ARCING_LOOP, &soundSource->Pose);
 
         auto previousPosition = origin;
