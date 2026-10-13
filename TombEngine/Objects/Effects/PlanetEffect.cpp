@@ -16,9 +16,10 @@ using namespace TEN::Math;
 
 namespace TEN::Entities::Effects
 {
-    constexpr int PLANET_EFFECT_LINK_COUNT = 4;
-    constexpr int PLANET_EFFECT_LINK_FLAG_OFFSET = 2;
-    constexpr int PLANET_EFFECT_ELECTRICITY_FLAGS = (int)ElectricityFlags::Spline | (int)ElectricityFlags::ThinIn | (int)ElectricityFlags::ThinOut;
+    constexpr auto PLANET_EFFECT_LINK_COUNT = 4;
+    constexpr auto PLANET_EFFECT_LINK_FLAG_OFFSET = 2;
+    constexpr auto PLANET_EFFECT_FADE_SPEED = 0.1f;
+    constexpr auto PLANET_EFFECT_ELECTRICITY_FLAGS = (int)ElectricityFlags::Spline | (int)ElectricityFlags::ThinIn | (int)ElectricityFlags::ThinOut;
 
     void SpawnPlanetArc(const Vector3& origin, const Vector3& target, unsigned char green, unsigned char blue)
     {
@@ -30,6 +31,7 @@ namespace TEN::Entities::Effects
     {
         auto& item = g_Level.Items[itemNumber];
         item.MeshBits.ClearAll();
+        item.Model.Color.w = 0.0f;
         item.ItemFlags[0] = NO_VALUE;
         item.ItemFlags[1] = NO_VALUE;
 
@@ -74,6 +76,7 @@ namespace TEN::Entities::Effects
 
         item.MeshBits.SetAll();
         AnimateItem(item);
+        item.Model.Color.w = std::min(item.Model.Color.w + PLANET_EFFECT_FADE_SPEED, 1.0f);
 
         if (item.TriggerFlags != 1)
             return;
