@@ -1170,29 +1170,24 @@ void CalculateCamera(const CollisionInfo& coll)
 		if (!isFixedCamera)
 		{
 			auto deltaPos = Camera.item->Pose.Position - item->Pose.Position;
-			int horizontalDist = (int)sqrt((double)SQUARE(deltaPos.x) + (double)SQUARE(deltaPos.z));
+			int horizontalDistance = (int)sqrt((double)SQUARE(deltaPos.x) + (double)SQUARE(deltaPos.z));
 
-			// Use the camera target's own vertical centre as the reference height rather than the
-			// player bounds, and project onto the horizontal plane so nearby but elevated targets
-			// still yield a steep enough required pitch.
+			// Use the camera target's own vertical center as the reference height rather than the player bounds,
+			// and project onto the horizontal plane so nearby but elevated targets still yield a steep enough required pitch.
 			const auto& targetBounds = GameBoundingBox(Camera.item);
 
 			// Full pitch/heading required to centre the target on the view axis.
 			auto fullOrient = EulerAngles(
-				phd_atan(horizontalDist, y - (targetBounds.Y1 + targetBounds.Y2) / 2 - Camera.item->Pose.Position.y),
+				phd_atan(horizontalDistance, y - (targetBounds.Y1 + targetBounds.Y2) / 2 - Camera.item->Pose.Position.y),
 				phd_atan(deltaPos.z, deltaPos.x) - item->Pose.Orientation.y,
 				0);
 
 			// Split the required angle in half across the head and torso bones.
 			auto lookOrient = fullOrient / 2;
 
-			// Gate on the full angle actually applied to the camera aim so it can never swing past the
-			// hard look constraint; LookCamera only clamps pitch, so yaw under or over is otherwise passed
-			// through unclamped and the camera can aim further than Lara's head can follow.
-			if (fullOrient.y > LOOKCAM_ORIENT_CONSTRAINT.first.y &&
-				fullOrient.y < LOOKCAM_ORIENT_CONSTRAINT.second.y &&
-				fullOrient.x > LOOKCAM_ORIENT_CONSTRAINT.first.x &&
-				fullOrient.x < LOOKCAM_ORIENT_CONSTRAINT.second.x)
+			// Gate on the full angle actually applied to the camera aim so it can never swing past the hard look constraint.
+			if (fullOrient.y > LOOKCAM_ORIENT_CONSTRAINT.first.y && fullOrient.y < LOOKCAM_ORIENT_CONSTRAINT.second.y &&
+				fullOrient.x > LOOKCAM_ORIENT_CONSTRAINT.first.x && fullOrient.x < LOOKCAM_ORIENT_CONSTRAINT.second.x)
 			{
 				// Head turns the full way toward the target.
 				short angleDelta = lookOrient.y - Lara.ExtraHeadRot.y;

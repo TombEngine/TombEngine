@@ -75,7 +75,6 @@ constexpr auto DEFAULT_FOV = 80.0f;
 extern CAMERA_INFO Camera;
 extern GameVector ForcedFixedCamera;
 extern CameraType BinocularOldCamera;
-extern bool ItemCameraOn;
 extern bool UseForcedFixedCamera;
 extern short CurrentFOV;
 extern short LastFOV;
