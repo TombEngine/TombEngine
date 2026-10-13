@@ -24,7 +24,7 @@ namespace TEN::Entities::Effects
 
         void SpawnPlanetArc(const Vector3& origin, const Vector3& target, unsigned char green, unsigned char blue)
         {
-            SpawnElectricity(origin, target, (GetRandomControl() & 0x1F) + 32, 0, green, blue, 32,
+            SpawnElectricity(origin, target, Random::GenerateInt(32, 63), 0, green, blue, 32,
                 PLANET_EFFECT_ELECTRICITY_FLAGS, 32, 3);
         }
     }
@@ -109,8 +109,8 @@ namespace TEN::Entities::Effects
 
         const auto origin = GetJointPosition(item, 0).ToVector3();
         const auto anchor = GetJointPosition(*targetItem, 0).ToVector3();
-        const auto blue = (unsigned char)((GetRandomControl() & 0x1F) + 224);
-        const auto green = (unsigned char)(blue - (GetRandomControl() & 0x3F));
+        const auto blue = (unsigned char)Random::GenerateInt(224, 255);
+        const auto green = (unsigned char)(blue - Random::GenerateInt(0, 63));
 
         SpawnElectricityGlow(origin, 28, 0, green, blue);
         SpawnElectricityGlow(anchor, 32, 0, green, blue);
