@@ -76,6 +76,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed PROPELLER_V player knockback direction and particle fading near water surface.
 * Fixed OVERHEAD_PULLEY_HOOK not damaging player unless a damage value was explicitly set.
 * Fixed doors and BREAKABLE_WALL created by script losing their collision after loading a savegame.
+* Fixed keyhole interaction not being blocked while drawing a flare.
 * Fixed empty linear inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
 * Fixed PC_LOAD_INV_ITEM and PC_SAVE_INV_ITEM presence in the inventory affecting quickload and quicksave hotkey functionality.
