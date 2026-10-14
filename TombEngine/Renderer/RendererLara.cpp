@@ -156,7 +156,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 	auto handStatus = Lara.Control.HandStatus;
 
 	// HACK: Treat binoculars as two-handed weapon.
-	if (Lara.Control.Look.IsUsingBinoculars)
+	if (Lara.Control.Look.IsUsingBinoculars && Lara.Control.HandStatus == HandStatus::Free)
 	{
 		gunType = LaraWeaponType::Shotgun;
 		handStatus = HandStatus::WeaponReady;
