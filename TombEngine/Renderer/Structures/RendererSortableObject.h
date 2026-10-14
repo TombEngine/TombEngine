@@ -47,7 +47,8 @@ namespace TEN::Renderer::Structures
 		};
 	};
 
-	// Per-polygon entry of the transparent pass. Sprites use a single entry with no polygon.
+	// Per-polygon entry of the transparent pass. Sprites use a single entry with no polygon, so Polygon
+	// may only be read once the owning object is known not to be a sprite.
 	struct RendererSortablePolygon
 	{
 		RendererPolygon* Polygon	 = nullptr;
@@ -55,8 +56,9 @@ namespace TEN::Renderer::Structures
 		int				 ObjectIndex = 0;
 	};
 
-	// Compact sort entry for the transparent pass. Key packs group rank (high 32 bits) and
-	// inverted distance (low 32 bits); Index points into RenderView::TransparentPolygonsToDraw.
+	// Compact sort entry for the transparent pass. Key packs cluster rank (high 32 bits), inverted
+	// distance (24 bits) and blend mode priority (low 8 bits), built by BuildSortKeys; Index points
+	// into RenderView::TransparentPolygonsToDraw.
 	struct RendererSortKey
 	{
 		unsigned long long Key	 = 0;

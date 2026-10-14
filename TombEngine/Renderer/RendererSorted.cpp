@@ -641,6 +641,8 @@ namespace TEN::Renderer
 		};
 
 		// Polygons are visited in sorted order through the compact keys built by SortTransparentFaces.
+		// Each iteration consumes the run of consecutive entries of one draw group: the inner loops
+		// advance i past the run and the final i-- compensates the increment of the outer loop.
 		int sortedCount = (int)view.TransparentSortKeys.size();
 		const auto* sortKeys = view.TransparentSortKeys.data();
 		const auto* polygons = view.TransparentPolygonsToDraw.data();
@@ -728,8 +730,6 @@ namespace TEN::Renderer
 						p1t = spr->vtx2;
 						p2t = spr->vtx3;
 						p3t = spr->vtx4;
-
-
 					}
 					else
 					{
@@ -798,7 +798,6 @@ namespace TEN::Renderer
 		}
 
 		flushBatches();
-
 	}
 
 	void Renderer::DrawRoomSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count)
@@ -1078,16 +1077,15 @@ namespace TEN::Renderer
 			_lastSortedObject != objectInfo->Item ||
 			_lastSortedSkinned != objectInfo->Skinned)
 		{
-			// Bind main item properties.
-			Matrix world = objectInfo->Item->InterpolatedWorld;
-			_stObjects.Objects[0].World = world;
+			// Bind main item properties. Hair segments carry their world transforms in the bones,
+			// so the object world matrix is identity.
+			_stObjects.Objects[0].World = Matrix::Identity;
 			_stObjects.Objects[0].Color = objectInfo->Item->Color;
 			_stObjects.Objects[0].AmbientLight = objectInfo->Item->AmbientLight;
 			_stObjects.Skinned = (int)(objectInfo->Skinned ? SkinningMode::Full : SkinningMode::None);
 
 			const auto& moveableObj = *_moveableObjects[(int)GAME_OBJECT_ID::ID_HAIR_PRIMARY + index];
 
-			_stObjects.Objects[0].World = Matrix::Identity;
 			_stObjects.Bones[0] = objectInfo->Item->InterpolatedAnimationTransforms[HairUnit::GetRootMeshID(index)] * objectInfo->Item->InterpolatedWorld;
 			ReflectMatrixOptionally(_stObjects.Bones[0]);
 
@@ -1211,9 +1209,9 @@ namespace TEN::Renderer
 			_graphicsDevice->BindVertexBuffer(_sortedPolygonsVertexBuffer.get());
 			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-
 		}
 
+		// Sprite vertices are already in world space, built by DrawSortedFaces.
 		_stInstancedSpriteBuffer.Sprites[0].World = Matrix::Identity;
 		_stInstancedSpriteBuffer.Sprites[0].PerVertexData = 1;
 		_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = objectInfo->Sprite->SoftParticle ? 1 : 0;

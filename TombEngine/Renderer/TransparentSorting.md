@@ -61,8 +61,8 @@ per-polygon cost stays low in debug builds too.
 Per-instance work happens once per mesh, never per polygon: the bone and world matrix product for
 item meshes and the `Matrix::Lerp` of swarm instances are computed before the bucket loop.
 
-> **Note:** item meshes measure distance from `Camera.pos` (the game camera); all other object types
-> use `view.Camera.WorldPosition`.
+> **Note:** item meshes and sprites measure distance from `Camera.pos` (the game camera); all other
+> object types use `view.Camera.WorldPosition`.
 
 ---
 
