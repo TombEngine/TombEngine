@@ -3250,9 +3250,11 @@ struct LaraInventoryDataT : public flatbuffers::NativeTable {
   bool has_torch = false;
   bool has_lasersight = false;
   bool has_silencer = false;
+  bool has_hammer = false;
   int32_t total_small_medipacks = 0;
   int32_t total_large_medipacks = 0;
   int32_t total_flares = 0;
+  int32_t total_goldroses = 0;
   uint32_t total_secrets = 0;
   std::vector<int32_t> puzzles{};
   std::vector<int32_t> keys{};
@@ -3285,18 +3287,20 @@ struct LaraInventoryData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_HAS_TORCH = 30,
     VT_HAS_LASERSIGHT = 32,
     VT_HAS_SILENCER = 34,
-    VT_TOTAL_SMALL_MEDIPACKS = 36,
-    VT_TOTAL_LARGE_MEDIPACKS = 38,
-    VT_TOTAL_FLARES = 40,
-    VT_TOTAL_SECRETS = 42,
-    VT_PUZZLES = 44,
-    VT_KEYS = 46,
-    VT_PICKUPS = 48,
-    VT_EXAMINES = 50,
-    VT_PUZZLES_COMBO = 52,
-    VT_KEYS_COMBO = 54,
-    VT_PICKUPS_COMBO = 56,
-    VT_EXAMINES_COMBO = 58
+    VT_HAS_HAMMER = 36,
+    VT_TOTAL_SMALL_MEDIPACKS = 38,
+    VT_TOTAL_LARGE_MEDIPACKS = 40,
+    VT_TOTAL_FLARES = 42,
+    VT_TOTAL_GOLDROSES = 44,
+    VT_TOTAL_SECRETS = 46,
+    VT_PUZZLES = 48,
+    VT_KEYS = 50,
+    VT_PICKUPS = 52,
+    VT_EXAMINES = 54,
+    VT_PUZZLES_COMBO = 56,
+    VT_KEYS_COMBO = 58,
+    VT_PICKUPS_COMBO = 60,
+    VT_EXAMINES_COMBO = 62
   };
   bool is_busy() const {
     return GetField<uint8_t>(VT_IS_BUSY, 0) != 0;
@@ -3346,6 +3350,9 @@ struct LaraInventoryData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool has_silencer() const {
     return GetField<uint8_t>(VT_HAS_SILENCER, 0) != 0;
   }
+  bool has_hammer() const {
+    return GetField<uint8_t>(VT_HAS_HAMMER, 0) != 0;
+  }
   int32_t total_small_medipacks() const {
     return GetField<int32_t>(VT_TOTAL_SMALL_MEDIPACKS, 0);
   }
@@ -3354,6 +3361,9 @@ struct LaraInventoryData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   int32_t total_flares() const {
     return GetField<int32_t>(VT_TOTAL_FLARES, 0);
+  }
+  int32_t total_goldroses() const {
+    return GetField<int32_t>(VT_TOTAL_GOLDROSES, 0);
   }
   uint32_t total_secrets() const {
     return GetField<uint32_t>(VT_TOTAL_SECRETS, 0);
@@ -3400,9 +3410,11 @@ struct LaraInventoryData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_HAS_TORCH) &&
            VerifyField<uint8_t>(verifier, VT_HAS_LASERSIGHT) &&
            VerifyField<uint8_t>(verifier, VT_HAS_SILENCER) &&
+           VerifyField<uint8_t>(verifier, VT_HAS_HAMMER) &&
            VerifyField<int32_t>(verifier, VT_TOTAL_SMALL_MEDIPACKS) &&
            VerifyField<int32_t>(verifier, VT_TOTAL_LARGE_MEDIPACKS) &&
            VerifyField<int32_t>(verifier, VT_TOTAL_FLARES) &&
+           VerifyField<int32_t>(verifier, VT_TOTAL_GOLDROSES) &&
            VerifyField<uint32_t>(verifier, VT_TOTAL_SECRETS) &&
            VerifyOffset(verifier, VT_PUZZLES) &&
            verifier.VerifyVector(puzzles()) &&
@@ -3479,6 +3491,9 @@ struct LaraInventoryDataBuilder {
   void add_has_silencer(bool has_silencer) {
     fbb_.AddElement<uint8_t>(LaraInventoryData::VT_HAS_SILENCER, static_cast<uint8_t>(has_silencer), 0);
   }
+  void add_has_hammer(bool has_hammer) {
+    fbb_.AddElement<uint8_t>(LaraInventoryData::VT_HAS_HAMMER, static_cast<uint8_t>(has_hammer), 0);
+  }
   void add_total_small_medipacks(int32_t total_small_medipacks) {
     fbb_.AddElement<int32_t>(LaraInventoryData::VT_TOTAL_SMALL_MEDIPACKS, total_small_medipacks, 0);
   }
@@ -3487,6 +3502,9 @@ struct LaraInventoryDataBuilder {
   }
   void add_total_flares(int32_t total_flares) {
     fbb_.AddElement<int32_t>(LaraInventoryData::VT_TOTAL_FLARES, total_flares, 0);
+  }
+  void add_total_goldroses(int32_t total_goldroses) {
+    fbb_.AddElement<int32_t>(LaraInventoryData::VT_TOTAL_GOLDROSES, total_goldroses, 0);
   }
   void add_total_secrets(uint32_t total_secrets) {
     fbb_.AddElement<uint32_t>(LaraInventoryData::VT_TOTAL_SECRETS, total_secrets, 0);
@@ -3544,9 +3562,11 @@ inline flatbuffers::Offset<LaraInventoryData> CreateLaraInventoryData(
     bool has_torch = false,
     bool has_lasersight = false,
     bool has_silencer = false,
+    bool has_hammer = false,
     int32_t total_small_medipacks = 0,
     int32_t total_large_medipacks = 0,
     int32_t total_flares = 0,
+    int32_t total_goldroses = 0,
     uint32_t total_secrets = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> puzzles = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> keys = 0,
@@ -3566,6 +3586,7 @@ inline flatbuffers::Offset<LaraInventoryData> CreateLaraInventoryData(
   builder_.add_keys(keys);
   builder_.add_puzzles(puzzles);
   builder_.add_total_secrets(total_secrets);
+  builder_.add_total_goldroses(total_goldroses);
   builder_.add_total_flares(total_flares);
   builder_.add_total_large_medipacks(total_large_medipacks);
   builder_.add_total_small_medipacks(total_small_medipacks);
@@ -3573,6 +3594,7 @@ inline flatbuffers::Offset<LaraInventoryData> CreateLaraInventoryData(
   builder_.add_small_waterskin(small_waterskin);
   builder_.add_beetle_components(beetle_components);
   builder_.add_beetle_life(beetle_life);
+  builder_.add_has_hammer(has_hammer);
   builder_.add_has_silencer(has_silencer);
   builder_.add_has_lasersight(has_lasersight);
   builder_.add_has_torch(has_torch);
@@ -3611,9 +3633,11 @@ inline flatbuffers::Offset<LaraInventoryData> CreateLaraInventoryDataDirect(
     bool has_torch = false,
     bool has_lasersight = false,
     bool has_silencer = false,
+    bool has_hammer = false,
     int32_t total_small_medipacks = 0,
     int32_t total_large_medipacks = 0,
     int32_t total_flares = 0,
+    int32_t total_goldroses = 0,
     uint32_t total_secrets = 0,
     const std::vector<int32_t> *puzzles = nullptr,
     const std::vector<int32_t> *keys = nullptr,
@@ -3649,9 +3673,11 @@ inline flatbuffers::Offset<LaraInventoryData> CreateLaraInventoryDataDirect(
       has_torch,
       has_lasersight,
       has_silencer,
+      has_hammer,
       total_small_medipacks,
       total_large_medipacks,
       total_flares,
+      total_goldroses,
       total_secrets,
       puzzles__,
       keys__,
@@ -11729,9 +11755,11 @@ inline void LaraInventoryData::UnPackTo(LaraInventoryDataT *_o, const flatbuffer
   { auto _e = has_torch(); _o->has_torch = _e; }
   { auto _e = has_lasersight(); _o->has_lasersight = _e; }
   { auto _e = has_silencer(); _o->has_silencer = _e; }
+  { auto _e = has_hammer(); _o->has_hammer = _e; }
   { auto _e = total_small_medipacks(); _o->total_small_medipacks = _e; }
   { auto _e = total_large_medipacks(); _o->total_large_medipacks = _e; }
   { auto _e = total_flares(); _o->total_flares = _e; }
+  { auto _e = total_goldroses(); _o->total_goldroses = _e; }
   { auto _e = total_secrets(); _o->total_secrets = _e; }
   { auto _e = puzzles(); if (_e) { _o->puzzles.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->puzzles[_i] = _e->Get(_i); } } }
   { auto _e = keys(); if (_e) { _o->keys.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->keys[_i] = _e->Get(_i); } } }
@@ -11767,9 +11795,11 @@ inline flatbuffers::Offset<LaraInventoryData> CreateLaraInventoryData(flatbuffer
   auto _has_torch = _o->has_torch;
   auto _has_lasersight = _o->has_lasersight;
   auto _has_silencer = _o->has_silencer;
+  auto _has_hammer = _o->has_hammer;
   auto _total_small_medipacks = _o->total_small_medipacks;
   auto _total_large_medipacks = _o->total_large_medipacks;
   auto _total_flares = _o->total_flares;
+  auto _total_goldroses = _o->total_goldroses;
   auto _total_secrets = _o->total_secrets;
   auto _puzzles = _fbb.CreateVector(_o->puzzles);
   auto _keys = _fbb.CreateVector(_o->keys);
@@ -11797,9 +11827,11 @@ inline flatbuffers::Offset<LaraInventoryData> CreateLaraInventoryData(flatbuffer
       _has_torch,
       _has_lasersight,
       _has_silencer,
+      _has_hammer,
       _total_small_medipacks,
       _total_large_medipacks,
       _total_flares,
+      _total_goldroses,
       _total_secrets,
       _puzzles,
       _keys,
