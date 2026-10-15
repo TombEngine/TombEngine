@@ -351,12 +351,14 @@ namespace TEN::Animation
 				item.Pose.Orientation += rootMotion.Rotation;
 			}
 
+			item.HandleOffsetBlend();
 			g_Renderer.UpdateLaraAnimations(true);
 		}
 		else
 		{
 			item.Pose.Translate(item.Pose.Orientation.y, item.Animation.Velocity.z, vertVelocity, item.Animation.Velocity.x);
 			item.Pose.Orientation += rootMotion.Rotation;
+			item.HandleOffsetBlend();
 			g_Renderer.UpdateItemAnimations(item.Index, true);
 		}
 
