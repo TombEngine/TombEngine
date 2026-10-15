@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 186" role="img" aria-label="Sorted pass pipeline: collect one object per bucket with 16-byte polygon entries, group once per object, cluster groups that overlap in depth and on screen, radix sort compact keys of cluster rank and distance, and draw one batch per run of a group. A cluster with more than 64 group switches is dissolved and the keys are sorted again.">
+  <title>Sorted pass pipeline: collect one object per bucket with 16-byte polygon entries, group once per object, cluster groups that overlap in depth and on screen, radix sort compact keys of cluster rank and distance, and draw one batch per run of a group. A cluster with more than 64 group switches is dissolved and the keys are sorted again.</title>
+  <style>
+    text { font-family: "Segoe UI", system-ui, -apple-system, Helvetica, Arial, sans-serif; font-size: 12px; fill: #18202B; }
+    .small { font-size: 11px; }
+    .label { font-weight: 600; }
+    .mono { font-family: Consolas, "JetBrains Mono", Menlo, monospace; font-size: 11px; }
+    .muted { fill: #5B6676; }
+    .on { fill: #FFFFFF; }
+    .t-before { fill: #C4572E; }
+    .t-after { fill: #127E73; }
+    .cell, .before, .before-soft, .after, .after-soft, .skip, .obj-a, .obj-b { stroke: #FFFFFF; stroke-width: 1.5; }
+    .cell { fill: #E3E9F0; }
+    .skip { fill: #E3E9F0; opacity: 0.55; }
+    .before { fill: #C4572E; }
+    .before-soft { fill: #EBC3B3; }
+    .after { fill: #127E73; }
+    .after-soft { fill: #B5DDD7; }
+    .obj-a { fill: #2B62D9; }
+    .obj-b { fill: #B07A12; }
+    .box { fill: #F4F6F9; stroke: #9AA5B4; stroke-width: 1.2; }
+    .rule { stroke: #D3DAE3; stroke-width: 1; fill: none; }
+    .wire { stroke: #18202B; stroke-width: 1.4; fill: none; }
+    .wire-after { stroke: #127E73; stroke-width: 1.6; fill: none; }
+    .tick-before { stroke: #C4572E; stroke-width: 1.6; fill: none; }
+    .head { fill: #18202B; }
+    .head-after { fill: #127E73; }
+    @media (prefers-color-scheme: dark) {
+      text { fill: #E4E9F0; }
+      .muted { fill: #9AA5B4; }
+      .on { fill: #11151B; }
+      .t-before { fill: #E07A52; }
+      .t-after { fill: #3FB8A8; }
+      .cell, .before, .before-soft, .after, .after-soft, .skip, .obj-a, .obj-b { stroke: #181E26; }
+      .cell { fill: #263040; }
+      .skip { fill: #263040; }
+      .before { fill: #E07A52; }
+      .before-soft { fill: #5A3326; }
+      .after { fill: #3FB8A8; }
+      .after-soft { fill: #1F4A45; }
+      .obj-a { fill: #6E9BF0; }
+      .obj-b { fill: #E0A93E; }
+      .box { fill: #181E26; stroke: #5B6676; }
+      .rule { stroke: #2E3846; }
+      .wire { stroke: #E4E9F0; }
+      .wire-after { stroke: #3FB8A8; }
+      .tick-before { stroke: #E07A52; }
+      .head { fill: #E4E9F0; }
+      .head-after { fill: #3FB8A8; }
+    }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" class="head"/>
+    </marker>
+  </defs>
+
+  <path class="wire" d="M10 30 V24 H142 V30"/>
+  <text x="76" y="16" text-anchor="middle" class="small muted">CollectTransparentFaces pass</text>
+  <path class="wire" d="M190 30 V24 H682 V30"/>
+  <text x="436" y="16" text-anchor="middle" class="small muted">SortTransparentFaces()</text>
+  <path class="wire" d="M730 30 V24 H862 V30"/>
+  <text x="796" y="16" text-anchor="middle" class="small muted">DrawSortedFaces()</text>
+
+  <rect x="10" y="40" width="132" height="70" rx="4" class="box"/>
+  <text x="76" y="64" text-anchor="middle" class="label">1. Collect</text>
+  <text x="76" y="84" text-anchor="middle" class="small">1 object per bucket</text>
+  <text x="76" y="99" text-anchor="middle" class="small">16 B per polygon</text>
+
+  <rect x="190" y="40" width="132" height="70" rx="4" class="box"/>
+  <text x="256" y="64" text-anchor="middle" class="label">2. Group</text>
+  <text x="256" y="84" text-anchor="middle" class="small">key once per object</text>
+  <text x="256" y="99" text-anchor="middle" class="small">hash map lookup</text>
+
+  <rect x="370" y="40" width="132" height="70" rx="4" class="box"/>
+  <text x="436" y="64" text-anchor="middle" class="label">3. Cluster</text>
+  <text x="436" y="84" text-anchor="middle" class="small">depth + screen overlap</text>
+  <text x="436" y="99" text-anchor="middle" class="small">union-find</text>
+
+  <rect x="550" y="40" width="132" height="70" rx="4" class="box"/>
+  <text x="616" y="64" text-anchor="middle" class="label">4. Sort</text>
+  <text x="616" y="84" text-anchor="middle" class="small">cluster rank, distance</text>
+  <text x="616" y="99" text-anchor="middle" class="small">stable LSD radix</text>
+
+  <rect x="730" y="40" width="132" height="70" rx="4" class="box"/>
+  <text x="796" y="64" text-anchor="middle" class="label">5. Draw</text>
+  <text x="796" y="84" text-anchor="middle" class="small">1 batch per group run</text>
+  <text x="796" y="99" text-anchor="middle" class="small">1 index upload per flush</text>
+
+  <line class="wire" x1="142" y1="75" x2="188" y2="75" marker-end="url(#arrow)"/>
+  <text x="165" y="68" text-anchor="middle" class="small muted">entries</text>
+  <line class="wire" x1="322" y1="75" x2="368" y2="75" marker-end="url(#arrow)"/>
+  <text x="345" y="68" text-anchor="middle" class="small muted">groups</text>
+  <line class="wire" x1="502" y1="75" x2="548" y2="75" marker-end="url(#arrow)"/>
+  <text x="525" y="68" text-anchor="middle" class="small muted">clusters</text>
+  <line class="wire" x1="682" y1="75" x2="728" y2="75" marker-end="url(#arrow)"/>
+  <text x="705" y="68" text-anchor="middle" class="small muted">keys</text>
+
+  <path class="tick-before" d="M650 110 V140 H582 V114" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <text x="616" y="158" text-anchor="middle" class="small t-before">over 64 group switches:</text>
+  <text x="616" y="173" text-anchor="middle" class="small t-before">dissolve cluster, sort again</text>
+</svg>
