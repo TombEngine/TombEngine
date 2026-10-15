@@ -1603,6 +1603,7 @@ struct ItemT : public flatbuffers::NativeTable {
   int32_t flags = 0;
   int32_t trigger_flags = 0;
   int32_t carried_item = 0;
+  int32_t parent_object = 0;
   int32_t after_death = 0;
   std::vector<int32_t> item_flags{};
   std::unique_ptr<TEN::Serialization::Common::Pose> pose{};
@@ -1653,30 +1654,31 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_FLAGS = 38,
     VT_TRIGGER_FLAGS = 40,
     VT_CARRIED_ITEM = 42,
-    VT_AFTER_DEATH = 44,
-    VT_ITEM_FLAGS = 46,
-    VT_POSE = 48,
-    VT_ACTIVE = 50,
-    VT_STATUS = 52,
-    VT_HIT_STAUTS = 54,
-    VT_COLLIDABLE = 56,
-    VT_LOOKED_AT = 58,
-    VT_AI_BITS = 60,
-    VT_DATA_TYPE = 62,
-    VT_DATA = 64,
-    VT_BASE_MESH = 66,
-    VT_MESH_INDEX = 68,
-    VT_MUTATORS = 70,
-    VT_SKIN_OBJECT_ID = 72,
-    VT_SKIN_SWAP_INDEX = 74,
-    VT_EFFECT_TYPE = 76,
-    VT_EFFECT_LIGHT_COLOUR = 78,
-    VT_EFFECT_PRIMARY_COLOUR = 80,
-    VT_EFFECT_SECONDARY_COLOUR = 82,
-    VT_EFFECT_COUNT = 84,
-    VT_LUA_NAME = 86,
-    VT_PROPERTIES = 88,
-    VT_LUA_CALLBACKS = 90
+    VT_PARENT_OBJECT = 44,
+    VT_AFTER_DEATH = 46,
+    VT_ITEM_FLAGS = 48,
+    VT_POSE = 50,
+    VT_ACTIVE = 52,
+    VT_STATUS = 54,
+    VT_HIT_STAUTS = 56,
+    VT_COLLIDABLE = 58,
+    VT_LOOKED_AT = 60,
+    VT_AI_BITS = 62,
+    VT_DATA_TYPE = 64,
+    VT_DATA = 66,
+    VT_BASE_MESH = 68,
+    VT_MESH_INDEX = 70,
+    VT_MUTATORS = 72,
+    VT_SKIN_OBJECT_ID = 74,
+    VT_SKIN_SWAP_INDEX = 76,
+    VT_EFFECT_TYPE = 78,
+    VT_EFFECT_LIGHT_COLOUR = 80,
+    VT_EFFECT_PRIMARY_COLOUR = 82,
+    VT_EFFECT_SECONDARY_COLOUR = 84,
+    VT_EFFECT_COUNT = 86,
+    VT_LUA_NAME = 88,
+    VT_PROPERTIES = 90,
+    VT_LUA_CALLBACKS = 92
   };
   int32_t anim_object_id() const {
     return GetField<int32_t>(VT_ANIM_OBJECT_ID, 0);
@@ -1737,6 +1739,9 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   int32_t carried_item() const {
     return GetField<int32_t>(VT_CARRIED_ITEM, 0);
+  }
+  int32_t parent_object() const {
+    return GetField<int32_t>(VT_PARENT_OBJECT, 0);
   }
   int32_t after_death() const {
     return GetField<int32_t>(VT_AFTER_DEATH, 0);
@@ -1899,6 +1904,7 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_FLAGS) &&
            VerifyField<int32_t>(verifier, VT_TRIGGER_FLAGS) &&
            VerifyField<int32_t>(verifier, VT_CARRIED_ITEM) &&
+           VerifyField<int32_t>(verifier, VT_PARENT_OBJECT) &&
            VerifyField<int32_t>(verifier, VT_AFTER_DEATH) &&
            VerifyOffset(verifier, VT_ITEM_FLAGS) &&
            verifier.VerifyVector(item_flags()) &&
@@ -2090,6 +2096,9 @@ struct ItemBuilder {
   void add_carried_item(int32_t carried_item) {
     fbb_.AddElement<int32_t>(Item::VT_CARRIED_ITEM, carried_item, 0);
   }
+  void add_parent_object(int32_t parent_object) {
+    fbb_.AddElement<int32_t>(Item::VT_PARENT_OBJECT, parent_object, 0);
+  }
   void add_after_death(int32_t after_death) {
     fbb_.AddElement<int32_t>(Item::VT_AFTER_DEATH, after_death, 0);
   }
@@ -2195,6 +2204,7 @@ inline flatbuffers::Offset<Item> CreateItem(
     int32_t flags = 0,
     int32_t trigger_flags = 0,
     int32_t carried_item = 0,
+    int32_t parent_object = 0,
     int32_t after_death = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> item_flags = 0,
     const TEN::Serialization::Common::Pose *pose = 0,
@@ -2239,6 +2249,7 @@ inline flatbuffers::Offset<Item> CreateItem(
   builder_.add_pose(pose);
   builder_.add_item_flags(item_flags);
   builder_.add_after_death(after_death);
+  builder_.add_parent_object(parent_object);
   builder_.add_carried_item(carried_item);
   builder_.add_trigger_flags(trigger_flags);
   builder_.add_flags(flags);
@@ -2294,6 +2305,7 @@ inline flatbuffers::Offset<Item> CreateItemDirect(
     int32_t flags = 0,
     int32_t trigger_flags = 0,
     int32_t carried_item = 0,
+    int32_t parent_object = 0,
     int32_t after_death = 0,
     const std::vector<int32_t> *item_flags = nullptr,
     const TEN::Serialization::Common::Pose *pose = 0,
@@ -2345,6 +2357,7 @@ inline flatbuffers::Offset<Item> CreateItemDirect(
       flags,
       trigger_flags,
       carried_item,
+      parent_object,
       after_death,
       item_flags__,
       pose,
@@ -11268,6 +11281,7 @@ inline void Item::UnPackTo(ItemT *_o, const flatbuffers::resolver_function_t *_r
   { auto _e = flags(); _o->flags = _e; }
   { auto _e = trigger_flags(); _o->trigger_flags = _e; }
   { auto _e = carried_item(); _o->carried_item = _e; }
+  { auto _e = parent_object(); _o->parent_object = _e; }
   { auto _e = after_death(); _o->after_death = _e; }
   { auto _e = item_flags(); if (_e) { _o->item_flags.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->item_flags[_i] = _e->Get(_i); } } }
   { auto _e = pose(); if (_e) _o->pose = std::unique_ptr<TEN::Serialization::Common::Pose>(new TEN::Serialization::Common::Pose(*_e)); }
@@ -11322,6 +11336,7 @@ inline flatbuffers::Offset<Item> CreateItem(flatbuffers::FlatBufferBuilder &_fbb
   auto _flags = _o->flags;
   auto _trigger_flags = _o->trigger_flags;
   auto _carried_item = _o->carried_item;
+  auto _parent_object = _o->parent_object;
   auto _after_death = _o->after_death;
   auto _item_flags = _fbb.CreateVector(_o->item_flags);
   auto _pose = _o->pose ? _o->pose.get() : 0;
@@ -11368,6 +11383,7 @@ inline flatbuffers::Offset<Item> CreateItem(flatbuffers::FlatBufferBuilder &_fbb
       _flags,
       _trigger_flags,
       _carried_item,
+      _parent_object,
       _after_death,
       _item_flags,
       _pose,

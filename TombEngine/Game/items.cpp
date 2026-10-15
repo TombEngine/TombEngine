@@ -392,6 +392,15 @@ void KillItem(short const itemNumber)
 
 	RemoveFromVector(ActiveItems, itemNumber);
 
+	// Detach any children parented to the killed item.
+	for (int activeItemNumber : ActiveItems)
+	{
+		auto& activeItem = g_Level.Items[activeItemNumber];
+
+		if (activeItem.Parenting.ParentObject == itemNumber)
+			activeItem.Parenting.Detach();
+	}
+
 	if (item->RoomNumber != NO_VALUE)
 		RemoveFromVector(g_Level.Rooms[item->RoomNumber].itemNumbers, itemNumber);
 
@@ -539,6 +548,7 @@ void InitializeItem(short itemNumber)
 	item.HitPoints = object.HitPoints;
 
 	item.Effect = {};
+	item.Parenting = {};
 
 	if (item.ObjectNumber == ID_HK_ITEM ||
 		item.ObjectNumber == ID_HK_AMMO_ITEM ||
@@ -767,6 +777,15 @@ void UpdateAllItems()
 		{
 			KillItem(item.Index);
 		}
+	}
+
+	// Update parented items after all control functions have run.
+	for (int itemNumber : itemsToUpdate)
+	{
+		auto& item = g_Level.Items[itemNumber];
+
+		if (item.Parenting.IsAttached())
+			item.Parenting.Update(item);
 	}
 
 	InItemControlLoop = false;

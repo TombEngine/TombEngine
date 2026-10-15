@@ -226,6 +226,8 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_ClearSkinnedMesh, & Moveable::ClearSkinnedMesh,
 		ScriptReserved_Destroy, &Moveable::Destroy,
 		ScriptReserved_AttachObjCamera, &Moveable::AttachObjCamera,
+		ScriptReserved_Attach, &Moveable::Attach,
+		ScriptReserved_Detach, &Moveable::Detach,
 		ScriptReserved_AnimFromObject, &Moveable::AnimFromObject,
 		ScriptReserved_ShowInteractionHighlight, &Moveable::ShowInteractionHighlight,
 		ScriptReserved_HideInteractionHighlight, &Moveable::HideInteractionHighlight,
@@ -1482,6 +1484,28 @@ bool Moveable::MeshExists(int index) const
 void Moveable::AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshId)
 {
 	ObjCamera(_moveable, camMeshId, mov._moveable, targetMeshId, true);
+}
+
+/// Parent this moveable to another moveable. The moveable will follow the parent's movement
+// and rotation every frame.
+// @function Moveable:Attach
+// @tparam Objects.Moveable parent Moveable to follow.
+void Moveable::Attach(Moveable& parent)
+{
+	if (_moveableID == NO_VALUE || parent._moveableID == NO_VALUE)
+		return;
+
+	_moveable->Parenting.Attach(*parent._moveable);
+}
+
+/// Detach this moveable from its parent, if any.
+// @function Moveable:Detach
+void Moveable::Detach()
+{
+	if (_moveableID == NO_VALUE)
+		return;
+
+	_moveable->Parenting.Detach();
 }
 
 /// Borrow animation from an object.
