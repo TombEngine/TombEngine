@@ -49,19 +49,15 @@ local function CaptureSnapshot()
     snap.postProcessTint = TEN.View.GetPostProcessTint()
 end
 
-local function RestoreSnapshot()
+LevelFuncs.Engine.RingInventory.RestoreSnapshot = function()
     if not snap then return end
 
     -- Reset post-process and camera settings
-    pcall(function()
-        TEN.View.SetDOF(snap.dofMode, snap.dofFocusDistance, snap.dofRange, snap.dofStrength)
-        TEN.View.SetFOV(snap.fov)
-        TEN.View.SetRoll(snap.roll)
-        if Settings.Background.enable ~= true then
-            TEN.View.SetPostProcess(snap.postProcessMode, snap.postProcessStrength)
-            TEN.View.SetPostProcessTint(snap.postProcessTint)
-        end
-    end)
+    TEN.View.SetDOF(snap.dofMode, snap.dofFocusDistance, snap.dofRange, snap.dofStrength)
+    TEN.View.SetFOV(snap.fov)
+    TEN.View.SetRoll(snap.roll)
+    TEN.View.SetPostProcess(snap.postProcessMode, snap.postProcessStrength)
+    TEN.View.SetPostProcessTint(snap.postProcessTint)
 
     snap = {}
 
@@ -179,7 +175,6 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
     end
     
     if InventoryStates.GetInventoryClosed() then
-        RestoreSnapshot()
         InventoryStates.SetInventoryClosed(false)
         inventoryRunning = false
     end
@@ -359,6 +354,6 @@ end
 -- @tfield[opt=true] bool gameStats If true, full game statistics are show in Statistics mode in Inventory.
 
 TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_FREEZE, LevelFuncs.Engine.RingInventory.UpdateInventory)
-TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.Engine.RingInventory.RunInventory)
+TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.POST_LOOP, LevelFuncs.Engine.RingInventory.RunInventory)
 
 return InventoryModule

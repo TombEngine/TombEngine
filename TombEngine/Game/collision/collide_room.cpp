@@ -137,7 +137,7 @@ static CollisionPositionData GetCollisionPosition(PointCollisionData& pointColl)
 }
 
 static void SetSectorAttribs(CollisionPositionData& sectorAttribs, const CollisionSetupData& collSetup, PointCollisionData& pointColl,
-							 const Vector3i& probePos, int realRoomNumber)
+							 const Vector3i& probePos, int realRoomNumber, bool bypassFloorSlopeChecks = false)
 {
 	constexpr auto ASPECT_ANGLE_DELTA_MAX = ANGLE(90.0f);
 
@@ -145,7 +145,8 @@ static void SetSectorAttribs(CollisionPositionData& sectorAttribs, const Collisi
 	short aspectAngle = Geometry::GetSurfaceAspectAngle(floorNormal);
 	short aspectAngleDelta = Geometry::GetShortestAngle(collSetup.ForwardAngle, aspectAngle);
 
-	if (collSetup.BlockFloorSlopeUp &&
+	if (!bypassFloorSlopeChecks &&
+		collSetup.BlockFloorSlopeUp &&
 		sectorAttribs.FloorSlope &&
 		sectorAttribs.Floor <= STEPUP_HEIGHT &&
 		sectorAttribs.Floor >= -STEPUP_HEIGHT &&
@@ -153,7 +154,8 @@ static void SetSectorAttribs(CollisionPositionData& sectorAttribs, const Collisi
 	{
 		sectorAttribs.Floor = MAX_HEIGHT;
 	}
-	else if (collSetup.BlockFloorSlopeDown &&
+	else if (!bypassFloorSlopeChecks &&
+		collSetup.BlockFloorSlopeDown &&
 		sectorAttribs.FloorSlope &&
 		sectorAttribs.Floor <= STEPUP_HEIGHT &&
 		sectorAttribs.Floor >= -STEPUP_HEIGHT &&
@@ -388,7 +390,20 @@ void GetCollisionInfo(CollisionInfo* coll, ItemInfo* item, const Vector3i& offse
 	if (height != NO_HEIGHT)
 		height -= (doPlayerCollision ? entityPos.y : probePos.y);
 
-	SetSectorAttribs(coll->Front, coll->Setup, pointColl, probePos, realRoomNumber);
+	if (coll->Setup.BlockFloorSlopeUp && coll->Front.FloorSlope &&
+		coll->Front.Floor < coll->Middle.Floor && height < coll->Front.Floor && coll->Front.Floor < 0)
+	{
+		coll->Front.Floor = MAX_HEIGHT;
+	}
+	else if (coll->Setup.BlockFloorSlopeDown && coll->Front.FloorSlope &&
+			 coll->Front.Floor > coll->Middle.Floor)
+	{
+		coll->Front.Floor = MAX_HEIGHT;
+	}
+	else
+	{
+		SetSectorAttribs(coll->Front, coll->Setup, pointColl, probePos, realRoomNumber, true);
+	}
 
 	// TEST 4: MIDDLE-LEFT PROBE
 

@@ -678,7 +678,7 @@ void FlowHandler::DeleteSaveGame(int slot)
 
 bool FlowHandler::DoesSaveGameExist(int slot)
 {
-	return SaveGame::DoesSaveGameExist(slot, true);
+	return SaveGame::DoesSaveGameExist(slot, true) && SaveGame::IsSaveGameValid(slot);
 }
 
 int FlowHandler::GetSecretCount() const

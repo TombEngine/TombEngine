@@ -4,6 +4,7 @@
 struct CreatureBiteInfo;
 
 constexpr auto MAX_VISIBILITY_DISTANCE = BLOCK(8);
+constexpr auto ENEMY_SHOT_DAMAGE_DIVIDER = 10.0f;
 
 constexpr auto FINAL_SHOT_CONE_ANGLE = ANGLE(25.0f);
 constexpr auto FINAL_SHOT_COUNT = 4;
