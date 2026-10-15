@@ -175,6 +175,10 @@ namespace TEN::Renderer::RHI
         // SDL GPU requires swapchain acquisition on the thread that created the window.
         virtual bool RequiresWindowThreadPresent() const = 0;
 
+        // An OpenGL context is current on one thread at a time: a thread that stops using the device releases it,
+        // and the next call from another thread takes it.
+        virtual void ReleaseThread() {}
+
         // Average GPU time of the debug groups directly inside the outermost one, plus the outermost group itself,
         // since the previous call. SDL GPU has no timestamp queries and measures fences only while timing is enabled,
         // splitting command buffers at those groups.
@@ -184,4 +188,7 @@ namespace TEN::Renderer::RHI
 
     // With preferLowPower, hybrid graphics systems use the integrated GPU instead of the discrete one.
     std::unique_ptr<IDevice> CreateDevice(GraphicsApi preferredBackend, SDL_Window* window, bool debugMode, bool preferLowPower = false);
+
+    // SDL window flags the backend needs when the window is created.
+    unsigned int GetWindowFlags(GraphicsApi backend);
 }

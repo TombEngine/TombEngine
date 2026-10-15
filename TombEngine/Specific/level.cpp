@@ -19,6 +19,7 @@
 #include "Game/spotcam.h"
 #include "Objects/Generic/Doors/generic_doors.h"
 #include "Physics/Physics.h"
+#include "Renderer/Backend/SceneRenderer.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
@@ -1875,7 +1876,14 @@ bool LoadLevelFile(int levelIndex)
 	CleanUp();
 	FreeLevel(fastReload);
 	
-	LevelLoadTask = std::async(std::launch::async, LoadLevel, levelPath, fastReload);
+	// The loading thread renders the loading screen, so the OpenGL context moves to it and back.
+	TEN::Renderer::Backend::g_SceneRenderer.ReleaseThread();
+	LevelLoadTask = std::async(std::launch::async, [&]()
+	{
+		bool isLoaded = LoadLevel(levelPath, fastReload);
+		TEN::Renderer::Backend::g_SceneRenderer.ReleaseThread();
+		return isLoaded;
+	});
 	bool loadSuccess = LevelLoadTask.get();
 
 	if (loadSuccess && isDummyLevel)

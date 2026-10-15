@@ -1,6 +1,6 @@
 # Renderer architecture
 
-The renderer is split into a frontend, which decides what is drawn, and a backend, which draws it on the GPU through a small rendering hardware interface (RHI) with a DirectX 11 and an SDL GPU (Vulkan, Direct3D 12) implementation.
+The renderer is split into a frontend, which decides what is drawn, and a backend, which draws it on the GPU through a small rendering hardware interface (RHI) with DirectX 11, SDL GPU (Vulkan, Direct3D 12) and OpenGL 4.5 implementations.
 
 ## Folders
 
@@ -13,7 +13,7 @@ The renderer is split into a frontend, which decides what is drawn, and a backen
 | `Renderer/Structures/` | Data of the frontend: rooms, buckets, meshes, objects, items, lights, sprites and the level vertex. |
 | `Renderer/ConstantBuffers/` | Uniform blocks filled by the frontend and copied by the backend: camera, lights, fog bulbs, shadows and sky effects. |
 | `Renderer/Backend/` | `SceneRenderer` class (`g_SceneRenderer`): GPU resources, pipelines and passes of a frame, one file per area. |
-| `Renderer/RHI/` | Device interface (`RHIDevice.h`, `RHITypes.h`), the `DirectX11/` and `SDLGPU/` devices, and shared helpers: shader loading, upload ring, render target pool, readback, memory tracking. `Test/` holds a standalone device test. |
+| `Renderer/RHI/` | Device interface (`RHIDevice.h`, `RHITypes.h`), the `DirectX11/`, `SDLGPU/` and `OpenGL/` devices, and shared helpers: shader loading, upload ring, render target pool, readback, memory tracking. `Test/` holds a standalone device test. |
 | `Shaders/` | HLSL sources of every shader and `CompileShaders.ps1`, which compiles them offline. |
 
 File names follow the class they implement: `Renderer<Topic>.cpp` files hold methods of `Renderer`, `SceneRenderer<Topic>.cpp` files hold methods of `SceneRenderer`.
@@ -32,7 +32,7 @@ File names follow the class they implement: `Renderer<Topic>.cpp` files hold met
 
 ## Shaders
 
-Each `.hlsl` file declares its entry points and resource counts in `// TEN_SHADER:` lines. The build runs `CompileShaders.ps1`, which writes DXBC for DirectX 11 and SPIR-V for SDL GPU into `Build/<Configuration>/Shaders/Bin`. A `permutations=` key adds one variant per define; an `options=` key adds a variant for every combination of its defines. Rooms and objects use options to compile out the material maps a texture group lacks, so the variant is chosen per draw without branches in the shader. `SceneRenderer::ReloadShaders()` recompiles the sources of a development checkout at runtime.
+Each `.hlsl` file declares its entry points and resource counts in `// TEN_SHADER:` lines. The build runs `CompileShaders.ps1`, which writes DXBC for DirectX 11, SPIR-V for Vulkan, DXIL for Direct3D 12 and GLSL for OpenGL into `Build/<Configuration>/Shaders/Bin`. The GLSL is translated from the SPIR-V by SPIRV-Cross; the OpenGL device loads each stage as a separate program and offsets its bindings per stage. OpenGL keeps the conventions of the other backends with an upper left clip origin and a depth range from 0 to 1, and flips the image only when it is copied to the window. Its context is current on one thread at a time, so a thread that stops rendering calls `SceneRenderer::ReleaseThread()`. A `permutations=` key adds one variant per define; an `options=` key adds a variant for every combination of its defines. Rooms and objects use options to compile out the material maps a texture group lacks, so the variant is chosen per draw without branches in the shader. `SceneRenderer::ReloadShaders()` recompiles the sources of a development checkout at runtime.
 
 Structures shared with C++ are declared once in `Shaders/GpuShared.hlsli`, which `Backend/GpuTypes.h` includes.
 

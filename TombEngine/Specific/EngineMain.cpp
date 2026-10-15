@@ -72,14 +72,17 @@ TEN::Renderer::RHI::GraphicsApi ParseRHIBackend(const std::string& name)
 	if (name == "d3d12")
 		return TEN::Renderer::RHI::GraphicsApi::Direct3D12;
 
+	if (name == "opengl")
+		return TEN::Renderer::RHI::GraphicsApi::OpenGL;
+
 	return TEN::Renderer::RHI::GraphicsApi::Vulkan;
 }
 
 // Tries the requested scene renderer backend, then the others in order. Returns false when none starts.
 bool StartSceneRenderer(SDL_Window* window, const std::string& requestedBackend, bool preferLowPowerGpu)
 {
-	const std::string backends[] = { requestedBackend, "vulkan", "dx11" };
-	for (int i = 0; i < 3; i++)
+	const std::string backends[] = { requestedBackend, "vulkan", "d3d12", "dx11", "opengl" };
+	for (int i = 0; i < (int)std::size(backends); i++)
 	{
 		if (std::find(backends, backends + i, backends[i]) != backends + i)
 			continue;
@@ -455,13 +458,15 @@ int main(int argc, char* argv[])
 
 	// The configured backend applies when the command line does not choose one; the retired legacy option uses Vulkan.
 	if (rendererBackend.empty())
-		rendererBackend = (g_Configuration.GraphicsBackend == GraphicsBackend::DX11) ? "dx11" : "vulkan";
+		rendererBackend = GetGraphicsBackendName(g_Configuration.GraphicsBackend);
 
 	// Initialize main window.
 	int width = g_Configuration.ScreenWidth;
 	int height = g_Configuration.ScreenHeight;
 
-	unsigned int windowFlags = SDL_WINDOW_RESIZABLE;
+	// OpenGL needs its window flag at creation, so a fallback from it to the other backends keeps an OpenGL window.
+	auto windowBackend = ParseRHIBackend(rhiTestBackend.empty() ? rendererBackend : rhiTestBackend);
+	unsigned int windowFlags = SDL_WINDOW_RESIZABLE | TEN::Renderer::RHI::GetWindowFlags(windowBackend);
 	if (!g_Configuration.EnableWindowedMode)
 		windowFlags |= SDL_WINDOW_FULLSCREEN;
 
@@ -553,6 +558,8 @@ int main(int argc, char* argv[])
 		exit(EXIT_FAILURE);
 	}
 
+	// The game thread renders from now on.
+	TEN::Renderer::Backend::g_SceneRenderer.ReleaseThread();
 	GameThread = SDL_CreateThread(GameMain, "GameMain", nullptr);
 	if (!GameThread)
 	{

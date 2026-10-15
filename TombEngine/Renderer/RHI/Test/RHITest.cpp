@@ -56,6 +56,7 @@ namespace TEN::Renderer::RHI
         case GraphicsApi::DirectX11:  return "DirectX11";
         case GraphicsApi::Vulkan:     return "Vulkan";
         case GraphicsApi::Direct3D12: return "Direct3D12";
+        case GraphicsApi::OpenGL:     return "OpenGL";
         default:                  return "None";
         }
     }

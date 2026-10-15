@@ -92,7 +92,7 @@ namespace TEN::Renderer
 		if (!BeginStatTable("##Overview"))
 			return;
 
-		AddStatRow("Configured backend", (g_Configuration.GraphicsBackend == GraphicsBackend::DX11) ? "DirectX 11" : "Vulkan");
+		AddStatRow("Configured backend", GetGraphicsBackendName(g_Configuration.GraphicsBackend));
 		AddStatRow("FPS", "%.1f", _fps);
 		AddStatRow("Average frame time", "%.2f ms", averageTime);
 		AddStatRow("Worst frame time", "%.2f ms", worstTime);

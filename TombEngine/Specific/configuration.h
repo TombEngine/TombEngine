@@ -20,8 +20,10 @@ enum class MenuOptionLoopingMode
 // Renderer backend of the main window; the backends fall back to each other. The values are stored in the configuration.
 enum class GraphicsBackend
 {
-	Vulkan = 1,
-	DX11   = 2
+	Vulkan     = 1,
+	DX11       = 2,
+	Direct3D12 = 3,
+	OpenGL     = 4
 };
 
 struct GameConfiguration
@@ -81,5 +83,6 @@ void InitDefaultConfiguration();
 bool LoadConfiguration();
 bool SaveConfiguration();
 void SetAudioConfiguration(const GameConfiguration& config);
+const char* GetGraphicsBackendName(GraphicsBackend backend);
 
 extern GameConfiguration g_Configuration;

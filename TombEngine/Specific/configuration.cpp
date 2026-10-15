@@ -120,8 +120,9 @@ static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 	g_Configuration.EnableAmbientOcclusion = config->enable_ambient_occlusion();
 	g_Configuration.EnableHighFramerate = config->enable_high_framerate();
 	g_Configuration.AtmosphericSkyQuality = (AtmosphericSkyQuality)std::clamp(config->atmospheric_sky_quality(), (int)AtmosphericSkyQuality::Low, (int)AtmosphericSkyQuality::High);
-	// The retired legacy renderer, stored as 0, uses Vulkan.
-	g_Configuration.GraphicsBackend = (config->graphics_backend() == (int)GraphicsBackend::DX11) ? GraphicsBackend::DX11 : GraphicsBackend::Vulkan;
+	// The retired legacy renderer, stored as 0, and unknown values use Vulkan.
+	int backend = config->graphics_backend();
+	g_Configuration.GraphicsBackend = (backend >= (int)GraphicsBackend::Vulkan && backend <= (int)GraphicsBackend::OpenGL) ? (GraphicsBackend)backend : GraphicsBackend::Vulkan;
 	g_Configuration.RenderScale = (RenderScaleMode)std::clamp(config->render_scale(), 0, (int)RenderScaleMode::Count - 1);
 
 	if (config->adapter_name() != nullptr)
@@ -162,6 +163,25 @@ void SetAudioConfiguration(const GameConfiguration& config)
 {
 	SetVolumeTracks(config.MusicVolume);
 	SetVolumeFX(config.SfxVolume);
+}
+
+// Name of the backend on the command line.
+const char* GetGraphicsBackendName(GraphicsBackend backend)
+{
+	switch (backend)
+	{
+	case GraphicsBackend::DX11:
+		return "dx11";
+
+	case GraphicsBackend::Direct3D12:
+		return "d3d12";
+
+	case GraphicsBackend::OpenGL:
+		return "opengl";
+
+	default:
+		return "vulkan";
+	}
 }
 
 void InitDefaultConfiguration()

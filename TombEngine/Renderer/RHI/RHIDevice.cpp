@@ -2,6 +2,7 @@
 #include "Renderer/RHI/RHIDevice.h"
 
 #include "Renderer/RHI/DirectX11/DX11Device.h"
+#include "Renderer/RHI/OpenGL/GLDevice.h"
 #include "Renderer/RHI/SDLGPU/SDLGPUDevice.h"
 
 namespace TEN::Renderer::RHI
@@ -80,8 +81,8 @@ namespace TEN::Renderer::RHI
 
     std::unique_ptr<IDevice> CreateDevice(GraphicsApi preferredBackend, SDL_Window* window, bool debugMode, bool preferLowPower)
     {
-        // Try the requested backend first, then fall back in order of preference: Vulkan, D3D12, DX11.
-        GraphicsApi order[] = { preferredBackend, GraphicsApi::Vulkan, GraphicsApi::Direct3D12, GraphicsApi::DirectX11 };
+        // Try the requested backend first, then fall back in order of preference: Vulkan, D3D12, DX11, OpenGL.
+        GraphicsApi order[] = { preferredBackend, GraphicsApi::Vulkan, GraphicsApi::Direct3D12, GraphicsApi::DirectX11, GraphicsApi::OpenGL };
 
         for (auto backend : order)
         {
@@ -101,6 +102,10 @@ namespace TEN::Renderer::RHI
                 device = DirectX11::CreateDX11Device(window, debugMode, preferLowPower);
                 break;
 
+            case GraphicsApi::OpenGL:
+                device = OpenGL::CreateGLDevice(window, debugMode);
+                break;
+
             default:
                 break;
             }
@@ -111,5 +116,10 @@ namespace TEN::Renderer::RHI
 
         TENLog("No graphics backend could be initialized.", LogLevel::Error);
         return nullptr;
+    }
+
+    unsigned int GetWindowFlags(GraphicsApi backend)
+    {
+        return (backend == GraphicsApi::OpenGL) ? OpenGL::PrepareGLWindow() : 0;
     }
 }

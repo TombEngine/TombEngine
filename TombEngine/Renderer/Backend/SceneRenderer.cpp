@@ -302,6 +302,13 @@ namespace TEN::Renderer::Backend
         return (_device != nullptr && _device->RequiresWindowThreadPresent());
     }
 
+    // Called by a thread that stops rendering, so the OpenGL context can become current on the next one.
+    void SceneRenderer::ReleaseThread()
+    {
+        if (_device != nullptr)
+            _device->ReleaseThread();
+    }
+
     // Anisotropic sampler of the material maps. With a render scale below 1, its mip bias keeps the texture detail
     // of the window resolution.
     bool SceneRenderer::CreateMaterialSampler()

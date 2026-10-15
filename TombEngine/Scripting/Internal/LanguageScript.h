@@ -81,6 +81,8 @@
 #define STRING_RENDERER					"renderer"
 #define STRING_RENDERER_VULKAN			"renderer_vulkan"
 #define STRING_RENDERER_DX11			"renderer_dx11"
+#define STRING_RENDERER_D3D12			"renderer_d3d12"
+#define STRING_RENDERER_OPENGL			"renderer_opengl"
 #define STRING_RENDER_SCALE				"render_scale"
 #define STRING_RENDER_SCALE_NATIVE		"render_scale_native"
 #define STRING_RENDER_SCALE_ULTRA_QUALITY	"render_scale_ultra_quality"

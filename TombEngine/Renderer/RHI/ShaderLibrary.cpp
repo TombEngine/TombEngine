@@ -74,6 +74,11 @@ namespace TEN::Renderer::RHI
             extension = ".dxil";
             break;
 
+        case ShaderFormat::Glsl:
+            formatDirectory = "glsl";
+            extension = ".glsl";
+            break;
+
         default:
             return nullptr;
         }

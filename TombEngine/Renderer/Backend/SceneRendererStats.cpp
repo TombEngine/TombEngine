@@ -75,9 +75,9 @@ namespace TEN::Renderer::Backend
         if (_device == nullptr)
             return info;
 
-        constexpr const char* BACKEND_NAMES[] = { "None", "DirectX 11", "Vulkan", "Direct3D 12" };
+        constexpr const char* BACKEND_NAMES[] = { "None", "DirectX 11", "Vulkan", "Direct3D 12", "OpenGL" };
         int backend = (int)_device->GetBackend();
-        info.Backend = (backend >= 0 && backend < 4) ? BACKEND_NAMES[backend] : "Unknown";
+        info.Backend = (backend >= 0 && backend < (int)std::size(BACKEND_NAMES)) ? BACKEND_NAMES[backend] : "Unknown";
         info.DeviceName = _device->GetDeviceName();
         info.Width = (_sceneTarget != nullptr) ? _sceneTarget->GetDesc().Width : 0;
         info.Height = (_sceneTarget != nullptr) ? _sceneTarget->GetDesc().Height : 0;

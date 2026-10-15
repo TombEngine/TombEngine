@@ -16,7 +16,8 @@ TEN_VS_UNIFORMS(TestVertexUniforms, 0)
 {
     float4x4 Transform;
     float    Time;
-    float3   Padding;
+    float    Padding0;
+    float2   Padding1;
 };
 
 TEN_PS_UNIFORMS(TestPixelUniforms, 0)

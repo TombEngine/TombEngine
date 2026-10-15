@@ -50,10 +50,12 @@ namespace TEN::Gui
 
 	GuiController g_Gui;
 
-	// Vulkan and DirectX 11 alternate; the backend is applied at the next start.
-	static void ToggleGraphicsBackend(GameConfiguration& configuration)
+	// Graphics backends cycle in both directions; the backend is applied at the next start.
+	static void CycleGraphicsBackend(GameConfiguration& configuration, int step)
 	{
-		configuration.GraphicsBackend = (configuration.GraphicsBackend == GraphicsBackend::Vulkan) ? GraphicsBackend::DX11 : GraphicsBackend::Vulkan;
+		int first = (int)GraphicsBackend::Vulkan;
+		int count = (int)GraphicsBackend::OpenGL - first + 1;
+		configuration.GraphicsBackend = (GraphicsBackend)(first + ((int)configuration.GraphicsBackend - first + step + count) % count);
 	}
 
 	// Render scale modes cycle in both directions; the scale applies from the next frame.
@@ -651,7 +653,7 @@ namespace TEN::Gui
 			// Applied at the next start.
 			case DisplaySettingsOption::RendererBackend:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				ToggleGraphicsBackend(CurrentSettings.Configuration);
+				CycleGraphicsBackend(CurrentSettings.Configuration, -1);
 				break;
 
 			case DisplaySettingsOption::RenderScale:
@@ -748,7 +750,7 @@ namespace TEN::Gui
 
 			case DisplaySettingsOption::RendererBackend:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				ToggleGraphicsBackend(CurrentSettings.Configuration);
+				CycleGraphicsBackend(CurrentSettings.Configuration, 1);
 				break;
 
 			case DisplaySettingsOption::RenderScale:

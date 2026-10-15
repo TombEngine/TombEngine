@@ -22,7 +22,8 @@ namespace TEN::Renderer::RHI
         None,
         DirectX11,
         Vulkan,
-        Direct3D12
+        Direct3D12,
+        OpenGL
     };
 
     enum class ShaderFormat
@@ -30,7 +31,8 @@ namespace TEN::Renderer::RHI
         None,
         Dxbc,
         Spirv,
-        Dxil
+        Dxil,
+        Glsl
     };
 
     enum class ShaderStage

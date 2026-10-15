@@ -1083,6 +1083,7 @@ namespace TEN::Renderer::Backend
         bool IsVsyncEnabled() const;
         void SetBenchmarkGpuTimingEnabled(bool enabled) { _isBenchmarkGpuTimingEnabled = enabled; }
         bool IsPresentedOnWindowThread() const;
+        void ReleaseThread();
 
         void LoadLevel(const LevelGeometry& geometry);
         void RenderFrame(const RenderView& view, const FrameEnvironment& environment);

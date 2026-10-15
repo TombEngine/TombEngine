@@ -268,9 +268,11 @@ namespace TEN::Renderer
 
 			// Renderer backend of the main window, applied at the next start.
 			{
-				bool isDX11 = (g_Gui.GetCurrentSettings().Configuration.GraphicsBackend == GraphicsBackend::DX11);
+				constexpr const char* BACKEND_STRINGS[] = { STRING_RENDERER_VULKAN, STRING_RENDERER_DX11, STRING_RENDERER_D3D12, STRING_RENDERER_OPENGL };
+
+				int backend = (int)g_Gui.GetCurrentSettings().Configuration.GraphicsBackend - (int)GraphicsBackend::Vulkan;
 				AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RENDERER), optionColor, SF(titleOption == 10));
-				AddString(MenuRightSideEntry, y, g_GameFlow->GetString(isDX11 ? STRING_RENDERER_DX11 : STRING_RENDERER_VULKAN), plainColor, SF(titleOption == 10));
+				AddString(MenuRightSideEntry, y, g_GameFlow->GetString(BACKEND_STRINGS[backend]), plainColor, SF(titleOption == 10));
 			}
 			GetNextLinePosition(&y);
 
