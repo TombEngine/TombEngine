@@ -149,14 +149,14 @@ namespace TEN::Renderer::Backend
     }
 
     void SceneRenderer::RenderFullscreenPass(ICommandBuffer& commandBuffer, IGraphicsPipeline* pipeline, ITexture* target, const TextureSamplerBinding* bindings, int bindingCount,
-                                            const char* name, LoadOp load)
+                                            const char* name, LoadOp load, const DepthTargetInfo* depthTarget)
     {
         auto colorTarget = ColorTargetInfo{};
         colorTarget.Texture = target;
         colorTarget.Load = load;
 
         commandBuffer.PushDebugGroup(name);
-        auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
+        auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, depthTarget);
         renderPass->BindPipeline(pipeline);
         renderPass->BindPixelSamplers(0, bindings, bindingCount);
 

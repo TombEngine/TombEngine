@@ -70,7 +70,8 @@ namespace TEN::Renderer::RHI
 
         D16Unorm,
         D24UnormS8Uint,
-        D32Float
+        D32Float,
+        D32FloatS8Uint
     };
 
     enum class VertexElementFormat
@@ -140,6 +141,13 @@ namespace TEN::Renderer::RHI
         NotEqual,
         GreaterOrEqual,
         Always
+    };
+
+    enum class StencilOp
+    {
+        Keep,
+        Zero,
+        Replace
     };
 
     enum class BlendFactor
@@ -340,6 +348,12 @@ namespace TEN::Renderer::RHI
         bool      EnableDepthTest  = true;
         bool      EnableDepthWrite = true;
         CompareOp DepthCompare     = CompareOp::LessOrEqual;
+
+        // Stencil test and write of the pixels that pass, with the same operations for both faces.
+        bool          EnableStencilTest = false;
+        CompareOp     StencilCompare    = CompareOp::Always;
+        StencilOp     StencilPassOp     = StencilOp::Keep;
+        unsigned char StencilReference  = 0;
     };
 
     struct BlendState
@@ -516,5 +530,6 @@ namespace TEN::Renderer::RHI
     int  GetFormatBlockSize(PixelFormat format);
     int  GetFormatBlockDimension(PixelFormat format);
     bool IsDepthFormat(PixelFormat format);
+    bool HasStencil(PixelFormat format);
     int  GetTextureDataSize(PixelFormat format, int width, int height, int depth);
 }

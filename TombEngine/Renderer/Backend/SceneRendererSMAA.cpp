@@ -12,11 +12,41 @@ namespace TEN::Renderer::Backend
     constexpr auto ANTIALIASING_MODE_LOW    = 1;
     constexpr auto ANTIALIASING_MODE_MEDIUM = 2;
 
+    constexpr auto SMAA_EDGE_STENCIL = 1;
+
+    // As in the original SMAA, edge detection marks the edge pixels in a stencil, and the blending weights, by far the
+    // most expensive pass, are computed only there; the other pixels keep the cleared weights of zero.
+    std::unique_ptr<IGraphicsPipeline> SceneRenderer::CreateSMAAPipeline(const SmaaPreset& preset, int pass, const char* name)
+    {
+        const PixelFormat formats[SMAA_PASS_COUNT] = { PixelFormat::RG8Unorm, PixelFormat::RGBA8Unorm, _device->GetSwapchainFormat() };
+
+        auto desc = GetFullscreenPipelineDesc(preset.VertexShader.get(), preset.PixelShaders[pass].get(), formats[pass], name);
+        if (_smaaStencilFormat != PixelFormat::Unknown && pass < 2)
+        {
+            desc.DepthFormat = _smaaStencilFormat;
+            desc.DepthStencil.EnableStencilTest = true;
+            desc.DepthStencil.StencilCompare = (pass == 0) ? CompareOp::Always : CompareOp::Equal;
+            desc.DepthStencil.StencilPassOp = (pass == 0) ? StencilOp::Replace : StencilOp::Keep;
+            desc.DepthStencil.StencilReference = SMAA_EDGE_STENCIL;
+        }
+
+        return _device->CreateGraphicsPipeline(desc);
+    }
+
     bool SceneRenderer::CreateSMAAResources()
     {
         const char* shaderNames[SMAA_PRESET_COUNT] = { "SMAAMedium", "SMAAUltra" };
         const char* entryPoints[SMAA_PASS_COUNT] = { "PSEdgeDetection", "PSBlendingWeight", "PSNeighborhoodBlending" };
-        const PixelFormat formats[SMAA_PASS_COUNT] = { PixelFormat::RG8Unorm, PixelFormat::RGBA8Unorm, _device->GetSwapchainFormat() };
+
+        _smaaStencilFormat = PixelFormat::Unknown;
+        for (auto format : { PixelFormat::D24UnormS8Uint, PixelFormat::D32FloatS8Uint })
+        {
+            if (_device->SupportsTextureFormat(format, TextureType::Texture2D, TextureUsage::DepthStencilTarget))
+            {
+                _smaaStencilFormat = format;
+                break;
+            }
+        }
 
         for (int preset = 0; preset < SMAA_PRESET_COUNT; preset++)
         {
@@ -32,7 +62,7 @@ namespace TEN::Renderer::Backend
                     return false;
 
                 auto name = std::string(shaderNames[preset]) + "." + entryPoints[pass];
-                resources.Pipelines[pass] = CreateFullscreenPipeline(resources.VertexShader.get(), resources.PixelShaders[pass].get(), formats[pass], name.c_str());
+                resources.Pipelines[pass] = CreateSMAAPipeline(resources, pass, name.c_str());
                 if (resources.Pipelines[pass] == nullptr)
                     return false;
             }
@@ -58,7 +88,7 @@ namespace TEN::Renderer::Backend
         return true;
     }
 
-    void SceneRenderer::GetSMAATargetDescs(const TextureDesc& targetDesc, TextureDesc& edgesDesc, TextureDesc& weightsDesc)
+    void SceneRenderer::GetSMAATargetDescs(const TextureDesc& targetDesc, TextureDesc& edgesDesc, TextureDesc& weightsDesc, TextureDesc& stencilDesc) const
     {
         edgesDesc = TextureDesc{};
         edgesDesc.Width = targetDesc.Width;
@@ -68,6 +98,10 @@ namespace TEN::Renderer::Backend
 
         weightsDesc = edgesDesc;
         weightsDesc.Format = PixelFormat::RGBA8Unorm;
+
+        stencilDesc = edgesDesc;
+        stencilDesc.Format = _smaaStencilFormat;
+        stencilDesc.Usage = TextureUsage::DepthStencilTarget;
     }
 
     // FXAA for the low antialiasing mode, SMAA 1x with the medium or ultra preset for the medium and high modes,
@@ -88,10 +122,20 @@ namespace TEN::Renderer::Backend
 
         auto edgesDesc = TextureDesc{};
         auto weightsDesc = TextureDesc{};
-        GetSMAATargetDescs(desc, edgesDesc, weightsDesc);
+        auto stencilDesc = TextureDesc{};
+        GetSMAATargetDescs(desc, edgesDesc, weightsDesc, stencilDesc);
 
         auto* edgesTarget = _targetPool.Acquire(edgesDesc);
         auto* weightsTarget = _targetPool.Acquire(weightsDesc);
+        auto* stencilTarget = (_smaaStencilFormat != PixelFormat::Unknown) ? _targetPool.Acquire(stencilDesc) : nullptr;
+
+        auto edgeStencil = DepthTargetInfo{};
+        edgeStencil.Texture = stencilTarget;
+        edgeStencil.Store = StoreOp::Store;
+
+        auto weightStencil = edgeStencil;
+        weightStencil.Load = LoadOp::Load;
+        weightStencil.Store = StoreOp::DontCare;
 
         // Edge detection discards texels without edges, so its target and the weights target are cleared.
         auto* linear = _linearClampSampler.get();
@@ -100,11 +144,15 @@ namespace TEN::Renderer::Backend
         TextureSamplerBinding blendBindings[2] = { { source, linear }, { weightsTarget, linear } };
 
         commandBuffer.PushDebugGroup("SMAA");
-        RenderFullscreenPass(commandBuffer, resources.Pipelines[0].get(), edgesTarget, edgeBindings, 1, "Edge detection", LoadOp::Clear);
-        RenderFullscreenPass(commandBuffer, resources.Pipelines[1].get(), weightsTarget, weightBindings, 3, "Blending weights", LoadOp::Clear);
+        RenderFullscreenPass(commandBuffer, resources.Pipelines[0].get(), edgesTarget, edgeBindings, 1, "Edge detection", LoadOp::Clear,
+            (stencilTarget != nullptr) ? &edgeStencil : nullptr);
+        RenderFullscreenPass(commandBuffer, resources.Pipelines[1].get(), weightsTarget, weightBindings, 3, "Blending weights", LoadOp::Clear,
+            (stencilTarget != nullptr) ? &weightStencil : nullptr);
         RenderFullscreenPass(commandBuffer, resources.Pipelines[2].get(), target, blendBindings, 2, "Neighborhood blending");
         _targetPool.Release(edgesTarget);
         _targetPool.Release(weightsTarget);
+        if (stencilTarget != nullptr)
+            _targetPool.Release(stencilTarget);
         commandBuffer.PopDebugGroup();
     }
 }

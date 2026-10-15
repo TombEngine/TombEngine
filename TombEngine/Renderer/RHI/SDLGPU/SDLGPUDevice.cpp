@@ -40,6 +40,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         case PixelFormat::D16Unorm:       return SDL_GPU_TEXTUREFORMAT_D16_UNORM;
         case PixelFormat::D24UnormS8Uint: return SDL_GPU_TEXTUREFORMAT_D24_UNORM_S8_UINT;
         case PixelFormat::D32Float:       return SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+        case PixelFormat::D32FloatS8Uint: return SDL_GPU_TEXTUREFORMAT_D32_FLOAT_S8_UINT;
         default:                          return SDL_GPU_TEXTUREFORMAT_INVALID;
         }
     }
@@ -90,6 +91,16 @@ namespace TEN::Renderer::RHI::SDLGPU
         case CompareOp::NotEqual:       return SDL_GPU_COMPAREOP_NOT_EQUAL;
         case CompareOp::GreaterOrEqual: return SDL_GPU_COMPAREOP_GREATER_OR_EQUAL;
         default:                        return SDL_GPU_COMPAREOP_ALWAYS;
+        }
+    }
+
+    static SDL_GPUStencilOp ToSDL(StencilOp op)
+    {
+        switch (op)
+        {
+        case StencilOp::Zero:    return SDL_GPU_STENCILOP_ZERO;
+        case StencilOp::Replace: return SDL_GPU_STENCILOP_REPLACE;
+        default:                 return SDL_GPU_STENCILOP_KEEP;
         }
     }
 
@@ -281,6 +292,8 @@ namespace TEN::Renderer::RHI::SDLGPU
         SDL_GPUDevice*           Device = nullptr;
         SDL_GPUGraphicsPipeline* Handle = nullptr;
         PrimitiveType            Primitive = PrimitiveType::TriangleList;
+        bool                     IsStencilTested  = false;
+        unsigned char            StencilReference = 0;
 
         ~SDLGPUGraphicsPipeline() override { SDL_ReleaseGPUGraphicsPipeline(Device, Handle); }
     };
@@ -450,6 +463,9 @@ namespace TEN::Renderer::RHI::SDLGPU
 
             _pipeline = pipeline;
             SDL_BindGPUGraphicsPipeline(Handle, ((SDLGPUGraphicsPipeline*)pipeline)->Handle);
+            if (((SDLGPUGraphicsPipeline*)pipeline)->IsStencilTested)
+                SDL_SetGPUStencilReference(Handle, ((SDLGPUGraphicsPipeline*)pipeline)->StencilReference);
+
             Primitive = ((SDLGPUGraphicsPipeline*)pipeline)->Primitive;
             Counters->PipelineBinds++;
         }
@@ -1361,6 +1377,11 @@ namespace TEN::Renderer::RHI::SDLGPU
             depthStencil.enable_depth_test = desc.DepthStencil.EnableDepthTest;
             depthStencil.enable_depth_write = desc.DepthStencil.EnableDepthWrite;
             depthStencil.compare_op = ToSDL(desc.DepthStencil.DepthCompare);
+            depthStencil.enable_stencil_test = desc.DepthStencil.EnableStencilTest && HasStencil(desc.DepthFormat);
+            depthStencil.front_stencil_state = { SDL_GPU_STENCILOP_KEEP, ToSDL(desc.DepthStencil.StencilPassOp), SDL_GPU_STENCILOP_KEEP, ToSDL(desc.DepthStencil.StencilCompare) };
+            depthStencil.back_stencil_state = depthStencil.front_stencil_state;
+            depthStencil.compare_mask = 0xFF;
+            depthStencil.write_mask = 0xFF;
 
             createInfo.target_info.color_target_descriptions = colorTargets;
             createInfo.target_info.num_color_targets = desc.NumColorTargets;
@@ -1378,6 +1399,8 @@ namespace TEN::Renderer::RHI::SDLGPU
             pipeline->Device = _device;
             pipeline->Primitive = desc.Primitive;
             pipeline->Handle = handle;
+            pipeline->IsStencilTested = depthStencil.enable_stencil_test;
+            pipeline->StencilReference = desc.DepthStencil.StencilReference;
             return pipeline;
         }
 

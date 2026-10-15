@@ -18,7 +18,7 @@ namespace TEN::Renderer::Backend
 
     constexpr auto ALPHA_TEST_THRESHOLD       = 0.5f;
     constexpr auto INSTANCE_INDEX_COUNT       = 65536;
-    constexpr auto SSAO_KERNEL_SIZE           = 32;
+    constexpr auto SSAO_KERNEL_SIZE           = 16; // Matches SSAO.hlsl; the bilateral blur hides the noise of fewer samples.
     constexpr auto LENS_FLARES_MAX            = 8;
     constexpr auto ANIM_TYPE_LEGACY_WATERFALL = 100; // Matches Common.hlsli.
     constexpr auto SHADOWABLE_MASK            = 1u << 16; // Light count flag of instances receiving shadows.

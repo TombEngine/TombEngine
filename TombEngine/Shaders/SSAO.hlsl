@@ -9,7 +9,7 @@
 #include "./ShaderInterop.hlsli"
 #include "./Fullscreen.hlsli"
 
-#define SSAO_KERNEL_SIZE 32
+#define SSAO_KERNEL_SIZE 16
 #define BLUR_SIZE        5
 #define BLUR_SIGMA       3.0f
 #define BLUR_BSIGMA      0.3f

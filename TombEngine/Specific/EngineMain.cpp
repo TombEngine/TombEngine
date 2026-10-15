@@ -298,6 +298,7 @@ int main(int argc, char* argv[])
 	bool isOnLowPowerGpu = false;
 	bool isVsyncDisabled = false;
 	bool isGpuTimingDisabled = false;
+	int renderScaleOverride = -1;
 	auto rendererBackend = std::string();
 
 	for (int i = 1; i < argc; ++i)
@@ -342,6 +343,11 @@ int main(int argc, char* argv[])
 		{
 			// Presents without waiting for vertical sync, for benchmarks.
 			isVsyncDisabled = true;
+		}
+		else if (ArgEquals(arg.c_str(), "renderscale") && i + 1 < argc)
+		{
+			// Render scale mode for this run (0 native to 4 FSR 1 performance), overriding the configuration, for benchmarks.
+			renderScaleOverride = std::stoi(argv[++i]);
 		}
 		else if (ArgEquals(arg.c_str(), "lowpower"))
 		{
@@ -455,6 +461,9 @@ int main(int argc, char* argv[])
 		InitDefaultConfiguration();
 		SetAudioConfiguration(g_Configuration);
 	}
+
+	if (renderScaleOverride >= 0)
+		g_Configuration.RenderScale = (RenderScaleMode)std::clamp(renderScaleOverride, 0, (int)RenderScaleMode::Count - 1);
 
 	// The configured backend applies when the command line does not choose one; the retired legacy option uses Vulkan.
 	if (rendererBackend.empty())

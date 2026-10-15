@@ -47,7 +47,7 @@ namespace TEN::Renderer::RHI::OpenGL
     X(NamedBufferSubData) X(NamedFramebufferDrawBuffer) X(NamedFramebufferDrawBuffers) X(NamedFramebufferReadBuffer) \
     X(NamedFramebufferTexture) X(NamedFramebufferTextureLayer) X(ObjectLabel) X(PixelStorei) X(PolygonMode) \
     X(PolygonOffset) X(PopDebugGroup) X(ProgramUniform1i) X(PushDebugGroup) X(QueryCounter) X(SamplerParameterf) \
-    X(SamplerParameteri) X(ScissorIndexed) X(ShaderStorageBlockBinding) X(TextureStorage2D) \
+    X(SamplerParameteri) X(ScissorIndexed) X(ShaderStorageBlockBinding) X(StencilFunc) X(StencilOp) X(TextureStorage2D) \
     X(TextureStorage2DMultisample) X(TextureStorage3D) X(TextureSubImage2D) X(TextureSubImage3D) X(UniformBlockBinding) \
     X(UnmapNamedBuffer) X(UseProgramStages) X(VertexArrayAttribBinding) X(VertexArrayAttribFormat) \
     X(VertexArrayAttribIFormat) X(VertexArrayBindingDivisor) X(VertexArrayElementBuffer) X(VertexArrayVertexBuffer) \
@@ -116,6 +116,7 @@ namespace TEN::Renderer::RHI::OpenGL
         case PixelFormat::D16Unorm:       return { GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT };
         case PixelFormat::D24UnormS8Uint: return { GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8 };
         case PixelFormat::D32Float:       return { GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT };
+        case PixelFormat::D32FloatS8Uint: return { GL_DEPTH32F_STENCIL8, GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV };
         default:                          return {};
         }
     }
@@ -172,6 +173,16 @@ namespace TEN::Renderer::RHI::OpenGL
         case CompareOp::NotEqual:       return GL_NOTEQUAL;
         case CompareOp::GreaterOrEqual: return GL_GEQUAL;
         default:                        return GL_ALWAYS;
+        }
+    }
+
+    static GLenum ToGL(StencilOp op)
+    {
+        switch (op)
+        {
+        case StencilOp::Zero:    return GL_ZERO;
+        case StencilOp::Replace: return GL_REPLACE;
+        default:                 return GL_KEEP;
         }
     }
 
@@ -451,6 +462,10 @@ namespace TEN::Renderer::RHI::OpenGL
         bool          IsDepthTestEnabled       = false;
         bool          IsDepthWriteEnabled      = false;
         GLenum        DepthFunc                = GL_LEQUAL;
+        bool          IsStencilTestEnabled     = false;
+        GLenum        StencilFunc              = GL_ALWAYS;
+        GLenum        StencilPassOp            = GL_KEEP;
+        int           StencilReference         = 0;
     };
 
     class GLGraphicsPipeline : public IGraphicsPipeline
@@ -1005,6 +1020,15 @@ namespace TEN::Renderer::RHI::OpenGL
             if (isForced || state.DepthFunc != current.DepthFunc)
                 g_GL.DepthFunc(state.DepthFunc);
 
+            if (isForced || state.IsStencilTestEnabled != current.IsStencilTestEnabled)
+                SetCapability(GL_STENCIL_TEST, state.IsStencilTestEnabled);
+
+            if (isForced || state.StencilFunc != current.StencilFunc || state.StencilReference != current.StencilReference)
+                g_GL.StencilFunc(state.StencilFunc, state.StencilReference, 0xFF);
+
+            if (isForced || state.StencilPassOp != current.StencilPassOp)
+                g_GL.StencilOp(GL_KEEP, GL_KEEP, state.StencilPassOp);
+
             current = state;
             current.FrontFace = frontFace;
             Cache->IsStateValid = true;
@@ -1375,7 +1399,7 @@ namespace TEN::Renderer::RHI::OpenGL
             if (depthTarget != nullptr)
             {
                 auto* texture = (GLTexture*)depthTarget->Texture;
-                auto attachment = (texture->Desc.Format == PixelFormat::D24UnormS8Uint) ? GL_DEPTH_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT;
+                auto attachment = HasStencil(texture->Desc.Format) ? GL_DEPTH_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT;
                 AttachTexture(framebuffer, attachment, *texture, 0, depthTarget->Layer);
             }
 
@@ -1426,7 +1450,7 @@ namespace TEN::Renderer::RHI::OpenGL
             g_GL.DepthMask(GL_TRUE);
             Cache.State.IsDepthWriteEnabled = true;
 
-            if (depthTarget->Texture->GetDesc().Format == PixelFormat::D24UnormS8Uint)
+            if (HasStencil(depthTarget->Texture->GetDesc().Format))
                 g_GL.ClearNamedFramebufferfi(framebuffer, GL_DEPTH_STENCIL, 0, depthTarget->ClearDepth, depthTarget->ClearStencil);
             else
                 g_GL.ClearNamedFramebufferfv(framebuffer, GL_DEPTH, 0, &depthTarget->ClearDepth);
@@ -1909,6 +1933,10 @@ namespace TEN::Renderer::RHI::OpenGL
             state.IsDepthTestEnabled = desc.DepthStencil.EnableDepthTest && desc.DepthFormat != PixelFormat::Unknown;
             state.IsDepthWriteEnabled = desc.DepthStencil.EnableDepthWrite && desc.DepthFormat != PixelFormat::Unknown;
             state.DepthFunc = ToGL(desc.DepthStencil.DepthCompare);
+            state.IsStencilTestEnabled = desc.DepthStencil.EnableStencilTest && HasStencil(desc.DepthFormat);
+            state.StencilFunc = ToGL(desc.DepthStencil.StencilCompare);
+            state.StencilPassOp = ToGL(desc.DepthStencil.StencilPassOp);
+            state.StencilReference = desc.DepthStencil.StencilReference;
             return state;
         }
     };

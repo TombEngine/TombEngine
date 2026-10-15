@@ -812,9 +812,12 @@ namespace TEN::Renderer::Backend
     {
         auto edgesDesc = TextureDesc{};
         auto weightsDesc = TextureDesc{};
-        GetSMAATargetDescs((_isUpscaleActive ? _upscaleSource : _colorTarget)->GetDesc(), edgesDesc, weightsDesc);
+        auto stencilDesc = TextureDesc{};
+        GetSMAATargetDescs((_isUpscaleActive ? _upscaleSource : _colorTarget)->GetDesc(), edgesDesc, weightsDesc, stencilDesc);
         _targetPool.Reserve(edgesDesc);
         _targetPool.Reserve(weightsDesc);
+        if (_smaaStencilFormat != PixelFormat::Unknown)
+            _targetPool.Reserve(stencilDesc);
 
         _targetPool.Reserve(_sceneTarget->GetDesc());
         _targetPool.Reserve(_dofTargets[0]->GetDesc());
@@ -1210,6 +1213,10 @@ namespace TEN::Renderer::Backend
             commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 1, &pixelUniforms, sizeof(pixelUniforms));
             state.PixelUniforms = pixelUniforms;
         }
+
+        // The glow pass runs only when a draw of the frame can write emissive light.
+        if (HasEmissiveMaterial(bucket.MaterialIndex))
+            _hasVisibleEmissive = true;
 
         // While a background video plays, video sets show the whole frame, also as emissive if the material has one.
         int videoSet = GetVideoSet(bucket);
@@ -2637,7 +2644,7 @@ namespace TEN::Renderer::Backend
         { "Scene", nullptr, &SceneRenderer::RenderScenePass },
         { "DOF", &SceneRenderer::_isDofActive, &SceneRenderer::RenderDOF },
         { "Reflections", &SceneRenderer::_hasReflectiveMaterials, &SceneRenderer::CopyReflectionSource },
-        { "Glow", &SceneRenderer::_hasEmissiveMaps, &SceneRenderer::RenderGlow },
+        { "Glow", &SceneRenderer::_hasVisibleEmissive, &SceneRenderer::RenderGlow },
         { "Post-process", nullptr, &SceneRenderer::RenderPostProcess },
         { "Upscale", &SceneRenderer::_isUpscaleActive, &SceneRenderer::RenderUpscale }
     };
@@ -2786,6 +2793,7 @@ namespace TEN::Renderer::Backend
         PrepareShadows(environment, environment.InterpolationFactor);
         _hasDistortion = HasDistortionDraws(view);
         _isDofActive = IsDOFActive(environment);
+        _hasVisibleEmissive = false;
 
         // The shadow uniforms are the largest block of pixel slot 2, so they also cover the passes before the scene.
         commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));

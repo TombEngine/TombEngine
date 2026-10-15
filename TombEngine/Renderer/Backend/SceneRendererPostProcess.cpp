@@ -37,7 +37,7 @@ namespace TEN::Renderer::Backend
 
     static_assert(sizeof(PostProcessUniforms) == 336, "PostProcessUniforms must match PostProcess.hlsl.");
 
-    std::unique_ptr<IGraphicsPipeline> SceneRenderer::CreateFullscreenPipeline(IShader* vertexShader, IShader* pixelShader, PixelFormat format, const char* name)
+    GraphicsPipelineDesc SceneRenderer::GetFullscreenPipelineDesc(IShader* vertexShader, IShader* pixelShader, PixelFormat format, const char* name)
     {
         auto desc = GraphicsPipelineDesc{};
         desc.VertexShader = vertexShader;
@@ -48,7 +48,12 @@ namespace TEN::Renderer::Backend
         desc.NumColorTargets = 1;
         desc.ColorTargets[0].Format = format;
         desc.Name = name;
-        return _device->CreateGraphicsPipeline(desc);
+        return desc;
+    }
+
+    std::unique_ptr<IGraphicsPipeline> SceneRenderer::CreateFullscreenPipeline(IShader* vertexShader, IShader* pixelShader, PixelFormat format, const char* name)
+    {
+        return _device->CreateGraphicsPipeline(GetFullscreenPipelineDesc(vertexShader, pixelShader, format, name));
     }
 
     bool SceneRenderer::CreatePostProcessResources()
@@ -155,7 +160,7 @@ namespace TEN::Renderer::Backend
         uniforms.FarPlane = _farPlane;
         uniforms.IsDistortionActive = _hasDistortion ? 1 : 0;
         uniforms.Time = _time;
-        uniforms.IsGlowActive = _hasEmissiveMaps ? 1 : 0;
+        uniforms.IsGlowActive = _hasVisibleEmissive ? 1 : 0;
         uniforms.IsDofActive = _isDofActive ? 1 : 0;
 
         // Flares are projected here; the frontend collection already dropped those behind the camera.

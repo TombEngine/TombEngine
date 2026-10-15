@@ -46,6 +46,7 @@ namespace TEN::Renderer::RHI::DirectX11
         case PixelFormat::BC7Unorm:       return DXGI_FORMAT_BC7_UNORM;
         case PixelFormat::D16Unorm:       return DXGI_FORMAT_D16_UNORM;
         case PixelFormat::D24UnormS8Uint: return DXGI_FORMAT_D24_UNORM_S8_UINT;
+        case PixelFormat::D32FloatS8Uint: return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
         case PixelFormat::D32Float:       return DXGI_FORMAT_D32_FLOAT;
         default:                          return DXGI_FORMAT_UNKNOWN;
         }
@@ -61,6 +62,7 @@ namespace TEN::Renderer::RHI::DirectX11
         {
         case PixelFormat::D16Unorm:       return DXGI_FORMAT_R16_TYPELESS;
         case PixelFormat::D24UnormS8Uint: return DXGI_FORMAT_R24G8_TYPELESS;
+        case PixelFormat::D32FloatS8Uint: return DXGI_FORMAT_R32G8X24_TYPELESS;
         case PixelFormat::D32Float:       return DXGI_FORMAT_R32_TYPELESS;
         default:                          return ToDXGI(format);
         }
@@ -72,6 +74,7 @@ namespace TEN::Renderer::RHI::DirectX11
         {
         case PixelFormat::D16Unorm:       return DXGI_FORMAT_R16_UNORM;
         case PixelFormat::D24UnormS8Uint: return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+        case PixelFormat::D32FloatS8Uint: return DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
         case PixelFormat::D32Float:       return DXGI_FORMAT_R32_FLOAT;
         default:                          return ToDXGI(format);
         }
@@ -110,6 +113,16 @@ namespace TEN::Renderer::RHI::DirectX11
         case CompareOp::NotEqual:       return D3D11_COMPARISON_NOT_EQUAL;
         case CompareOp::GreaterOrEqual: return D3D11_COMPARISON_GREATER_EQUAL;
         default:                        return D3D11_COMPARISON_ALWAYS;
+        }
+    }
+
+    static D3D11_STENCIL_OP ToD3D11(StencilOp op)
+    {
+        switch (op)
+        {
+        case StencilOp::Zero:    return D3D11_STENCIL_OP_ZERO;
+        case StencilOp::Replace: return D3D11_STENCIL_OP_REPLACE;
+        default:                 return D3D11_STENCIL_OP_KEEP;
         }
     }
 
@@ -263,6 +276,7 @@ namespace TEN::Renderer::RHI::DirectX11
         ComPtr<ID3D11RasterizerState>   Rasterizer   = nullptr;
         ComPtr<ID3D11DepthStencilState> DepthStencil = nullptr;
         D3D11_PRIMITIVE_TOPOLOGY        Topology     = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        UINT                            StencilReference = 0;
         PrimitiveType                   Primitive    = PrimitiveType::TriangleList;
         int                             VertexStrides[MAX_VERTEX_BUFFERS] = {};
 
@@ -506,7 +520,7 @@ namespace TEN::Renderer::RHI::DirectX11
             Context->VSSetShader(dxPipeline->VertexShader.Get(), nullptr, 0);
             Context->PSSetShader(dxPipeline->PixelShader.Get(), nullptr, 0);
             Context->OMSetBlendState(dxPipeline->BlendState.Get(), nullptr, 0xFFFFFFFF);
-            Context->OMSetDepthStencilState(dxPipeline->DepthStencil.Get(), 0);
+            Context->OMSetDepthStencilState(dxPipeline->DepthStencil.Get(), dxPipeline->StencilReference);
             Context->RSSetState(dxPipeline->Rasterizer.Get());
             ApplyVertexBuffers(0, VertexBufferCount);
         }
@@ -1586,6 +1600,14 @@ namespace TEN::Renderer::RHI::DirectX11
             depthDesc.DepthEnable = desc.DepthStencil.EnableDepthTest && desc.DepthFormat != PixelFormat::Unknown;
             depthDesc.DepthWriteMask = desc.DepthStencil.EnableDepthWrite ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
             depthDesc.DepthFunc = ToD3D11(desc.DepthStencil.DepthCompare);
+
+            const auto& depthStencil = desc.DepthStencil;
+            depthDesc.StencilEnable = depthStencil.EnableStencilTest && HasStencil(desc.DepthFormat);
+            depthDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+            depthDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+            depthDesc.FrontFace = { D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, ToD3D11(depthStencil.StencilPassOp), ToD3D11(depthStencil.StencilCompare) };
+            depthDesc.BackFace = depthDesc.FrontFace;
+            pipeline->StencilReference = depthStencil.StencilReference;
 
             _device->CreateDepthStencilState(&depthDesc, pipeline->DepthStencil.GetAddressOf());
             return pipeline;

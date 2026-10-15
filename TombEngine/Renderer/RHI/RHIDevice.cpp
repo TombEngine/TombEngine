@@ -32,6 +32,7 @@ namespace TEN::Renderer::RHI
             return 4;
 
         case PixelFormat::RGBA16Float:
+        case PixelFormat::D32FloatS8Uint:
         case PixelFormat::RG32Float:
         case PixelFormat::BC1Unorm:
         case PixelFormat::BC4Unorm:
@@ -68,7 +69,12 @@ namespace TEN::Renderer::RHI
 
     bool IsDepthFormat(PixelFormat format)
     {
-        return (format == PixelFormat::D16Unorm || format == PixelFormat::D24UnormS8Uint || format == PixelFormat::D32Float);
+        return (format == PixelFormat::D16Unorm || format == PixelFormat::D24UnormS8Uint || format == PixelFormat::D32Float || format == PixelFormat::D32FloatS8Uint);
+    }
+
+    bool HasStencil(PixelFormat format)
+    {
+        return (format == PixelFormat::D24UnormS8Uint || format == PixelFormat::D32FloatS8Uint);
     }
 
     int GetTextureDataSize(PixelFormat format, int width, int height, int depth)

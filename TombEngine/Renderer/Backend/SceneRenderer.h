@@ -527,6 +527,7 @@ namespace TEN::Renderer::Backend
 
         OverlayTargets _overlayTargets = {};
         bool                                    _hasEmissiveMaps         = false;
+        bool                                    _hasVisibleEmissive      = false; // A draw of the frame has an emissive material.
         std::unique_ptr<RHI::ITexture>          _reflectionTarget        = nullptr; // Half resolution scene of the previous frame.
         bool                                    _hasReflectiveMaterials  = false;
         std::unique_ptr<RHI::ITexture>          _skyReflectionTarget     = nullptr; // Dual paraboloid sky, one hemisphere per layer.
@@ -552,6 +553,7 @@ namespace TEN::Renderer::Backend
         };
 
         SmaaPreset                              _smaaPresets[SMAA_PRESET_COUNT] = {};
+        RHI::PixelFormat                        _smaaStencilFormat              = RHI::PixelFormat::Unknown; // Unknown without stencil support.
         std::unique_ptr<RHI::ITexture>          _smaaAreaTexture                = nullptr;
         std::unique_ptr<RHI::ITexture>          _smaaSearchTexture              = nullptr;
         bool                                    _hasDistortion           = false;
@@ -1006,6 +1008,7 @@ namespace TEN::Renderer::Backend
         static bool IsAlphaTestVariantInPass(ScenePass pass, bool isAlphaTested);
 
         // Post-process (SceneRendererPostProcess.cpp).
+        static RHI::GraphicsPipelineDesc GetFullscreenPipelineDesc(RHI::IShader* vertexShader, RHI::IShader* pixelShader, RHI::PixelFormat format, const char* name);
         std::unique_ptr<RHI::IGraphicsPipeline> CreateFullscreenPipeline(RHI::IShader* vertexShader, RHI::IShader* pixelShader, RHI::PixelFormat format, const char* name);
         bool CreatePostProcessResources();
         void RenderPostProcess(RHI::ICommandBuffer& commandBuffer);
@@ -1047,10 +1050,12 @@ namespace TEN::Renderer::Backend
         void  RenderFullscreenPass(RHI::ICommandBuffer& commandBuffer, RHI::IGraphicsPipeline* pipeline, RHI::ITexture* target, RHI::ITexture* source,
                                    RHI::ISampler* sourceSampler, const char* name);
         void  RenderFullscreenPass(RHI::ICommandBuffer& commandBuffer, RHI::IGraphicsPipeline* pipeline, RHI::ITexture* target,
-                                   const RHI::TextureSamplerBinding* bindings, int bindingCount, const char* name, RHI::LoadOp load = RHI::LoadOp::DontCare);
+                                   const RHI::TextureSamplerBinding* bindings, int bindingCount, const char* name, RHI::LoadOp load = RHI::LoadOp::DontCare,
+                                   const RHI::DepthTargetInfo* depthTarget = nullptr);
         bool  CreateSMAAResources();
         void  RenderAntialiasing(RHI::ICommandBuffer& commandBuffer, int antialiasingMode, RHI::ITexture* source, RHI::ITexture* target);
-        static void GetSMAATargetDescs(const RHI::TextureDesc& targetDesc, RHI::TextureDesc& edgesDesc, RHI::TextureDesc& weightsDesc);
+        void  GetSMAATargetDescs(const RHI::TextureDesc& targetDesc, RHI::TextureDesc& edgesDesc, RHI::TextureDesc& weightsDesc, RHI::TextureDesc& stencilDesc) const;
+        std::unique_ptr<RHI::IGraphicsPipeline> CreateSMAAPipeline(const SmaaPreset& preset, int pass, const char* name);
         bool  CreateUpscaleResources();
         bool  CreateMaterialSampler();
         int   GetRenderSize(int windowSize) const;
