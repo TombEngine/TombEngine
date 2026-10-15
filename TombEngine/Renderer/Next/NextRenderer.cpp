@@ -737,9 +737,29 @@ namespace TEN::Renderer::Next
 
         bool isCreated = (isFrameCurrent || CreateFrameTargets(width, height)) && (isSceneCurrent || CreateSceneTargets(renderWidth, renderHeight, width));
         if (isCreated)
+        {
             ClearSampledTargets(!isFrameCurrent);
+            ReserveTransientTargets();
+        }
 
         return isCreated;
+    }
+
+    // Pooled targets created on first use, after a level filled the video memory, may be placed in system memory
+    // on Vulkan, which has no residency management; reading them there costs several milliseconds per pass.
+    // The full screen ones are therefore created with the frame targets.
+    void NextRenderer::ReserveTransientTargets()
+    {
+        auto edgesDesc = TextureDesc{};
+        auto weightsDesc = TextureDesc{};
+        GetSMAATargetDescs((_isUpscaleActive ? _upscaleSource : _colorTarget)->GetDesc(), edgesDesc, weightsDesc);
+        _targetPool.Reserve(edgesDesc);
+        _targetPool.Reserve(weightsDesc);
+
+        _targetPool.Reserve(_sceneTarget->GetDesc());
+        _targetPool.Reserve(_dofTargets[0]->GetDesc());
+        _targetPool.Reserve(_ssaoTarget->GetDesc());
+        _targetPool.Reserve(_glowTarget->GetDesc());
     }
 
     bool NextRenderer::CreateFrameTargets(int width, int height)
@@ -841,6 +861,10 @@ namespace TEN::Renderer::Next
         _animatedTextures.clear();
         _staticTextures.clear();
         _moveableTextures.clear();
+
+        // The previous level textures are released first, so the geometry gets the video memory they held.
+        _textureArrayGroups.clear();
+        _spriteTextures.clear();
 
         if (!CreateLevelGeometry(geometry))
             return;

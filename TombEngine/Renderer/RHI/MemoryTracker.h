@@ -21,6 +21,7 @@ namespace TEN::Renderer::RHI
         unsigned long long SharedSystemMemory   = 0;
         unsigned long long ProcessUsage         = 0; // Video memory used by the process, all allocations included.
         unsigned long long ProcessBudget        = 0; // Video memory the process can use before the system evicts it.
+        unsigned long long AdapterUsage         = 0; // Dedicated video memory used by every process.
     };
 
     struct MemoryStats

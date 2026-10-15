@@ -3,6 +3,7 @@
 
 #ifdef _WIN32
 #include <dxgi1_4.h>
+#include <pdh.h>
 #include <wrl/client.h>
 #endif
 
@@ -79,6 +80,29 @@ namespace TEN::Renderer::RHI
     }
 
 #ifdef _WIN32
+    // The DXGI budget ignores the memory other processes hold, which the system rarely evicts for the game.
+    // The performance counters report the dedicated memory every process uses on the adapter.
+    static unsigned long long GetAdapterDedicatedUsage(const LUID& luid)
+    {
+        auto query = PDH_HQUERY{};
+        if (PdhOpenQueryW(nullptr, 0, &query) != ERROR_SUCCESS)
+            return 0;
+
+        auto path = TEN::Utils::ToWString(fmt::format("\\GPU Adapter Memory(luid_0x{:08X}_0x{:08X}_phys_0)\\Dedicated Usage",
+            (unsigned int)luid.HighPart, (unsigned int)luid.LowPart));
+        auto counter = PDH_HCOUNTER{};
+        auto value = PDH_FMT_COUNTERVALUE{};
+        unsigned long long usage = 0;
+        if (PdhAddEnglishCounterW(query, path.c_str(), 0, &counter) == ERROR_SUCCESS && PdhCollectQueryData(query) == ERROR_SUCCESS &&
+            PdhGetFormattedCounterValue(counter, PDH_FMT_LARGE, nullptr, &value) == ERROR_SUCCESS)
+        {
+            usage = (unsigned long long)value.largeValue;
+        }
+
+        PdhCloseQuery(query);
+        return usage;
+    }
+
     // DXGI describes the adapters of both backends; the adapter is found by the name the device reports.
     static AdapterMemory GetAdapterMemory(const std::string& deviceName)
     {
@@ -111,6 +135,8 @@ namespace TEN::Renderer::RHI
                 memory.ProcessUsage = info.CurrentUsage;
                 memory.ProcessBudget = info.Budget;
             }
+
+            memory.AdapterUsage = GetAdapterDedicatedUsage(desc.AdapterLuid);
 
             break;
         }

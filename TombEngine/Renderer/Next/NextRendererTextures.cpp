@@ -2,6 +2,7 @@
 #include "Renderer/Next/NextRenderer.h"
 
 #include "Renderer/Next/TextureLoader.h"
+#include "Renderer/RHI/MemoryTracker.h"
 #include "Specific/level.h"
 #include "Specific/Parallel.h"
 
@@ -22,6 +23,7 @@ namespace TEN::Renderer::Next
         int         MipLevels   = 0;
         PixelFormat Format      = PixelFormat::Unknown;
         bool        IsGenerated = false; // Single level images get their mips generated on the GPU.
+        int         SkippedMips = 0;     // Top mips left out to fit the video memory; not part of the grouping.
     };
 
     // Pages with the same key share the texture arrays of a group.
@@ -86,6 +88,83 @@ namespace TEN::Renderer::Next
         return key;
     }
 
+    static TextureDesc GetArrayMapDesc(const ArrayMapKey& key, int layerCount)
+    {
+        auto desc = TextureDesc{};
+        desc.Type = TextureType::Texture2DArray;
+        desc.Width = std::max(key.Width >> key.SkippedMips, 1);
+        desc.Height = std::max(key.Height >> key.SkippedMips, 1);
+        desc.DepthOrLayers = layerCount;
+        desc.MipLevels = key.MipLevels - key.SkippedMips;
+        desc.Format = key.Format;
+        desc.Usage = TextureUsage::Sampler | (key.IsGenerated ? TextureUsage::ColorTarget : 0);
+        return desc;
+    }
+
+    // Level textures larger than the free video memory of a discrete GPU are placed by Vulkan in system memory, and
+    // paged by DX11, both costly to sample. Top mips are left out instead, emissive maps first, then ORSH, normal and
+    // color maps, one level per map type in turn. Integrated GPUs share system memory and keep every mip.
+    static void FitArrayGroupsToBudget(std::vector<ArrayGroupKey>& groupKeys, const std::vector<int>& layerCounts, const MemoryStats& stats)
+    {
+        constexpr auto DISCRETE_MEMORY_MIN = 1024ull * 1024 * 1024;
+        constexpr auto RESERVED_MEMORY     = 512ull * 1024 * 1024; // Frame buffers, pooled targets and later allocations.
+        constexpr auto SKIPPED_MIPS_MAX    = 2;
+        constexpr int  MAP_ORDER[MATERIAL_MAP_COUNT] = { 3, 2, 1, 0 };
+
+        const auto& adapter = stats.Adapter;
+        if (adapter.DedicatedVideoMemory < DISCRETE_MEMORY_MIN)
+            return;
+
+        auto limit = (adapter.ProcessBudget > 0) ? std::min(adapter.ProcessBudget, adapter.DedicatedVideoMemory) : adapter.DedicatedVideoMemory;
+
+        // Memory held by other processes, such as browsers and the compositor, is rarely evicted for the game.
+        auto otherUsage = (adapter.AdapterUsage > adapter.ProcessUsage) ? (adapter.AdapterUsage - adapter.ProcessUsage) : 0ull;
+        if (otherUsage < adapter.DedicatedVideoMemory)
+            limit = std::min(limit, adapter.DedicatedVideoMemory - otherUsage);
+
+        // The usage the system reports includes the driver and backend allocations the tracked totals miss.
+        auto used = std::max(adapter.ProcessUsage, stats.GetTotal()) + std::max(RESERVED_MEMORY, limit / 10);
+        auto available = (limit > used) ? (limit - used) : 0ull;
+
+        auto getTotalSize = [&]()
+        {
+            auto total = 0ull;
+            for (int group = 0; group < (int)groupKeys.size(); group++)
+            {
+                for (const auto& map : groupKeys[group].Maps)
+                {
+                    if (map.Width > 0)
+                        total += GetTextureMemorySize(GetArrayMapDesc(map, layerCounts[group]));
+                }
+            }
+
+            return total;
+        };
+
+        auto originalSize = getTotalSize();
+        auto size = originalSize;
+        for (int skip = 1; skip <= SKIPPED_MIPS_MAX && size > available; skip++)
+        {
+            for (int i = 0; i < MATERIAL_MAP_COUNT && size > available; i++)
+            {
+                for (auto& key : groupKeys)
+                {
+                    auto& map = key.Maps[MAP_ORDER[i]];
+                    if (map.Width > 0 && !map.IsGenerated && map.MipLevels > skip)
+                        map.SkippedMips = skip;
+                }
+
+                size = getTotalSize();
+            }
+        }
+
+        if (size != originalSize)
+        {
+            TENLog(fmt::format("Next renderer: level textures reduced from {:.1f} MB to {:.1f} MB to fit {:.1f} MB of free video memory.",
+                originalSize / (1024.0 * 1024.0), size / (1024.0 * 1024.0), available / (1024.0 * 1024.0)), LogLevel::Warning);
+        }
+    }
+
     void NextRenderer::AddTextureRequest(std::vector<LevelTextureRequest>& requests, const std::vector<unsigned char>& encodedData,
                                          const std::string& name, std::unique_ptr<ITexture>& target)
     {
@@ -93,26 +172,34 @@ namespace TEN::Renderer::Next
             requests.push_back(LevelTextureRequest{ &encodedData, name, &target });
     }
 
-    // Uploads every mip of a decoded image into one layer of a texture or texture array.
+    // Uploads every mip of a decoded image, but the skipped top ones, into one layer of a texture or texture array.
     void NextRenderer::RecordImageUpload(ICopyPass& copyPass, const DecodedImage& image, ITexture* texture, int layer,
-                                         std::vector<std::unique_ptr<ITransferBuffer>>& transferBuffers)
+                                         std::vector<std::unique_ptr<ITransferBuffer>>& transferBuffers, int skippedMips)
     {
-        auto transferBuffer = _device->CreateTransferBuffer(TransferBufferUsage::Upload, (int)image.Data.size());
+        int skippedSize = 0;
+        for (int mip = 0; mip < skippedMips; mip++)
+            skippedSize += GetTextureDataSize(image.Format, std::max(1, image.Width >> mip), std::max(1, image.Height >> mip), 1);
+
+        int size = (int)image.Data.size() - skippedSize;
+        if (size <= 0)
+            return;
+
+        auto transferBuffer = _device->CreateTransferBuffer(TransferBufferUsage::Upload, size);
         if (transferBuffer == nullptr)
             return;
 
-        memcpy(_device->MapTransferBuffer(transferBuffer.get(), false), image.Data.data(), image.Data.size());
+        memcpy(_device->MapTransferBuffer(transferBuffer.get(), false), image.Data.data() + skippedSize, size);
         _device->UnmapTransferBuffer(transferBuffer.get());
 
         int offset = 0;
-        for (int mip = 0; mip < image.MipLevels; mip++)
+        for (int mip = skippedMips; mip < image.MipLevels; mip++)
         {
             int mipWidth = std::max(1, image.Width >> mip);
             int mipHeight = std::max(1, image.Height >> mip);
 
             auto region = TextureRegion{};
             region.Texture = texture;
-            region.MipLevel = mip;
+            region.MipLevel = mip - skippedMips;
             region.Layer = layer;
             region.Width = mipWidth;
             region.Height = mipHeight;
@@ -211,16 +298,14 @@ namespace TEN::Renderer::Next
             if (mapKey.Width == 0)
                 continue;
 
-            auto desc = TextureDesc{};
-            desc.Type = TextureType::Texture2DArray;
-            desc.Width = mapKey.Width;
-            desc.Height = mapKey.Height;
-            desc.DepthOrLayers = layerCount;
-            desc.MipLevels = mapKey.MipLevels;
-            desc.Format = mapKey.Format;
-            desc.Usage = TextureUsage::Sampler | (mapKey.IsGenerated ? TextureUsage::ColorTarget : 0);
+            auto desc = GetArrayMapDesc(mapKey, layerCount);
             desc.Name = "LevelPages[" + std::to_string(groupIndex) + "]." + MAP_NAMES[map];
             group->Maps[map] = _device->CreateTexture(desc);
+            group->SkippedMips[map] = mapKey.SkippedMips;
+
+            TENLog(fmt::format("Next renderer: {} {}x{}, format {}, {} mips{}, {} layers, {:.1f} MB.", desc.Name, desc.Width, desc.Height,
+                (int)desc.Format, desc.MipLevels, mapKey.IsGenerated ? " (generated)" : (mapKey.SkippedMips > 0 ? " (reduced)" : ""), layerCount,
+                GetTextureMemorySize(desc) / (1024.0 * 1024.0)), LogLevel::Info);
         }
 
         group->Index = groupIndex;
@@ -255,6 +340,10 @@ namespace TEN::Renderer::Next
             pageGroups[i] = group;
             pages[i].Target->Layer = layerCounts[group]++;
         }
+
+        // Waiting completes the release of the previous level textures, which the measured usage must not include.
+        _device->WaitIdle();
+        FitArrayGroupsToBudget(groupKeys, layerCounts, GetMemoryStats(_device->GetDeviceName()));
 
         for (int group = 0; group < (int)groupKeys.size(); group++)
             _textureArrayGroups.push_back(CreateTextureArrayGroup(groupKeys[group], layerCounts[group], group));
@@ -306,14 +395,14 @@ namespace TEN::Renderer::Next
                 const auto& upload = uploads[first + i];
                 const auto& page = pages[upload.Page];
                 auto* texture = page.Target->Group->Maps[upload.Map].get();
-                const auto& desc = texture->GetDesc();
-                if (!isDecoded[i] || images[i].Width != desc.Width || images[i].Height != desc.Height || images[i].Format != desc.Format)
+                const auto& key = pageKeys[upload.Page].Maps[upload.Map];
+                if (!isDecoded[i] || images[i].Width != key.Width || images[i].Height != key.Height || images[i].Format != key.Format)
                 {
                     TENLog("Next renderer: texture page " + std::to_string(upload.Page) + " does not match its header.", LogLevel::Warning);
                     continue;
                 }
 
-                RecordImageUpload(*copyPass, images[i], texture, page.Target->Layer, transferBuffers);
+                RecordImageUpload(*copyPass, images[i], texture, page.Target->Layer, transferBuffers, page.Target->Group->SkippedMips[upload.Map]);
             }
 
             commandBuffer->EndCopyPass();
@@ -364,5 +453,26 @@ namespace TEN::Renderer::Next
             AddTextureRequest(requests, g_Level.SpritesTextures[i].colorMapData, "SpriteAtlas[" + std::to_string(i) + "].Color", _spriteTextures[i].ColorMap);
 
         CreateLevelTextures(requests, true);
+        FreeEncodedLevelTextures();
+    }
+
+    // The encoded maps are not read after the upload; releasing them saves system memory of the size of the textures.
+    void NextRenderer::FreeEncodedLevelTextures()
+    {
+        auto freeMaps = [](::TEXTURE& texture)
+        {
+            std::vector<unsigned char>().swap(texture.colorMapData);
+            std::vector<unsigned char>().swap(texture.normalMapData);
+            std::vector<unsigned char>().swap(texture.ORSHMapData);
+            std::vector<unsigned char>().swap(texture.emissiveMapData);
+        };
+
+        for (auto* textures : { &g_Level.RoomTextures, &g_Level.StaticsTextures, &g_Level.MoveablesTextures, &g_Level.AnimatedTextures, &g_Level.SpritesTextures })
+        {
+            for (auto& texture : *textures)
+                freeMaps(texture);
+        }
+
+        freeMaps(g_Level.SkyTexture);
     }
 }

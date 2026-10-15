@@ -10,6 +10,8 @@ namespace TEN::Renderer::RHI
     {
         _device = &device;
         _capacity = capacity;
+        _minimumCapacity = capacity;
+        _underusedPasses = 0;
         _buffer = _device->CreateTransferBuffer(TransferBufferUsage::Upload, _capacity);
     }
 
@@ -27,9 +29,26 @@ namespace TEN::Renderer::RHI
     void UploadRing::Begin(ICopyPass& copyPass)
     {
         _retiredBuffers.clear();
+        Trim();
         _copyPass = &copyPass;
         _offset = 0;
-        _mapped = (unsigned char*)_device->MapTransferBuffer(_buffer.get(), true);
+        _mapped = nullptr;
+    }
+
+    void UploadRing::Trim()
+    {
+        constexpr auto TRIM_DELAY = 120;
+        if (_underusedPasses < TRIM_DELAY)
+            return;
+
+        _underusedPasses = 0;
+        int capacity = std::max(_minimumCapacity, _capacity / 2);
+        auto buffer = _device->CreateTransferBuffer(TransferBufferUsage::Upload, capacity);
+        if (buffer == nullptr)
+            return;
+
+        _buffer = std::move(buffer);
+        _capacity = capacity;
     }
 
     int UploadRing::Allocate(int size)
@@ -42,6 +61,9 @@ namespace TEN::Renderer::RHI
         }
 
         _offset = offset + size;
+        if (_mapped == nullptr)
+            _mapped = (unsigned char*)_device->MapTransferBuffer(_buffer.get(), true);
+
         return offset;
     }
 
@@ -56,6 +78,7 @@ namespace TEN::Renderer::RHI
         _buffer = _device->CreateTransferBuffer(TransferBufferUsage::Upload, _capacity);
         _mapped = (unsigned char*)_device->MapTransferBuffer(_buffer.get(), true);
         _offset = 0;
+        _underusedPasses = 0;
     }
 
     void UploadRing::UploadToBuffer(IBuffer* destination, int destinationOffset, const void* data, int size)
@@ -70,17 +93,27 @@ namespace TEN::Renderer::RHI
 
     void UploadRing::UploadToTexture(const TextureRegion& destination, const void* data, int size)
     {
-        if (size <= 0)
+        UploadToTextures(&destination, 1, data, size);
+    }
+
+    // Destinations share the same texel layout and staging bytes until the copy pass completes.
+    void UploadRing::UploadToTextures(const TextureRegion* destinations, int count, const void* data, int size)
+    {
+        if (size <= 0 || count <= 0)
             return;
 
         int offset = Allocate(size);
         memcpy(_mapped + offset, data, size);
-        _textureCopies.push_back(PendingTextureCopy{ destination, offset });
+        for (int i = 0; i < count; i++)
+            _textureCopies.push_back(PendingTextureCopy{ destinations[i], offset });
     }
 
     // Copies are recorded once the buffer is unmapped. Destinations are cycled, as they were read by previous frames.
     void UploadRing::Flush()
     {
+        if (_mapped == nullptr)
+            return;
+
         _device->UnmapTransferBuffer(_buffer.get());
         _mapped = nullptr;
 
@@ -97,6 +130,11 @@ namespace TEN::Renderer::RHI
     void UploadRing::End()
     {
         Flush();
+        if (_retiredBuffers.empty() && _capacity > _minimumCapacity && _offset <= _capacity / 4)
+            _underusedPasses++;
+        else
+            _underusedPasses = 0;
+
         _copyPass = nullptr;
     }
 }

@@ -258,6 +258,7 @@ namespace TEN::Renderer::Next
         struct TextureArrayGroup
         {
             std::unique_ptr<RHI::ITexture> Maps[(int)MaterialMap::Count] = {};
+            int                            SkippedMips[(int)MaterialMap::Count] = {}; // Top mips left out to fit the video memory.
             int                            Index = 0; // Position in the group list, part of the draw sort keys.
         };
 
@@ -827,6 +828,7 @@ namespace TEN::Renderer::Next
 
         bool CreatePipelines();
         bool EnsureRenderTargets(int width, int height);
+        void ReserveTransientTargets();
         bool CreateFrameTargets(int width, int height);
         bool CreateSceneTargets(int width, int height, int windowWidth);
         std::unique_ptr<RHI::ITexture> CreateLevelTexture(const std::vector<unsigned char>& encodedData, const std::string& name, bool allowMips = true);
@@ -860,11 +862,12 @@ namespace TEN::Renderer::Next
                                                            std::vector<std::unique_ptr<RHI::ITransferBuffer>>& transferBuffers);
         void CreateLevelTextures(const std::vector<LevelTextureRequest>& requests, bool allowMips);
         void RecordImageUpload(RHI::ICopyPass& copyPass, const DecodedImage& image, RHI::ITexture* texture, int layer,
-                               std::vector<std::unique_ptr<RHI::ITransferBuffer>>& transferBuffers);
+                               std::vector<std::unique_ptr<RHI::ITransferBuffer>>& transferBuffers, int skippedMips = 0);
         void AddArrayPages(const std::vector<::TEXTURE>& source, std::vector<TexturePage>& destination, bool isColorOnly, std::vector<ArrayPageSource>& pages);
         std::unique_ptr<TextureArrayGroup> CreateTextureArrayGroup(const ArrayGroupKey& key, int layerCount, int groupIndex);
         void LoadTextureArrays(const std::vector<ArrayPageSource>& pages);
         void UploadTextureArrayLayers(const std::vector<ArrayPageSource>& pages, const std::vector<ArrayGroupKey>& pageKeys);
+        void FreeEncodedLevelTextures();
         void LoadLevelTextures();
         // Level geometry (NextRendererGeometry.cpp).
         void SetGeometrySection(MeshSource source, int regionOffset, int baseVertex, int vertexCount, const std::vector<int>& indices);
@@ -1030,6 +1033,7 @@ namespace TEN::Renderer::Next
                                    const RHI::TextureSamplerBinding* bindings, int bindingCount, const char* name, RHI::LoadOp load = RHI::LoadOp::DontCare);
         bool  CreateSMAAResources();
         void  RenderAntialiasing(RHI::ICommandBuffer& commandBuffer, int antialiasingMode, RHI::ITexture* source, RHI::ITexture* target);
+        static void GetSMAATargetDescs(const RHI::TextureDesc& targetDesc, RHI::TextureDesc& edgesDesc, RHI::TextureDesc& weightsDesc);
         bool  CreateUpscaleResources();
         bool  CreateMaterialSampler();
         int   GetRenderSize(int windowSize) const;

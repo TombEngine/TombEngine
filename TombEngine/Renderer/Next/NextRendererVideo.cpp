@@ -65,9 +65,9 @@ namespace TEN::Renderer::Next
         region.Width = width;
         region.Height = height;
         region.Texture = _videoTexture.get();
-        _uploadRing.UploadToTexture(region, frame, size);
-        region.Texture = _videoArrayTexture.get();
-        _uploadRing.UploadToTexture(region, frame, size);
+        TextureRegion destinations[2] = { region, region };
+        destinations[1].Texture = _videoArrayTexture.get();
+        _uploadRing.UploadToTextures(destinations, 2, frame, size);
         _isVideoActive = true;
     }
 

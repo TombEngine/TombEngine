@@ -13,6 +13,7 @@ namespace TEN::Renderer::RHI
         {
             std::unique_ptr<ITexture> Texture = nullptr;
             bool                      IsInUse = false;
+            int                       UnusedFrames = 0;
         };
 
         IDevice*           _device  = nullptr;
@@ -21,9 +22,11 @@ namespace TEN::Renderer::RHI
     public:
         void Initialize(IDevice& device);
         void Clear();
+        void CollectUnused();
 
         ITexture* Acquire(const TextureDesc& desc);
         void      Release(ITexture* texture);
+        void      Reserve(const TextureDesc& desc); // Creates a free target now, if none matches, for a later Acquire.
         int       GetCount() const { return (int)_entries.size(); }
     };
 }

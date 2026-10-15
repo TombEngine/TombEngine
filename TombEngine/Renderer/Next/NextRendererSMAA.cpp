@@ -58,6 +58,18 @@ namespace TEN::Renderer::Next
         return true;
     }
 
+    void NextRenderer::GetSMAATargetDescs(const TextureDesc& targetDesc, TextureDesc& edgesDesc, TextureDesc& weightsDesc)
+    {
+        edgesDesc = TextureDesc{};
+        edgesDesc.Width = targetDesc.Width;
+        edgesDesc.Height = targetDesc.Height;
+        edgesDesc.Format = PixelFormat::RG8Unorm;
+        edgesDesc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler;
+
+        weightsDesc = edgesDesc;
+        weightsDesc.Format = PixelFormat::RGBA8Unorm;
+    }
+
     // FXAA for the low antialiasing mode, SMAA 1x with the medium or ultra preset for the medium and high modes,
     // from the post-processed source image to the target.
     void NextRenderer::RenderAntialiasing(ICommandBuffer& commandBuffer, int antialiasingMode, ITexture* source, ITexture* target)
@@ -75,13 +87,8 @@ namespace TEN::Renderer::Next
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &metrics, sizeof(metrics));
 
         auto edgesDesc = TextureDesc{};
-        edgesDesc.Width = desc.Width;
-        edgesDesc.Height = desc.Height;
-        edgesDesc.Format = PixelFormat::RG8Unorm;
-        edgesDesc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler;
-
-        auto weightsDesc = edgesDesc;
-        weightsDesc.Format = PixelFormat::RGBA8Unorm;
+        auto weightsDesc = TextureDesc{};
+        GetSMAATargetDescs(desc, edgesDesc, weightsDesc);
 
         auto* edgesTarget = _targetPool.Acquire(edgesDesc);
         auto* weightsTarget = _targetPool.Acquire(weightsDesc);

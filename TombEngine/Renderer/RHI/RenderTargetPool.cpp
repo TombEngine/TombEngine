@@ -28,6 +28,7 @@ namespace TEN::Renderer::RHI
             if (!entry.IsInUse && IsSameTarget(entry.Texture->GetDesc(), desc))
             {
                 entry.IsInUse = true;
+                entry.UnusedFrames = 0;
                 return entry.Texture.get();
             }
         }
@@ -41,6 +42,28 @@ namespace TEN::Renderer::RHI
 
         _entries.push_back(Entry{ std::move(texture), true });
         return _entries.back().Texture.get();
+    }
+
+    void RenderTargetPool::Reserve(const TextureDesc& desc)
+    {
+        auto* texture = Acquire(desc);
+        if (texture != nullptr)
+            Release(texture);
+    }
+
+    void RenderTargetPool::CollectUnused()
+    {
+        constexpr auto MAX_UNUSED_FRAMES = 300;
+        for (auto entry = _entries.begin(); entry != _entries.end();)
+        {
+            if (entry->IsInUse || ++entry->UnusedFrames < MAX_UNUSED_FRAMES)
+            {
+                ++entry;
+                continue;
+            }
+
+            entry = _entries.erase(entry);
+        }
     }
 
     void RenderTargetPool::Release(ITexture* texture)
