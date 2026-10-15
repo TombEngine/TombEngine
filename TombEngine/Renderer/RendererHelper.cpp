@@ -38,7 +38,7 @@ extern ScriptInterfaceFlowHandler *g_GameFlow;
 namespace TEN::Renderer
 {
 	void Renderer::UpdateAnimation(RendererItem* rendererItem, RendererObject& rendererObject, const FrameData& frame, int mask, bool useObjectWorldRotation,
-								   const MoveableAnimBlendData* blend, const RootMotionData* rootMotionOffset)
+								   const MoveableAnimBlendData* blend, const RootMotionData* rootMotionOffset, const FrameData* interpolateWith, float interpolationAlpha)
 	{
 		static auto boneIndices = std::vector<int>{};
 		boneIndices.clear();
@@ -69,7 +69,8 @@ namespace TEN::Renderer
 				return;
 			
 			// Bad data; return early.
-			if (frame.BoneOrientations.size() <= bone->Index)
+			if (frame.BoneOrientations.size() <= bone->Index ||
+				(interpolateWith != nullptr && interpolateWith->BoneOrientations.size() <= bone->Index))
 			{
 				TENLog(
 					"Attempted to animate object with ID " + GetObjectName((GAME_OBJECT_ID)rendererObject.Id) +
@@ -84,7 +85,16 @@ namespace TEN::Renderer
 			if (animateBone)
 			{
 				auto rootPos = frame.RootPosition;
-				auto rotMatrix = Matrix::CreateFromQuaternion(frame.BoneOrientations[bone->Index]);
+				auto boneOrient = frame.BoneOrientations[bone->Index];
+
+				// Interpolate with another frame.
+				if (interpolateWith != nullptr)
+				{
+					rootPos = Vector3::Lerp(rootPos, interpolateWith->RootPosition, interpolationAlpha);
+					boneOrient = Quaternion::Slerp(boneOrient, interpolateWith->BoneOrientations[bone->Index], interpolationAlpha);
+				}
+
+				auto rotMatrix = Matrix::CreateFromQuaternion(boneOrient);
 
 				// TODO: Address root motion rotation blending if any issues come up later. -- Sezz 2026.04.30
 
