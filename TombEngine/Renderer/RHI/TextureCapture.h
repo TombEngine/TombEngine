@@ -33,6 +33,7 @@ namespace TEN::Renderer::RHI
         void Record(IDevice& device, ICopyPass& copyPass, ITexture* texture, const std::string& path);
         void Record(IDevice& device, ICopyPass& copyPass, ITexture* texture, ReadCallback callback);
         void Submit(ICommandBuffer& commandBuffer);
+        std::shared_ptr<IFence> SubmitWithFence(ICommandBuffer& commandBuffer); // Always fenced, for frame pacing.
         void Poll(IDevice& device, bool wait);
         void Clear(); // Releases the requests left, before the device is destroyed.
     };

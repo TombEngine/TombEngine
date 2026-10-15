@@ -2,12 +2,16 @@
 #include "Renderer/RHI/SDLGPU/SDLGPUDevice.h"
 #include "Renderer/RHI/MemoryTracker.h"
 
+#include <condition_variable>
+#include <deque>
 #include <mutex>
 #include <SDL3/SDL_gpu.h>
+#include <thread>
 
 namespace TEN::Renderer::RHI::SDLGPU
 {
-    constexpr auto COMMAND_BUFFER_POOL_SIZE = 8;
+    constexpr auto COMMAND_BUFFER_POOL_SIZE   = 8;
+    constexpr auto SWAPCHAIN_FRAMES_IN_FLIGHT = 3;
 
     static SDL_GPUTextureFormat ToSDL(PixelFormat format)
     {
@@ -371,15 +375,80 @@ namespace TEN::Renderer::RHI::SDLGPU
         return result;
     }
 
+    static bool IsSameBinding(const BufferBinding& first, const BufferBinding& second)
+    {
+        return first.Buffer == second.Buffer && first.Offset == second.Offset;
+    }
+
+    static bool IsSameBinding(const TextureSamplerBinding& first, const TextureSamplerBinding& second)
+    {
+        return first.Texture == second.Texture && first.Sampler == second.Sampler;
+    }
+
+    static bool IsSameBinding(IBuffer* first, IBuffer* second)
+    {
+        return first == second;
+    }
+
+    template<class T, int Capacity>
+    struct BindingCache
+    {
+        T Bindings[Capacity] = {};
+        bool Valid[Capacity] = {};
+
+        bool Update(int firstSlot, const T* bindings, int count)
+        {
+            bool changed = false;
+            for (int i = 0; i < count; i++)
+            {
+                int slot = firstSlot + i;
+                changed |= !Valid[slot] || !IsSameBinding(Bindings[slot], bindings[i]);
+                Bindings[slot] = bindings[i];
+                Valid[slot] = true;
+            }
+
+            return changed;
+        }
+    };
+
     class SDLGPURenderPass : public IRenderPass
     {
+    private:
+        IGraphicsPipeline* _pipeline = nullptr;
+        BindingCache<BufferBinding, MAX_VERTEX_BUFFERS> _vertexBuffers = {};
+        BindingCache<TextureSamplerBinding, MAX_SAMPLER_SLOTS> _vertexSamplers = {};
+        BindingCache<TextureSamplerBinding, MAX_SAMPLER_SLOTS> _pixelSamplers = {};
+        BindingCache<IBuffer*, MAX_STORAGE_SLOTS> _vertexStorage = {};
+        BindingCache<IBuffer*, MAX_STORAGE_SLOTS> _pixelStorage = {};
+        BufferBinding _indexBuffer = {};
+        IndexSize _indexSize = IndexSize::Bits16;
+        bool _hasIndexBuffer = false;
+        ScissorRect _scissor = {};
+        bool _hasScissor = false;
+
     public:
+        void ResetBindings()
+        {
+            _pipeline = nullptr;
+            _vertexBuffers = {};
+            _vertexSamplers = {};
+            _pixelSamplers = {};
+            _vertexStorage = {};
+            _pixelStorage = {};
+            _hasIndexBuffer = false;
+            _hasScissor = false;
+        }
+
         SDL_GPURenderPass* Handle = nullptr;
         CommandCounters*   Counters  = nullptr;
         PrimitiveType      Primitive = PrimitiveType::TriangleList;
 
         void BindPipeline(IGraphicsPipeline* pipeline) override
         {
+            if (_pipeline == pipeline)
+                return;
+
+            _pipeline = pipeline;
             SDL_BindGPUGraphicsPipeline(Handle, ((SDLGPUGraphicsPipeline*)pipeline)->Handle);
             Primitive = ((SDLGPUGraphicsPipeline*)pipeline)->Primitive;
             Counters->PipelineBinds++;
@@ -393,12 +462,21 @@ namespace TEN::Renderer::RHI::SDLGPU
 
         void SetScissor(const ScissorRect& scissor) override
         {
+            if (_hasScissor && _scissor.X == scissor.X && _scissor.Y == scissor.Y &&
+                _scissor.Width == scissor.Width && _scissor.Height == scissor.Height)
+                return;
+
+            _scissor = scissor;
+            _hasScissor = true;
             auto rect = SDL_Rect{ scissor.X, scissor.Y, scissor.Width, scissor.Height };
             SDL_SetGPUScissor(Handle, &rect);
         }
 
         void BindVertexBuffers(int firstSlot, const BufferBinding* bindings, int count) override
         {
+            if (!_vertexBuffers.Update(firstSlot, bindings, count))
+                return;
+
             SDL_GPUBufferBinding sdlBindings[MAX_VERTEX_BUFFERS];
             for (int i = 0; i < count; i++)
                 sdlBindings[i] = SDL_GPUBufferBinding{ GetHandle(bindings[i].Buffer), (Uint32)bindings[i].Offset };
@@ -409,6 +487,12 @@ namespace TEN::Renderer::RHI::SDLGPU
 
         void BindIndexBuffer(const BufferBinding& binding, IndexSize indexSize) override
         {
+            if (_hasIndexBuffer && _indexSize == indexSize && IsSameBinding(_indexBuffer, binding))
+                return;
+
+            _hasIndexBuffer = true;
+            _indexBuffer = binding;
+            _indexSize = indexSize;
             auto sdlBinding = SDL_GPUBufferBinding{ GetHandle(binding.Buffer), (Uint32)binding.Offset };
             SDL_BindGPUIndexBuffer(Handle, &sdlBinding, (indexSize == IndexSize::Bits16) ? SDL_GPU_INDEXELEMENTSIZE_16BIT : SDL_GPU_INDEXELEMENTSIZE_32BIT);
             Counters->IndexBufferBinds++;
@@ -416,6 +500,9 @@ namespace TEN::Renderer::RHI::SDLGPU
 
         void BindVertexSamplers(int firstSlot, const TextureSamplerBinding* bindings, int count) override
         {
+            if (!_vertexSamplers.Update(firstSlot, bindings, count))
+                return;
+
             SDL_GPUTextureSamplerBinding sdlBindings[MAX_SAMPLER_SLOTS];
             ToSDLTextureSamplerBindings(bindings, count, sdlBindings);
             SDL_BindGPUVertexSamplers(Handle, firstSlot, sdlBindings, count);
@@ -424,6 +511,9 @@ namespace TEN::Renderer::RHI::SDLGPU
 
         void BindVertexStorageBuffers(int firstSlot, IBuffer* const* buffers, int count) override
         {
+            if (!_vertexStorage.Update(firstSlot, buffers, count))
+                return;
+
             SDL_GPUBuffer* handles[MAX_STORAGE_SLOTS];
             ToSDLBufferHandles(buffers, count, handles);
             SDL_BindGPUVertexStorageBuffers(Handle, firstSlot, handles, count);
@@ -432,6 +522,9 @@ namespace TEN::Renderer::RHI::SDLGPU
 
         void BindPixelSamplers(int firstSlot, const TextureSamplerBinding* bindings, int count) override
         {
+            if (!_pixelSamplers.Update(firstSlot, bindings, count))
+                return;
+
             SDL_GPUTextureSamplerBinding sdlBindings[MAX_SAMPLER_SLOTS];
             ToSDLTextureSamplerBindings(bindings, count, sdlBindings);
             SDL_BindGPUFragmentSamplers(Handle, firstSlot, sdlBindings, count);
@@ -440,6 +533,9 @@ namespace TEN::Renderer::RHI::SDLGPU
 
         void BindPixelStorageBuffers(int firstSlot, IBuffer* const* buffers, int count) override
         {
+            if (!_pixelStorage.Update(firstSlot, buffers, count))
+                return;
+
             SDL_GPUBuffer* handles[MAX_STORAGE_SLOTS];
             ToSDLBufferHandles(buffers, count, handles);
             SDL_BindGPUFragmentStorageBuffers(Handle, firstSlot, handles, count);
@@ -529,9 +625,268 @@ namespace TEN::Renderer::RHI::SDLGPU
         }
     };
 
+    // SDL GPU has no timestamp queries, so while timings are requested command buffers are split where the outermost
+    // debug group and the groups directly inside it begin and end, and a thread waits for the fence of each part. A part
+    // lasts from its submission, or from the end of the previous part if the GPU was still busy, until its fence signals.
+    class SDLGPUProfiler
+    {
+    private:
+        struct Part
+        {
+            SDL_GPUFence*                         Fence       = nullptr; // Null for the marker ending a frame.
+            std::chrono::steady_clock::time_point SubmitTime  = {};
+            std::string                           Name        = {};      // Empty for the work between timed groups.
+            std::string                           FrameName   = {};      // Empty for the work before the outermost group.
+        };
+
+        struct Total
+        {
+            std::string Name         = {};
+            float       Milliseconds = 0.0f;
+            float       FrameTime    = 0.0f; // Parts of the frame still being added up.
+            int         Samples      = 0;
+        };
+
+        SDL_GPUDevice*          _device     = nullptr;
+        std::thread             _thread     = {};
+        std::mutex              _mutex      = {};
+        std::condition_variable _condition  = {};
+        std::deque<Part>        _parts      = {};
+        std::vector<Total>      _totals     = {};
+        bool                    _isStopping = false;
+
+        Total& FindTotal(const std::string& name)
+        {
+            for (auto& total : _totals)
+            {
+                if (total.Name == name)
+                    return total;
+            }
+
+            _totals.push_back(Total{ name });
+            return _totals.back();
+        }
+
+        void Resolve(const Part& part, float milliseconds)
+        {
+            auto lock = std::lock_guard<std::mutex>(_mutex);
+            if (!part.FrameName.empty())
+                FindTotal(part.FrameName).FrameTime += milliseconds;
+
+            if (!part.Name.empty())
+            {
+                auto& total = FindTotal(part.Name);
+                total.Milliseconds += milliseconds;
+                total.Samples++;
+            }
+        }
+
+        void EndFrame(const std::string& name)
+        {
+            auto lock = std::lock_guard<std::mutex>(_mutex);
+            auto& total = FindTotal(name);
+            total.Milliseconds += total.FrameTime;
+            total.FrameTime = 0.0f;
+            total.Samples++;
+        }
+
+        void Run()
+        {
+            auto previousEndTime = std::chrono::steady_clock::time_point{};
+            while (true)
+            {
+                auto part = Part{};
+                {
+                    auto lock = std::unique_lock<std::mutex>(_mutex);
+                    _condition.wait(lock, [this]() { return _isStopping || !_parts.empty(); });
+                    if (_parts.empty())
+                        return;
+
+                    part = std::move(_parts.front());
+                    _parts.pop_front();
+                }
+
+                if (part.Fence == nullptr)
+                {
+                    EndFrame(part.FrameName);
+                    continue;
+                }
+
+                SDL_WaitForGPUFences(_device, true, &part.Fence, 1);
+                auto endTime = std::chrono::steady_clock::now();
+                SDL_ReleaseGPUFence(_device, part.Fence);
+
+                auto beginTime = std::max(previousEndTime, part.SubmitTime);
+                previousEndTime = endTime;
+                Resolve(part, std::chrono::duration<float, std::milli>(endTime - beginTime).count());
+            }
+        }
+
+    public:
+        ~SDLGPUProfiler()
+        {
+            Stop();
+        }
+
+        bool IsRunning() const
+        {
+            return _thread.joinable();
+        }
+
+        void Start(SDL_GPUDevice* device)
+        {
+            _device = device;
+            _thread = std::thread([this]() { Run(); });
+        }
+
+        // The thread finishes waiting for the parts submitted, so it is stopped before the device is destroyed.
+        void Stop()
+        {
+            if (!_thread.joinable())
+                return;
+
+            {
+                auto lock = std::lock_guard<std::mutex>(_mutex);
+                _isStopping = true;
+            }
+
+            _condition.notify_one();
+            _thread.join();
+        }
+
+        // The lock covers the submission, so parts submitted by different threads are queued in submission order.
+        void SubmitPart(SDL_GPUCommandBuffer* commandBuffer, const std::string& name, const std::string& frameName)
+        {
+            {
+                auto lock = std::lock_guard<std::mutex>(_mutex);
+                // The GPU can start the part once the submission returns, which may wait for locks held by the thread.
+                auto part = Part{ nullptr, {}, name, frameName };
+                part.Fence = SDL_SubmitGPUCommandBufferAndAcquireFence(commandBuffer);
+                part.SubmitTime = std::chrono::steady_clock::now();
+                if (part.Fence == nullptr)
+                {
+                    TENLog(std::string("SDL GPU: command buffer submission failed: ") + SDL_GetError(), LogLevel::Error);
+                    return;
+                }
+
+                _parts.push_back(std::move(part));
+            }
+
+            _condition.notify_one();
+        }
+
+        // An empty part after the outermost group: work the queue runs between submissions, such as the copy a present
+        // adds after the fence of its command buffer, is counted in this frame instead of the next part.
+        void SubmitProbe(SDL_GPUDevice* device, const std::string& frameName)
+        {
+            auto* commandBuffer = SDL_AcquireGPUCommandBuffer(device);
+            if (commandBuffer != nullptr)
+                SubmitPart(commandBuffer, {}, frameName);
+        }
+
+        void QueueFrameEnd(const std::string& frameName)
+        {
+            {
+                auto lock = std::lock_guard<std::mutex>(_mutex);
+                _parts.push_back(Part{ nullptr, {}, {}, frameName });
+            }
+
+            _condition.notify_one();
+        }
+
+        std::vector<GpuTiming> Consume()
+        {
+            auto lock = std::lock_guard<std::mutex>(_mutex);
+            auto result = std::vector<GpuTiming>{};
+            for (auto& total : _totals)
+            {
+                if (total.Samples > 0)
+                    result.push_back(GpuTiming{ total.Name, total.Milliseconds / (float)total.Samples, total.Samples });
+
+                total.Milliseconds = 0.0f;
+                total.Samples = 0;
+            }
+
+            return result;
+        }
+    };
+
     class SDLGPUCommandBuffer : public ICommandBuffer
     {
+    private:
+        std::vector<std::string>   _debugGroups = {};
+        std::vector<unsigned char> _uniforms[3][MAX_UNIFORM_SLOTS] = {}; // Pushed again on each part of a split command buffer.
+        std::string                _partName    = {};
+        std::string                _frameName   = {};
+        bool                       _hasPartWork = false;
+
+        bool IsPassOpen() const
+        {
+            return (RenderPass.Handle != nullptr || CopyPass.Handle != nullptr || ComputePass.Handle != nullptr);
+        }
+
+        // Submits the part recorded so far and continues on a new command buffer with the same debug groups and uniforms.
+        // Returns false when a pass is still open, as the command buffer cannot be split then.
+        bool SplitPart()
+        {
+            if (!_hasPartWork)
+                return true;
+
+            if (IsPassOpen())
+                return false;
+
+            for (int i = 0; i < (int)_debugGroups.size(); i++)
+                SDL_PopGPUDebugGroup(Handle);
+
+            Profiler->SubmitPart(Handle, _partName, _frameName);
+            Handle = SDL_AcquireGPUCommandBuffer(Device);
+            if (Handle == nullptr)
+                TENLog(std::string("SDL GPU: cannot acquire command buffer: ") + SDL_GetError(), LogLevel::Error);
+
+            for (const auto& name : _debugGroups)
+                SDL_PushGPUDebugGroup(Handle, name.c_str());
+
+            for (int stage = 0; stage < 3; stage++)
+            {
+                for (int slot = 0; slot < MAX_UNIFORM_SLOTS; slot++)
+                {
+                    const auto& data = _uniforms[stage][slot];
+                    if (!data.empty())
+                        PushUniformData((ShaderStage)stage, slot, data.data(), (int)data.size());
+                }
+            }
+
+            _hasPartWork = false;
+            return true;
+        }
+
+        void PushUniformData(ShaderStage stage, int slot, const void* data, int size)
+        {
+            switch (stage)
+            {
+            case ShaderStage::Vertex:
+                SDL_PushGPUVertexUniformData(Handle, slot, data, size);
+                break;
+
+            case ShaderStage::Pixel:
+                SDL_PushGPUFragmentUniformData(Handle, slot, data, size);
+                break;
+
+            case ShaderStage::Compute:
+                SDL_PushGPUComputeUniformData(Handle, slot, data, size);
+                break;
+            }
+        }
+
+        void EndRecording()
+        {
+            Handle = nullptr;
+            Profiler = nullptr;
+            IsInUse = false;
+        }
+
     public:
+        SDLGPUProfiler*       Profiler         = nullptr; // Set while GPU timings are requested.
         SDL_GPUDevice*        Device           = nullptr;
         SDL_Window*           Window           = nullptr;
         SDL_GPUCommandBuffer* Handle           = nullptr;
@@ -597,7 +952,9 @@ namespace TEN::Renderer::RHI::SDLGPU
 
             RenderPass.Handle = SDL_BeginGPURenderPass(Handle, sdlColorTargets, colorTargetCount, (depthTarget != nullptr) ? &sdlDepthTarget : nullptr);
             RenderPass.Counters = &Counters;
+            RenderPass.ResetBindings();
             Counters.RenderPasses++;
+            _hasPartWork = true;
             return &RenderPass;
         }
 
@@ -612,6 +969,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             CopyPass.Handle = SDL_BeginGPUCopyPass(Handle);
             CopyPass.Counters = &Counters;
             Counters.CopyPasses++;
+            _hasPartWork = true;
             return &CopyPass;
         }
 
@@ -634,6 +992,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             ComputePass.Handle = SDL_BeginGPUComputePass(Handle, textures, desc.NumRWTextures, buffers, desc.NumRWBuffers);
             ComputePass.Counters = &Counters;
             Counters.ComputePasses++;
+            _hasPartWork = true;
             return &ComputePass;
         }
 
@@ -647,20 +1006,10 @@ namespace TEN::Renderer::RHI::SDLGPU
         {
             Counters.UniformPushes++;
             Counters.UniformBytes += size;
-            switch (stage)
-            {
-            case ShaderStage::Vertex:
-                SDL_PushGPUVertexUniformData(Handle, slot, data, size);
-                break;
+            PushUniformData(stage, slot, data, size);
 
-            case ShaderStage::Pixel:
-                SDL_PushGPUFragmentUniformData(Handle, slot, data, size);
-                break;
-
-            case ShaderStage::Compute:
-                SDL_PushGPUComputeUniformData(Handle, slot, data, size);
-                break;
-            }
+            if (Profiler != nullptr)
+                _uniforms[(int)stage][slot].assign((const unsigned char*)data, (const unsigned char*)data + size);
         }
 
         void BlitTexture(ITexture* source, ITexture* destination) override
@@ -679,16 +1028,56 @@ namespace TEN::Renderer::RHI::SDLGPU
             blitInfo.filter = SDL_GPU_FILTER_LINEAR;
             SDL_BlitGPUTexture(Handle, &blitInfo);
             Counters.Blits++;
+            _hasPartWork = true;
+        }
+
+        void BeginRecording(SDLGPUProfiler* profiler)
+        {
+            Profiler = profiler;
+            _debugGroups.clear();
+            for (auto& stageUniforms : _uniforms)
+            {
+                for (auto& data : stageUniforms)
+                    data.clear();
+            }
+
+            _partName.clear();
+            _frameName.clear();
+            _hasPartWork = false;
+            ResetCounters();
         }
 
         void PushDebugGroup(const char* name) override
         {
+            int depth = (int)_debugGroups.size();
+            if (Profiler != nullptr && depth < 2 && SplitPart())
+            {
+                _partName = (depth == 0) ? std::string() : std::string(name);
+                if (depth == 0)
+                    _frameName = name;
+            }
+
             SDL_PushGPUDebugGroup(Handle, name);
+            _debugGroups.push_back(name);
         }
 
         void PopDebugGroup() override
         {
             SDL_PopGPUDebugGroup(Handle);
+            if (!_debugGroups.empty())
+                _debugGroups.pop_back();
+
+            int depth = (int)_debugGroups.size();
+            if (Profiler == nullptr || depth >= 2 || !SplitPart())
+                return;
+
+            _partName.clear();
+            if (depth == 0)
+            {
+                Profiler->SubmitProbe(Device, _frameName);
+                Profiler->QueueFrameEnd(_frameName);
+                _frameName.clear();
+            }
         }
 
         void InsertDebugLabel(const char* name) override
@@ -701,15 +1090,13 @@ namespace TEN::Renderer::RHI::SDLGPU
             if (!SDL_SubmitGPUCommandBuffer(Handle))
                 TENLog(std::string("SDL GPU: command buffer submission failed: ") + SDL_GetError(), LogLevel::Error);
 
-            Handle = nullptr;
-            IsInUse = false;
+            EndRecording();
         }
 
         std::unique_ptr<IFence> SubmitWithFence() override
         {
             auto* handle = SDL_SubmitGPUCommandBufferAndAcquireFence(Handle);
-            Handle = nullptr;
-            IsInUse = false;
+            EndRecording();
             if (handle == nullptr)
             {
                 TENLog(std::string("SDL GPU: command buffer submission failed: ") + SDL_GetError(), LogLevel::Error);
@@ -751,6 +1138,9 @@ namespace TEN::Renderer::RHI::SDLGPU
         std::vector<std::unique_ptr<SDLGPUCommandBuffer>> _commandBuffers = {};
         std::mutex _commandBufferMutex = {};
 
+        SDLGPUProfiler    _profiler           = {};
+        std::atomic<bool> _isGpuTimingEnabled = false;
+
     public:
         SDLGPUDevice(SDL_GPUDevice* device, SDL_Window* window, Backend backend, ShaderFormat shaderFormat) :
             _device(device),
@@ -770,6 +1160,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         ~SDLGPUDevice() override
         {
             SDL_WaitForGPUIdle(_device);
+            _profiler.Stop();
             _commandBuffers.clear();
             SDL_ReleaseWindowFromGPUDevice(_device, _window);
             SDL_DestroyGPUDevice(_device);
@@ -1080,7 +1471,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             }
 
             commandBuffer->Handle = SDL_AcquireGPUCommandBuffer(_device);
-            commandBuffer->ResetCounters();
+            commandBuffer->BeginRecording(_isGpuTimingEnabled ? &_profiler : nullptr);
             if (commandBuffer->Handle == nullptr)
             {
                 TENLog(std::string("SDL GPU: cannot acquire command buffer: ") + SDL_GetError(), LogLevel::Error);
@@ -1095,6 +1486,16 @@ namespace TEN::Renderer::RHI::SDLGPU
         PixelFormat GetSwapchainFormat() const override
         {
             return FromSDL(SDL_GetGPUSwapchainTextureFormat(_device, _window));
+        }
+
+        bool SupportsPresentMode(PresentMode mode) const override
+        {
+            switch (mode)
+            {
+            case PresentMode::Immediate: return SDL_WindowSupportsGPUPresentMode(_device, _window, SDL_GPU_PRESENTMODE_IMMEDIATE);
+            case PresentMode::Mailbox:   return SDL_WindowSupportsGPUPresentMode(_device, _window, SDL_GPU_PRESENTMODE_MAILBOX);
+            default:                     return true;
+            }
         }
 
         void SetPresentMode(PresentMode mode) override
@@ -1124,6 +1525,29 @@ namespace TEN::Renderer::RHI::SDLGPU
         bool IsFenceSignaled(IFence* fence) override
         {
             return (fence == nullptr) || SDL_QueryGPUFence(_device, ((SDLGPUFence*)fence)->Handle);
+        }
+
+        void WaitForFence(IFence* fence) override
+        {
+            if (fence == nullptr)
+                return;
+
+            auto* handle = ((SDLGPUFence*)fence)->Handle;
+            SDL_WaitForGPUFences(_device, true, &handle, 1);
+        }
+
+        // Applies to the command buffers acquired afterwards.
+        void SetGpuTimingEnabled(bool enabled) override
+        {
+            if (enabled && !_profiler.IsRunning())
+                _profiler.Start(_device);
+
+            _isGpuTimingEnabled = enabled;
+        }
+
+        std::vector<GpuTiming> ConsumeGpuTimings() override
+        {
+            return _profiler.Consume();
         }
 
         bool SupportsTextureFormat(PixelFormat format, TextureType type, unsigned int usage) const override
@@ -1162,6 +1586,11 @@ namespace TEN::Renderer::RHI::SDLGPU
             TENLog(std::string("SDL GPU: cannot create device on ") + driverName + ": " + SDL_GetError(), LogLevel::Warning);
             return nullptr;
         }
+
+        // With the default two frames in flight, acquisition waits for the second last present. A windowed swapchain
+        // keeps an image for the compositor, so the GPU queue idled behind the acquire semaphore (about 1.5 ms a frame).
+        if (!SDL_SetGPUAllowedFramesInFlight(device, SWAPCHAIN_FRAMES_IN_FLIGHT))
+            TENLog(std::string("SDL GPU: cannot set frames in flight: ") + SDL_GetError(), LogLevel::Warning);
 
         if (!SDL_ClaimWindowForGPUDevice(device, window))
         {

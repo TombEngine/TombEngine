@@ -164,9 +164,11 @@ namespace TEN::Renderer::RHI
 
         virtual PixelFormat GetSwapchainFormat() const = 0;
         virtual void        SetPresentMode(PresentMode mode) = 0;
+        virtual bool        SupportsPresentMode(PresentMode mode) const { return (mode == PresentMode::Vsync); }
         virtual void        ResizeSwapchain(int width, int height) = 0;
         virtual void        WaitIdle() = 0;
         virtual bool        IsFenceSignaled(IFence* fence) = 0;
+        virtual void        WaitForFence(IFence* fence) = 0;
 
         virtual bool SupportsTextureFormat(PixelFormat format, TextureType type, unsigned int usage) const = 0;
 
@@ -174,7 +176,9 @@ namespace TEN::Renderer::RHI
         virtual bool RequiresWindowThreadPresent() const = 0;
 
         // Average GPU time of the debug groups directly inside the outermost one, plus the outermost group itself,
-        // since the previous call. Empty when the backend has no timestamp queries (SDL GPU).
+        // since the previous call. SDL GPU has no timestamp queries and measures fences only while timing is enabled,
+        // splitting command buffers at those groups.
+        virtual void                   SetGpuTimingEnabled(bool enabled) {}
         virtual std::vector<GpuTiming> ConsumeGpuTimings() { return {}; }
     };
 

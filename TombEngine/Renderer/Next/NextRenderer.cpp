@@ -13,6 +13,7 @@
 #include "Renderer/Next/TextureLoader.h"
 #include "Renderer/RendererUtils.h"
 #include "Renderer/RenderView.h"
+#include "Renderer/RHI/MemoryTracker.h"
 #include "Renderer/RHI/ShaderLibrary.h"
 #include "Renderer/RHI/TextureCapture.h"
 #include "Renderer/Structures/RendererAnimatedTextureSet.h"
@@ -25,6 +26,7 @@
 #include "Renderer/Structures/RendererSpriteToDraw.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
+#include "Specific/Benchmark.h"
 #include "Specific/configuration.h"
 #include "Specific/level.h"
 #include "Specific/Structures/MaterialData.h"
@@ -55,6 +57,7 @@ namespace TEN::Renderer::Next
         _windowWidth = width;
         _windowHeight = height;
 
+        SetVsyncEnabled(_isVsyncEnabled);
         _uploadRing.Initialize(*_device, UPLOAD_RING_INITIAL_SIZE);
         _targetPool.Initialize(*_device);
         if (!CreatePipelines())
@@ -76,6 +79,8 @@ namespace TEN::Renderer::Next
         _device->WaitIdle();
         _readback.Poll(*_device, true);
         _readback.Clear();
+        _frameFences = {};
+        LogMemoryUsage();
         _roomTextures.clear();
         _animatedTextures.clear();
         _staticTextures.clear();
@@ -259,6 +264,28 @@ namespace TEN::Renderer::Next
     bool NextRenderer::IsActive() const
     {
         return (_device != nullptr);
+    }
+
+    // Vulkan presents in mailbox mode where the driver allows it: in a window, the immediate mode of some drivers (NVIDIA)
+    // adds a copy of the image to each present, which mailbox avoids without tearing. With vertical sync the game thread
+    // is then paced to the refresh rate (Renderer::PaceFrame). DX11 tears without vertical sync: its flip model is capped
+    // at the refresh rate otherwise.
+    void NextRenderer::SetVsyncEnabled(bool enabled)
+    {
+        _isVsyncEnabled = enabled;
+        if (_device == nullptr)
+            return;
+
+        auto mode = enabled ? PresentMode::Vsync : PresentMode::Immediate;
+        if (_device->RequiresWindowThreadPresent() && _device->SupportsPresentMode(PresentMode::Mailbox))
+            mode = PresentMode::Mailbox;
+
+        _device->SetPresentMode(mode);
+    }
+
+    bool NextRenderer::IsVsyncEnabled() const
+    {
+        return _isVsyncEnabled;
     }
 
     bool NextRenderer::IsPresentedOnWindowThread() const
@@ -2447,6 +2474,33 @@ namespace TEN::Renderer::Next
         TENLog(message + fmt::format(" ({} frames)", timings.front().Samples), LogLevel::Info);
     }
 
+    void NextRenderer::WaitForFrameInFlight()
+    {
+        auto& fence = _frameFences[_frameFenceIndex];
+        if (fence == nullptr)
+            return;
+
+        _device->WaitForFence(fence.get());
+        fence = nullptr;
+    }
+
+    // Live GPU resources by category and the video memory the operating system reports for the process.
+    void NextRenderer::LogMemoryUsage()
+    {
+        constexpr auto MEGABYTE = 1024.0 * 1024.0;
+
+        auto stats = RHI::GetMemoryStats(_device->GetDeviceName());
+        TENLog(fmt::format(
+            "Next renderer memory: textures {:.1f} MB ({}), render targets {:.1f} MB ({}), buffers {:.1f} MB ({}), transfer {:.1f} MB ({}); "
+            "process video memory {:.1f} MB of {:.1f} MB budget, dedicated {:.1f} MB ({:.1f} MB used by all processes), shared {:.1f} MB.",
+            stats.Bytes[(int)RHI::MemoryCategory::Texture] / MEGABYTE, stats.Counts[(int)RHI::MemoryCategory::Texture],
+            stats.Bytes[(int)RHI::MemoryCategory::RenderTarget] / MEGABYTE, stats.Counts[(int)RHI::MemoryCategory::RenderTarget],
+            stats.Bytes[(int)RHI::MemoryCategory::Buffer] / MEGABYTE, stats.Counts[(int)RHI::MemoryCategory::Buffer],
+            stats.Bytes[(int)RHI::MemoryCategory::TransferBuffer] / MEGABYTE, stats.Counts[(int)RHI::MemoryCategory::TransferBuffer],
+            stats.Adapter.ProcessUsage / MEGABYTE, stats.Adapter.ProcessBudget / MEGABYTE,
+            stats.Adapter.DedicatedVideoMemory / MEGABYTE, stats.Adapter.AdapterUsage / MEGABYTE, stats.Adapter.SharedSystemMemory / MEGABYTE), LogLevel::Info);
+    }
+
     bool NextRenderer::IsCausticsRoom(int roomNumber) const
     {
         int flags = g_Level.Rooms[roomNumber].flags;
@@ -2574,8 +2628,11 @@ namespace TEN::Renderer::Next
         if (width <= 0 || height <= 0)
             return;
 
+        WaitForFrameInFlight();
+
         auto lock = std::lock_guard<std::mutex>(_frameMutex);
         _renderScale = environment.RenderScale;
+        _targetPool.CollectUnused();
         if (!EnsureRenderTargets(width, height))
             return;
 
@@ -2728,6 +2785,14 @@ namespace TEN::Renderer::Next
         if (width <= 0 || height <= 0)
             return;
 
+        // A rendered scene already waited for its frame slot.
+        if (!_isFramePending)
+            WaitForFrameInFlight();
+
+        // GPU timings are measured while the debug window shows them or a benchmark runs.
+        _device->SetGpuTimingEnabled(_isGpuTimingRequested || (_isBenchmarkGpuTimingEnabled && TEN::Benchmark::IsBenchmarkActive()));
+        _isGpuTimingRequested = false;
+
         auto lock = std::lock_guard<std::mutex>(_frameMutex);
         if (!EnsureRenderTargets(width, height))
             return;
@@ -2783,7 +2848,16 @@ namespace TEN::Renderer::Next
 
         // Submit is excluded: on DX11 it also presents and may wait for vsync.
         _frameStats.CpuTime += std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - startTime).count();
-        _readback.Submit(*commandBuffer);
+        if (_device->RequiresWindowThreadPresent())
+        {
+            _frameFences[_frameFenceIndex] = _readback.SubmitWithFence(*commandBuffer);
+            _frameFenceIndex = (_frameFenceIndex + 1) % FRAMES_IN_FLIGHT_MAX;
+        }
+        else
+        {
+            _readback.Submit(*commandBuffer);
+        }
+
         _readback.Poll(*_device, false);
 
         if (_device->RequiresWindowThreadPresent())

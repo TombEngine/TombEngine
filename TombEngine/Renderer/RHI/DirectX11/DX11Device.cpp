@@ -321,7 +321,7 @@ namespace TEN::Renderer::RHI::DirectX11
     class DX11GpuProfiler
     {
     private:
-        static constexpr int FRAME_LATENCY = 4;
+        static constexpr int FRAME_LATENCY = 16; // Two per frame: the scene and the frame finish groups.
         static constexpr int SCOPES_MAX    = 32;
 
         struct Scope
@@ -386,6 +386,10 @@ namespace TEN::Renderer::RHI::DirectX11
                 {
                     return;
                 }
+
+                // A scope whose end query was not issued in this frame still holds an older timestamp.
+                if (end < begin)
+                    continue;
 
                 Accumulate(frame.Scopes[i].Name, (float)((double)(end - begin) * 1000.0 / (double)disjoint.Frequency));
             }
@@ -1137,6 +1141,7 @@ namespace TEN::Renderer::RHI::DirectX11
         ComPtr<IDXGISwapChain1>     _swapChain = nullptr;
         SDL_Window*                 _window    = nullptr;
         int                         _syncInterval = 1;
+        bool                        _isTearingSupported = false; // Lets presents without vertical sync exceed the refresh rate in a window.
         std::string                 _adapterName  = {};
 
         DX11Texture       _swapchainTexture = {};
@@ -1147,12 +1152,13 @@ namespace TEN::Renderer::RHI::DirectX11
         std::unordered_set<int>  _loggedMessages = {};
 
     public:
-        DX11Device(ComPtr<ID3D11Device> device, ComPtr<ID3D11DeviceContext> context, ComPtr<IDXGISwapChain1> swapChain, SDL_Window* window, const std::string& adapterName) :
+        DX11Device(ComPtr<ID3D11Device> device, ComPtr<ID3D11DeviceContext> context, ComPtr<IDXGISwapChain1> swapChain, SDL_Window* window, const std::string& adapterName, bool isTearingSupported) :
             _device(device),
             _context(context),
             _swapChain(swapChain),
             _window(window),
-            _adapterName(adapterName)
+            _adapterName(adapterName),
+            _isTearingSupported(isTearingSupported)
         {
             _commandBuffer.Owner = this;
             _commandBuffer.Device = device.Get();
@@ -1244,7 +1250,7 @@ namespace TEN::Renderer::RHI::DirectX11
 
         void Present()
         {
-            _swapChain->Present(_syncInterval, 0);
+            _swapChain->Present(_syncInterval, (_syncInterval == 0 && _isTearingSupported) ? DXGI_PRESENT_ALLOW_TEARING : 0);
         }
 
         void FlushDebugMessages()
@@ -1666,7 +1672,7 @@ namespace TEN::Renderer::RHI::DirectX11
             _swapchainTexture.Handle.Reset();
             _swapchainTexture.Rtvs.clear();
 
-            if (FAILED(_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0)))
+            if (FAILED(_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, _isTearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0)))
                 TENLog("DX11: swapchain resize failed.", LogLevel::Error);
 
             UpdateSwapchainTexture();
@@ -1680,6 +1686,12 @@ namespace TEN::Renderer::RHI::DirectX11
         bool IsFenceSignaled(IFence* fence) override
         {
             return (fence == nullptr) || (_context->GetData(((DX11Fence*)fence)->Query.Get(), nullptr, 0, 0) == S_OK);
+        }
+
+        void WaitForFence(IFence* fence) override
+        {
+            while (!IsFenceSignaled(fence))
+                SDL_Delay(0);
         }
 
         bool SupportsTextureFormat(PixelFormat format, TextureType type, unsigned int usage) const override
@@ -1801,7 +1813,17 @@ namespace TEN::Renderer::RHI::DirectX11
         swapChainDesc.SampleDesc.Count = 1;
         swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         swapChainDesc.BufferCount = SWAPCHAIN_BUFFER_COUNT;
+        // The flip model needs tearing support to present faster than the refresh rate in a window.
+        auto isTearingSupported = false;
+        ComPtr<IDXGIFactory5> factory5;
+        if (SUCCEEDED(factory.As(&factory5)))
+        {
+            BOOL allowTearing = FALSE;
+            isTearingSupported = SUCCEEDED(factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing))) && allowTearing;
+        }
+
         swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+        swapChainDesc.Flags = isTearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
 
         ComPtr<IDXGISwapChain1> swapChain;
         if (FAILED(factory->CreateSwapChainForHwnd(device.Get(), hwnd, &swapChainDesc, nullptr, nullptr, swapChain.GetAddressOf())))
@@ -1812,7 +1834,7 @@ namespace TEN::Renderer::RHI::DirectX11
 
         factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER);
 
-        auto result2 = std::make_unique<DX11Device>(device, context, swapChain, window, adapterName);
+        auto result2 = std::make_unique<DX11Device>(device, context, swapChain, window, adapterName, isTearingSupported);
         TENLog("DX11 RHI device created: " + result2->GetDeviceName(), LogLevel::Info);
         return result2;
     }

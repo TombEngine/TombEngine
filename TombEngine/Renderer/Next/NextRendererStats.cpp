@@ -100,10 +100,12 @@ namespace TEN::Renderer::Next
         return info;
     }
 
-    // GPU pass timings averaged over a second; only backends with timestamp queries report them.
+    // GPU pass timings averaged over a second; SDL GPU measures them only while requested.
     const std::vector<GpuTiming>& NextRenderer::SampleGpuTimings()
     {
         constexpr auto SAMPLE_INTERVAL = 60;
+
+        _isGpuTimingRequested = true;
 
         if (_device != nullptr && ++_gpuTimingFrames >= SAMPLE_INTERVAL)
         {

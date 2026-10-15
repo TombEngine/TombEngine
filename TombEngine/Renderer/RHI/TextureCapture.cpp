@@ -101,12 +101,19 @@ namespace TEN::Renderer::RHI
             return;
         }
 
+        SubmitWithFence(commandBuffer);
+    }
+
+    std::shared_ptr<IFence> TextureReadback::SubmitWithFence(ICommandBuffer& commandBuffer)
+    {
         auto fence = std::shared_ptr<IFence>(commandBuffer.SubmitWithFence());
         for (auto& request : _requests)
         {
             if (request.Fence == nullptr)
                 request.Fence = fence;
         }
+
+        return fence;
     }
 
     void TextureReadback::Clear()

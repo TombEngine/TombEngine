@@ -606,7 +606,7 @@ namespace TEN::Renderer
 	// makes continuous motion stutter. The game thread therefore starts frames one refresh interval apart.
 	void Renderer::PaceFrame()
 	{
-		if (!g_Configuration.EnableHighFramerate || !Next::g_NextRenderer.IsPresentedOnWindowThread())
+		if (!g_Configuration.EnableHighFramerate || !Next::g_NextRenderer.IsPresentedOnWindowThread() || !Next::g_NextRenderer.IsVsyncEnabled())
 			return;
 
 		auto interval = (unsigned long long)(1000000000.0 / GetScreenRefreshRate());

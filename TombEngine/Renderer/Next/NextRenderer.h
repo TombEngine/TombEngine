@@ -713,6 +713,13 @@ namespace TEN::Renderer::Next
         RHI::UploadRing                   _uploadRing    = {}; // Per-frame uploads of every copy pass.
         RHI::TextureReadback              _readback      = {}; // Screenshots, written when the GPU has rendered them.
 
+        // Fences of the last finished frames on window thread presenting devices, which do not block the game thread:
+        // a new frame waits for the oldest one, so the game thread cannot queue frames faster than the GPU renders them.
+        static constexpr auto FRAMES_IN_FLIGHT_MAX = 2;
+
+        std::array<std::shared_ptr<RHI::IFence>, FRAMES_IN_FLIGHT_MAX> _frameFences     = {};
+        int                                                           _frameFenceIndex = 0;
+
         std::vector<TexturePage>      _staticTextures   = {};
         std::vector<TexturePage>      _moveableTextures = {};
         std::vector<RoomTexture>      _spriteTextures   = {};
@@ -810,8 +817,11 @@ namespace TEN::Renderer::Next
         std::vector<SpriteDraw>       _spriteDraws         = {};
         int                           _roomLightCount      = 0;
         NextFrameStats                _frameStats          = {};
-        std::vector<RHI::GpuTiming> _gpuTimings      = {};
-        int                         _gpuTimingFrames = 0;
+        std::vector<RHI::GpuTiming> _gpuTimings                  = {};
+        int                         _gpuTimingFrames             = 0;
+        bool                        _isGpuTimingRequested        = false;
+        bool                        _isVsyncEnabled              = true;
+        bool                        _isBenchmarkGpuTimingEnabled = true; // Off to benchmark SDL GPU without split command buffers.
         bool                          _isLevelLoaded    = false;
 
         // Scene frame in _colorTarget; with the 2D layer in _finalTarget, handed from the render thread to the window thread.
@@ -919,6 +929,8 @@ namespace TEN::Renderer::Next
         int  GetSortedObjectInstance(const Structures::RendererSortableObject& object, float interpolationFactor);
         void DrawSortedFaces(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, bool isMirrored = false);
         void LogGpuTimings();
+        void LogMemoryUsage();
+        void WaitForFrameInFlight();
         void CollectFrameStats(const RenderView& view, const FrameEnvironment& environment);
         void ResetFrameStats();
         void CountDraw(DrawCategory category, int triangles);
@@ -1062,6 +1074,9 @@ namespace TEN::Renderer::Next
         bool Initialize(SDL_Window* window, RHI::Backend backend, const std::string& gameDirectory, bool preferLowPowerGpu);
         void Shutdown();
         bool IsActive() const;
+        void SetVsyncEnabled(bool enabled);
+        bool IsVsyncEnabled() const;
+        void SetBenchmarkGpuTimingEnabled(bool enabled) { _isBenchmarkGpuTimingEnabled = enabled; }
         bool IsPresentedOnWindowThread() const;
 
         void LoadLevel(const LegacyLevelGeometry& geometry);

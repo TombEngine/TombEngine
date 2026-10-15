@@ -293,6 +293,8 @@ int main(int argc, char* argv[])
 	float benchmarkDuration = 0.0f;
 	auto rhiTestBackend = std::string();
 	bool isOnLowPowerGpu = false;
+	bool isVsyncDisabled = false;
+	bool isGpuTimingDisabled = false;
 	auto nextBackend = std::string();
 
 	for (int i = 1; i < argc; ++i)
@@ -327,6 +329,16 @@ int main(int argc, char* argv[])
 		{
 			// Renderer backend, overriding the configuration.
 			nextBackend = argv[++i];
+		}
+		else if (ArgEquals(arg.c_str(), "nogputiming"))
+		{
+			// Benchmarks without GPU pass timings, which split the command buffers on SDL GPU.
+			isGpuTimingDisabled = true;
+		}
+		else if (ArgEquals(arg.c_str(), "novsync"))
+		{
+			// Presents without waiting for vertical sync, for benchmarks.
+			isVsyncDisabled = true;
 		}
 		else if (ArgEquals(arg.c_str(), "lowpower"))
 		{
@@ -492,6 +504,11 @@ int main(int argc, char* argv[])
 		// The next renderer draws the main window from the frames the renderer frontend prepares.
 		if (!StartNextRenderer(sdlWindow, nextBackend, isOnLowPowerGpu))
 			throw std::runtime_error("No renderer backend could be started.");
+
+		if (isVsyncDisabled)
+			TEN::Renderer::Next::g_NextRenderer.SetVsyncEnabled(false);
+
+		TEN::Renderer::Next::g_NextRenderer.SetBenchmarkGpuTimingEnabled(!isGpuTimingDisabled);
 
 		g_Renderer.Initialize(GameDirectory, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight, g_Configuration.EnableWindowedMode);
 
