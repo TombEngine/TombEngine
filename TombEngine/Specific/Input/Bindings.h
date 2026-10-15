@@ -8,6 +8,8 @@ namespace TEN::Input
 
 	extern const BindingProfile DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
 	extern const BindingProfile DEFAULT_GAMEPAD_BINDING_PROFILE;
+	extern const BindingProfile DEFAULT_KEYBOARD_MOUSE_REMASTERED_BINDING_PROFILE;
+	extern const BindingProfile DEFAULT_GAMEPAD_REMASTERED_BINDING_PROFILE;
 	extern const BindingProfile RAW_EVENT_BINDING_PROFILE;
 
 	// TODO: The true ideal solution will be to have the following:
@@ -23,6 +25,10 @@ namespace TEN::Input
 		Custom,
 		Raw,
 
+		// Remastered controls: gamepad profiles, live next to the keyboard/mouse ones. Empty under classic controls. -- divezzi, 08.10.26
+		DefaultGamepad,
+		CustomGamepad,
+
 		Count
 	};
 
@@ -34,6 +40,8 @@ namespace TEN::Input
 
 		std::unordered_map<BindingProfileID, BindingProfile> _bindings	= {}; // Key = binding profile ID, value = binding profile.
 		std::unordered_map<ActionID, bool>					 _conflicts = {}; // Key = action ID, value = has conflict.
+
+		std::unordered_map<ActionID, bool> _gamepadConflicts = {}; // Key = action ID, value = has conflict.
 
 	public:
 		// Constructors
@@ -51,11 +59,11 @@ namespace TEN::Input
 		void SetKeyBinding(BindingProfileID profileID, ActionID actionID, int keyID);
 		void SetBindingProfile(BindingProfileID profileID, const BindingProfile& profile);
 		void SetDefaultBindingProfile(BindingProfileID profileID);
-		void SetConflict(ActionID actionID, bool value);
+		void SetConflict(ActionID actionID, bool value, BindingProfileID profileID = BindingProfileID::Default);
 
 		// Inquirers
 
-		bool TestConflict(ActionID actionID);
+		bool TestConflict(ActionID actionID, BindingProfileID profileID = BindingProfileID::Default);
 
 		// Utilities
 

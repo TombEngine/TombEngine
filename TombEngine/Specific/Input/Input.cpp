@@ -43,6 +43,35 @@ namespace TEN::Input
 	SDL_JoystickID ActiveGamepadId = 0;
 	bool ActiveGamepadHasRumble = false;
 
+	// Remastered controls: actions cleared or pushed this frame by scripts or ClearAllActions(). -- divezzi, 09.10.26
+	auto ClearedActions = std::array<bool, (int)ActionID::Count>{};
+	auto PushedActions	= std::array<bool, (int)ActionID::Count>{};
+
+	// General actions held in PlayerInput.
+	constexpr std::pair<ActionID, bool PlayerInput::*> PLAYER_INPUT_ACTIONS[] =
+	{
+		{ In::Forward, &PlayerInput::Forward },
+		{ In::Back, &PlayerInput::Back },
+		{ In::Left, &PlayerInput::Left },
+		{ In::Right, &PlayerInput::Right },
+		{ In::StepLeft, &PlayerInput::StepLeft },
+		{ In::StepRight, &PlayerInput::StepRight },
+		{ In::Walk, &PlayerInput::Walk },
+		{ In::Sprint, &PlayerInput::Sprint },
+		{ In::Crouch, &PlayerInput::Crouch },
+		{ In::Jump, &PlayerInput::Jump },
+		{ In::Roll, &PlayerInput::Roll },
+		{ In::Action, &PlayerInput::Action },
+		{ In::Draw, &PlayerInput::Draw },
+		{ In::Look, &PlayerInput::Look }
+	};
+	static_assert((int)std::size(PLAYER_INPUT_ACTIONS) == (int)In::Accelerate, "General action group size changed.");
+	static_assert(sizeof(PlayerInput) == (sizeof(bool) * std::size(PLAYER_INPUT_ACTIONS)), "PlayerInput field missing from PLAYER_INPUT_ACTIONS.");
+
+	// Raw and written values of the actions WritePlayerInput() changed this tick.
+	static auto RawActions	   = std::unordered_map<ActionID, Action>{};
+	static auto WrittenActions = std::unordered_map<ActionID, Action>{};
+
 	static bool HasMatchingBindings(const BindingProfile& bindingProfile)
 	{
 		for (const auto& [actionID, keyID] : bindingProfile)
@@ -55,8 +84,42 @@ namespace TEN::Input
 		return true;
 	}
 
+	static bool RestoreRemasteredDefaultBindings(DefaultBindingType bindingType, bool force)
+	{
+		bool isGamepad = (bindingType == DefaultBindingType::Gamepad);
+		if (isGamepad && ActiveGamepad == nullptr)
+			return false;
+
+		if (!isGamepad && !force && ActiveGamepad != nullptr)
+			return false;
+
+		// Both devices stay live, so connecting or disconnecting a gamepad only updates the gamepad options,
+		// and only while they still hold the other device's defaults.
+		if (!force)
+		{
+			bool hasKeyboardMouseOptions = !g_Configuration.EnableRumble && !g_Configuration.EnableThumbstickCamera;
+			if (isGamepad != hasKeyboardMouseOptions)
+				return false;
+		}
+		else
+		{
+			g_Configuration.RemasteredBindings = DEFAULT_KEYBOARD_MOUSE_REMASTERED_BINDING_PROFILE;
+			g_Configuration.RemasteredGamepadBindings = DEFAULT_GAMEPAD_REMASTERED_BINDING_PROFILE;
+			g_Bindings.SetBindingProfile(BindingProfileID::Custom, g_Configuration.RemasteredBindings);
+			g_Bindings.SetBindingProfile(BindingProfileID::CustomGamepad, g_Configuration.RemasteredGamepadBindings);
+		}
+
+		g_Configuration.EnableRumble = isGamepad && ActiveGamepadHasRumble;
+		g_Configuration.EnableThumbstickCamera = isGamepad;
+		return true;
+	}
+
 	static bool RestoreDefaultBindings(DefaultBindingType bindingType, bool force)
 	{
+		// Remastered controls: restores both Remastered profiles instead of swapping one profile per device. -- divezzi, 08.10.26
+		if (g_Configuration.IsUsingRemasteredControls())
+			return RestoreRemasteredDefaultBindings(bindingType, force);
+
 		const BindingProfile* previousBindings = nullptr;
 		const BindingProfile* defaultBindings = nullptr;
 		bool enableRumble = false;
@@ -278,6 +341,47 @@ namespace TEN::Input
 			axis = Vector2::Zero;
 	}
 
+	// Records a cleared action. A cleared direction also zeroes its half of the move axis,
+	// which Remastered movement steers from.
+	static void RecordClearedAction(ActionID actionID)
+	{
+		if (!g_Configuration.IsUsingRemasteredControls())
+			return;
+
+		ClearedActions[(int)actionID] = true;
+
+		auto& moveAxis = AxisMap[AxisID::Move];
+		switch (actionID)
+		{
+		case In::Forward:
+			moveAxis.y = std::min(moveAxis.y, 0.0f);
+			break;
+
+		case In::Back:
+			moveAxis.y = std::max(moveAxis.y, 0.0f);
+			break;
+
+		case In::Left:
+			moveAxis.x = std::max(moveAxis.x, 0.0f);
+			break;
+
+		case In::Right:
+			moveAxis.x = std::min(moveAxis.x, 0.0f);
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	static void RecordPushedAction(ActionID actionID)
+	{
+		if (!g_Configuration.IsUsingRemasteredControls())
+			return;
+
+		PushedActions[(int)actionID] = true;
+	}
+
 	void ApplyActionQueue()
 	{
 		for (int i = 0; i < (int)ActionID::Count; i++)
@@ -291,10 +395,12 @@ namespace TEN::Input
 
 			case ActionQueueState::Update:
 				ActionMap[actionID].Update(true);
+				RecordPushedAction(actionID);
 				break;
 
 			case ActionQueueState::Clear:
 				ActionMap[actionID].Clear();
+				RecordClearedAction(actionID);
 				break;
 			}
 		}
@@ -316,6 +422,16 @@ namespace TEN::Input
 			}
 		}
 
+		// Remastered controls: also checks the gamepad profiles, which are empty under classic controls. -- divezzi, 08.10.26
+		for (auto profileID : { BindingProfileID::CustomGamepad, BindingProfileID::DefaultGamepad })
+		{
+			for (int j = 0; j < (int)ActionID::Count; j++)
+			{
+				if (g_Bindings.GetBoundKeyID(profileID, (ActionID)j) == keyID)
+					return true;
+			}
+		}
+
 		return false;
 	}
 
@@ -331,6 +447,30 @@ namespace TEN::Input
 		}
 
 		return source;
+	}
+
+	static void DefaultGamepadConflict()
+	{
+		for (const auto& actionIDGroup : ACTION_ID_GROUPS)
+		{
+			for (auto actionID : actionIDGroup)
+			{
+				g_Bindings.SetConflict(actionID, false, BindingProfileID::DefaultGamepad);
+
+				int key = g_Bindings.GetBoundKeyID(BindingProfileID::DefaultGamepad, actionID);
+				if (key == KEY_UNASSIGNED)
+					continue;
+
+				for (auto conflictActionID : actionIDGroup)
+				{
+					if (key != g_Bindings.GetBoundKeyID(BindingProfileID::CustomGamepad, conflictActionID))
+						continue;
+
+					g_Bindings.SetConflict(actionID, true, BindingProfileID::DefaultGamepad);
+					break;
+				}
+			}
+		}
 	}
 
 	void DefaultConflict()
@@ -352,6 +492,73 @@ namespace TEN::Input
 				}
 			}
 		}
+
+		// Remastered controls: marks gamepad defaults overridden by custom gamepad bindings. -- divezzi, 08.10.26
+		if (g_Configuration.IsUsingRemasteredControls())
+			DefaultGamepadConflict();
+	}
+
+	static void SetRemasteredDPadAxisValues(int keyID)
+	{
+		if (!g_Configuration.IsUsingRemasteredControls() || TestBoundKey(keyID))
+			return;
+
+		switch (keyID)
+		{
+		case GK_DPAD_UP:
+			AxisMap[AxisID::Move].y = 1.0f;
+			break;
+
+		case GK_DPAD_DOWN:
+			AxisMap[AxisID::Move].y = -1.0f;
+			break;
+
+		case GK_DPAD_LEFT:
+			AxisMap[AxisID::Move].x = -1.0f;
+			break;
+
+		case GK_DPAD_RIGHT:
+			AxisMap[AxisID::Move].x = 1.0f;
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	static int GetRemasteredDPadKeyID(ActionID actionID)
+	{
+		if (!g_Configuration.IsUsingRemasteredControls())
+			return KEY_UNASSIGNED;
+
+		int keyID = KEY_UNASSIGNED;
+		switch (actionID)
+		{
+		case In::Forward:
+			keyID = GK_DPAD_UP;
+			break;
+
+		case In::Back:
+			keyID = GK_DPAD_DOWN;
+			break;
+
+		case In::Left:
+			keyID = GK_DPAD_LEFT;
+			break;
+
+		case In::Right:
+			keyID = GK_DPAD_RIGHT;
+			break;
+
+		default:
+			return KEY_UNASSIGNED;
+		}
+
+		// A D-pad button bound to an action stops moving Lara.
+		if (KeyMap[keyID] == 0.0f || TestBoundKey(keyID))
+			return KEY_UNASSIGNED;
+
+		return keyID;
 	}
 
 	static void SetDiscreteAxisValues(unsigned int keyID)
@@ -469,7 +676,12 @@ namespace TEN::Input
 			KeyMap[keyID] = pressed ? 1.0f : 0.0f;
 
 			if (pressed)
+			{
 				SetDiscreteAxisValues(keyID);
+
+				// Remastered controls: the D-pad drives the move axis like the left stick. -- divezzi, 08.10.26
+				SetRemasteredDPadAxisValues(keyID);
+			}
 		}
 
 		// Axes.
@@ -521,19 +733,22 @@ namespace TEN::Input
 
 			int usedKeyID = (normalizedValue < 0) ? negKeyID : posKeyID;
 
-			if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Forward) == usedKeyID)
+			// Remastered controls: reads stick directions from the custom gamepad profile. -- divezzi, 08.10.26
+			auto stickProfileID = g_Configuration.IsUsingRemasteredControls() ? BindingProfileID::CustomGamepad : BindingProfileID::Custom;
+
+			if (g_Bindings.GetBoundKeyID(stickProfileID, In::Forward) == usedKeyID)
 			{
 				AxisMap[AxisID::Move].y = std::abs(scaledValue);
 			}
-			else if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Back) == usedKeyID)
+			else if (g_Bindings.GetBoundKeyID(stickProfileID, In::Back) == usedKeyID)
 			{
 				AxisMap[AxisID::Move].y = -std::abs(scaledValue);
 			}
-			else if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Left) == usedKeyID)
+			else if (g_Bindings.GetBoundKeyID(stickProfileID, In::Left) == usedKeyID)
 			{
 				AxisMap[AxisID::Move].x = -std::abs(scaledValue);
 			}
-			else if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Right) == usedKeyID)
+			else if (g_Bindings.GetBoundKeyID(stickProfileID, In::Right) == usedKeyID)
 			{
 				AxisMap[AxisID::Move].x = std::abs(scaledValue);
 			}
@@ -615,6 +830,10 @@ namespace TEN::Input
 			if (profileID == BindingProfileID::Default && g_Bindings.TestConflict(actionID))
 				continue;
 
+			// Remastered controls: skips a gamepad default overridden by a custom gamepad binding. -- divezzi, 08.10.26
+			if (profileID == BindingProfileID::DefaultGamepad && g_Bindings.TestConflict(actionID, BindingProfileID::DefaultGamepad))
+				continue;
+
 			int newKeyID = g_Bindings.GetBoundKeyID(profileID, actionID);
 			if (newKeyID == KEY_UNASSIGNED)
 				continue;
@@ -625,6 +844,10 @@ namespace TEN::Input
 				break;
 			}
 		}
+
+		// Remastered controls: the D-pad moves Lara like the movement keys. -- divezzi, 08.10.26
+		if (keyID == KEY_UNASSIGNED)
+			keyID = GetRemasteredDPadKeyID(actionID);
 
 		float value = (keyID == KEY_UNASSIGNED) ? 0.0f : KeyMap[keyID];
 		if (keyID != KEY_UNASSIGNED && ActionMap[actionID].IsClicked())
@@ -736,6 +959,10 @@ namespace TEN::Input
 
 	void UpdateInputActions(bool allowAsyncUpdate, bool applyQueue)
 	{
+		// Remastered controls: the cleared and pushed records last one frame. -- divezzi, 09.10.26
+		ClearedActions.fill(false);
+		PushedActions.fill(false);
+
 		// Don't update input data during frameskip.
 		if (allowAsyncUpdate || !g_Synchronizer.Locked())
 		{
@@ -767,6 +994,10 @@ namespace TEN::Input
 
 		for (auto& [actionID, queue] : ActionQueueMap)
 			queue = ActionQueueState::None;
+
+		// Remastered controls: every action counts as cleared this frame. -- divezzi, 09.10.26
+		for (int i = 0; i < (int)ActionID::Count; i++)
+			RecordClearedAction((ActionID)i);
 	}
 
 	void Rumble(float power, float delaySec, RumbleMode mode)
@@ -802,6 +1033,29 @@ namespace TEN::Input
 	bool RestoreDefaultBindings(DefaultBindingType bindingType)
 	{
 		return RestoreDefaultBindings(bindingType, false);
+	}
+
+	void RefreshBindingsForControlMode()
+	{
+		if (g_Configuration.IsUsingRemasteredControls())
+		{
+			const auto& bindings = g_Configuration.RemasteredBindings.empty() ?
+				DEFAULT_KEYBOARD_MOUSE_REMASTERED_BINDING_PROFILE : g_Configuration.RemasteredBindings;
+			const auto& gamepadBindings = g_Configuration.RemasteredGamepadBindings.empty() ?
+				DEFAULT_GAMEPAD_REMASTERED_BINDING_PROFILE : g_Configuration.RemasteredGamepadBindings;
+
+			g_Bindings.SetBindingProfile(BindingProfileID::Default, DEFAULT_KEYBOARD_MOUSE_REMASTERED_BINDING_PROFILE);
+			g_Bindings.SetBindingProfile(BindingProfileID::Custom, bindings);
+			g_Bindings.SetBindingProfile(BindingProfileID::DefaultGamepad, DEFAULT_GAMEPAD_REMASTERED_BINDING_PROFILE);
+			g_Bindings.SetBindingProfile(BindingProfileID::CustomGamepad, gamepadBindings);
+		}
+		else
+		{
+			g_Bindings.SetDefaultBindingProfile(BindingProfileID::Default);
+			g_Bindings.SetBindingProfile(BindingProfileID::Custom, g_Configuration.Bindings);
+			g_Bindings.SetBindingProfile(BindingProfileID::DefaultGamepad, {});
+			g_Bindings.SetBindingProfile(BindingProfileID::CustomGamepad, {});
+		}
 	}
 
 	InputDevice GetLastInputDevice()
@@ -871,6 +1125,93 @@ namespace TEN::Input
 	{
 		// Time in game frames.
 		return ActionMap[actionID].GetTimeInactive();
+	}
+
+	// True if a script or ClearAllActions() cleared the action this frame. Remastered controls only.
+	bool IsCleared(ActionID actionID)
+	{
+		return ClearedActions[(int)actionID];
+	}
+
+	// True if a script pushed the action this frame. Remastered controls only.
+	bool IsPushed(ActionID actionID)
+	{
+		return PushedActions[(int)actionID];
+	}
+
+	PlayerInput ReadPlayerInput()
+	{
+		auto input = PlayerInput{};
+		for (const auto& [actionID, field] : PLAYER_INPUT_ACTIONS)
+			input.*field = IsHeld(actionID);
+
+		return input;
+	}
+
+	// An action a level script cleared this tick is switched back off, even where a control mode rewrite turned it on.
+	void ApplyClearedActions(PlayerInput& input)
+	{
+		for (const auto& [actionID, field] : PLAYER_INPUT_ACTIONS)
+		{
+			if (IsCleared(actionID))
+				input.*field = false;
+		}
+	}
+
+	// Writes a rewritten value to the action map, keeping the raw and the written action for the restore.
+	// A held value written with isHeldWithoutClick is updated twice, so it reads as held but not as clicked.
+	static void WritePlayerInputAction(ActionID actionID, bool isHeld, bool isHeldWithoutClick)
+	{
+		auto& action = ActionMap[actionID];
+		if (action.IsHeld() == isHeld)
+			return;
+
+		RawActions.insert_or_assign(actionID, action);
+		action.Update(isHeld);
+
+		if (isHeld && isHeldWithoutClick)
+			action.Update(isHeld);
+
+		WrittenActions.insert_or_assign(actionID, action);
+	}
+
+	// Writes a rewritten PlayerInput to the action map for the player's tick, until RestorePlayerInput().
+	// An action set in heldWithoutClickInput is written as held but not clicked.
+	void WritePlayerInput(const PlayerInput& input, const PlayerInput& heldWithoutClickInput)
+	{
+		for (const auto& [actionID, field] : PLAYER_INPUT_ACTIONS)
+			WritePlayerInputAction(actionID, input.*field, heldWithoutClickInput.*field);
+	}
+
+	// Puts the raw actions back after the player's tick.
+	void RestorePlayerInput()
+	{
+		for (const auto& [actionID, writtenAction] : WrittenActions)
+		{
+			// An action changed by player code during the tick, such as a look-around clear, keeps that change.
+			const auto& action = ActionMap[actionID];
+			if (action.GetValue() != writtenAction.GetValue() ||
+				action.GetTimeActive() != writtenAction.GetTimeActive() ||
+				action.GetTimeInactive() != writtenAction.GetTimeInactive())
+			{
+				continue;
+			}
+
+			ActionMap[actionID] = RawActions[actionID];
+		}
+
+		RawActions.clear();
+		WrittenActions.clear();
+	}
+
+	// Held state of an action as pressed, before WritePlayerInput().
+	bool IsRawActionHeld(ActionID actionID)
+	{
+		auto it = RawActions.find(actionID);
+		if (it == RawActions.end())
+			return IsHeld(actionID);
+
+		return it->second.IsHeld();
 	}
 
 	bool IsDirectionalActionHeld()

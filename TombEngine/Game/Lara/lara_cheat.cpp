@@ -19,22 +19,26 @@ namespace TEN::Entities::Player
 	{
 		float baseVel = g_GameFlow->GetSettings()->Physics.SwimVelocity;
 
-		if (IsHeld(In::Forward))
+		// Remastered controls: the heading solver turns and pitches the player, as in the underwater swim. -- divezzi, 12.10.26
+		if (!DoesRemasteredSolverOwnWaterHeading(*item))
 		{
-			item->Pose.Orientation.x -= ANGLE(3.0f);
-		}
-		else if (IsHeld(In::Back))
-		{
-			item->Pose.Orientation.x += ANGLE(3.0f);
-		}
+			if (IsHeld(In::Forward))
+			{
+				item->Pose.Orientation.x -= ANGLE(3.0f);
+			}
+			else if (IsHeld(In::Back))
+			{
+				item->Pose.Orientation.x += ANGLE(3.0f);
+			}
 
-		if (IsHeld(In::Left))
-		{
-			ModulateLaraTurnRateY(item, ANGLE(3.4f), 0, ANGLE(6.0f));
-		}
-		else if (IsHeld(In::Right))
-		{
-			ModulateLaraTurnRateY(item, ANGLE(3.4f), 0, ANGLE(6.0f));
+			if (IsHeld(In::Left))
+			{
+				ModulateLaraTurnRateY(item, ANGLE(3.4f), 0, ANGLE(6.0f));
+			}
+			else if (IsHeld(In::Right))
+			{
+				ModulateLaraTurnRateY(item, ANGLE(3.4f), 0, ANGLE(6.0f));
+			}
 		}
 
 		if (IsHeld(In::Action))

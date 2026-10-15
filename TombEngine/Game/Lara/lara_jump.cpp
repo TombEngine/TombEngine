@@ -84,7 +84,7 @@ void lara_as_jump_forward(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Action) &&
+	if (IsRemasteredGrabHeld() &&
 		player.Control.HandStatus == HandStatus::Free)
 	{
 		item->Animation.TargetState = LS_REACH;
@@ -686,7 +686,7 @@ void lara_as_fall_back(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Action) &&
+	if (IsRemasteredGrabHeld() &&
 		player.Control.HandStatus == HandStatus::Free)
 	{
 		item->Animation.TargetState = LS_REACH;

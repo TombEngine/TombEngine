@@ -465,6 +465,8 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	HandlePlayerExtraAnim(*item);
+	// Remastered controls: turns the player toward the stick direction before her state runs. -- divezzi, 10.10.26
+	HandlePlayerRemasteredHeading(*item);
 	HandlePlayerBehaviorState(*item, *coll, PlayerBehaviorStateRoutineType::Control);
 	HandleLaraMovementParameters(item, coll);
 	AnimateItem(item);
@@ -528,6 +530,9 @@ void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll)
 
 	const auto& level = *g_GameFlow->GetLevel(CurrentLevel);
 	bool hasDivesuit = (level.GetLaraType() == LaraType::Divesuit);
+
+	// Remastered controls: the player turns toward the stick direction instead of using the turn rate. -- divezzi, 12.10.26
+	HandleRemasteredWaterHeading(*item);
 
 	// TODO: Subsuit gradually slows down at rate of 0.5 degrees. @Sezz 2022.06.23
 	// Apply and reset turn rate.
@@ -601,6 +606,9 @@ void LaraUnderwater(ItemInfo* item, CollisionInfo* coll)
 
 	const auto& level = *g_GameFlow->GetLevel(CurrentLevel);
 	bool hasDivesuit = (level.GetLaraType() == LaraType::Divesuit);
+
+	// Remastered controls: the player turns toward the stick and pitches toward the camera instead of using the turn rate. -- divezzi, 12.10.26
+	HandleRemasteredWaterHeading(*item);
 
 	// TODO: Subsuit gradually slowed down at rate of 0.5 degrees. @Sezz 2022.06.23
 	// Apply and reset turn rate.
@@ -734,7 +742,10 @@ void UpdateLara(ItemInfo* item, bool isTitle)
 	// Control player.
 	InItemControlLoop = true;
 
+	// Remastered controls: the player input is rewritten for the player's tick, then restored. -- divezzi, 10.10.26
+	ApplyRemasteredInput(*item);
 	LaraControl(item, &LaraCollision);
+	RestorePlayerInput();
 	HandlePlayerFlyCheat(*item);
 	InItemControlLoop = false;
 	KillMoveItems();

@@ -17,6 +17,7 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Game/Setup.h"
 #include "Sound/sound.h"
+#include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
@@ -161,7 +162,7 @@ void lara_as_walk_forward(ItemInfo* item, CollisionInfo* coll)
 
 	if (IsHeld(In::Forward))
 	{
-		if (IsHeld(In::Action))
+		if (IsRemasteredGrabHeld())
 		{
 			auto vaultContext = TestLaraVault(item, coll);
 			if (vaultContext.has_value())
@@ -299,7 +300,7 @@ void lara_as_run_forward(ItemInfo* item, CollisionInfo* coll)
 
 	if (IsHeld(In::Forward))
 	{
-		if (IsHeld(In::Action))
+		if (IsRemasteredGrabHeld())
 		{
 			auto vaultContext = TestLaraVault(item, coll);
 			if (vaultContext.has_value())
@@ -357,6 +358,10 @@ void lara_col_run_forward(ItemInfo* item, CollisionInfo* coll)
 		SetLaraHitCeiling(item, coll);
 		return;
 	}
+
+	// Remastered controls: a run off a ledge with the grab button held turns into a reach back to the ledge. -- divezzi, 11.10.26
+	if (TestRemasteredSafetyGrab(*item, *coll))
+		return;
 
 	if (CanFall(*item, *coll))
 	{
@@ -495,7 +500,7 @@ void lara_as_idle(ItemInfo* item, CollisionInfo* coll)
 
 	if (IsHeld(In::Forward))
 	{
-		if (IsHeld(In::Action))
+		if (IsRemasteredGrabHeld())
 		{
 			auto vaultContext = TestLaraVault(item, coll);
 			if (vaultContext.has_value())
@@ -829,7 +834,7 @@ void lara_as_turn_slow(ItemInfo* item, CollisionInfo* coll)
 
 	if (IsHeld(In::Forward))
 	{
-		if (IsHeld(In::Action))
+		if (IsRemasteredGrabHeld())
 		{
 			auto vaultContext = TestLaraVault(item, coll);
 			if (vaultContext.has_value())
@@ -902,10 +907,17 @@ void lara_as_turn_slow(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
+	// Remastered controls: with weapons ready the slow turn goes straight to the fast turn. -- divezzi, 12.10.26
+	bool isArmedFastTurn = (g_Configuration.IsUsingRemasteredControls() &&
+							player.Control.HandStatus == HandStatus::WeaponReady &&
+							player.Control.Weapon.GunType != LaraWeaponType::Torch &&
+							!isWading);
+
 	if (IsHeld(In::Left) && item->Animation.ActiveState == LS_TURN_LEFT_SLOW)
 	{
-		if (player.Control.TurnRate/*.y*/ < -LARA_SLOW_MED_TURN_RATE_MAX &&
-			!isWading)
+		if (isArmedFastTurn ||
+			(player.Control.TurnRate/*.y*/ < -LARA_SLOW_MED_TURN_RATE_MAX &&
+			!isWading))
 		{
 			item->Animation.TargetState = LS_TURN_LEFT_FAST;
 		}
@@ -918,8 +930,9 @@ void lara_as_turn_slow(ItemInfo* item, CollisionInfo* coll)
 	}
 	else if (IsHeld(In::Right) && item->Animation.ActiveState == LS_TURN_RIGHT_SLOW)
 	{
-		if (player.Control.TurnRate/*.y*/ > LARA_SLOW_MED_TURN_RATE_MAX &&
-			!isWading)
+		if (isArmedFastTurn ||
+			(player.Control.TurnRate/*.y*/ > LARA_SLOW_MED_TURN_RATE_MAX &&
+			!isWading))
 		{
 			item->Animation.TargetState = LS_TURN_RIGHT_FAST;
 		}
@@ -1168,7 +1181,7 @@ void lara_as_turn_fast(ItemInfo* item, CollisionInfo* coll)
 
 	if (IsHeld(In::Forward))
 	{
-		if (IsHeld(In::Action))
+		if (IsRemasteredGrabHeld())
 		{
 			auto vaultContext = TestLaraVault(item, coll);
 			if (vaultContext.has_value())
@@ -1620,7 +1633,7 @@ void lara_as_wade_forward(ItemInfo* item, CollisionInfo* coll)
 
 	if (IsHeld(In::Forward))
 	{
-		if (IsHeld(In::Action))
+		if (IsRemasteredGrabHeld())
 		{
 			auto vaultContext = TestLaraVault(item, coll);
 			if (vaultContext.has_value())
@@ -1713,7 +1726,9 @@ void lara_as_sprint(ItemInfo* item, CollisionInfo* coll)
 	if (IsHeld(In::Left) || IsHeld(In::Right))
 	{
 		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_TURN_RATE_MAX);
-		HandlePlayerLean(item, coll, LARA_LEAN_RATE, LARA_LEAN_MAX);
+		// Remastered controls: the sprint lean limit is larger under Remastered controls. -- divezzi, 10.10.26
+		HandlePlayerLean(item, coll, LARA_LEAN_RATE,
+						 g_Configuration.IsUsingRemasteredControls() ? PLAYER_REMASTERED_SPRINT_LEAN_CLAMP : LARA_LEAN_MAX);
 	}
 
 	if (IsHeld(In::Jump) || player.Control.IsRunJumpQueued)
@@ -1741,7 +1756,8 @@ void lara_as_sprint(ItemInfo* item, CollisionInfo* coll)
 
 	if (IsHeld(In::Forward))
 	{
-		if (IsHeld(In::Action) && CanVaultFromSprint(*item, *coll))
+		// Remastered controls: no vault from a sprint. -- divezzi, 11.10.26
+		if (IsHeld(In::Action) && !g_Configuration.IsUsingRemasteredControls() && CanVaultFromSprint(*item, *coll))
 		{
 			auto vaultContext = TestLaraVault(item, coll);
 			if (vaultContext.has_value())

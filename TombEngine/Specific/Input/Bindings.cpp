@@ -1,6 +1,8 @@
 #include "framework.h"
 #include "Specific/Input/Bindings.h"
 
+#include "Specific/configuration.h"
+#include "Specific/Input/Input.h"
 #include "Specific/Input/InputAction.h"
 #include "Specific/Input/Keys.h"
 
@@ -102,6 +104,102 @@ namespace TEN::Input
 		{ In::Inventory,      GK_BACK },
 		{ In::Save,           SDL_SCANCODE_F5 },
 		{ In::Load,           SDL_SCANCODE_F6 }
+	};
+
+	const BindingProfile DEFAULT_KEYBOARD_MOUSE_REMASTERED_BINDING_PROFILE =
+	{
+		{ In::Forward,        SDL_SCANCODE_W },
+		{ In::Back,           SDL_SCANCODE_S },
+		{ In::Left,           SDL_SCANCODE_A },
+		{ In::Right,          SDL_SCANCODE_D },
+		{ In::StepLeft,       SDL_SCANCODE_DELETE },
+		{ In::StepRight,      SDL_SCANCODE_PAGEDOWN },
+		{ In::Action,         SDL_SCANCODE_E },
+		{ In::Walk,           SDL_SCANCODE_RALT },
+		{ In::Sprint,         SDL_SCANCODE_RSHIFT },
+		{ In::Crouch,         SDL_SCANCODE_C },
+		{ In::Jump,           SDL_SCANCODE_SPACE },
+		{ In::Roll,           SDL_SCANCODE_RCTRL },
+		{ In::Draw,           MK_RCLICK },
+		{ In::Look,           SDL_SCANCODE_KP_0 },
+
+		{ In::Accelerate,     SDL_SCANCODE_W },
+		{ In::Reverse,        SDL_SCANCODE_S },
+		{ In::Faster,         SDL_SCANCODE_RSHIFT },
+		{ In::Slower,         SDL_SCANCODE_RSHIFT },
+		{ In::Brake,          SDL_SCANCODE_RCTRL },
+		{ In::Fire,           MK_LCLICK },
+
+		{ In::Flare,          SDL_SCANCODE_COMMA },
+		{ In::SmallMedipack,  SDL_SCANCODE_MINUS },
+		{ In::LargeMedipack,  SDL_SCANCODE_EQUALS },
+		{ In::PreviousWeapon, SDL_SCANCODE_LEFTBRACKET },
+		{ In::NextWeapon,     SDL_SCANCODE_RIGHTBRACKET },
+		{ In::Weapon1,        SDL_SCANCODE_1 },
+		{ In::Weapon2,        SDL_SCANCODE_2 },
+		{ In::Weapon3,        SDL_SCANCODE_3 },
+		{ In::Weapon4,        SDL_SCANCODE_4 },
+		{ In::Weapon5,        SDL_SCANCODE_5 },
+		{ In::Weapon6,        SDL_SCANCODE_6 },
+		{ In::Weapon7,        SDL_SCANCODE_7 },
+		{ In::Weapon8,        SDL_SCANCODE_8 },
+		{ In::Weapon9,        SDL_SCANCODE_9 },
+		{ In::Weapon10,       SDL_SCANCODE_0 },
+
+		{ In::Select,         SDL_SCANCODE_RETURN },
+		{ In::Deselect,       SDL_SCANCODE_ESCAPE },
+		{ In::Pause,          SDL_SCANCODE_P },
+		{ In::Inventory,      SDL_SCANCODE_ESCAPE },
+		{ In::Save,           SDL_SCANCODE_F5 },
+		{ In::Load,           SDL_SCANCODE_F6 }
+	};
+
+	const BindingProfile DEFAULT_GAMEPAD_REMASTERED_BINDING_PROFILE =
+	{
+		{ In::Forward,        GK_LSTICK_Y_NEG },
+		{ In::Back,           GK_LSTICK_Y_POS },
+		{ In::Left,           GK_LSTICK_X_NEG },
+		{ In::Right,          GK_LSTICK_X_POS },
+		{ In::StepLeft,       KEY_UNASSIGNED },
+		{ In::StepRight,      KEY_UNASSIGNED },
+		{ In::Action,         GK_SOUTH },
+		{ In::Walk,           GK_RSHOULDER },
+		{ In::Sprint,         GK_LSTICK },
+		{ In::Crouch,         GK_LSHOULDER },
+		{ In::Jump,           GK_WEST },
+		{ In::Roll,           GK_EAST },
+		{ In::Draw,           GK_LTRIGGER_POS },
+		{ In::Look,           GK_NORTH },
+
+		{ In::Accelerate,     GK_RTRIGGER_POS },
+		{ In::Reverse,        GK_LTRIGGER_POS },
+		{ In::Faster,         GK_SOUTH },
+		{ In::Slower,         GK_LSTICK_Y_POS },
+		{ In::Brake,          GK_EAST },
+		{ In::Fire,           GK_RTRIGGER_POS },
+
+		{ In::Flare,          KEY_UNASSIGNED },
+		{ In::SmallMedipack,  KEY_UNASSIGNED },
+		{ In::LargeMedipack,  KEY_UNASSIGNED },
+		{ In::PreviousWeapon, KEY_UNASSIGNED },
+		{ In::NextWeapon,     KEY_UNASSIGNED },
+		{ In::Weapon1,        KEY_UNASSIGNED },
+		{ In::Weapon2,        KEY_UNASSIGNED },
+		{ In::Weapon3,        KEY_UNASSIGNED },
+		{ In::Weapon4,        KEY_UNASSIGNED },
+		{ In::Weapon5,        KEY_UNASSIGNED },
+		{ In::Weapon6,        KEY_UNASSIGNED },
+		{ In::Weapon7,        KEY_UNASSIGNED },
+		{ In::Weapon8,        KEY_UNASSIGNED },
+		{ In::Weapon9,        KEY_UNASSIGNED },
+		{ In::Weapon10,       KEY_UNASSIGNED },
+
+		{ In::Select,         GK_SOUTH },
+		{ In::Deselect,       GK_EAST },
+		{ In::Pause,          GK_START },
+		{ In::Inventory,      GK_BACK },
+		{ In::Save,           KEY_UNASSIGNED },
+		{ In::Load,           KEY_UNASSIGNED }
 	};
 
 	const BindingProfile RAW_EVENT_BINDING_PROFILE =
@@ -269,8 +367,13 @@ namespace TEN::Input
 
 	const std::string& BindingManager::GetBoundKeyName(ActionID actionID)
 	{
-		int defaultKeyID = GetBoundKeyID(BindingProfileID::Default, actionID);
-		int userKeyID = GetBoundKeyID(BindingProfileID::Custom, actionID);
+		// Remastered controls: names the gamepad binding when the gamepad was used last. -- divezzi, 08.10.26
+		bool isGamepadShown = g_Configuration.IsUsingRemasteredControls() && GetLastInputDevice() == InputDevice::Gamepad;
+		auto defaultProfileID = isGamepadShown ? BindingProfileID::DefaultGamepad : BindingProfileID::Default;
+		auto customProfileID = isGamepadShown ? BindingProfileID::CustomGamepad : BindingProfileID::Custom;
+
+		int defaultKeyID = GetBoundKeyID(defaultProfileID, actionID);
+		int userKeyID = GetBoundKeyID(customProfileID, actionID);
 		int boundKey = (userKeyID != KEY_UNASSIGNED) ? userKeyID : defaultKeyID;
 
 		return GetKeyName(boundKey);
@@ -304,14 +407,16 @@ namespace TEN::Input
 		}
 	}
 
-	void BindingManager::SetConflict(ActionID actionID, bool value)
+	void BindingManager::SetConflict(ActionID actionID, bool value, BindingProfileID profileID)
 	{
-		_conflicts[actionID] = value;
+		auto& conflicts = (profileID == BindingProfileID::DefaultGamepad) ? _gamepadConflicts : _conflicts;
+		conflicts[actionID] = value;
 	}
 
-	bool BindingManager::TestConflict(ActionID actionID)
+	bool BindingManager::TestConflict(ActionID actionID, BindingProfileID profileID)
 	{
-		return _conflicts.at(actionID);
+		const auto& conflicts = (profileID == BindingProfileID::DefaultGamepad) ? _gamepadConflicts : _conflicts;
+		return conflicts.at(actionID);
 	}
 
 	void BindingManager::Initialize()
@@ -325,10 +430,12 @@ namespace TEN::Input
 		};
 
 		_conflicts.reserve((int)ActionID::Count);
+		_gamepadConflicts.reserve((int)ActionID::Count);
 		for (int i = 0; i < (int)ActionID::Count; i++)
 		{
 			auto actionID = (ActionID)i;
 			_conflicts.insert({ actionID, false });
+			_gamepadConflicts.insert({ actionID, false });
 		}
 	}
 }

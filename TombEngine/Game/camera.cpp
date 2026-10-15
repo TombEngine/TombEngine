@@ -3,6 +3,7 @@
 
 #include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
+#include "Game/collision/floordata.h"
 #include "Game/collision/Point.h"
 #include "Game/control/los.h"
 #include "Game/effects/debris.h"
@@ -44,6 +45,11 @@ constexpr auto MANUAL_ROTATION_THRESHOLD         = 0.01f;
 constexpr auto MANUAL_ROTATION_SPEED             = 6.0f;
 constexpr auto MANUAL_ROTATION_LOWER_ANGLE_LIMIT = ANGLE(-70.0f);
 constexpr auto MANUAL_ROTATION_UPPER_ANGLE_LIMIT = ANGLE(90.0f);
+
+constexpr auto REMASTERED_CAMERA_ALTITUDE_DEFAULT = ANGLE(-10.0f);
+constexpr auto REMASTERED_CAMERA_ALTITUDE_MIN     = ANGLE(-85.0f);
+constexpr auto REMASTERED_CAMERA_ALTITUDE_MAX     = ANGLE(85.0f);
+constexpr auto REMASTERED_CAMERA_WALL_PUSH        = 32;
 
 struct OLD_CAMERA
 {
@@ -562,8 +568,408 @@ void RefreshFixedCamera(short camNumber)
 	MoveCamera(&origin, moveSpeed, true);
 }
 
+// Remastered controls: orbit angles and last tick's values; not saved in savegames. -- divezzi, 08.10.26
+static short RemasteredCameraAzimuth      = 0;
+static short RemasteredCameraAltitude     = REMASTERED_CAMERA_ALTITUDE_DEFAULT;
+static short RemasteredCameraPrevAzimuth  = 0;
+static short RemasteredCameraPrevAltitude = REMASTERED_CAMERA_ALTITUDE_DEFAULT;
+
+struct RemasteredCameraDiagonalFace
+{
+	bool  IsFound		   = false;
+	bool  IsFarSideBlocked = false;
+	short Angle			   = 0;	   // From the point toward the split line.
+	float Distance		   = 0.0f; // From the point to the split line.
+};
+
+void ResetRemasteredCameraOrient(const ItemInfo& item)
+{
+	RemasteredCameraAzimuth = item.Pose.Orientation.y;
+	RemasteredCameraAltitude = REMASTERED_CAMERA_ALTITUDE_DEFAULT;
+	RemasteredCameraPrevAzimuth = RemasteredCameraAzimuth;
+	RemasteredCameraPrevAltitude = RemasteredCameraAltitude;
+}
+
+// Camera frame the stick is read in. It stays locked while the look camera is active and
+// unlocks once the player stops.
+void UpdatePlayerRefCameraOrient(ItemInfo& item)
+{
+	if (!g_Configuration.IsUsingRemasteredControls())
+		return;
+
+	auto& player = GetLaraInfo(item);
+
+	float vel = Vector2(item.Animation.Velocity.x, item.Animation.Velocity.z).Length();
+	bool isStopped = (((GetMoveAxis() == Vector2::Zero && !IsHeld(In::StepLeft) && !IsHeld(In::StepRight)) || vel == 0.0f) &&
+					  TestState(item.Animation.ActiveState, PLAYER_IDLE_STATE_IDS));
+
+	if (isStopped)
+		player.Control.LockRefCameraOrient = false;
+
+	if (Camera.type == CameraType::Look)
+		player.Control.LockRefCameraOrient = true;
+
+	short frameAngle = Camera.actualAngle;
+	if (Camera.type == CameraType::Chase || Camera.type == CameraType::Combat)
+		frameAngle = RemasteredCameraAzimuth;
+
+	if (!player.Control.LockRefCameraOrient)
+		player.Control.RefCameraOrient = EulerAngles(Camera.actualElevation, frameAngle, 0);
+}
+
+// Restores last tick's orbit angles, used when the camera cannot be placed this tick.
+static void HoldRemasteredCameraFrame()
+{
+	RemasteredCameraAzimuth = RemasteredCameraPrevAzimuth;
+	RemasteredCameraAltitude = RemasteredCameraPrevAltitude;
+
+	Camera.actualAngle = RemasteredCameraAzimuth;
+	Camera.actualElevation = RemasteredCameraAltitude;
+}
+
+static bool IsRemasteredCameraPointBlocked(const Vector3i& pos, int roomNumber)
+{
+	auto pointColl = GetPointCollision(pos, roomNumber);
+	int floorHeight = pointColl.GetFloorHeight();
+	int ceilingHeight = pointColl.GetCeilingHeight();
+
+	return (floorHeight == NO_HEIGHT || ceilingHeight == NO_HEIGHT || ceilingHeight >= floorHeight ||
+			pos.y > floorHeight || pos.y < ceilingHeight);
+}
+
+// Recovers the mouse movement in pixels from the normalized mouse axis.
+// NOTE: Reverses the scaling done in ReadMouse() (Specific/Input/Input.cpp). Keep the two in step.
+static Vector2 GetRemasteredCameraMousePixels()
+{
+	constexpr auto SENSITIVITY_COEFF = 0.1f;
+	constexpr auto SENSITIVITY_BASE	 = 0.4f;
+
+	float sensitivity = (g_Configuration.MouseSensitivity * SENSITIVITY_COEFF) + SENSITIVITY_BASE;
+	if (sensitivity <= 0.0f)
+		return Vector2::Zero;
+
+	const auto& normAxis = GetMouseAxis();
+	return (Vector2(normAxis.x * DISPLAY_SPACE_RES.x, normAxis.y * DISPLAY_SPACE_RES.y) / sensitivity);
+}
+
+// Moves the look-at inside its floor-to-ceiling column. Returns true if it had to be moved.
+static bool ClampRemasteredCameraLookAtHeight(GameVector& target)
+{
+	constexpr auto COLUMN_HEIGHT_MIN = 32;
+	constexpr auto HEIGHT_BUFFER	 = 16;
+
+	auto pointColl = GetPointCollision(target.ToVector3i(), target.RoomNumber);
+	int floorHeight = pointColl.GetFloorHeight();
+	int ceilingHeight = pointColl.GetCeilingHeight();
+
+	// Column has no valid inside; return to the last look-at, as ChaseCamera() does.
+	if (floorHeight == NO_HEIGHT || ceilingHeight == NO_HEIGHT || ceilingHeight >= floorHeight)
+	{
+		TargetSnaps++;
+		target = LastTarget;
+		return true;
+	}
+
+	TargetSnaps = 0;
+
+	int clampedY = ((floorHeight - ceilingHeight) < COLUMN_HEIGHT_MIN) ?
+		((floorHeight + ceilingHeight) / 2) :
+		std::clamp(target.y, ceilingHeight + HEIGHT_BUFFER, floorHeight - HEIGHT_BUFFER);
+
+	if (clampedY == target.y)
+		return false;
+
+	target.y = clampedY;
+	target.RoomNumber = GetPointCollision(target.ToVector3i(), target.RoomNumber).GetRoomNumber();
+
+	// Keep last tick's altitude while the look-at is held inside the column.
+	RemasteredCameraAltitude = RemasteredCameraPrevAltitude;
+	Camera.actualElevation = RemasteredCameraAltitude;
+	return true;
+}
+
+// Diagonal split face of the sector under probePos, measured from pos. Not found if the sector
+// has no diagonal split, or if the nearest point on the split line lies outside the sector.
+static RemasteredCameraDiagonalFace GetRemasteredCameraDiagonalFaceInSector(const Vector3i& pos, const Vector3i& probePos, int roomNumber)
+{
+	constexpr auto FAR_SIDE_PROBE_DIST = 64;
+	constexpr auto FOOT_TOLERANCE	   = 2;
+
+	auto face = RemasteredCameraDiagonalFace{};
+	auto pointColl = GetPointCollision(probePos, roomNumber);
+
+	short splitAngle = 0;
+	if (pointColl.GetBottomSector().IsSurfaceSplit(true) && pointColl.IsDiagonalFloorSplit())
+	{
+		splitAngle = pointColl.GetBottomSector().FloorSurface.SplitAngle;
+	}
+	else if (pointColl.GetTopSector().IsSurfaceSplit(false) && pointColl.IsDiagonalCeilingSplit())
+	{
+		splitAngle = pointColl.GetTopSector().CeilingSurface.SplitAngle;
+	}
+	else
+	{
+		return face;
+	}
+
+	// The split line runs through the sector center.
+	auto center = TEN::Collision::Floordata::GetNearestSectorCenter(probePos);
+	short normalAngle = (short)(splitAngle + ANGLE(90.0f));
+	float normalX = phd_sin(normalAngle);
+	float normalZ = phd_cos(normalAngle);
+	float signedDist = (normalX * (pos.x - center.x)) + (normalZ * (pos.z - center.z));
+
+	float footX = pos.x - (signedDist * normalX);
+	float footZ = pos.z - (signedDist * normalZ);
+	if (std::abs(footX - center.x) > (BLOCK(0.5f) + FOOT_TOLERANCE) ||
+		std::abs(footZ - center.z) > (BLOCK(0.5f) + FOOT_TOLERANCE))
+	{
+		return face;
+	}
+
+	face.IsFound = true;
+	face.Angle = (signedDist < 0.0f) ? normalAngle : (short)(normalAngle + ANGLE(180.0f));
+	face.Distance = std::abs(signedDist);
+
+	float farDist = face.Distance + FAR_SIDE_PROBE_DIST;
+	auto farPos = Vector3i(
+		pos.x + (int)std::round(phd_sin(face.Angle) * farDist),
+		pos.y,
+		pos.z + (int)std::round(phd_cos(face.Angle) * farDist));
+	face.IsFarSideBlocked = IsRemasteredCameraPointBlocked(farPos, roomNumber);
+
+	return face;
+}
+
+// Nearest diagonal face from the sector under pos and the four sectors probeDist away on each axis.
+// Prefers a face with solid space behind it, then the nearest one.
+static RemasteredCameraDiagonalFace GetRemasteredCameraDiagonalFace(const Vector3i& pos, int roomNumber, int probeDist)
+{
+	const Vector3i probeOffsets[] =
+	{
+		Vector3i::Zero,
+		Vector3i(probeDist, 0, 0), Vector3i(-probeDist, 0, 0),
+		Vector3i(0, 0, probeDist), Vector3i(0, 0, -probeDist)
+	};
+
+	auto bestFace = RemasteredCameraDiagonalFace{};
+	for (const auto& offset : probeOffsets)
+	{
+		auto face = GetRemasteredCameraDiagonalFaceInSector(pos, pos + offset, roomNumber);
+		if (!face.IsFound)
+			continue;
+
+		bool isBetter = (!bestFace.IsFound ||
+						 (face.IsFarSideBlocked && !bestFace.IsFarSideBlocked) ||
+						 (face.IsFarSideBlocked == bestFace.IsFarSideBlocked && face.Distance < bestFace.Distance));
+		if (isBetter)
+			bestFace = face;
+	}
+
+	return bestFace;
+}
+
+// How far the corners of the near plane reach toward a face, from the eye along the face direction.
+static float GetRemasteredCameraNearPlaneReach(const Vector3& eyePos, const Vector3& lookAtPos, short faceAngle)
+{
+	// NOTE: Matches the near plane in Renderer::UpdateCameraMatrices().
+	constexpr auto NEAR_PLANE	  = 32.0f;
+	constexpr auto ASPECT_DEFAULT = 16.0f / 9.0f;
+
+	auto forward = lookAtPos - eyePos;
+	if (forward.LengthSquared() < 1.0f)
+		return NEAR_PLANE;
+
+	forward.Normalize();
+	auto right = Vector3(forward.z, 0.0f, -forward.x);
+	if (right.LengthSquared() < EPSILON)
+		right = Vector3::UnitX;
+
+	right.Normalize();
+	auto up = right.Cross(forward);
+	up.Normalize();
+
+	float aspect = (g_Configuration.ScreenHeight > 0) ?
+		((float)g_Configuration.ScreenWidth / (float)g_Configuration.ScreenHeight) : ASPECT_DEFAULT;
+	float halfHeight = NEAR_PLANE * std::tan(Camera.Fov / 2.0f);
+	float halfWidth = halfHeight * aspect;
+
+	auto faceDir = Vector3(phd_sin(faceAngle), 0.0f, phd_cos(faceAngle));
+	return ((faceDir.Dot(forward) * NEAR_PLANE) +
+			(std::abs(faceDir.Dot(right)) * halfWidth) +
+			(std::abs(faceDir.Dot(up)) * halfHeight));
+}
+
+// Moves pos straight back from a diagonal wall with solid space behind it, so the near plane
+// looking at lookAt stays on the open side. Leaves pos unchanged if the new point is not open.
+static void ApplyRemasteredCameraDiagonalPush(GameVector& pos, const GameVector& lookAt)
+{
+	constexpr auto STAND_OFF_MARGIN = 2.0f;
+	constexpr auto STAND_OFF_MAX	= 64;
+
+	auto fromPos = pos.ToVector3i();
+	auto face = GetRemasteredCameraDiagonalFace(fromPos, pos.RoomNumber, STAND_OFF_MAX);
+	if (!face.IsFound || !face.IsFarSideBlocked)
+		return;
+
+	float reach = GetRemasteredCameraNearPlaneReach(pos.ToVector3(), lookAt.ToVector3(), face.Angle);
+	float standOff = std::clamp(reach + STAND_OFF_MARGIN, (float)(REMASTERED_CAMERA_WALL_PUSH + 1), (float)STAND_OFF_MAX);
+	if (face.Distance >= standOff)
+		return;
+
+	short pushAngle = (short)(face.Angle + ANGLE(180.0f));
+	float pushDist = standOff - face.Distance;
+	auto toPos = Vector3i(
+		fromPos.x + (int)std::round(phd_sin(pushAngle) * pushDist),
+		fromPos.y,
+		fromPos.z + (int)std::round(phd_cos(pushAngle) * pushDist));
+
+	if (IsRemasteredCameraPointBlocked(toPos, pos.RoomNumber))
+		return;
+
+	pos.x = toPos.x;
+	pos.z = toPos.z;
+	pos.RoomNumber = GetPointCollision(toPos, pos.RoomNumber).GetRoomNumber();
+}
+
+// Turns the orbit azimuth toward the direction the player moves, faster as she moves faster.
+static void ApplyRemasteredCameraAssist(const ItemInfo& item)
+{
+	constexpr auto BASE_VEL					= BLOCK(0.1f);
+	constexpr auto BASE_ANGLE				= ANGLE(90.0f);
+	constexpr auto AUTO_ROT_DELTA_ANGLE_MAX = BASE_ANGLE * 1.5f;
+	constexpr auto AZIMUTH_ANGLE_LERP_ALPHA = 0.075f;
+
+	float vel = Vector2(item.Animation.Velocity.x, item.Animation.Velocity.z).Length();
+	if (GetMoveAxis() == Vector2::Zero || vel == 0.0f || !DoesPlayerRemasteredCameraAssistApply(item))
+		return;
+
+	const auto& player = GetLaraInfo(item);
+	float alpha = std::clamp(vel / BASE_VEL, 0.0f, 1.0f);
+	short deltaAngle = FROM_RAD(std::atan2(player.Control.RefMoveAxis.x, player.Control.RefMoveAxis.y));
+
+	if (abs(deltaAngle) <= BASE_ANGLE)
+	{
+		RemasteredCameraAzimuth = (short)(RemasteredCameraAzimuth + deltaAngle * (AZIMUTH_ANGLE_LERP_ALPHA * alpha));
+	}
+	else if (abs(deltaAngle) <= AUTO_ROT_DELTA_ANGLE_MAX)
+	{
+		int sign = (int)std::copysign(1, deltaAngle);
+		RemasteredCameraAzimuth = (short)(RemasteredCameraAzimuth + (short)(BASE_ANGLE * (AZIMUTH_ANGLE_LERP_ALPHA * alpha)) * sign);
+	}
+}
+
+// Turns the orbit angles with the right stick and mouse. Used in place of DoThumbstickCamera().
+static void UpdateRemasteredCameraOrient()
+{
+	constexpr auto MOUSE_ROTATION_GAIN	   = 3.2f;
+	constexpr auto MOUSE_SENSITIVITY_SCALE = 5.0f / 6.0f;
+
+	RemasteredCameraPrevAzimuth = RemasteredCameraAzimuth;
+	RemasteredCameraPrevAltitude = RemasteredCameraAltitude;
+
+	if (g_GameFlow->CurrentFreezeMode != FreezeMode::Spectator && Camera.laraNode == NO_VALUE)
+	{
+		auto stickAxis = Vector2::Zero;
+		if (AxisMap[AxisID::Camera].Length() > MANUAL_ROTATION_THRESHOLD)
+			stickAxis = AxisMap[AxisID::Camera] * MANUAL_ROTATION_SPEED;
+
+		// The mouse has no threshold, so a single pixel of movement turns the camera.
+		auto mouseAxis = GetRemasteredCameraMousePixels() * (g_Configuration.MouseSensitivity * MOUSE_SENSITIVITY_SCALE * MOUSE_ROTATION_GAIN);
+
+		RemasteredCameraAzimuth += (short)std::round(mouseAxis.x);
+		RemasteredCameraAzimuth += ANGLE(stickAxis.x);
+
+		// Without inversion, pushing the stick up or moving the mouse forward aims the camera up.
+		if (g_Configuration.InvertCameraYAxis)
+		{
+			RemasteredCameraAltitude += (short)std::round(mouseAxis.y);
+			RemasteredCameraAltitude += ANGLE(stickAxis.y);
+		}
+		else
+		{
+			RemasteredCameraAltitude -= (short)std::round(mouseAxis.y);
+			RemasteredCameraAltitude -= ANGLE(stickAxis.y);
+		}
+
+		RemasteredCameraAltitude = std::clamp(RemasteredCameraAltitude, REMASTERED_CAMERA_ALTITUDE_MIN, REMASTERED_CAMERA_ALTITUDE_MAX);
+	}
+
+	ApplyRemasteredCameraAssist(*LaraItem);
+
+	Camera.actualAngle = RemasteredCameraAzimuth;
+	Camera.actualElevation += (RemasteredCameraAltitude - Camera.actualElevation) / 2;
+}
+
+// Chase camera held at the player's orbit angle. Tests only that angle, then clips the ideal
+// position against room geometry and pushes it off walls.
+static void RemasteredChaseCamera(ItemInfo& item)
+{
+	constexpr auto CAMERA_SPEED				   = 3;
+	constexpr auto CLIP_STEP_COUNT			   = 64;
+	constexpr auto CLIP_MARGIN				   = 0;
+	constexpr auto CLIP_MARGIN_LOOK_AT_CLAMPED = 250;
+
+	Camera.speed = CAMERA_SPEED;
+
+	if (!Camera.targetElevation)
+		Camera.targetElevation = -ANGLE(10.0f);
+
+	Camera.targetElevation += item.Pose.Orientation.x;
+	UpdateCameraElevation();
+
+	// Clamp X orientation.
+	if (Camera.actualElevation > REMASTERED_CAMERA_ALTITUDE_MAX)
+		Camera.actualElevation = REMASTERED_CAMERA_ALTITUDE_MAX;
+	else if (Camera.actualElevation < REMASTERED_CAMERA_ALTITUDE_MIN)
+		Camera.actualElevation = REMASTERED_CAMERA_ALTITUDE_MIN;
+
+	// Force item position after exiting look mode to avoid weird movements near walls.
+	if (Camera.oldType == CameraType::Look)
+	{
+		Camera.target.x = item.Pose.Position.x;
+		Camera.target.z = item.Pose.Position.z;
+	}
+
+	auto pointColl = GetPointCollision(Vector3i(Camera.target.x, Camera.target.y + CLICK(1), Camera.target.z), Camera.target.RoomNumber);
+	if (TestEnvironment(ENV_FLAG_SWAMP, pointColl.GetRoomNumber()))
+		Camera.target.y = g_Level.Rooms[pointColl.GetRoomNumber()].TopHeight - CLICK(1);
+
+	bool isLookAtClamped = ClampRemasteredCameraLookAtHeight(Camera.target);
+
+	// Ideal position at the orbit angle.
+	// NOTE: Computed after the clamp, which can restore last tick's altitude.
+	int distance = Camera.targetDistance * phd_cos(Camera.actualElevation);
+	auto ideal = GameVector();
+	ideal.x = Camera.target.x - (distance * phd_sin(Camera.actualAngle));
+	ideal.y = Camera.target.y + (Camera.targetDistance * phd_sin(Camera.actualElevation));
+	ideal.z = Camera.target.z - (distance * phd_cos(Camera.actualAngle));
+	ideal.RoomNumber = Camera.target.RoomNumber;
+
+	LOSAndReturnTargetPrecise(&Camera.target, &ideal, isLookAtClamped ? CLIP_MARGIN_LOOK_AT_CLAMPED : CLIP_MARGIN, CLIP_STEP_COUNT);
+
+	bool isPushBlocked = CameraCollisionBounds(&ideal, REMASTERED_CAMERA_WALL_PUSH, true);
+	ApplyRemasteredCameraDiagonalPush(ideal, Camera.target);
+
+	// Pushed position is still not in open space; keep last tick's orbit angles.
+	if (isPushBlocked)
+		HoldRemasteredCameraFrame();
+
+	MoveCamera(&ideal, Camera.speed);
+
+	// MoveCamera() eases toward the ideal, so the drawn position gets the same diagonal push.
+	ApplyRemasteredCameraDiagonalPush(Camera.pos, Camera.target);
+}
+
 void ChaseCamera(ItemInfo* item)
 {
+	// Remastered controls: chase camera held at the player's orbit angle. -- divezzi, 08.10.26
+	if (g_Configuration.IsUsingRemasteredControls())
+	{
+		RemasteredChaseCamera(*item);
+		return;
+	}
+
 	static const unsigned int maxSwivelSteps = 5;
 
 	if (!Camera.targetElevation)
@@ -671,6 +1077,13 @@ void ChaseCamera(ItemInfo* item)
 
 void UpdateCameraElevation()
 {
+	// Remastered controls: right stick and mouse orbit replace DoThumbstickCamera(). -- divezzi, 08.10.26
+	if (g_Configuration.IsUsingRemasteredControls())
+	{
+		UpdateRemasteredCameraOrient();
+		return;
+	}
+
 	DoThumbstickCamera();
 
 	if (Camera.laraNode != NO_VALUE)
@@ -1642,6 +2055,10 @@ void UpdateCamera()
 		TrackCameraInit = false;
 		CalculateCamera(LaraCollision);
 	}
+
+	// Remastered controls: updates the camera frame the stick is read in, except during flybys. -- divezzi, 10.10.26
+	if (LaraItem != nullptr && !UseSpotCam)
+		UpdatePlayerRefCameraOrient(*LaraItem);
 
 	// Update cameras matrices there, after having done all the possible camera logic.
 	g_Renderer.UpdateCameraMatrices(&Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
