@@ -4,6 +4,7 @@
 #include "Scripting/Internal/LuaHandler.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/ScriptUtil.h"
+#include "Scripting/Internal/TEN/Sound/AudioChannel.h"
 #include "Scripting/Internal/TEN/Sound/SoundTrackTypes.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 #include "Sound/sound.h"
@@ -139,5 +140,7 @@ namespace TEN::Scripting::Sound
 
 		LuaHandler handler{ state };
 		handler.MakeReadOnlyTable(tableSound, ScriptReserved_SoundTrackType, SOUNDTRACK_TYPE);
+
+		AudioChannel::Register(*state, tableSound);
 	}
 };
