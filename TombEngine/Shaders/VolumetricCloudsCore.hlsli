@@ -1,4 +1,4 @@
-// Volumetric cloud functions and pixel shaders shared by the legacy VolumetricClouds.hlsl and RHI/VolumetricClouds.hlsl.
+// Volumetric cloud functions and pixel shaders, included by VolumetricClouds.hlsl.
 // The including file declares the camera and cloud uniforms, the textures and the samplers.
 
 // ===========================================================================
@@ -238,7 +238,7 @@ float FBMLowFreq(float3 p, float lod)
 //   This offset is added identically to every octave and does NOT accumulate
 //   the lacunarity factor. Without this separation the wind displacement is
 //   scaled by lacunarity^oct per octave, so octave 4 moves ~49x faster in
-//   feature-space than octave 0 â€” causing the high-gain frayed edges to
+//   feature-space than octave 0 - causing the high-gain frayed edges to
 //   flicker every frame the cloud translates. By keeping advect constant,
 //   all octaves translate as one coherent mass through space.
 // p        : curl-deformed position (used for coarse octaves 0-2, organic shape).
@@ -248,7 +248,7 @@ float FBMLowFreq(float3 p, float lod)
 //
 // The split between curled/stable is the fix for thin-edge flickering:
 // curl noise evolves at frame-visible rates, and when scaled by lacunarity^3,4
-// small position changes cause rapid noise-value changes in fine octaves â€”
+// small position changes cause rapid noise-value changes in fine octaves -
 // pushing thin cloud edges across the coverage threshold every few frames.
 // Coarse octaves are unaffected (they have large wavelengths that don't alias).
 float FBMAlto5(float3 p, float3 p_stable, float3 advect, float lacunarity, float gain, float billowBlend, float lod)
@@ -285,7 +285,7 @@ float FBMAlto5(float3 p, float3 p_stable, float3 advect, float lacunarity, float
         // position for organic large-scale shape variation.
         float3 sUse = (oct >= 3) ? s_stable : s;
 
-        // advect is added AFTER scaling â€” the wind/evo displacement is the
+        // advect is added AFTER scaling - the wind/evo displacement is the
         // same absolute offset in noise-space for every octave.  's' (the
         // spatial-structure coordinate) still scales normally so each octave
         // sees a different level of detail in the cloud morphology.
@@ -501,16 +501,16 @@ float DriftOutFactor(float2 skyPosXZ)
 
 struct AltoDensityParams
 {
-    float CloudSize;     // AltoCloudSize      â€” feature scale multiplier
-    float CloudAmount;   // AltoCloudAmount    â€” coverage/fill control
-    float BillowStr;     // AltoBillowStrength â€” billow vs smooth FBM
-    float CovSoftWidth;  // AltoCovSoftWidth   â€” coverage soft-threshold width
-    float FbmLac;        // AltoFbmLacunarity  â€” FBM frequency ratio
-    float FbmGain;       // AltoFbmGain        â€” FBM amplitude scaling
-    float FbmScale;      // AltoFbmScale       â€” FBM input pre-scale (2.032=reference)
-    float BottomSoft;    // AltoBottomSoftness  â€” organic bottom shaping
-    float ZenithBias;    // AltoZenithBias     â€” sky-height distribution bias
-    float EvolutionSpd;  // EvolutionSpeed     â€” formation cycling rate
+    float CloudSize;     // AltoCloudSize      - feature scale multiplier
+    float CloudAmount;   // AltoCloudAmount    - coverage/fill control
+    float BillowStr;     // AltoBillowStrength - billow vs smooth FBM
+    float CovSoftWidth;  // AltoCovSoftWidth   - coverage soft-threshold width
+    float FbmLac;        // AltoFbmLacunarity  - FBM frequency ratio
+    float FbmGain;       // AltoFbmGain        - FBM amplitude scaling
+    float FbmScale;      // AltoFbmScale       - FBM input pre-scale (2.032=reference)
+    float BottomSoft;    // AltoBottomSoftness  - organic bottom shaping
+    float ZenithBias;    // AltoZenithBias     - sky-height distribution bias
+    float EvolutionSpd;  // EvolutionSpeed     - formation cycling rate
 };
 
 // Returns raw Alto density BEFORE dissolve/formation/zenith-cap/drift-out.
@@ -553,9 +553,9 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
     // This prevents clouds from drifting against the wind during morph transitions
     // where EvolutionSpeed drops (e.g. RainSnowOvercast Altocumulus).
     //
-    // Direction is PERPENDICULAR to wind (rotated 90Â°) so that EvolutionSpeed
+    // Direction is PERPENDICULAR to wind (rotated 90 deg) so that EvolutionSpeed
     // does NOT add to the visible wind-direction speed. Otherwise, on a preset
-    // transition that ramps EvSpd from 0 to >0 (e.g. Altocumulusâ†’Thunderstorm),
+    // transition that ramps EvSpd from 0 to >0 (e.g. Altocumulus->Thunderstorm),
     // the cloud field appears to suddenly accelerate in wind direction
     // ("time-lapse"), and on the reverse transition it appears to drift
     // against the wind as the curl-warp untwists. With a perpendicular evoDir,
@@ -583,8 +583,8 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
     // FlowAccumOffset is pre-integrated in the renderer (like WindAccumOffset),
     // so it is always monotonically non-decreasing. Using it instead of
     // CloudTime*ap.EvolutionSpd*0.16 prevents the curl warp and windBias from
-    // reversing when EvolutionSpeed transitions to a lower value (e.g. 1.013â†’0
-    // on RainSnowOvercastâ†’Altocumulus), which previously caused visible
+    // reversing when EvolutionSpeed transitions to a lower value (e.g. 1.013->0
+    // on RainSnowOvercast->Altocumulus), which previously caused visible
     // backwards cloud-feature drift.
     float flowTime = FlowAccumOffset;
     float heightFlow = lerp(1.0f, 0.65f, saturate(heightFrac));
@@ -602,7 +602,7 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
     {
         float curlAmp = curlDamp * CurlWarpStrength;
 
-        // Low Frequency Band â€” always evaluated when curl is active.
+        // Low Frequency Band - always evaluated when curl is active.
         {
             float tLow  = flowTime * 0.35f * heightFlow;
             float3 pLow = float3(p.x, 0.0f, p.z) * 0.41f
@@ -642,8 +642,8 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
     }
 
     // FBM evaluation.
-    // p_shape: curl-deformed position minus advection â€” for coarse octaves (0-2).
-    // p_shape_stable: pre-curl position minus advection â€” for fine octaves (3-4).
+    // p_shape: curl-deformed position minus advection - for coarse octaves (0-2).
+    // p_shape_stable: pre-curl position minus advection - for fine octaves (3-4).
     // The advection (windOfs + evoOfs) is kept separate and added identically
     // to every octave so all scales translate at the same rate (no flickering
     // from differential octave advection speeds).
@@ -733,7 +733,7 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
     // Very small CovSoftWidth values make the coverage gate nearly binary.
     // In the half-res cloud RT each texel covers 2x2 full-res pixels; a
     // step-function density edge means adjacent RT texels are either fully
-    // cloud or fully empty â€” the bilateral upsampler cannot create a smooth
+    // cloud or fully empty - the bilateral upsampler cannot create a smooth
     // transition from that, so moving edges look like shifting pixel-blocks.
     //
     // covSoftMin ensures there is always a visible density gradient at the
@@ -758,15 +758,15 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
         covSoft *= lerp(1.0f, 2.5f, distLOD2 * sizeFactor);
     }
 
-    // Evolution / pulsing â€” skip at far distance where the subtle threshold
+    // Evolution / pulsing - skip at far distance where the subtle threshold
     // oscillation is invisible (saves 1 ValueNoise3D).
     if (ap.EvolutionSpd > 0.001f && distLOD < 0.6f)
     {
         float spatialMask = sin(TexValue3D(p_before_curl * 0.4f) * 6.2832f);
-        // FlowAccumOffset * 0.25 = integral(EvSpd * dt * 0.04) â€” pre-integrated
+        // FlowAccumOffset * 0.25 = integral(EvSpd * dt * 0.04) - pre-integrated
         // equivalent of CloudTime * ap.EvolutionSpd * 0.04. Using CloudTime directly
         // causes the swell argument to decrease when EvolutionSpd lerps to a lower
-        // value (CloudTime is large, so the product shrinks fast) â€” sin() then
+        // value (CloudTime is large, so the product shrinks fast) - sin() then
         // oscillates backwards, visually pulling cloud coverage in reverse.
         float swellWave   = sin(FlowAccumOffset * 0.25f);
         float swellAmp    = 0.08f * saturate(ap.EvolutionSpd * 0.5f + 0.1f);
@@ -781,7 +781,7 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
         covThresh = saturate(covThresh + horizThin);
 
         // Cluster grouping: skip at far distance where the tiny offset
-        // (Â±0.05) is invisible â€” saves 1 ValueNoise3D.
+        // (+/-0.05) is invisible - saves 1 ValueNoise3D.
         float clusterAmt = distLOD * sizeFactor * 0.22f;
         if (clusterAmt > 0.001f && distLOD < 0.6f)
         {
@@ -790,7 +790,7 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
         }
     }
 
-    // Wind-directional formation / dissolution â€” skip at far distance where
+    // Wind-directional formation / dissolution - skip at far distance where
     // leading/trailing edge offsets are invisible (saves 2 ValueNoise3D).
     if (ap.EvolutionSpd > 0.001f && distLOD < 0.5f)
     {
@@ -815,7 +815,7 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
 
     dens *= smoothstep(covThresh, covThresh + covSoft, dens);
 
-    // Organic bottom shaping â€” at far distance use only coarse noise
+    // Organic bottom shaping - at far distance use only coarse noise
     // (saves 1 ValueNoise3D at distLOD >= 0.5).
     if (ap.BottomSoft > 0.001f)
     {
@@ -856,7 +856,7 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
 // ===========================================================================
 // Lightweight Alto density for dissolving CloudMorph sources.
 //
-// During morph transitions the source preset is dissolving â€” its fine detail
+// During morph transitions the source preset is dissolving - its fine detail
 // is increasingly masked by the dissolve function and contributes nothing
 // visible. This simplified version cuts ~55% of per-sample noise cost:
 //   - Only Low curl band (skips Mid+High = saves 8 ValueNoise3D)
@@ -1076,17 +1076,17 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
             // Source density uses the same full EvalAltoDensityCore as the
             // pre-transition frame. EvalAltoDensityCoreLite produces a different
             // cloud shape (different curl deformation, fewer FBM octaves) which
-            // causes a visible jump whenever the switch would occur â€” regardless
+            // causes a visible jump whenever the switch would occur - regardless
             // of threshold. Organic morph requires identical evaluation throughout.
             float srcDens = EvalAltoDensityCore(skyPos, heightFrac, skyH, distLOD, distLOD2, srcParams);
 
-            // Cache DissolveMask once â€” used by both dissolve and formation.
+            // Cache DissolveMask once - used by both dissolve and formation.
             // Saves 4 PerlinNoise3D calls per sample (2 per DissolveMask invocation).
             float dMask = DissolveMask(skyPos);
             srcDens = ApplyDissolveWithMask(srcDens, dMask, DissolvePhase);
             tgtDens = ApplyFormationWithMask(tgtDens, dMask, FormationPhase);
 
-            // Combine: where source had cloud â†’ dissolving, where target has cloud â†’ forming.
+            // Combine: where source had cloud -> dissolving, where target has cloud -> forming.
             dens = srcDens + tgtDens;
 
             if (dens <= 0.0001f)
@@ -1270,7 +1270,7 @@ float ScreenJitter(float2 cloudPos, float jitterScale)
     // bypass the checkerboard reuse and do a fresh raymarch every frame; if
     // basePhase swung between 0.25 and 0.75 frame-to-frame, those edge pixels
     // would sample at different sub-step positions each frame, producing
-    // alpha oscillation that EMA blending only partially hides â€” visible as
+    // alpha oscillation that EMA blending only partially hides - visible as
     // shimmer at thin altocumulus borders.  A fixed 0.5 phase combined with
     // the per-pixel spatialJitter below keeps march planes randomized in
     // space while remaining temporally stable.
@@ -1289,7 +1289,7 @@ float ScreenJitter(float2 cloudPos, float jitterScale)
 // For skew lines the standard closest-approach formula is used.
 // For near-parallel lines (vertical bolt + upward view ray) the formula degenerates;
 // instead we return  length(cross(rd, ro-A))  which is the perpendicular distance
-// from the infinite ray LINE to the infinite segment LINE ï¿½ constant along the whole
+// from the infinite ray LINE to the infinite segment LINE - constant along the whole
 // segment, so the bolt glows uniformly even when viewed from directly below.
 float BoltSegDist(float3 ro, float3 rd, float3 A, float3 B)
 {
@@ -1298,10 +1298,10 @@ float BoltSegDist(float3 ro, float3 rd, float3 A, float3 B)
     float  ab2 = dot(AB, AB);
 
     if (ab2 < 0.01f)
-        return length(cross(rd, rA)); // degenerate segment ï¿½ point A
+        return length(cross(rd, rA)); // degenerate segment -> point A
 
     float  rdab  = dot(rd, AB);
-    float  denom = ab2 - rdab * rdab; // ab2 * sinï¿½(angle between rd and AB)
+    float  denom = ab2 - rdab * rdab; // ab2 * sin^2(angle between rd and AB)
 
     if (denom < 0.0001f * ab2)
     {
@@ -1532,7 +1532,7 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
     // ~[0.35, 0.65]. The wider range covers step-boundary regions that cause banding
     // grooves at PrimaryStepCount=4. No per-frame shift is applied: the jitter is
     // stable per cloud-space position, so reprojected history (same cloud region =
-    // same hash) is always consistent with fresh pixels — no checkerboard flicker.
+    // same hash) is always consistent with fresh pixels - no checkerboard flicker.
     // EvoAccumOffset drift provides a slow natural temporal variation over many frames.
     if (QualityLevel < 0.5f && TemporalEnabled > 0)
     {
@@ -1568,7 +1568,7 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
         // Amplitude ??0.35 * stepSize keeps samples within each step's sub-domain.
         float subJitterMin = lerp(0.22f, 0.55f, thickBandGuard);
         // Use AltoJitterAbsCap directly as a virtual absorption for jitter amplitude
-        // — completely decoupled from actual AltoAbsorption so the user can suppress
+        // - completely decoupled from actual AltoAbsorption so the user can suppress
         // shimmer without softening the cloud density/shading.
         float jitterAbs    = AltoJitterAbsCap;
         float subJitterAmp = lerp(subJitterMin, 0.7f, saturate((jitterAbs - 0.2f) * 2.5f))
@@ -1594,7 +1594,7 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
         {
             // Bleed zone: samples below the original slab base (heightFrac < 0).
             // Project onto the slab base and stream the XZ position in the wind
-            // direction â€” the deeper the sample, the more it has drifted.
+            // direction - the deeper the sample, the more it has drifted.
             // This gives the appearance of cloud mass pouring off the mountain
             // top and flowing downward in the prevailing wind direction.
             float3 effectiveSamplePos = samplePos;
@@ -1629,24 +1629,24 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                 {
                     // === AltocumulusMid: fully self-contained lighting ===
                     // The dark-base shading (lerp toward AltoCloudColorDark at low
-                    // heightFrac) models self-shadowing by the cloud mass above â€”
+                    // heightFrac) models self-shadowing by the cloud mass above -
                     // physically correct only when there IS a thick cloud roof.
                     //
                     // For thin wisps and cloud edges that same code forces the color
                     // dark even though the optical depth is too small to shadow
-                    // anything â€” producing the visible dark outlines.
+                    // anything - producing the visible dark outlines.
                     //
                     // Fix: thin wisps and cloud edges have low accumulated optical
                     // depth and should appear bright (they can't self-shadow).
                     //
                     // Use extinction (density * absorption * stepSize) as the
                     // per-sample optical thickness. A sample is "thin" when its
-                    // own extinction is small â€” regardless of what other samples
+                    // own extinction is small - regardless of what other samples
                     // in the same ray have already contributed.
-                    //   extinction â†’ 0   : optically transparent sample (edge/wisp)
-                    //                      â†’ force toward bright cloud color, no dark base
-                    //   extinction â†’ large: optically thick sample (cloud interior)
-                    //                      â†’ preserve natural height gradient
+                    //   extinction -> 0   : optically transparent sample (edge/wisp)
+                    //                      -> force toward bright cloud color, no dark base
+                    //   extinction -> large: optically thick sample (cloud interior)
+                    //                      -> preserve natural height gradient
                     //
                     // This is strictly per-sample: it doesn't flatten the overall
                     // dark/bright gradient of thick clouds (which accumulate large
@@ -1688,7 +1688,7 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                     // is already computed once before the march loop. At night
                     // CloudLightDirection = moon direction (CPU-blended), so this
                     // concentrates the warm yellowish glow in clouds directly facing the moon.
-                    // Tint delta: R+22% G+7% B-22% â†’ shifts cool blue-grey â†’ warm yellow.
+                    // Tint delta: R+22% G+7% B-22% -> shifts cool blue-grey -> warm yellow.
                     if (CloudMoonLightFactor > 0.001f)
                     {
                         float moonWarmGate      = pow(max(cosTheta, 0.0f), 3.0f) * CloudMoonLightFactor;
@@ -1700,19 +1700,19 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                     // === Sunset underside illumination (AltocumulusMid) ===
                     // Warm sunset glow on cloud undersides when the sun is near/below the horizon.
                     // CPU pre-computes: SunsetUndersideColor (elevation-dependent gradient),
-                    // SunsetUndersideIntensity (activation envelope Ã— user intensity).
+                    // SunsetUndersideIntensity (activation envelope x user intensity).
                     if (SunsetUndersideIntensity > 0.001f)
                     {
                         // Underside factor: strongest at cloud base, fades toward top.
                         float undersideFactor = pow(saturate(1.0f - heightFrac), SunsetUndersideHeightFade);
 
                         // Sun-direction factor: glow is concentrated toward the sun's azimuth.
-                        // Use XZ (horizontal) components to ignore elevation â€” the sun is at/below
+                        // Use XZ (horizontal) components to ignore elevation - the sun is at/below
                         // the horizon, so the lit region is on the horizon side of the cloud.
                         float2 rayDirXZ = normalize(rayDir.xz + float2(0.0001f, 0.0001f));
                         float2 sunDirXZ = normalize(CloudLightDirection.xz + float2(0.0001f, 0.0001f));
                         float  sunDot   = dot(rayDirXZ, sunDirXZ);
-                        // Remap [-1,1] â†’ [0,1] with spread control: higher spread = wider glow.
+                        // Remap [-1,1] -> [0,1] with spread control: higher spread = wider glow.
                         float  sunGlow  = saturate((sunDot + 1.0f) * 0.5f);
                         sunGlow = pow(sunGlow, SunsetUndersideSpread);
 
@@ -2024,7 +2024,7 @@ float4 PS(VSOutput input) : SV_TARGET
 
                     // When TemporalBlendFactor is high (fast-moving clouds or low FPS),
                     // history has diverged from the current frame. Shrink the stability
-                    // zone toward {0,1} so fewer pixels take the skip — this prevents
+                    // zone toward {0,1} so fewer pixels take the skip - this prevents
                     // the checkerboard dither pattern visible at higher render resolutions
                     // (e.g. High at 0.5x scale) when adjacent frame-N and frame-(N-1)
                     // cloud-core pixels differ noticeably.
@@ -2065,7 +2065,7 @@ float4 PS(VSOutput input) : SV_TARGET
     // Fully tied to the cloud flash: uses identical flashCycle + hash as the raymarcher.
     //
     // KNOT FIX: glow is applied ONCE using the minimum distance to the whole polyline,
-    // not summed per-segment. This prevents the 2ï¿½ brightness at shared endpoints that
+    // not summed per-segment. This prevents the 2x brightness at shared endpoints that
     // caused bright knots at every segment junction.
     //
     // Hash quality: cycleN = frac(flashCycle * f) * 360 keeps sin() arguments in [0,~600].
@@ -2082,7 +2082,7 @@ float4 PS(VSOutput input) : SV_TARGET
             {
                 float altoExtentXZ = max(CloudBottomHeight * 0.8f, 25000.0f);
 
-                // Flash XZ ï¿½ bitwise-identical hashes to the raymarcher flash position.
+                // Flash XZ - bitwise-identical hashes to the raymarcher flash position.
                 float flashR3x = frac(sin(flashCycle * 73.1f + 1.3f) * 43758.5453f);
                 float flashR3z = frac(sin(flashCycle * 53.3f + 3.7f) * 43758.5453f);
                 float boltX    = rayOrigin.x + (flashR3x - 0.5f) * altoExtentXZ;
@@ -2103,7 +2103,7 @@ float4 PS(VSOutput input) : SV_TARGET
                 // ----------------------------------------------------------------
                 // Build main bolt polyline.
                 // Per-cycle: 40% ? complex (9 segs + 2 forks), 60% ? simple (6 segs + 1 fork).
-                // BoltSegDist is used for all glow distances ï¿½ it projects onto the
+                // BoltSegDist is used for all glow distances - it projects onto the
                 // view plane, giving uniform brightness along segments regardless of angle.
                 // ----------------------------------------------------------------
                 bool  isComplex = (frac(sin(cycleN + 91.3f) * 43758.5453f) < 0.4f);
@@ -2303,7 +2303,7 @@ float4 PS(VSOutput input) : SV_TARGET
     // that would make certain alpha ranges pile up into visible bands.
     // At far range (low elevation), the threshold rises slightly to handle
     // the larger boundary noise from distant grazing-angle rays.
-    // NOTE: do NOT raise this threshold aggressively (e.g. to 0.18) â€”
+    // NOTE: do NOT raise this threshold aggressively (e.g. to 0.18) -
     // cutting the sub-0.18 gradient destroys the soft feathered zone that
     // the bilateral upsampler needs to anti-alias the half-res cloud edge.
     {
@@ -2318,7 +2318,7 @@ float4 PS(VSOutput input) : SV_TARGET
     if (CloudDebugView != 0)
         cloudResult = DebugVisualization(rayOrigin, rayDir, input.Position.xy, cloudResult, PrimaryStepCount);
 
-    // NOTE: HorizonAtmosphericFade is NOT applied here â€” it is deferred to
+    // NOTE: HorizonAtmosphericFade is NOT applied here - it is deferred to
     // PSCloudComposite so the cloud RT stores un-faded alpha.  This lets the
     // bleed-through-mountains re-composite use the full cloud opacity directly
     // instead of the lossy divide-out recovery that produced color artifacts.
@@ -2359,7 +2359,7 @@ float4 PS(VSOutput input) : SV_TARGET
 // The cloud render target (RGBA: lit cloud color + opacity) is bound to t0.
 // Hardware alpha blending (AlphaBlend) composites this over the existing
 // framebuffer content, which may contain:
-//   - Legacy sky bitmap layer(s)
+//   - Classic sky bitmap layer(s)
 //   - Horizon mesh (possibly closing overhead)
 //   - Starfield
 //   - Black void where nothing was drawn
@@ -2455,7 +2455,7 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
 
     // HorizonAtmosphericFade is applied here in the composite pass, NOT during
     // raymarching.  The cloud RT stores un-faded alpha with valid RGB so the
-    // bilateral upsampler always has good signal â€” even near the horizon.
+    // bilateral upsampler always has good signal - even near the horizon.
     //
     // Normal pass  (CloudIsBleedPass == 0): full HorizonAtmosphericFade, clouds
     //   dissolve naturally at the horizon.
@@ -2463,7 +2463,7 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     //   elevation masking at all. Organic cloud shapes come entirely from the
     //   volumetric raymarcher (AltoBottomSoftness, cloud slab geometry). Any
     //   screen-space elevation fade would produce a flat horizontal cut that
-    //   ignores the mountain silhouette â€” exactly what we don't want.
+    //   ignores the mountain silhouette - exactly what we don't want.
     float3 compRayDir = GetViewRayDir(uv);
     float opacityScale;
     if (CloudIsBleedPass < 0.001f)
@@ -2480,7 +2480,7 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
                          : float3(0.0f, 0.0f, 0.0f);
 
     // Read the scene background (sky) from the pre-cloud backup copy.
-    // The sun/moon disc is NO LONGER in this background â€” it is rendered in a
+    // The sun/moon disc is NO LONGER in this background - it is rendered in a
     // separate additive pass after cloud compositing. This means screen blend
     // works correctly (bg is never near 1.0 from the sun) and no special
     // sun-disc masking is needed.
@@ -2494,18 +2494,18 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     // === Hybrid screen / alpha composite ===
     //
     // Screen blend:  result = 1 - (1 - bg) * (1 - cloud)
-    //   â†’ Can only brighten. Black cloud = no effect. Perfect for thin bright clouds.
-    //   â†’ But dark clouds become transparent (bad for thunderstorms / rain).
+    //   -> Can only brighten. Black cloud = no effect. Perfect for thin bright clouds.
+    //   -> But dark clouds become transparent (bad for thunderstorms / rain).
     //
     // Alpha blend:   result = lerp(bg, cloudColor, alpha)
-    //   â†’ Can darken. Dark clouds properly absorb light.
-    //   â†’ But thin bright edges get dark halos.
+    //   -> Can darken. Dark clouds properly absorb light.
+    //   -> But thin bright edges get dark halos.
     //
     // Solution: blend between both modes based on cloud brightness.
-    //   Bright areas â†’ screen blend (no halos).
-    //   Dark areas   â†’ alpha blend (proper absorption).
+    //   Bright areas -> screen blend (no halos).
+    //   Dark areas   -> alpha blend (proper absorption).
     //
-    // The crossover threshold is ~27/255 â‰ˆ 0.106 in linear space.
+    // The crossover threshold is ~27/255 ~ 0.106 in linear space.
     // A smoothstep transition avoids any visible seam.
 
     // Screen blend result.
@@ -2513,26 +2513,26 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
 
     // Brightness-based blend factor: measured on straight-alpha cloud color,
     // NOT on the premultiplied contribution. The premultiplied value is small
-    // for thin bright edges (bright * low alpha â‰ˆ small), which would wrongly
-    // classify them as dark and apply alpha blend â†’ dark halos. cloudStraight
+    // for thin bright edges (bright * low alpha ~ small), which would wrongly
+    // classify them as dark and apply alpha blend -> dark halos. cloudStraight
     // gives the intrinsic color brightness regardless of cloud density.
     float cloudLuma = dot(cloudStraight, float3(0.299f, 0.587f, 0.114f));
 
     // Dual-zone screen blend: screen blend at both the bright AND dark ends,
     // alpha blend only in the mid-luminance range.
-    //   luma > BlendThresholdHigh  â†’  bright clouds / thin edges  â†’  screen blend (no halos)
-    //   luma < BlendThresholdLow   â†’  very dark cloud edges        â†’  screen blend (no dark halos)
-    //   BlendThresholdLow â‰¤ luma â‰¤ BlendThresholdHigh  â†’  alpha blend (dense clouds absorb properly)
+    //   luma > BlendThresholdHigh  ->  bright clouds / thin edges  ->  screen blend (no halos)
+    //   luma < BlendThresholdLow   ->  very dark cloud edges        ->  screen blend (no dark halos)
+    //   BlendThresholdLow <= luma <= BlendThresholdHigh  ->  alpha blend (dense clouds absorb properly)
 
-    // Two-stage threshold modulation: day â†’ sunset â†’ (back to sliders at night).
+    // Two-stage threshold modulation: day -> sunset -> (back to sliders at night).
     //
-    // DAY   (elev > 0.15):  sunsetFactor=0 â†’ effectiveHigh = BlendThresholdHigh (slider).
+    // DAY   (elev > 0.15):  sunsetFactor=0 -> effectiveHigh = BlendThresholdHigh (slider).
     //                        Only bright/thin cloud wisps screen blend; dense bodies alpha-blend.
     //
-    // SUNSET (elev â‰ˆ 0.0):  sunsetFactor=1 â†’ shifts toward kSunset* constants.
+    // SUNSET (elev ~ 0.0):  sunsetFactor=1 -> shifts toward kSunset* constants.
     //                        sfSuppression=0 kills screen blend; sun occlusion via alphaForBg.
     //
-    // NIGHT  (elev < -0.15): sunsetFactor=0 again â†’ effectiveHigh = BlendThresholdHigh (slider).
+    // NIGHT  (elev < -0.15): sunsetFactor=0 again -> effectiveHigh = BlendThresholdHigh (slider).
     //                        Sliders are fully active. The alphaOcclude boost is suppressed via
     //                        nightThreshFade so no hard cutout silhouette forms on a black sky.
     const float kSunsetStart = 0.15f;
@@ -2540,12 +2540,12 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     const float kSunsetHigh  = 0.12f;
     const float kSunsetWidth = 0.400f;
     const float kSunsetLow   = 0.150f;
-    float sunsetRise   = saturate(1.0f - CloudSunElevation / kSunsetStart);  // 0â†’1 as elev 0.15â†’0
-    float nightReturn  = saturate(-CloudSunElevation / kNightStart);          // 0â†’1 as elev 0â†’-kNight
+    float sunsetRise   = saturate(1.0f - CloudSunElevation / kSunsetStart);  // 0->1 as elev 0.15->0
+    float nightReturn  = saturate(-CloudSunElevation / kNightStart);          // 0->1 as elev 0->-kNight
     float sunsetFactor = sunsetRise * (1.0f - nightReturn);
     // Smooth night factor (used to suppress alphaOcclude boost, not to override thresholds).
     float nightThreshFade = nightReturn * nightReturn * (3.0f - 2.0f * nightReturn);
-    // Thresholds blend dayâ†’sunset, then back to slider values at night (sunsetFactor returns to 0).
+    // Thresholds blend day->sunset, then back to slider values at night (sunsetFactor returns to 0).
     float effectiveHigh  = lerp(BlendThresholdHigh,      kSunsetHigh,  sunsetFactor);
     float effectiveWidth = lerp(BlendThresholdHighWidth,  kSunsetWidth, sunsetFactor);
     float effectiveLow   = lerp(BlendThresholdLow,        kSunsetLow,   sunsetFactor);
@@ -2558,7 +2558,7 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
                                     effectiveHigh + effectiveWidth, cloudLuma);
     // Dark-screen zone is only for transparent edges (near-zero alpha with residual dark color
     // from premultiplied filtering). Alto second color produces solid dark faces (high alpha,
-    // low luma) â€” those must alpha-blend to properly occlude the background sun disc.
+    // low luma) - those must alpha-blend to properly occlude the background sun disc.
     // Gate darkScreen by the inverse of cloud presence: 1 at fully transparent, 0 at solid.
     float darkEdgeWeight = 1.0f - saturate(cloudAlpha * 10.0f);
     float darkScreen     = (1.0f - smoothstep(effectiveLow - darkTransW,
@@ -2569,29 +2569,29 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     // Alpha blend result.
     //
     // At day (sunsetFactor=0): cloudAlpha is used directly for alphaResult.
-    //   Thin screen-blend clouds (low cloudAlpha) stay semi-transparent â†’ sun visible âœ“
-    //   Dense alpha-blend clouds (high cloudAlpha, screenFactorâ‰ˆ0) are boosted via the
-    //   gentle curve 1-(1-Î±)Â² â†’ sun hidden âœ“
+    //   Thin screen-blend clouds (low cloudAlpha) stay semi-transparent -> sun visible
+    //   Dense alpha-blend clouds (high cloudAlpha, screenFactor~0) are boosted via the
+    //   gentle curve 1-(1-alpha)^2 -> sun hidden
     //
     // At sunset (sunsetFactor>0): cloudAlpha is blended toward cloudPresence.
-    //   cloudPresence = sat(cloudAlpha*10) â€” already 1.0 for any pixel with Î±â‰¥0.1,
+    //   cloudPresence = sat(cloudAlpha*10) - already 1.0 for any pixel with alpha>=0.1,
     //   the same binary "cloud exists here" signal used by the master presence gate below.
     //   This makes ANY cloud (even thin screen-blend ones) fully opaque in alpha-blend
     //   so the sun disc stored in bg is properly hidden.
     //
-    // effectiveSunset = sqrt(sunsetFactor) â€” power curve that makes the ramp approach 1.0
-    //   faster than linear.  At elevation=0.07 (sunsetFactorâ‰ˆ0.72): sqrt(0.72)â‰ˆ0.849,
-    //   giving alphaForBgâ‰ˆ0.96 for a cloud with cloudAlpha=0.15.
+    // effectiveSunset = sqrt(sunsetFactor) - power curve that makes the ramp approach 1.0
+    //   faster than linear.  At elevation=0.07 (sunsetFactor~0.72): sqrt(0.72)~0.849,
+    //   giving alphaForBg~0.96 for a cloud with cloudAlpha=0.15.
     //
-    // effectiveScreenFactor uses (1-effectiveSunset)Â² so the screen-blend contribution
+    // effectiveScreenFactor uses (1-effectiveSunset)^2 so the screen-blend contribution
     //   naturally fades toward sunset.
     // cloudPresence already declared above.
     float effectiveSunset   = sqrt(sunsetFactor);
     // brightBgBoost removed: the sun disc is no longer in bg (handled by the separate
     // PSSunMoonDisc additive pass), so there is no bright bg to compensate for here.
     float alphaForBg        = lerp(cloudAlpha, cloudPresence, effectiveSunset);
-    // Opacity boost (1-(1-Î±)Â²) strengthens occlusion for dense clouds during the day.
-    // At night (nightThreshFade=1) this boost is suppressed completely â€” there is no sun
+    // Opacity boost (1-(1-alpha)^2) strengthens occlusion for dense clouds during the day.
+    // At night (nightThreshFade=1) this boost is suppressed completely - there is no sun
     // disc to occlude and the boost would create a hard dark silhouette on the black sky.
     float boostWeight       = (1.0f - screenFactor) * (1.0f - nightThreshFade);
     float alphaOcclude      = lerp(alphaForBg,
@@ -2615,9 +2615,9 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     // of every blend setting.
     //
     // Targets ONLY the dark/grey boundary halos:
-    //   altoEdgeAlpha â€” tight boundary zone: full at alpha=0, zero at alpha=0.12.
+    //   altoEdgeAlpha - tight boundary zone: full at alpha=0, zero at alpha=0.12.
     //                   Keeps the effect away from the visible cloud body.
-    //   altoEdgeDark  â€” luma gate: 1.0 for dark pixels (luma=0), 0.0 at luma>=0.5.
+    //   altoEdgeDark  - luma gate: 1.0 for dark pixels (luma=0), 0.0 at luma>=0.5.
     //                   Bright cloud edges are already handled correctly by the
     //                   normal luma classifier; only dark/grey outlines need forcing.
     //
@@ -2633,9 +2633,9 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     // Output cloud coverage in alpha channel so the sun/moon disc pass can
     // mask out the disc where clouds are present.
     // Use cloudAlpha directly (not cloudPresence) so thin cloud edges
-    // (cloudAlpha â‰ˆ 0.1) don't aggressively suppress the sun disc.
+    // (cloudAlpha ~ 0.1) don't aggressively suppress the sun disc.
     // cloudPresence = sat(cloudAlpha*10) would give 1.0 at cloudAlpha=0.1,
-    // fully blocking the sun at semi-transparent edges â†’ dark outline.
+    // fully blocking the sun at semi-transparent edges -> dark outline.
     // Accumulate with previous layer's coverage via max().
     float combinedCoverage = max(bgFull.a, cloudAlpha);
     return float4(finalColor, combinedCoverage);
@@ -2728,7 +2728,7 @@ float4 PSCloudOcclusion(VSOutput input) : SV_TARGET
     // across a wider "corona" area around the sun's projected screen position.
     //
     // CORONA_RADIUS: sample ring offset in half-res cloud RT pixels.
-    // 20 pixels at typical half-res (960x540) â‰ˆ 40 full-res pixels from sun center.
+    // 20 pixels at typical half-res (960x540) ~ 40 full-res pixels from sun center.
     // Larger radius ensures that clouds surrounding a small gap at the sun position
     // are still captured, preventing sprite/flare bleed through cloud patches.
     // ---------------------------------------------------------------------------
@@ -2761,8 +2761,8 @@ float4 PSCloudOcclusion(VSOutput input) : SV_TARGET
 
         // Screen-space visibility: 1 = no cloud near sun, 0 = sun area fully covered.
         // occAggressiveness scales the cloud alpha before subtracting from 1.
-        // Day (sunsetFactor=0):    multiplier=1  â†’ matches raw transmittance.
-        // Sunset (sunsetFactor=1): multiplier=8  â†’ cloudAlphaâ‰¥0.125 yields full occlusion.
+        // Day (sunsetFactor=0):    multiplier=1  -> matches raw transmittance.
+        // Sunset (sunsetFactor=1): multiplier=8  -> cloudAlpha>=0.125 yields full occlusion.
         // This makes the sun sprite / lens flare halo / starflare disappear behind
         // screen-blend clouds (moderate alpha in cloud RT) at sunset, exactly mirroring
         // the sunDiscVis logic in GodRay.hlsl (same 0.25-elevation ramp, same multiplier).

@@ -1027,7 +1027,7 @@ namespace TEN::Renderer::RHI::DirectX11
             }
         }
 
-        // Same-size copy only; the new renderer keeps its offscreen target at swapchain size.
+        // Same-size copy only; the scene renderer keeps its offscreen target at swapchain size.
         void BlitTexture(ITexture* source, ITexture* destination) override
         {
             const auto& sourceDesc = source->GetDesc();
@@ -1279,9 +1279,9 @@ namespace TEN::Renderer::RHI::DirectX11
             _infoQueue->ClearStoredMessages();
         }
 
-        Backend GetBackend() const override
+        GraphicsApi GetBackend() const override
         {
-            return Backend::DirectX11;
+            return GraphicsApi::DirectX11;
         }
 
         ShaderFormat GetShaderFormat() const override

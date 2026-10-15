@@ -97,7 +97,7 @@ enum class SkinningMode
 	Static  = 0, // No bones - use the per-instance Object.World directly.
 	None    = 1, // Rigid moveable - apply Bones[BoneIndex[0]] without blending.
 	Full    = 2, // Modern skinning - blend bone matrices.
-	Classic = 3, // Legacy classic blend mode.
+	Classic = 3, // Classic skinning - blend rotations as quaternions, keep the first bone translation.
 };
 
 enum class ShadowMode

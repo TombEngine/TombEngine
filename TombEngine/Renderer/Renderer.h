@@ -17,23 +17,23 @@
 #include "Renderer/ConstantBuffers/AtmosphericSkyBuffer.h"
 #include "Renderer/ConstantBuffers/GodRayBuffer.h"
 #include "Renderer/ConstantBuffers/DustStormBuffer.h"
-#include "Renderer/AtmosphericSky/AtmosphericSkySettings.h"
-#include "Renderer/Aurora/AuroraSettings.h"
-#include "Renderer/UnderwaterSky/UnderwaterSkySettings.h"
-#include "Renderer/DustStorm/DustStormSettings.h"
-#include "Renderer/GodRay/GodRaySettings.h"
-#include "Renderer/Moon/MoonSettings.h"
-#include "Renderer/VolumetricCloud/VolumetricCloud.h"
-#include "Renderer/VolumetricCloud/CloudNoiseTexture.h"
-#include "Renderer/Font.h"
-#include "Renderer/Frustum.h"
-#include "Renderer/Graphics/Vertices/Vertex.h"
-#include "Renderer/Next/OverlayTypes.h"
-#include "Renderer/Next/SkyTypes.h"
+#include "Renderer/Sky/AtmosphericSkySettings.h"
+#include "Renderer/Sky/AuroraSettings.h"
+#include "Renderer/Sky/UnderwaterSkySettings.h"
+#include "Renderer/Sky/DustStormSettings.h"
+#include "Renderer/Sky/GodRaySettings.h"
+#include "Renderer/Sky/MoonSettings.h"
+#include "Renderer/Sky/VolumetricCloud.h"
+#include "Renderer/Sky/CloudNoiseTexture.h"
+#include "Renderer/UI/Font.h"
+#include "Renderer/Scene/Frustum.h"
+#include "Renderer/Structures/Vertex.h"
+#include "Renderer/Backend/OverlayTypes.h"
+#include "Renderer/Backend/SkyTypes.h"
 #include "Renderer/RendererEnums.h"
 #include "Renderer/RendererUtils.h"
 #include "Renderer/RHI/MemoryTracker.h"
-#include "Renderer/RenderView.h"
+#include "Renderer/Scene/RenderView.h"
 #include "Renderer/Structures/RendererBone.h"
 #include "Renderer/Structures/RendererDoor.h"
 #include "Renderer/Structures/RendererDofMode.h"
@@ -80,8 +80,7 @@ namespace TEN::Renderer
 	using namespace TEN::Gui;
 	using namespace TEN::Hud;
 	using namespace TEN::Renderer::ConstantBuffers;
-	using namespace TEN::Renderer::Graphics;
-	using namespace TEN::Renderer::Graphics::Vertices;
+	using namespace TEN::Renderer::Structures;
 	using namespace TEN::Renderer::Structures;
 	using namespace TEN::Renderer::Utils;
 	using namespace TEN::Math::Library;
@@ -178,13 +177,15 @@ namespace TEN::Renderer
 		std::vector<RendererAnimatedTextureSet>				   _animatedTextureSets;
 		std::vector<RendererMesh*>							   _meshes;
 		RendererSprite										   _videoSprite; // Video texture is an unique case
-		std::vector<RendererSpriteToDraw>					   _nextSkySprites = {}; // Sky sprites passed to the next renderer.
-		RendererSpriteToDraw								   _nextSunSprite  = {}; // Classic sun sprite passed to the next renderer.
-		std::vector<Next::CloudLayerDraw>					   _nextCloudDraws = {}; // Cloud layer draws of the frame, replayed by the next renderer.
-		Next::SkyEffectFlags								   _nextSkyEffects = {}; // Atmospheric sky passes of the frame, replayed by the next renderer.
-		Next::GodRayDraw									   _nextGodRays    = {}; // God rays of the frame, replayed by the next renderer.
-		std::array<Next::HorizonLayerDraw, 2>				   _nextHorizonLayers = {}; // Horizon layers of the frame, replayed by the next renderer.
-		Next::DustStormDraw									   _nextDustStorm  = {}; // Dust storm of the frame, replayed by the next renderer.
+
+		// Sky draws of the frame, prepared by the frontend and replayed by the scene renderer.
+		std::vector<RendererSpriteToDraw>        _skySprites    = {};
+		RendererSpriteToDraw                     _sunSprite     = {}; // Classic sun sprite.
+		std::vector<Backend::CloudLayerDraw>     _cloudDraws    = {};
+		Backend::SkyEffectFlags                  _skyEffects    = {}; // Atmospheric sky passes.
+		Backend::GodRayDraw                      _godRayDraw    = {};
+		std::array<Backend::HorizonLayerDraw, 2> _horizonLayers = {};
+		Backend::DustStormDraw                   _dustStormDraw = {};
 
 		Matrix _playerWorldMatrix;
 
@@ -251,7 +252,7 @@ namespace TEN::Renderer
 		static constexpr auto GRAPHICS_STATS_HISTORY = 240;
 
 		std::array<float, GRAPHICS_STATS_HISTORY> _statsFrameTimes   = {};
-		std::array<float, GRAPHICS_STATS_HISTORY> _statsNextCpuTimes = {};
+		std::array<float, GRAPHICS_STATS_HISTORY> _statsBackendCpuTimes = {};
 		int                                       _statsHistoryIndex = 0;
 
 		void DrawDebugOverlay(const RenderView& view);
@@ -271,7 +272,7 @@ namespace TEN::Renderer
 		void DrawDebugWireframePage(const RenderView& view);
 		void DrawDebugSkyPage(const RenderView& view);
 		void DrawGraphicsStatsOverview();
-		void DrawGraphicsStatsNext();
+		void DrawGraphicsStatsBackend();
 		void DrawGraphicsStatsSky();
 		void DrawGraphicsStatsFrontend();
 
@@ -327,14 +328,14 @@ namespace TEN::Renderer
 		void InitializeGameBars();
 		void InitializeMenuBars(int y);
 		void DrawAllStrings();
-		void GetResolvedStrings(std::vector<Next::OverlayText>& texts);
+		void GetResolvedStrings(std::vector<Backend::OverlayText>& texts);
 		const RendererSprite* GetOpticOverlaySprite() const;
-		Next::UiFrame _nextUi = {}; // 2D layer recorded for the next renderer until the frame is presented.
-		void AddNextUiLayer(Next::OverlayLayerType type, int first);
-		void AddNextUiImage(const std::string& path, const Vector2& min, const Vector2& max, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color, BlendMode blendMode);
-		void BeginNextUiObject(const Matrix& viewProjection, const Vector4& color, const Vector4& ambientLight, unsigned int frame, float interpolatedFrame, bool isAlphaTested);
-		void AddNextUiObjectMesh(const RendererMesh* mesh, const Matrix& world, const Matrix* bones = nullptr, int boneCount = 0);
-		void AddNextUiSkinMesh(const RendererObject& moveableObject, const RendererMesh* skinMesh, const Matrix& world);
+		Backend::UiFrame _uiFrame = {}; // 2D layer recorded for the scene renderer until the frame is presented.
+		void AddUiLayer(Backend::OverlayLayerType type, int first);
+		void AddUiImage(const std::string& path, const Vector2& min, const Vector2& max, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color, BlendMode blendMode);
+		void BeginUiObject(const Matrix& viewProjection, const Vector4& color, const Vector4& ambientLight, unsigned int frame, float interpolatedFrame, bool isAlphaTested);
+		void AddUiObjectMesh(const RendererMesh* mesh, const Matrix& world, const Matrix* bones = nullptr, int boneCount = 0);
+		void AddUiSkinMesh(const RendererObject& moveableObject, const RendererMesh* skinMesh, const Matrix& world);
 		void PresentFrame();
 		void UpdateFrameRate();
 		void PaceFrame();
@@ -392,7 +393,7 @@ namespace TEN::Renderer
 		float GetLensFlareCloudOcclusion() const;
 		Vector3 GetLensFlareColor(const RendererLensFlare& lensFlare, float cloudOcclusion) const;
 
-		// Diagnostic getters — used by the ImGui debug overlay to display live CB values.
+		// Diagnostic getters - used by the ImGui debug overlay to display live CB values.
 		const ConstantBuffers::CVolumetricCloudBuffer& GetVolumetricCloudCB() const { return _stVolumetricCloud; }
 		int GetCloudFrameCounterA() const { return _cloudState.FrameCounter; }
 		int GetCloudFrameCounterB() const { return _cloudStateB.FrameCounter; }
@@ -405,7 +406,7 @@ namespace TEN::Renderer
 		void PrepareCloudLayers(RenderView& view);
 		bool PrepareCloudLayer(const VolumetricCloud::CloudRenderSettings& settings, VolumetricCloud::CloudRuntimeState& state, int layer, RenderView& view, bool isBleed);
 		void AdvanceCloudLayer(const VolumetricCloud::CloudRenderSettings& settings, VolumetricCloud::CloudRuntimeState& state);
-		void UpdateCloudOcclusion(int layer, VolumetricCloud::CloudRuntimeState& state, Next::CloudLayerDraw& draw);
+		void UpdateCloudOcclusion(int layer, VolumetricCloud::CloudRuntimeState& state, Backend::CloudLayerDraw& draw);
 		void PrepareHorizonLayers(RenderView& view);
 		void GetHorizonMeshHeightRange(int layer, const RenderView& view, float& yMin, float& yRange);
 		void PrepareCloudBleed(RenderView& view);
@@ -634,7 +635,7 @@ namespace TEN::Renderer
 		void PrepareSceneSprites(RenderView& view);
 		ConstantBuffers::CCameraMatrixBuffer GetCameraUniforms(RenderView& view);
 		void CollectHud(RenderView& view, SceneRenderMode renderMode);
-		void SubmitNextFrame(RenderView& view, const ConstantBuffers::CCameraMatrixBuffer& camera);
+		void SubmitFrame(RenderView& view, const ConstantBuffers::CCameraMatrixBuffer& camera);
 		void PrepareScene();
 		void ClearScene();
 		void DrawDisplayPickup(const DisplayPickup& pickup);
@@ -731,6 +732,6 @@ namespace TEN::Renderer
 	extern Renderer g_Renderer;
 }
 
-// Game code refers to the renderer and its structures without namespaces, as the legacy graphics headers allowed.
+// Game code refers to the renderer and its structures without namespaces.
 using namespace TEN::Renderer;
 using namespace TEN::Renderer::Structures;

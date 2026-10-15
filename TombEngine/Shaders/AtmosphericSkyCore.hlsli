@@ -1,6 +1,6 @@
-// Atmospheric sky dome, aurora and sun and moon disc functions and pixel shaders, shared by the legacy
-// AtmosphericSkyDome.hlsl and RHI/AtmosphericSky.hlsl. The including file declares the camera and sky uniforms,
-// the SceneAfterClouds texture with its SunMoonLinearSamp sampler, and SKY_PIXEL_INPUT, the pixel shader input.
+// Atmospheric sky dome, aurora and sun and moon disc functions and pixel shaders, included by AtmosphericSky.hlsl.
+// The including file declares the camera and sky uniforms, the SceneAfterClouds texture with its SunMoonLinearSamp
+// sampler, and SKY_PIXEL_INPUT, the pixel shader input.
 
 
 // ---------------------------------------------------------------------------
@@ -57,7 +57,7 @@ float GetRayleighMultiplier(float3 viewDir, float3 sunDir)
     return 1.0f + pow(1.0f - dist, 2.0f) * PI_SKY * 0.5f * AtmoRayleighIntensity;
 }
 
-// Mie-like glow around the sun — broad, smooth glow field.
+// Mie-like glow around the sun - broad, smooth glow field.
 // This is the atmospheric glow, NOT the sun disk itself.
 float GetMie(float3 viewDir, float3 sunDir)
 {
@@ -69,7 +69,7 @@ float GetMie(float3 viewDir, float3 sunDir)
     return disk * 2.0f * PI_SKY * AtmoMieIntensity;
 }
 
-// Sun glow field — additional bright glow near the sun direction.
+// Sun glow field - additional bright glow near the sun direction.
 // Broader and softer than the Mie term, adds atmosphere around sun.
 float GetSunGlow(float3 viewDir, float3 sunDir)
 {
@@ -100,7 +100,7 @@ float3 ComputeAtmosphericScattering(float3 viewDir, float3 sunDir)
     // Zenith density at the view direction's vertical angle.
     float zenith = ZenithDensity(viewY);
 
-    // Sun point distance multiplier — influences how much the sun's position
+    // Sun point distance multiplier - influences how much the sun's position
     // affects overall sky brightness. Based on sun elevation.
     float sunPointDistMult = saturate(max(sunY + AtmoMultiScatterPhase - AtmoZenithOffset, 0.0f));
 
@@ -128,7 +128,7 @@ float3 ComputeAtmosphericScattering(float3 viewDir, float3 sunDir)
 
     // Fade all sun-dependent effects when the sun is below the horizon.
     // Matches the sun sprite fade and god ray fade for visual consistency.
-    // sunY = 0 (horizon): 1.0 (full), sunY ≈ -0.125 (~-7°): ~zero.
+    // sunY = 0 (horizon): 1.0 (full), sunY ~ -0.125 (~-7 deg): ~zero.
     float sunBelowFade = saturate(1.0f + sunY * 8.0f);
     sunBelowFade = sunBelowFade * sunBelowFade * (3.0f - 2.0f * sunBelowFade);
 
@@ -169,7 +169,7 @@ float3 ComputeSunDiskAndCorona(float3 viewDir, float3 sunDir)
     float sunCosAngle = dot(viewDir, sunDir);
     float diskRadius  = 1.0f - AtmoSunDiskCosRadius;
 
-    // discVisibility: always 1 — clouds render after the sky dome and naturally
+    // discVisibility: always 1 - clouds render after the sky dome and naturally
     // occlude the sun disk by draw order. The old transmittance-based suppression
     // made the disk disappear before clouds actually covered it visually.
     float discVisibility = 1.0f;
@@ -182,7 +182,7 @@ float3 ComputeSunDiskAndCorona(float3 viewDir, float3 sunDir)
     float diskAngularRadius = sqrt(max(2.0f * diskRadius, 1e-5f));
     float diskHorizonFade   = smoothstep(-diskAngularRadius, diskAngularRadius, viewY);
 
-    // Sun disk — original edge width 0.15x restores intended visual size.
+    // Sun disk - original edge width 0.15x restores intended visual size.
     float sunEdgeWidth = diskRadius * 0.15f;
     float sunDisk = smoothstep(AtmoSunDiskCosRadius - sunEdgeWidth,
                                AtmoSunDiskCosRadius + sunEdgeWidth,
@@ -190,19 +190,19 @@ float3 ComputeSunDiskAndCorona(float3 viewDir, float3 sunDir)
     float3 result = sunDisk * AtmoSunColor * AtmoSunDiskIntensity
                   * sunDiskBelowFade * discVisibility * diskHorizonFade;
 
-    // Sun halo (aureole + wide diffuse bloom) — placed here instead of inside
+    // Sun halo (aureole + wide diffuse bloom) - placed here instead of inside
     // ComputeAtmosphericScattering so it is added AFTER the horizon-color lerp in
     // PSAtmosphericSky. Inside ComputeAtmosphericScattering it would be dimmed by the
     // lerp's horizonMask (which is ~0.175 right at the horizon), causing the glow to
     // visually shrink as the sun approaches the horizon.
     {
         float angDist   = max(1.0f - sunCosAngle, 0.0f) / max(diskRadius, 1e-6f);
-        // At sunset (sunY≈0) the outer spread is wider; above horizon it tightens.
+        // At sunset (sunY~0) the outer spread is wider; above horizon it tightens.
         float sunsetSpread = lerp(0.07f, 0.025f, saturate(sunY * 8.0f));
         float inner     = exp(-angDist * 0.50f);
         float outer     = exp(-angDist * sunsetSpread) * 0.25f;
 
-        // Fade out: full at horizon (sunY=0), gone by ~-4° below (sunY≈-0.067).
+        // Fade out: full at horizon (sunY=0), gone by ~-4 deg below (sunY~-0.067).
         float haloBelowFade = saturate(1.0f + sunY * 15.0f);
         haloBelowFade = haloBelowFade * haloBelowFade * (3.0f - 2.0f * haloBelowFade);
 
@@ -234,7 +234,7 @@ float3 ComputeNightSky(float3 viewDir)
 }
 
 // ---------------------------------------------------------------------------
-// Underwater sky — animated water surface viewed from below
+// Underwater sky - animated water surface viewed from below
 // ---------------------------------------------------------------------------
 // Renders a stylized underwater scene: above the water-line, animated caustic
 // waves with sun god-rays piercing through; below the water-line, the void
@@ -360,7 +360,7 @@ float4 ComputeUnderwaterSky(float3 viewDir, float3 sunDir)
                   * (sunSpot * 0.55f + sunSpotCore * 1.10f)
                   * AtmoUnderwaterCausticStrength * 0.55f * aboveFactor;
 
-    // Sparkle glints — also tinted by waterColor to preserve saturation.
+    // Sparkle glints - also tinted by waterColor to preserve saturation.
     float3 sparkleTint = lerp(float3(1.0f, 1.0f, 1.0f), waterColor, 0.45f);
     surfaceColor += sparkleTint * sparkle
                   * AtmoUnderwaterCausticStrength * 1.2f * aboveFactor;
@@ -380,7 +380,7 @@ float4 ComputeUnderwaterSky(float3 viewDir, float3 sunDir)
 }
 
 // ---------------------------------------------------------------------------
-// Moon surface noise — adapted from IQ's Shadertoy planet shader
+// Moon surface noise - adapted from IQ's Shadertoy planet shader
 // ---------------------------------------------------------------------------
 
 float MoonNoise3D(float3 p)
@@ -453,7 +453,7 @@ float MoonFBM(float3 p)
 }
 
 // ---------------------------------------------------------------------------
-// Moon rendering — sphere with FBM surface + smooth diffuse sun illumination
+// Moon rendering - sphere with FBM surface + smooth diffuse sun illumination
 // ---------------------------------------------------------------------------
 
 // Renders the moon as a 3D sphere with:
@@ -463,9 +463,9 @@ float MoonFBM(float3 p)
 //   - Limb brightening (inner atmosphere rim effect)
 //
 // Phase behaviour:
-//   sunDir ≈ -moonDir  →  full moon  (lit hemisphere faces viewer)
-//   sunDir ≈  moonDir  →  new moon   (dark hemisphere faces viewer)
-//   sunDir ⊥  moonDir  →  quarter moon (terminator through center)
+//   sunDir ~ -moonDir  ->  full moon  (lit hemisphere faces viewer)
+//   sunDir ~  moonDir  ->  new moon   (dark hemisphere faces viewer)
+//   sunDir perpendicular  moonDir  ->  quarter moon (terminator through center)
 float3 ComputeMoonDisk(float3 viewDir, float3 moonDir, float3 sunDir)
 {
     if (AtmoMoonEnabled < 0.5f)
@@ -504,7 +504,7 @@ float3 ComputeMoonDisk(float3 viewDir, float3 moonDir, float3 sunDir)
 
     // Surface normal in world space: outward from sphere, pointing toward viewer at center.
     // -moonDir is the "toward viewer" axis at the disk center.
-    // Result is already unit-length because px² + py² + pz² = 1.
+    // Result is already unit-length because px^2 + py^2 + pz^2 = 1.
     float3 sphereNorm = px * moonRight + py * moonUpVec - pz * moonDir;
 
     // Bump mapping: displace sphere normal components via FBM to simulate terrain.
@@ -534,7 +534,7 @@ float3 ComputeMoonDisk(float3 viewDir, float3 moonDir, float3 sunDir)
          * AtmoMoonVisibility * horizonFade;
 }
 
-// Moon glow — subtle halo illuminating the local sky around the moon.
+// Moon glow - subtle halo illuminating the local sky around the moon.
 float3 ComputeMoonGlow(float3 viewDir, float3 moonDir)
 {
     if (AtmoMoonEnabled < 0.5f || AtmoMoonGlowIntensity < 0.001f)
@@ -556,7 +556,7 @@ float3 ComputeMoonGlow(float3 viewDir, float3 moonDir)
 }
 
 // ---------------------------------------------------------------------------
-// Aurora Borealis — raymarched curtain aurora spanning the full sky dome
+// Aurora Borealis - raymarched curtain aurora spanning the full sky dome
 // ---------------------------------------------------------------------------
 // Uses triangle-wave
 // noise with raymarching through horizontal planes to create curtain-like
@@ -568,7 +568,7 @@ float3 ComputeMoonGlow(float3 viewDir, float3 moonDir)
 //   - Triangle-wave noise with rotational domain warping
 //   - Per-step color from existing aurora color presets
 //   - Smooth dithered sampling to reduce banding
-//   - Height-dependent color gradient (green bottom → purple/red top)
+//   - Height-dependent color gradient (green bottom -> purple/red top)
 // ---------------------------------------------------------------------------
 
 // --- Aurora rotation matrix helper ---
@@ -579,7 +579,7 @@ float2x2 AuroraRotMat(float a)
     return float2x2(c, -s, s, c);
 }
 
-// Constant rotation matrix (≈17° rotation for noise decorrelation).
+// Constant rotation matrix (~17 deg rotation for noise decorrelation).
 static const float2x2 AuroraM2 = float2x2(0.95534, -0.29552, 0.29552, 0.95534);
 
 // --- Triangle wave: cheap periodic function with flat tops/bottoms ---
@@ -678,7 +678,7 @@ float3 GetAuroraColor(float heightFrac, float preset)
     // Each preset defines three color stops: bottom, mid (50 %), top.
     // For presets 0-4 the mid is exactly lerp(bot, top, 0.5), so the final
     // output is identical to the old two-stop formula.  Preset 5 uses a
-    // distinct mid to produce the intended turquoise → blue → purple gradient.
+    // distinct mid to produce the intended turquoise -> blue -> purple gradient.
     float3 botA, midA, topA;
     if      (presetA == 0) { botA = float3(0.1,  0.8,  0.2 ); midA = float3(0.075, 0.6,  0.15 ); topA = float3(0.05, 0.4,  0.1 ); }
     else if (presetA == 1) { botA = float3(0.1,  0.7,  0.3 ); midA = float3(0.3,   0.4,  0.45 ); topA = float3(0.5,  0.1,  0.6 ); }
@@ -700,7 +700,7 @@ float3 GetAuroraColor(float heightFrac, float preset)
     float3 topColor    = lerp(topA, topB, presetFrac);
 
     // 3-stop piecewise gradient with the same power-bias as before.
-    // t < 0.5  → bottom → mid;  t >= 0.5 → mid → top.
+    // t < 0.5  -> bottom -> mid;  t >= 0.5 -> mid -> top.
     // Continuity is guaranteed: both sides evaluate to midColor at t == 0.5.
     float t = pow(saturate(heightFrac), 1.5);
     float3 lowerHalf = lerp(bottomColor, midColor, saturate(t * 2.0));
@@ -714,9 +714,9 @@ float3 GetAuroraColor(float heightFrac, float preset)
 // Raymarches through a series of horizontal planes above the viewer.
 // At each step, the triangle-wave noise field (AuroraTriNoise2D) is sampled
 // on the horizontal plane to produce curtain-like structures that span the
-// entire sky dome — similar in coverage to AltocumulusMid clouds.
+// entire sky dome - similar in coverage to AltocumulusMid clouds.
 //
-// screenPos: SV_POSITION.xy — used for per-pixel dithering to reduce banding.
+// screenPos: SV_POSITION.xy - used for per-pixel dithering to reduce banding.
 // ---------------------------------------------------------------------------
 float3 ComputeAurora(float3 viewDir, float2 screenPos)
 {
@@ -733,15 +733,15 @@ float3 ComputeAurora(float3 viewDir, float2 screenPos)
     // Ray origin: camera sits below the aurora plane.
     float3 ro = float3(0.0, 0.0, -6.7);
 
-    // Animation time: AuroraSpeed maps so that default (0.3) ≈ reference speed.
+    // Animation time: AuroraSpeed maps so that default (0.3) ~ reference speed.
     float animTime = AuroraTime * AuroraSpeed * 0.2;
 
     // AuroraHeight controls the base altitude of the aurora plane.
-    // Default 0.45 → baseH ≈ 0.9  (reference used 0.8).
+    // Default 0.45 -> baseH ~ 0.9  (reference used 0.8).
     float baseH = AuroraHeight * 2.0;
 
-    // Denominator factor for plane intersection — controls vertical curtain stretch.
-    // AuroraVerticalStretch default 3.0 → 3.0 × 0.667 ≈ 2.0 (matches reference).
+    // Denominator factor for plane intersection - controls vertical curtain stretch.
+    // AuroraVerticalStretch default 3.0 -> 3.0 x 0.667 ~ 2.0 (matches reference).
     // Higher = more stretched/elongated curtains, lower = shorter.
     float vStretch = AuroraVerticalStretch * 0.667;
 
@@ -749,8 +749,8 @@ float3 ComputeAurora(float3 viewDir, float2 screenPos)
     float4 col    = float4(0.0, 0.0, 0.0, 0.0);
     float4 avgCol = float4(0.0, 0.0, 0.0, 0.0);
 
-    // Number of raymarching steps — more steps = finer curtains.
-    // AuroraLayerCount (1–5) scales the step count: 1→25, 3→50, 5→75.
+    // Number of raymarching steps - more steps = finer curtains.
+    // AuroraLayerCount (1-5) scales the step count: 1->25, 3->50, 5->75.
     int numSteps = clamp((int)(AuroraLayerCount * 16.67), 25, 75);
 
     // AuroraSoftness [0,1]: 0 = crisp step transitions, 1 = very soft blending.
@@ -775,7 +775,7 @@ float3 ComputeAurora(float3 viewDir, float2 screenPos)
         // AuroraSpread scales coverage width; AuroraNoiseScale controls feature size.
         float2 p = bpos.zx * AuroraNoiseScale * AuroraSpread;
 
-        // Domain warp — AuroraDistortionStr adds swirling ripple motion to curtains.
+        // Domain warp - AuroraDistortionStr adds swirling ripple motion to curtains.
         p += float2(
             sin(p.y * 3.0 + animTime * 0.7),
             cos(p.x * 2.0 + animTime * 0.5)
@@ -794,7 +794,7 @@ float3 ComputeAurora(float3 viewDir, float2 screenPos)
         float4 col2 = float4(0.0, 0.0, 0.0, rzt);
         col2.rgb = GetAuroraColor(heightFrac, AuroraColorPreset) * rzt * AuroraColorIntensity;
 
-        // Running average — blendWeight controls crispness vs. softness.
+        // Running average - blendWeight controls crispness vs. softness.
         avgCol = lerp(avgCol, col2, blendWeight);
 
         // Accumulate with exponential falloff and smooth fade-in.
@@ -803,9 +803,9 @@ float3 ComputeAurora(float3 viewDir, float2 screenPos)
 
     // Horizon fade: aurora fades softly toward the horizon (similar to alto cloud HorizonFade).
     // AuroraHorizonFade [0,2] controls the width of the fade band above the horizon.
-    //   0   → no fade (sharp cutoff at horizon)
-    //   1.0 → default: full visibility reached ~9° above horizon, gone at horizon
-    //   2.0 → very gradual: full visibility reached ~17° above horizon
+    //   0   -> no fade (sharp cutoff at horizon)
+    //   1.0 -> default: full visibility reached ~9 deg above horizon, gone at horizon
+    //   2.0 -> very gradual: full visibility reached ~17 deg above horizon
     float horizonT    = saturate(rd.y / max(AuroraHorizonFade * 0.15, 0.001));
     float horizonMask = horizonT * horizonT * (3.0 - 2.0 * horizonT); // smoothstep
     col *= horizonMask;
@@ -832,7 +832,7 @@ float3 JodieReinhardTonemap(float3 c)
 }
 
 // ---------------------------------------------------------------------------
-// Pixel shader — atmospheric sky dome
+// Pixel shader - atmospheric sky dome
 // ---------------------------------------------------------------------------
 
 float4 PSAtmosphericSky(SKY_PIXEL_INPUT input) : SV_TARGET
@@ -927,11 +927,11 @@ float4 PSAurora(SKY_PIXEL_INPUT input) : SV_TARGET
 }
 
 // ---------------------------------------------------------------------------
-// Sun/Moon disc pass — separate additive draw AFTER volumetric cloud compositing
+// Sun/Moon disc pass - separate additive draw AFTER volumetric cloud compositing
 // ---------------------------------------------------------------------------
 // The cloud compositor writes cloud coverage in the alpha channel of _renderTarget.
 // This pass reads that alpha to mask the sun and moon discs so clouds naturally
-// occlude them — no blend-mode hacks needed.
+// occlude them - no blend-mode hacks needed.
 //
 
 float4 PSSunMoonDisc(SKY_PIXEL_INPUT input) : SV_TARGET
@@ -952,15 +952,15 @@ float4 PSSunMoonDisc(SKY_PIXEL_INPUT input) : SV_TARGET
 
     // --- Moon visibility ---
     // The moon shines through thin cloud wisps but is hidden by thick opaque cloud bodies.
-    // Physics: thin ice/water clouds scatter moonlight forward → soft glow around the disc.
-    // Dense opaque clouds absorb/scatter it fully → moon disappears.
+    // Physics: thin ice/water clouds scatter moonlight forward -> soft glow around the disc.
+    // Dense opaque clouds absorb/scatter it fully -> moon disappears.
     //
     // Rendering approach:
     //   1. Blur the coverage sample (6px radius, 5-tap) to avoid pixel-level hard edges
     //      at cloud/sky boundaries (the AA-gradient look in the reference).
-    //   2. Wide smoothstep range (0.05 → 0.95) — smooth transition all the way from
+    //   2. Wide smoothstep range (0.05 -> 0.95) - smooth transition all the way from
     //      thin cloud edges to fully opaque interiors.
-    //   3. No visibility floor — thick dark cloud (coverage ≈ 1.0) fully hides the moon.
+    //   3. No visibility floor - thick dark cloud (coverage ~ 1.0) fully hides the moon.
     float2 ps     = AtmoInvViewSize * 6.0f;   // 6-pixel blur radius
     float moonCov = cloudCoverage;
     moonCov += SceneAfterClouds.Sample(SunMoonLinearSamp, input.UV + float2( ps.x,  0.0f)).a;
@@ -982,7 +982,7 @@ float4 PSSunMoonDisc(SKY_PIXEL_INPUT input) : SV_TARGET
     //   - Sun disc may still be partly visible above the water-line (the bright
     //     spot is replaced by the in-water sun bloom + god-ray fan from
     //     ComputeUnderwaterSky).
-    //   - Moon disc is fully hidden — only its diffuse halo/glow (added in the
+    //   - Moon disc is fully hidden - only its diffuse halo/glow (added in the
     //     sky pass via ComputeMoonGlow) shines through the water column.
     if (AtmoUnderwaterSkyEnabled > 0.5f)
     {

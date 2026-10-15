@@ -2,7 +2,7 @@
 
 namespace TEN::Renderer::Structures
 {
-	// Image file of the 2D layer: the next renderer loads it from its path. Width and height are 0 when the file is missing.
+	// Image file of the 2D layer: the scene renderer loads it from its path. Width and height are 0 when the file is missing.
 	struct RendererImage
 	{
 		std::string Path   = {};

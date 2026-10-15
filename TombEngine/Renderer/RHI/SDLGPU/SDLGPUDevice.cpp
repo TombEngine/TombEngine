@@ -1131,7 +1131,7 @@ namespace TEN::Renderer::RHI::SDLGPU
     private:
         SDL_GPUDevice* _device  = nullptr;
         SDL_Window*    _window  = nullptr;
-        Backend        _backend = Backend::None;
+        GraphicsApi        _backend = GraphicsApi::None;
         ShaderFormat   _shaderFormat = ShaderFormat::None;
         PresentMode    _presentMode  = PresentMode::Vsync;
 
@@ -1142,7 +1142,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         std::atomic<bool> _isGpuTimingEnabled = false;
 
     public:
-        SDLGPUDevice(SDL_GPUDevice* device, SDL_Window* window, Backend backend, ShaderFormat shaderFormat) :
+        SDLGPUDevice(SDL_GPUDevice* device, SDL_Window* window, GraphicsApi backend, ShaderFormat shaderFormat) :
             _device(device),
             _window(window),
             _backend(backend),
@@ -1166,7 +1166,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             SDL_DestroyGPUDevice(_device);
         }
 
-        Backend GetBackend() const override
+        GraphicsApi GetBackend() const override
         {
             return _backend;
         }
@@ -1599,7 +1599,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             return nullptr;
         }
 
-        auto backend = isDirect3D12 ? Backend::Direct3D12 : Backend::Vulkan;
+        auto backend = isDirect3D12 ? GraphicsApi::Direct3D12 : GraphicsApi::Vulkan;
         auto result = std::make_unique<SDLGPUDevice>(device, window, backend, shaderFormat);
         TENLog("SDL GPU device created: " + result->GetDeviceName(), LogLevel::Info);
         return result;

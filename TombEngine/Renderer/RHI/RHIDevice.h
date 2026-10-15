@@ -142,7 +142,7 @@ namespace TEN::Renderer::RHI
     public:
         virtual ~IDevice() = default;
 
-        virtual Backend      GetBackend() const = 0;
+        virtual GraphicsApi      GetBackend() const = 0;
         virtual ShaderFormat GetShaderFormat() const = 0;
         virtual std::string  GetDeviceName() const = 0;
 
@@ -183,5 +183,5 @@ namespace TEN::Renderer::RHI
     };
 
     // With preferLowPower, hybrid graphics systems use the integrated GPU instead of the discrete one.
-    std::unique_ptr<IDevice> CreateDevice(Backend preferredBackend, SDL_Window* window, bool debugMode, bool preferLowPower = false);
+    std::unique_ptr<IDevice> CreateDevice(GraphicsApi preferredBackend, SDL_Window* window, bool debugMode, bool preferLowPower = false);
 }

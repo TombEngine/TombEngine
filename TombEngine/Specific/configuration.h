@@ -3,7 +3,7 @@
 #include "Math/Math.h"
 #include "Specific/Input/Input.h"
 #include "Renderer/RendererEnums.h"
-#include "Renderer/SkyQuality.h"
+#include "Renderer/Sky/SkyQuality.h"
 #include "Sound/sound.h"
 
 using namespace TEN::Input;

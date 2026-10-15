@@ -1,6 +1,6 @@
-// Dust storm functions and pixel shader shared by the legacy DustStorm.hlsl and RHI/DustStorm.hlsl. The including file
-// declares the dust storm uniforms, the depth and outdoor mask textures, VSOutput, DUST_STORM_SAMPLER(texture), the
-// sampler of a texture, and DUST_STORM_OUTDOOR_CHANNEL, the mask channel.
+// Dust storm functions and pixel shader, included by DustStorm.hlsl. The including file declares the dust storm
+// uniforms, the depth and outdoor mask textures, VSOutput, DUST_STORM_SAMPLER(texture), the sampler of a texture,
+// and DUST_STORM_OUTDOOR_CHANNEL, the mask channel.
 
 
 // ---------------------------------------------------------------------------

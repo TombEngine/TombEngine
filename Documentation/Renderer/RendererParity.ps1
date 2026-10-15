@@ -1,6 +1,6 @@
 # Visual regression test of the renderer against reference images saved from the retired legacy renderer.
 # Runs the benchmark scenario (Benchmark.lua) on every level and backend, compares the screenshot the renderer saves at a
-# fixed game frame (Logs/Compare_Next.png) with the level reference, and checks the logs for Vulkan validation errors
+# fixed game frame (Logs/Benchmark.png) with the level reference, and checks the logs for Vulkan validation errors
 # and device loss. Exits with 1 when a run fails, otherwise 0.
 #
 # Usage, from any directory:
@@ -85,7 +85,7 @@ foreach ($level in $Levels)
 {
     foreach ($backend in $Backends)
     {
-        Remove-Item (Join-Path $logDir "Compare_*.png") -ErrorAction SilentlyContinue
+        Remove-Item (Join-Path $logDir "Benchmark.png") -ErrorAction SilentlyContinue
         $name = "$level`_$backend"
         $stdout = Join-Path $OutputDir "$name.out.txt"
         $stderr = Join-Path $OutputDir "$name.err.txt"
@@ -108,7 +108,7 @@ foreach ($level in $Levels)
         $deviceLosses = ([regex]::Matches($log, "DEVICE_LOST")).Count
 
         $referenceShot = Join-Path $ReferenceDir "$level.png"
-        $shot = Join-Path $logDir "Compare_Next.png"
+        $shot = Join-Path $logDir "Benchmark.png"
         if (-not (Test-Path $referenceShot) -or -not (Test-Path $shot))
         {
             "$name : no screenshot or reference, validation errors $validationErrors, device losses $deviceLosses"

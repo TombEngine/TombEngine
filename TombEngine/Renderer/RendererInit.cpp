@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 
-#include "Renderer/ImGuiIntegration.h"
+#include "Renderer/UI/ImGuiIntegration.h"
 #include "Renderer/RendererUtils.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/configuration.h"
@@ -84,7 +84,7 @@ namespace TEN::Renderer
 		_loadingBarBorder = LoadImage(GetAssetPath("Textures/LoadingBarBorder.png"));
 		_loadingBarInner = LoadImage(GetAssetPath("Textures/LoadingBarInner.png"));
 
-		// Colored quads use the white texture of the next renderer.
+		// Colored quads use the white texture of the scene renderer.
 		_whiteSprite = RendererSprite{ 0, 1, 1, { Vector2(0.0f, 0.0f), Vector2(1.0f, 0.0f), Vector2(1.0f, 1.0f), Vector2(0.0f, 1.0f) } };
 	}
 

@@ -17,7 +17,7 @@ namespace TEN::Renderer::RHI
     constexpr auto MAX_SAMPLER_SLOTS      = 16;
     constexpr auto MAX_STORAGE_SLOTS      = 8;
 
-    enum class Backend
+    enum class GraphicsApi
     {
         None,
         DirectX11,

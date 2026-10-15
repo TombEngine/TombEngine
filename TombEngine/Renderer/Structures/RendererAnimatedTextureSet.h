@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include "RendererAnimatedTexture.h"
+#include "Renderer/Structures/RendererAnimatedTexture.h"
 
 namespace TEN::Renderer::Structures
 {

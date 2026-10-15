@@ -3,7 +3,7 @@
 
 #include <filesystem>
 
-#include "Renderer/Next/TextureLoader.h"
+#include "Renderer/Backend/TextureLoader.h"
 #include "Specific/EngineMain.h"
 
 namespace TEN::Renderer 
@@ -14,7 +14,7 @@ namespace TEN::Renderer
 		InitializeScreen(width, height, true, resyncWindow);
 	}
 
-	// Image files are decoded by the next renderer; only their size is read here, for layouts.
+	// Image files are decoded by the scene renderer; only their size is read here, for layouts.
 	RendererImage Renderer::LoadImage(const std::string& path)
 	{
 		auto image = RendererImage{};
@@ -29,8 +29,8 @@ namespace TEN::Renderer
 
 		auto file = std::ifstream(path, std::ios::binary);
 		auto data = std::vector<unsigned char>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-		auto info = Next::ImageInfo{};
-		if (!Next::ReadImageInfo(data, info))
+		auto info = Backend::ImageInfo{};
+		if (!Backend::ReadImageInfo(data, info))
 		{
 			TENLog("Unsupported image file: " + path, LogLevel::Warning);
 			return image;

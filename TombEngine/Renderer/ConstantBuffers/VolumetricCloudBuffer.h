@@ -16,7 +16,7 @@ namespace TEN::Renderer::ConstantBuffers
 		float CloudThickness;
 		float Coverage;
 		//--
-		// Row 1 (generic cloud type only — not reached for AltocumulusMid)
+		// Row 1 (generic cloud type only - not reached for AltocumulusMid)
 		float CloudDensity;
 		float ShapeScale;
 		float DetailScale;
@@ -69,62 +69,62 @@ namespace TEN::Renderer::ConstantBuffers
 		int   CloudType;      // Cloud category enum: 0=None, 1=AltocumulusMid, 2=Aurora
 		float CloudCompositeScale; // Composite alpha multiplier: 1.0 = normal, <1.0 = bleed-through pass.
 		//--
-		// Row 11 — Altocumulus-specific appearance parameters (only used when CloudType == 1)
+		// Row 11 - Altocumulus-specific appearance parameters (only used when CloudType == 1)
 		float AltoBillowStrength;  // [0,1]      blend toward billow (abs-value) FBM noise
 		float AltoCovSoftWidth;    // [0,0.25]   self-referential coverage soft-threshold width
 		float AltoAbsorption;      // [0.0,5.0]  absorption coefficient for Altocumulus
 		float AltoCloudSize;       // [0.2,5.0]  feature scale multiplier
 		//--
-		// Row 12 — Altocumulus extended parameters
+		// Row 12 - Altocumulus extended parameters
 		float AltoCloudAmount;     // [0.0,1.0]  coverage/fill control
 		float AltoCloudBrightness; // [0.1,4.0]  brightness multiplier
 		float AltoFbmLacunarity;   // [1.5,4.0]  FBM frequency ratio per octave
 		float AltoFbmGain;         // [0.1,0.9]  FBM amplitude scaling per octave
 		//--
-		// Row 13 — Altocumulus cloud color
-		Vector3 AltoCloudColor;    // [0,1] per channel — RGB tint for cloud top/highlights
+		// Row 13 - Altocumulus cloud color
+		Vector3 AltoCloudColor;    // [0,1] per channel - RGB tint for cloud top/highlights
 		float   AltoThickness;     // [50,15000] cloud slab thickness for Altocumulus
 		//--
-		// Row 14 — Altocumulus dark / shadow color + underside softness
-		Vector3 AltoCloudColorDark;// [0,1] per channel — RGB tint for cloud base/shadow
+		// Row 14 - Altocumulus dark / shadow color + underside softness
+		Vector3 AltoCloudColorDark;// [0,1] per channel - RGB tint for cloud base/shadow
 		float   AltoBottomSoftness;// [0,1] 0=flat slab bottom, 1=organic irregular underside
 		//--
-		// Row 15 — Altocumulus sky-height redistribution
+		// Row 15 - Altocumulus sky-height redistribution
 		// 0 = uniform distribution. (+) = more/larger toward horizon. (-) = more/larger toward zenith.
 		float   AltoZenithBias;   // [-1,1]  cloud distribution bias
 		float   AltoHorizonWidth; // [0,1]  0=wide (to near horizon), 1=zenith-only cap
 		float   AltoBleedDepth;  // [0,100] bleed clouds depth (0.01*val*CloudBottomHeight)
 		float   DissolvePhase;   // [0,1] Transform dissolve progress. 0 = off, 1 = fully dissolved.
 		//--
-		// Row 16 — Altocumulus sky-height modulation (continued)
+		// Row 16 - Altocumulus sky-height modulation (continued)
 		float   AltoHeightBlendPower;   // [0.25,4]  exponent on the skyHeight ramp
 		float   SunElevation;           // sin(pitch): +1 = zenith, 0 = horizon, -1 = nadir.
 		float   CloudNightAmbient;      // [0,0.5] minimum ambient when sun is below horizon.
 		float   CloudTwilightAmbient;   // [0,1] ambient contribution during twilight.
 		//--
-		// Row 17 — Lightning enable + frequencies
+		// Row 17 - Lightning enable + frequencies
 		int     LightningEnabled;      // 0 or 1
 		float   LightningStrikeFreq;   // [0,1]
 		float   LightningInternalFreq; // [0,1]
 		float   LightningPad;
 		//--
-		// Row 18 — Lightning speed + glow
+		// Row 18 - Lightning speed + glow
 		float   LightningSpeed;        // [0.5,10]
 		float   LightningInternalSpeed;// [1,20]
 		float   LightningGlowIntensity;// [0.5,10]
 		float   LightningFlashIntensity;// [0.5,15]
 		//--
-		// Row 19 — Lightning bolt color + ambient
+		// Row 19 - Lightning bolt color + ambient
 		Vector3 LightningBoltColor;    // [0,1] per channel
 		float   LightningAmbientContrib;// [0,1]
 		//--
-		// Row 20 — Sun screen-space UV + bolt scale params.
+		// Row 20 - Sun screen-space UV + bolt scale params.
 		// Set to (-1,-1) when no global lens flare is active or sun is behind camera.
 		Vector2 SunScreenUV;               // projected sun UV in [0,1] x [0,1]
 		float   LightningBoltLengthScale;    // [0.1,5] bolt length multiplier
 		float   LightningBoltThicknessScale; // [0.1,5] bolt radius multiplier
 		//--
-		// Row 21 — Atmospheric sun-lighting multipliers (from AtmosphericSkySettings).
+		// Row 21 - Atmospheric sun-lighting multipliers (from AtmosphericSkySettings).
 		float CloudSunLightIntensity;       // [0,5]   direct sun brightness multiplier.
 		float CloudAmbientIntensity;        // [0,2]   ambient light multiplier.
 		float CloudSilverliningStrength;    // [0,3]   silverlining / forward-scatter boost.
@@ -136,53 +136,53 @@ namespace TEN::Renderer::ConstantBuffers
 		float CloudIsBleedPass;             // 0 = normal composite, 1 = bleed-through-mountains pass (un-fades horizon).
 		float DriftOutProgress;             // [0,1] wind-directional dissolution progress (0 = normal, 1 = fully dissolved).
 		//--
-		// Row 23 — Compositor hybrid-blend thresholds
+		// Row 23 - Compositor hybrid-blend thresholds
 		float BlendThresholdHigh;           // [0,1]     luminance above which screen blend starts (bright side).
-		float BlendThresholdHighWidth;      // [0.005,0.4] half-width of bright→alpha smoothstep.
+		float BlendThresholdHighWidth;      // [0.005,0.4] half-width of bright->alpha smoothstep.
 		float BlendThresholdLow;            // [0,1]     luminance below which screen blend starts (dark side).
 		float CloudMoonLightFactor;         // [0,1]     moonlight direct illumination factor (0 = day/no moon, >0 = moon contributing).
 		//--
-		// Row 24 — Sunset underside lighting
-		Vector3 SunsetUndersideColor;       // Pre-computed sunset color (yellow→orange→red→magenta gradient).
+		// Row 24 - Sunset underside lighting
+		Vector3 SunsetUndersideColor;       // Pre-computed sunset color (yellow->orange->red->magenta gradient).
 		float   SunsetUndersideIntensity;   // [0,1] overall sunset underside activation (0 = off, 1 = full).
 		//--
-		// Row 25 — Sunset underside parameters
+		// Row 25 - Sunset underside parameters
 		float   SunsetUndersideSpread;      // [0.5,4] angular spread of sunset glow around sun direction.
 		float   SunsetUndersideHeightFade;  // [0.5,4] exponent controlling how quickly glow fades from base to top.
 		float   SunsetPad0;
 		float   FormationPhase;             // [0,1] cloud formation phase (reverse dissolve). 0 = suppressed, 1 = fully formed.
 		//--
-		// Row 26 — Morph source density params (only used during CloudMorph transitions)
+		// Row 26 - Morph source density params (only used during CloudMorph transitions)
 		float MorphSrcCloudSize;     // Source preset AltoCloudSize
 		float MorphSrcCloudAmount;   // Source preset AltoCloudAmount
 		float MorphSrcBillowStr;     // Source preset AltoBillowStrength
 		float MorphSrcCovSoftWidth;  // Source preset AltoCovSoftWidth
 		//--
-		// Row 27 — Morph source density params continued
+		// Row 27 - Morph source density params continued
 		float MorphSrcFbmLac;        // Source preset AltoFbmLacunarity
 		float MorphSrcFbmGain;       // Source preset AltoFbmGain
 		float MorphSrcBottomSoft;    // Source preset AltoBottomSoftness
 		float MorphSrcZenithBias;    // Source preset AltoZenithBias
 		//--
-		// Row 28 — Morph source density params continued + morph activation flag
+		// Row 28 - Morph source density params continued + morph activation flag
 		float MorphSrcEvolutionSpd;  // Source preset EvolutionSpeed
 		float MorphSrcHorizonWidth;  // Source preset AltoHorizonWidth
 		float MorphActive;           // 0 = normal rendering, 1 = dual-density morph active
 		float AltoFbmScale;          // [0.5,4]   FBM input pre-scale (2.032=reference)
 		//--
-		// Row 29 — Edge quality tuning
+		// Row 29 - Edge quality tuning
 		float UpsampleSpatialSigma2;  // [0.5,8]  2*sigma^2 for bilateral upsampler spatial kernel
 		float TemporalAlphaLow;       // [0,0.2]  below this alpha: temporal reuse OK (clear sky)
 		float TemporalAlphaHigh;      // [0.8,1]  above this alpha: temporal reuse OK (cloud core)
 		float AltoJitterAbsCap;       // [0.1,10] absorption cap used only for jitter amplitude
 		//--
-		// Row 30 — Curl warp amplitude + temporal blend + pre-integrated offsets
+		// Row 30 - Curl warp amplitude + temporal blend + pre-integrated offsets
 		float CurlWarpStrength;       // [0,2] curl domain-warp amplitude multiplier (0 = no warp)
 		float TemporalBlendFactor;    // [0.02,1] EMA blend factor for temporal accumulation (lower = smoother)
 		float EvoAccumOffset;        // Pre-integrated evolution offset (EvolutionSpeed*dt*0.05 accumulated). Used in evoOfs instead of EvolutionSpd*(CloudTime*0.05+WindSpeed*0.15) to prevent backwards drift on EvolutionSpeed transitions.
 		float FlowAccumOffset;       // Pre-integrated flow time (EvolutionSpeed*dt*0.16 accumulated). Used in flowTime instead of CloudTime*EvolutionSpd*0.16 to prevent curl-warp and windBias reversing when EvolutionSpeed transitions to a lower value.
 		//--
-		// Row 31 — Pre-integrated FbmScale-aware advection offsets.
+		// Row 31 - Pre-integrated FbmScale-aware advection offsets.
 		// Used by Alto FBM p_advect to prevent time-lapse during AltoFbmScale transitions.
 		// AltoFbmScale acts as a multiplier on (windOfs+evoOfs) inside the FBM input space;
 		// since the offsets are already accumulated over time, applying the *current* FbmScale
@@ -194,7 +194,7 @@ namespace TEN::Renderer::ConstantBuffers
 		float QualityLevel;          // 0 = Low, 1 = Medium, 2 = High (mirrors AtmosphericSkyQuality enum).
 		float _PadRow31_1;
 		//--
-		// Rows 32-35 — Previous frame ViewProjection matrix for temporal reprojection.
+		// Rows 32-35 - Previous frame ViewProjection matrix for temporal reprojection.
 		// Clouds are at infinite distance so only camera rotation matters.
 		// Used to reproject history buffer UVs when the camera has rotated.
 		Matrix PrevViewProjection;

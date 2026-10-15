@@ -1,5 +1,5 @@
-// God ray functions and pixel shaders shared by the legacy GodRay.hlsl and RHI/GodRay.hlsl. The including file
-// declares the god ray uniforms, the textures, VSOutput and GOD_RAY_SAMPLER(texture), the sampler of a texture.
+// God ray functions and pixel shaders, included by GodRay.hlsl. The including file declares the god ray
+// uniforms, the textures, VSOutput and GOD_RAY_SAMPLER(texture), the sampler of a texture.
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -12,7 +12,7 @@ float GodRayHash(float2 p)
 }
 
 // ---------------------------------------------------------------------------
-// PSGodRay — radial light-shaft accumulation (half-res pass)
+// PSGodRay - radial light-shaft accumulation (half-res pass)
 // ---------------------------------------------------------------------------
 
 float4 PSGodRay(VSOutput input) : SV_TARGET
@@ -33,7 +33,7 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
     float discScale = GodRaySoftness * 8.0f;
 
     // =========================================================================
-    // UNDERWATER PATH — distinct from normal god rays.
+    // UNDERWATER PATH - distinct from normal god rays.
     // The cloud RT is empty when UnderwaterSky is active. Instead, sample the
     // main scene RT (t3) which contains the rendered underwater sky. Only the
     // medium-bright glow rim (not the solid white core) acts as the shaft source
@@ -68,7 +68,7 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
             float  sceneLuma = dot(saturate(sceneRgb), float3(0.299f, 0.587f, 0.114f));
 
             // Natural luminance source: scene brightness drives ray emission.
-            // Sharpness controls contrast — higher values suppress dim pixels more.
+            // Sharpness controls contrast - higher values suppress dim pixels more.
             float source = pow(sceneLuma, max(0.5f, GodRayUnderwaterSharpness));
             source = saturate(source * GodRayUnderwaterBrightness);
 
@@ -83,7 +83,7 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
     }
 
     // =========================================================================
-    // NORMAL PATH — unchanged from before underwater sky was added.
+    // NORMAL PATH - unchanged from before underwater sky was added.
     // Uses cloud RT occlusion mask + virtual sun disc.
     // =========================================================================
 
@@ -139,7 +139,7 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
 }
 
 // ---------------------------------------------------------------------------
-// PSGodRayComposite — blend half-res god rays onto the full-res scene
+// PSGodRayComposite - blend half-res god rays onto the full-res scene
 // ---------------------------------------------------------------------------
 // Uses additive BlendMode on the C++ side (One + One).
 // t0 is rebound to the half-res god ray render target before this pass.

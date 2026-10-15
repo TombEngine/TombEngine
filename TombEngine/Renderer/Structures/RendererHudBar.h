@@ -5,7 +5,7 @@ namespace TEN::Renderer::Structures
 {
 	using namespace TEN::Math::Library;
 
-	// HUD bar layout in display space; the next renderer builds its border and inner quads.
+	// HUD bar layout in display space; the scene renderer builds its border and inner quads.
 	struct RendererHudBar
 	{
 		static constexpr auto SIZE_DEFAULT = Vector2(150.0f, 10.0f);

@@ -446,7 +446,7 @@ namespace TEN::Video
 
 	void VideoHandler::RenderExclusive()
 	{
-		// Registered as in background mode, so the next renderer receives the decoded frame.
+		// Registered as in background mode, so the scene renderer receives the decoded frame.
 		g_Renderer.UpdateVideoSprite(_size.x, _size.y);
 		g_Renderer.RenderVideoFrame((float)_size.x / (float)_size.y);
 	}

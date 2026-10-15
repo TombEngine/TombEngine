@@ -1,0 +1,857 @@
+#include "framework.h"
+#include "Renderer/Renderer.h"
+
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Game/Animation/Animation.h"
+#include "Game/camera.h"
+#include "Game/collision/sphere.h"
+#include "Game/control/control.h"
+#include "Game/itemdata/creature_info.h"
+#include "Game/items.h"
+#include "Game/Lara/lara.h"
+#include "Game/Setup.h"
+#include "Objects/TR3/Vehicles/big_gun.h"
+#include "Objects/TR3/Vehicles/big_gun_info.h"
+#include "Objects/TR3/Vehicles/quad_bike.h"
+#include "Objects/TR3/Vehicles/quad_bike_info.h"
+#include "Objects/TR3/Vehicles/rubber_boat.h"
+#include "Objects/TR3/Vehicles/rubber_boat_info.h"
+#include "Objects/TR3/Vehicles/upv.h"
+#include "Objects/TR3/Vehicles/upv_info.h"
+#include "Objects/TR4/Vehicles/jeep.h"
+#include "Objects/TR4/Vehicles/jeep_info.h"
+#include "Objects/TR4/Vehicles/motorbike.h"
+#include "Objects/TR4/Vehicles/motorbike_info.h"
+#include "Math/Math.h"
+#include "Renderer/Backend/SceneRenderer.h"
+#include "Renderer/Scene/RenderView.h"
+#include "Specific/clock.h"
+#include "Specific/configuration.h"
+#include "Specific/EngineMain.h"
+#include "Specific/level.h"
+#include "Specific/trutils.h"
+
+using namespace TEN::Animation;
+using namespace TEN::Collision::Sphere;
+using namespace TEN::Math;
+
+extern GameConfiguration g_Configuration;
+extern ScriptInterfaceFlowHandler *g_GameFlow;
+
+namespace TEN::Renderer
+{
+
+	void Renderer::UpdateAnimation(RendererItem* rendererItem, RendererObject& rendererObject, const FrameData& frame, int mask, bool useObjectWorldRotation,
+								   const MoveableAnimBlendData* blend, const RootMotionData* rootMotionOffset)
+	{
+		static auto boneIndices = std::vector<int>{};
+		boneIndices.clear();
+
+		auto bones = std::array<RendererBone*, BONE_COUNT_MAX>{};
+		int nextBoneID = 0;
+
+		// Push skeleton.
+		bones[nextBoneID++] = rendererObject.Skeleton;
+
+		auto* transforms = (rendererItem == nullptr) ? rendererObject.AnimationTransforms.data() : &rendererItem->AnimationTransforms[0];
+
+		// Compute blend alpha.
+		float blendAlpha = 0.0f;
+		if (blend != nullptr)
+		{
+			blendAlpha = blend->GetAlpha();
+		}
+
+		// Run through bone hierarchy.
+		while (nextBoneID != 0)
+		{
+			// Pop last bone in stack.
+			auto* bone = bones[--nextBoneID];
+
+			// Bone is nullptr; return early. NOTE: Avoids inventory crash.
+			if (bone == nullptr)
+				return;
+			
+			// Bad data; return early.
+			if (frame.BoneOrientations.size() <= bone->Index)
+			{
+				TENLog(
+					"Attempted to animate object with ID " + GetObjectName((GAME_OBJECT_ID)rendererObject.Id) +
+					" using incorrect animation data. Bad animations set for slot?",
+					LogLevel::Error);
+
+				return;
+			}
+
+			// Animate bone.
+			bool animateBone = (mask >> bone->Index) & 1;
+			if (animateBone)
+			{
+				auto rootPos = frame.RootPosition;
+				auto rotMatrix = Matrix::CreateFromQuaternion(frame.BoneOrientations[bone->Index]);
+
+				// TODO: Address root motion rotation blending if any issues come up later. -- Sezz 2026.04.30
+
+				// Apply blending.
+				if (blend != nullptr)
+				{
+					auto offset = (rootMotionOffset != nullptr) ? rootMotionOffset->Translation : Vector3::Zero;
+					rootPos = Vector3::Lerp(blend->RootPosition - offset, rootPos, blendAlpha);
+
+					auto quat = Quaternion::Slerp(blend->BoneOrientations[bone->Index], Quaternion::CreateFromRotationMatrix(rotMatrix), blendAlpha);
+					rotMatrix = Matrix::CreateFromQuaternion(quat);
+				}
+
+				// Store bone orientation on current frame.
+				if (rendererItem != nullptr)
+					rendererItem->BoneOrientations[bone->Index] = Quaternion::CreateFromRotationMatrix(rotMatrix);
+
+				auto translationMatrix = (bone == rendererObject.Skeleton) ? Matrix::CreateTranslation(rootPos) : Matrix::Identity;
+				auto extraRotMatrix = Matrix::CreateFromQuaternion(bone->ExtraRotation);
+				
+				if (useObjectWorldRotation)
+				{
+					auto scale = Vector3::Zero;
+					auto invQuat = Quaternion::Identity;
+					auto translation = Vector3::Zero;
+					transforms[bone->Parent->Index].Invert().Decompose(scale, invQuat, translation);
+
+					rotMatrix = (rotMatrix * extraRotMatrix) * Matrix::CreateFromQuaternion(invQuat);
+				}
+				else
+				{
+					rotMatrix = extraRotMatrix * rotMatrix;
+				}
+
+				transforms[bone->Index] = rotMatrix * ((bone == rendererObject.Skeleton) ? translationMatrix : bone->Transform);
+				if (bone != rendererObject.Skeleton)
+					transforms[bone->Index] *= transforms[bone->Parent->Index];
+			}
+
+			boneIndices.push_back(bone->Index);
+
+			// Push.
+			for (auto*& child : bone->Children)
+				bones[nextBoneID++] = child;
+		}
+
+		// Apply mutators.
+		if (rendererItem != nullptr) 
+		{
+			const auto& nativeItem = g_Level.Items[rendererItem->ItemNumber];
+
+			if (nativeItem.Model.Mutators.size() == boneIndices.size())
+			{
+				for (int i : boneIndices)
+				{
+					const auto& mutator = nativeItem.Model.Mutators[i];
+					if (mutator.IsEmpty())
+						continue;
+
+					auto rotMatrix = mutator.Rotation.ToRotationMatrix();
+					auto scaleMatrix = Matrix::CreateScale(mutator.Scale);
+					auto translationMatrix = Matrix::CreateTranslation(mutator.Offset);
+					transforms[i] = ((rotMatrix * scaleMatrix) * translationMatrix) * transforms[i];
+				}
+			}
+		}
+	}
+
+	void Renderer::UpdateItemAnimations(int itemNumber, bool force)
+	{
+		auto* itemToDraw = &_items[itemNumber];
+		auto* nativeItem = &g_Level.Items[itemNumber];
+
+		// TODO: hack for fixing a bug, check again if needed
+		itemToDraw->ItemNumber = itemNumber;
+
+		// Lara has her own routine
+		if (nativeItem->ObjectNumber == ID_LARA)
+			return;
+
+		// Has been already done?
+		if (!force && itemToDraw->DoneAnimations)
+			return;
+
+		itemToDraw->DoneAnimations = true;
+
+		auto* obj = &Objects[nativeItem->ObjectNumber];
+
+		if (!obj->loaded)
+		{
+			TENLog("Attempted to animate nonexistent object " + GetObjectName((GAME_OBJECT_ID)nativeItem->ObjectNumber), LogLevel::Error);
+			return;
+		}
+
+		auto& moveableObj = *_moveableObjects[nativeItem->ObjectNumber];
+
+		// Copy meshswaps and apply eventually effects.
+		itemToDraw->MeshIndex = nativeItem->Model.MeshIndex;
+		itemToDraw->SkinIndex = nativeItem->Model.GetSkinGlobalIndex();
+
+		if (obj->Animations.empty())
+		{
+			// Objects without animations (e.g. virtual ID_BODY_PART borrowing a single mesh) never get
+			// bone transforms computed. Default them to identity, otherwise meshes are drawn with a zero
+			// matrix and collapse to the origin (a tiny garbage mesh) instead of the item's world pose.
+			for (int i = 0; i < BONE_COUNT_MAX; i++)
+				itemToDraw->AnimationTransforms[i] = Matrix::Identity;
+
+			return;
+		}
+
+		// Apply extra rotations
+		int lastJoint = 0;
+		for (int j = 0; j < moveableObj.LinearizedBones.size(); j++)
+		{
+			auto* currentBone = moveableObj.LinearizedBones[j];
+
+			auto prevRotation = currentBone->ExtraRotation;
+			currentBone->ExtraRotation = Quaternion::Identity;
+
+			nativeItem->Data.apply(
+				[&j, &currentBone](QuadBikeInfo& quadBike)
+				{
+					if (j == 3 || j == 4)
+					{
+						currentBone->ExtraRotation = EulerAngles(quadBike.RearRot, 0, 0).ToQuaternion();
+					}
+					else if (j == 6 || j == 7)
+					{
+						currentBone->ExtraRotation = EulerAngles(quadBike.FrontRot, quadBike.TurnRate * 2, 0).ToQuaternion();
+					}
+				},
+				[&j, &currentBone](JeepInfo& jeep)
+				{
+					switch(j)
+					{
+					case 9:
+						currentBone->ExtraRotation = EulerAngles(jeep.FrontRightWheelRotation, jeep.TurnRate * 4, 0).ToQuaternion();
+						break;
+
+					case 10:
+						currentBone->ExtraRotation = EulerAngles(jeep.FrontLeftWheelRotation, jeep.TurnRate * 4, 0).ToQuaternion();
+						break;
+
+					case 12:
+						currentBone->ExtraRotation = EulerAngles(jeep.BackRightWheelRotation, 0, 0).ToQuaternion();
+						break;
+
+					case 13:
+						currentBone->ExtraRotation = EulerAngles(jeep.BackLeftWheelRotation, 0, 0).ToQuaternion();
+						break;
+					}
+				},
+				[&j, &currentBone](MotorbikeInfo& bike)
+				{
+					switch (j)
+					{
+					case 2:
+						currentBone->ExtraRotation = EulerAngles(bike.RightWheelsRotation, bike.TurnRate * 8, 0).ToQuaternion();
+						break;
+
+					case 4:
+						currentBone->ExtraRotation = EulerAngles(bike.RightWheelsRotation, 0, 0).ToQuaternion();
+						break;
+
+					case 8:
+						currentBone->ExtraRotation = EulerAngles(bike.LeftWheelRotation, 0, 0).ToQuaternion();
+						break;
+					}
+				},
+				[&j, &currentBone, &prevRotation](MinecartInfo& cart)
+				{
+					switch (j)
+					{
+					case 1:
+					case 2:
+					case 3:
+					case 4:
+						short zRot = (short)std::clamp(cart.Velocity, 0, (int)ANGLE(25.0f)) + EulerAngles(prevRotation).z;
+						currentBone->ExtraRotation = EulerAngles(0, 0, zRot).ToQuaternion();
+						break;
+					}
+				},
+				[&j, &currentBone](RubberBoatInfo& boat)
+				{
+					if (j == 2)
+					currentBone->ExtraRotation = EulerAngles(0, 0, boat.PropellerRotation).ToQuaternion();
+				},
+				[&j, &currentBone](UPVInfo& upv)
+				{
+					switch (j)
+					{
+					case 1:
+						currentBone->ExtraRotation = EulerAngles(upv.LeftRudderRotation, 0, 0).ToQuaternion();
+						break;
+
+					case 2:
+						currentBone->ExtraRotation = EulerAngles(upv.RightRudderRotation, 0, 0).ToQuaternion();
+						break;
+
+					case 3:
+						currentBone->ExtraRotation = EulerAngles(0, 0, upv.TurbineRotation).ToQuaternion();
+						break;
+					}
+				},
+				[&j, &currentBone](BigGunInfo& bigGun)
+				{
+					if (j == 2)
+						currentBone->ExtraRotation = EulerAngles(0, 0, FROM_RAD(bigGun.BarrelRotation)).ToQuaternion();
+				},
+				[&j, &currentBone, &lastJoint](CreatureInfo& creature)
+				{
+					auto xRot = Quaternion::Identity;
+					auto yRot = Quaternion::Identity;
+					auto zRot = Quaternion::Identity;
+
+					if (currentBone->ExtraRotationFlags & ROT_Y)
+					{
+						yRot = EulerAngles(0, creature.JointRotation[lastJoint], 0).ToQuaternion();
+						lastJoint++;
+					}
+
+					if (currentBone->ExtraRotationFlags & ROT_X)
+					{
+						xRot = EulerAngles(creature.JointRotation[lastJoint], 0, 0).ToQuaternion();
+						lastJoint++;
+					}
+
+					if (currentBone->ExtraRotationFlags & ROT_Z)
+					{
+						zRot = EulerAngles(0, 0, creature.JointRotation[lastJoint]).ToQuaternion();
+						lastJoint++;
+					}
+
+					currentBone->ExtraRotation = xRot * yRot * zRot;
+				});
+		}
+
+		const auto& anim = GetAnimData(*nativeItem);
+		auto rootMotionCounteract = anim.GetRootMotionCounteraction(nativeItem->Animation.FrameNumber);
+
+		const auto& frame = GetFrame(*nativeItem);
+		UpdateAnimation(itemToDraw, moveableObj, frame, UINT_MAX, false, nativeItem->Animation.Blend.IsEnabled() ? &nativeItem->Animation.Blend : nullptr, &rootMotionCounteract);
+	}
+
+	void Renderer::UpdateItemAnimations(RenderView& view)
+	{
+		for (const auto* room : view.RoomsToDraw)
+		{
+			for (const auto* itemToDraw : room->ItemsToDraw)
+			{
+				const auto& nativeItem = g_Level.Items[itemToDraw->ItemNumber];
+
+				// Player has its own routine.
+				if (nativeItem.ObjectNumber == ID_LARA)
+					continue;
+
+				UpdateItemAnimations(itemToDraw->ItemNumber, false);
+			}
+		}
+	}
+
+	void Renderer::BuildHierarchyRecursive(RendererObject *obj, RendererBone *node, RendererBone *parentNode)
+	{
+		node->GlobalTransform = node->Transform * parentNode->GlobalTransform;
+		obj->BindPoseTransforms[node->Index] = node->GlobalTransform.Invert();
+		obj->Skeleton->GlobalTranslation = Vector3::Zero;
+		node->GlobalTranslation = node->Translation + parentNode->GlobalTranslation;
+
+		for (auto* childNode : node->Children)
+			BuildHierarchyRecursive(obj, childNode, node);
+	}
+
+	void Renderer::BuildHierarchy(RendererObject *obj)
+	{
+		obj->Skeleton->GlobalTransform = obj->Skeleton->Transform;
+		obj->BindPoseTransforms[obj->Skeleton->Index] = obj->Skeleton->GlobalTransform.Invert();
+		obj->Skeleton->GlobalTranslation = Vector3::Zero;
+
+		for (auto* childNode : obj->Skeleton->Children)
+			BuildHierarchyRecursive(obj, childNode, obj->Skeleton);
+	}
+
+	bool Renderer::IsFullScreen()
+	{
+		return (!_isWindowed);
+	}
+
+	void Renderer::UpdateCameraMatrices(CAMERA_INFO *cam, float farView)
+	{
+		if (farView < MIN_FAR_VIEW)
+			farView = DEFAULT_FAR_VIEW;
+
+		_currentGameCamera = RenderView(cam, cam->Roll, cam->Fov, 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
+		_gameCamera        = RenderView(cam, cam->Roll, cam->Fov, 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
+	}
+
+	void Renderer::FlipRooms(short roomNumber1, short roomNumber2)
+	{
+		std::swap(_rooms[roomNumber1], _rooms[roomNumber2]);
+
+		_rooms[roomNumber1].RoomNumber = roomNumber1;
+		_rooms[roomNumber2].RoomNumber = roomNumber2;
+
+		_invalidateCache = true;
+	}
+
+	RendererObject& Renderer::GetRendererObject(GAME_OBJECT_ID id)
+	{
+		if (id == GAME_OBJECT_ID::ID_LARA || id == GAME_OBJECT_ID::ID_LARA_SKIN)
+		{
+			if (_moveableObjects[GAME_OBJECT_ID::ID_LARA_SKIN].has_value())
+				return _moveableObjects[GAME_OBJECT_ID::ID_LARA_SKIN].value();
+			else
+				return _moveableObjects[GAME_OBJECT_ID::ID_LARA].value();
+		}
+		else
+		{
+			return _moveableObjects[id].value();
+		}
+	}
+
+	Matrix Renderer::GetWorldMatrixForMoveable(const ItemInfo& item, Matrix* rotationMatrix, Matrix* translationMatrix) const
+	{
+		auto orient = item.Pose.Orientation;
+		auto pos = item.Pose.Position.ToVector3();
+
+		// Apply root motion counteraction only for animated objects. Virtual objects without
+		// animations (e.g. ID_BODY_PART) would otherwise fetch a fallback animation and have their
+		// world matrix polluted by bogus root motion, making them spin erratically.
+		const auto& animObject = Objects[item.Animation.AnimObjectID];
+		if (!animObject.Animations.empty())
+		{
+			const auto& anim = GetAnimData(item);
+			auto rootMotionCounteract = anim.GetRootMotionCounteraction(item.Animation.FrameNumber);
+
+			orient += rootMotionCounteract.Rotation;
+			pos += Vector3::Transform(rootMotionCounteract.Translation, orient.ToRotationMatrix());
+		}
+
+		auto rotMatrix = orient.ToRotationMatrix();
+		auto transMatrix = Matrix::CreateTranslation(pos);
+
+		if (rotationMatrix != nullptr)
+			*rotationMatrix = rotMatrix;
+
+		if (translationMatrix != nullptr)
+			*translationMatrix = transMatrix;
+
+		return Matrix::CreateScale(item.Pose.Scale) * rotMatrix * transMatrix;
+	}
+
+	RendererMesh* Renderer::GetMesh(int meshIndex)
+	{
+		return _meshes[meshIndex];
+	}
+
+	std::vector<BoundingSphere> Renderer::GetSpheres(int itemNumber)
+	{
+		BoundingSphere spheres[BONE_COUNT_MAX];
+		int count = GetSpheres(itemNumber, spheres, BONE_COUNT_MAX);
+		return std::vector<BoundingSphere>(spheres, spheres + count);
+	}
+
+	// Writes up to maxCount mesh spheres of an item at its current pose without allocating, and returns their count.
+	int Renderer::GetSpheres(int itemNumber, BoundingSphere* spheres, int maxCount)
+	{
+		auto& itemToDraw = _items[itemNumber];
+		itemToDraw.ItemNumber = itemNumber;
+
+		const auto* nativeItem = &g_Level.Items[itemNumber];
+		if (nativeItem == nullptr)
+			return 0;
+
+		if (!itemToDraw.DoneAnimations)
+		{
+			if (itemNumber == LaraItem->Index)
+			{
+				UpdateLaraAnimations(false);
+			}
+			else
+			{
+				UpdateItemAnimations(itemNumber, false);
+			}
+		}
+
+		const auto& moveable = GetRendererObject(nativeItem->ObjectNumber);
+		auto worldMatrix = GetWorldMatrixForMoveable(*nativeItem);
+
+		// Virtual objects (e.g. ID_BODY_PART) have no object meshes; each instance borrows its
+		// mesh per-instance, so derive the bounding spheres from the item's own mesh list.
+		bool isVirtual = moveable.ObjectMeshes.empty();
+		int meshCount = std::min(isVirtual ? (int)itemToDraw.MeshIndex.size() : (int)moveable.ObjectMeshes.size(), maxCount);
+		for (int i = 0; i < meshCount; i++)
+		{
+			const auto& mesh = isVirtual ? *GetMesh(itemToDraw.MeshIndex[i]) : *moveable.ObjectMeshes[i];
+
+			const auto& animationTransform = itemToDraw.AnimationTransforms[i];
+			auto pos = Vector3::Transform(mesh.Sphere.Center, animationTransform * worldMatrix);
+			spheres[i] = BoundingSphere(pos, mesh.Sphere.Radius);
+		}
+
+		return meshCount;
+	}
+
+	void Renderer::GetBoneMatrix(short itemNumber, int jointIndex, Matrix* outMatrix)
+	{
+		if (jointIndex >= BONE_COUNT_MAX)
+			jointIndex = 0;
+
+		auto* rendererItem = &_items[itemNumber];
+		auto* nativeItem = &g_Level.Items[itemNumber];
+		auto& object = *_moveableObjects[nativeItem->ObjectNumber];
+
+		if (!rendererItem->DoneAnimations)
+			(itemNumber == LaraItem->Index) ? UpdateLaraAnimations(true) : UpdateItemAnimations(itemNumber, true);
+
+		if (itemNumber == LaraItem->Index)
+			*outMatrix = object.AnimationTransforms[jointIndex] * _playerWorldMatrix;
+		else
+			*outMatrix = object.AnimationTransforms[jointIndex] * rendererItem->World;
+	}
+
+	SkinningMode Renderer::GetSkinningMode(const RendererObject& obj, int skinIndex)
+	{
+		if (g_GameFlow->GetSettings()->Graphics.Skinning && skinIndex != NO_VALUE)
+			return SkinningMode::Full;
+
+		if (obj.Id == GAME_OBJECT_ID::ID_LARA || obj.Id == GAME_OBJECT_ID::ID_LARA_SKIN)
+			return SkinningMode::Classic;
+		else
+			return SkinningMode::None;
+	}
+
+	// Rendered frames per game frame. Code advancing once per rendered frame divides its game frame step by it.
+	float Renderer::GetFramerateMultiplier() const
+	{
+		return (GetFrameRate() / (float)FPS);
+	}
+
+	// Measured rate of presented frames, which differs from the display refresh rate when the frames take longer than a
+	// refresh, or when the renderer presents without waiting for vertical sync.
+	float Renderer::GetFrameRate() const
+	{
+		if (!g_Configuration.EnableHighFramerate || _frameRate <= 0.0f)
+			return (float)FPS;
+
+		return std::clamp(_frameRate, (float)FPS, (float)GetScreenRefreshRate());
+	}
+
+	void Renderer::UpdateFrameRate()
+	{
+		constexpr auto SMOOTHING		= 0.1f;
+		constexpr auto INTERVAL_MIN	= 1.0f / 1000.0f;
+		constexpr auto INTERVAL_MAX	= 0.25f;
+
+		auto now = std::chrono::steady_clock::now();
+		if (_lastFrameTime.time_since_epoch().count() != 0)
+		{
+			float interval = std::clamp(std::chrono::duration<float>(now - _lastFrameTime).count(), INTERVAL_MIN, INTERVAL_MAX);
+			_frameRate = (_frameRate <= 0.0f) ? (1.0f / interval) : Lerp(_frameRate, 1.0f / interval, SMOOTHING);
+		}
+
+		_lastFrameTime = now;
+	}
+
+	// Vulkan presents the latest frame on the window thread at vertical sync, so the game thread is not paced by it. Without
+	// pacing it draws frames faster than the display shows them, and the shown frames are sampled at uneven times, which
+	// makes continuous motion stutter. The game thread therefore starts frames one refresh interval apart.
+	void Renderer::PaceFrame()
+	{
+		if (!g_Configuration.EnableHighFramerate || !Backend::g_SceneRenderer.IsPresentedOnWindowThread() || !Backend::g_SceneRenderer.IsVsyncEnabled())
+			return;
+
+		auto interval = (unsigned long long)(1000000000.0 / GetScreenRefreshRate());
+		auto deadline = _framePaceTime + interval;
+		auto now = SDL_GetTicksNS();
+
+		// Late frames restart the cadence, so a slow frame is not followed by a burst of unpaced ones.
+		if (now >= deadline)
+		{
+			_framePaceTime = now;
+			return;
+		}
+
+		SDL_DelayPrecise(deadline - now);
+		_framePaceTime = deadline;
+	}
+
+	float Renderer::GetInterpolationFactor(bool forceRawValue) const
+	{
+		return (forceRawValue || g_GameFlow->CurrentFreezeMode == FreezeMode::None) ? _interpolationFactor : 0.0f;
+	}
+
+	Vector2i Renderer::GetScreenResolution() const
+	{
+		return Vector2i(_screenWidth, _screenHeight);
+	}
+
+	// Game logic runs at 30 frames per second; with high framerate, frames follow the display refresh rate.
+	int Renderer::GetScreenRefreshRate() const
+	{
+		constexpr auto REFRESH_RATE_DEFAULT = 60;
+
+		if (!g_Configuration.EnableHighFramerate)
+			return FPS;
+
+		const auto* mode = SDL_GetCurrentDisplayMode(SDL_GetDisplayForWindow(g_Platform->GetSDL3Window()));
+		return ((mode != nullptr && mode->refresh_rate > 0.0f) ? (int)std::round(mode->refresh_rate) : REFRESH_RATE_DEFAULT);
+	}
+
+	std::optional<Vector2> Renderer::Get2DPosition(const Vector3& pos) const
+	{
+		auto point = Vector4(pos.x, pos.y, pos.z, 1.0f);
+		auto cameraPos = Vector4(
+			_gameCamera.Camera.WorldPosition.x,
+			_gameCamera.Camera.WorldPosition.y,
+			_gameCamera.Camera.WorldPosition.z,
+			1.0f);
+		auto cameraDir = Vector4(
+			_gameCamera.Camera.WorldDirection.x,
+			_gameCamera.Camera.WorldDirection.y,
+			_gameCamera.Camera.WorldDirection.z,
+			1.0f);
+
+		// Point is behind camera; return nullopt.
+		if ((point - cameraPos).Dot(cameraDir) < 0.0f)
+			return std::nullopt;
+
+		// Calculate clip space coords.
+		point = Vector4::Transform(point, _gameCamera.Camera.ViewProjection);
+
+		// w is close to 0; return nullopt.
+		if (std::abs(point.w) <= EPSILON)
+			return std::nullopt;
+
+		// Calculate NDC.
+		point /= point.w;
+
+		// Calculate and return 2D position.
+		return TEN::Utils::ConvertNDCTo2DPosition(Vector2(point));
+	}
+
+	std::pair<Vector3, Vector3> Renderer::GetRay(const Vector2& pos) const
+	{
+		auto viewport = TEN::Math::Library::Viewport(0.0f, 0.0f, (float)_screenWidth, (float)_screenHeight);
+		auto nearPoint = viewport.Unproject(Vector3(pos.x, pos.y, 0.0f), _gameCamera.Camera.Projection, _gameCamera.Camera.View, Matrix::Identity);
+		auto farPoint = viewport.Unproject(Vector3(pos.x, pos.y, 1.0f), _gameCamera.Camera.Projection, _gameCamera.Camera.View, Matrix::Identity);
+
+		return std::pair<Vector3, Vector3>(nearPoint, farPoint);
+	}
+
+	Vector3 Renderer::GetMoveableBonePosition(int itemNumber, int boneID, const Vector3& relOffset)
+	{
+		auto* rendererItem = &_items[itemNumber];
+		rendererItem->ItemNumber = itemNumber;
+
+		if (rendererItem == nullptr)
+			return Vector3::Zero;
+
+		if (!rendererItem->DoneAnimations)
+			(itemNumber == LaraItem->Index) ? UpdateLaraAnimations(false) : UpdateItemAnimations(itemNumber, false);
+
+		if (boneID >= BONE_COUNT_MAX)
+			boneID = 0;
+
+		auto world = rendererItem->AnimationTransforms[boneID] * rendererItem->World;
+
+		return Vector3::Transform(relOffset, world);
+	}
+
+	Quaternion Renderer::GetMoveableBoneOrientation(int itemNumber, int boneID)
+	{
+		const auto* rendererItem = &_items[itemNumber];
+
+		if (rendererItem == nullptr)
+			return Quaternion::Identity;
+
+		if (!rendererItem->DoneAnimations)
+			(itemNumber == LaraItem->Index) ? UpdateLaraAnimations(false) : UpdateItemAnimations(itemNumber, false);
+
+		if (boneID >= BONE_COUNT_MAX)
+			boneID = 0;
+
+		return rendererItem->BoneOrientations[boneID];
+	}
+
+	bool Renderer::IsRoomReflected(RenderView& renderView, int roomNumber)
+	{
+		for (const auto& mirror : renderView.Mirrors)
+		{
+			// TODO: Avoid LaraItem global.
+			if (roomNumber == mirror.RoomNumber && (Camera.pos.RoomNumber == mirror.RoomNumber || LaraItem->RoomNumber == mirror.RoomNumber))
+				return true;
+		}
+
+		return false;
+	}
+
+	std::string Renderer::SaveScreenshot()
+	{
+		char buffer[64];
+		time_t rawtime;
+
+		time(&rawtime);
+		auto time = localtime(&rawtime);
+		strftime(buffer, sizeof(buffer), "TEN-%Y-%m-%d_%H-%M-%S.png", time);
+
+		auto screenPath = g_GameFlow->GetGameDir() + "Screenshots";
+
+		if (!std::filesystem::is_directory(screenPath))
+			std::filesystem::create_directory(screenPath);
+
+		screenPath += "/";
+		screenPath += buffer;
+
+		// The scene renderer saves the image when its next frame reaches the readback.
+		Backend::g_SceneRenderer.RequestScreenshot(screenPath);
+		TENLog(fmt::format("Saving screenshot to '{}'.", screenPath), LogLevel::Info);
+		return std::string(buffer);
+	}
+
+	std::optional<std::pair<Vector2, Vector2>> Renderer::GetDisplayItemBounds(const DisplayItem& item) const
+	{
+		float alpha = GetInterpolationFactor(true);
+
+		// World transforms.
+		auto pos    = item.GetInterpolatedPosition(alpha);
+		auto orient = item.GetInterpolatedOrientation(alpha);
+		float scale = item.GetInterpolatedScale(alpha).x;
+		auto objectID = item.GetObjectID();
+
+		// Find largest visible mesh sphere.
+		auto& moveable = _moveableObjects[item.GetObjectID()];
+
+		float radiusMax = 0.0f;
+		auto worldCenter = Vector3::Zero;
+
+		const auto& object = Objects[objectID];
+
+		// Loop through meshes.
+		for (int i = 0; i < moveable->ObjectMeshes.size(); i++)
+		{
+			if (item.GetMeshBits() && !item.GetMeshVisible(i))
+				continue;
+
+			const auto& sphere = moveable->ObjectMeshes[i]->Sphere;
+
+			// World matrix per mesh (animation or bind-pose).
+			auto meshWorldMatrix = Matrix::Identity;
+			if (!object.Animations.empty())
+			{
+				meshWorldMatrix = moveable->AnimationTransforms[i] * Matrix::CreateScale(scale) * orient.ToRotationMatrix() * Matrix::CreateTranslation(pos);
+			}
+			else
+			{
+				meshWorldMatrix = moveable->BindPoseTransforms[i] * Matrix::CreateScale(scale) * orient.ToRotationMatrix() * Matrix::CreateTranslation(pos);
+			}
+
+			// Transform center.
+			auto meshWorldCenter = Vector3::Transform(sphere.Center, meshWorldMatrix);
+			float meshWorldRadius = sphere.Radius * scale;
+
+			// Keep largest for bounding approximation.
+			if (meshWorldRadius > radiusMax)
+			{
+				radiusMax = meshWorldRadius;
+				worldCenter = meshWorldCenter;
+			}
+		}
+
+		// Use default minimum radius if none found.
+		if (radiusMax <= 0.0f)
+			radiusMax = 10.0f;
+
+		// Build camera matrices.
+		auto camPos = g_DrawItems.GetInterpolatedCameraPosition(alpha);
+		auto camTarget = g_DrawItems.GetInterpolatedCameraTargetPosition(alpha);
+		auto camForward = (camTarget - camPos);
+		camForward.Normalize();
+		auto worldUp = Vector3::Up;
+		auto camRight = camForward.Cross(worldUp);
+		camRight.Normalize();
+		auto camUp = camRight.Cross(camForward);
+		camUp.Normalize();
+
+		// Calculate distance from camera.
+		float dist = (worldCenter - camPos).Length();
+
+		// Build view-projection matrix.
+		float aspectRatio = (float)_screenWidth / _screenHeight;
+		auto viewMatrix = Matrix::CreateLookAt(camPos, camTarget, Vector3::Up);
+		auto projMatrix = Matrix::CreatePerspectiveFieldOfView(CurrentFOV, aspectRatio, DISPLAY_ITEM_NEAR_PLANE, DISPLAY_ITEM_FAR_PLANE);
+		auto viewProj = viewMatrix * projMatrix;
+
+		// Helper lambda to project point and clamp to extended screen bounds.
+		auto projectPointClamped = [&](const Vector3& worldPos) -> Vector2
+		{
+			auto pos = Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0f);
+			pos = Vector4::Transform(pos, viewProj);
+
+			// Handle behind camera or w near zero.
+			if (pos.w <= 0.01f)
+			{
+				// Use estimated position based on direction.
+				auto dir = worldPos - camPos;
+				dir.Normalize();
+				
+				// Project direction onto screen plane.
+				float rightDot = dir.Dot(camRight);
+				float upDot = dir.Dot(camUp);
+				
+				// Convert to screen coordinates with large offset for off-screen.
+				float screenX = rightDot * _screenWidth * 2.0f + (_screenWidth * 0.5f);
+				float screenY = -upDot * _screenHeight * 2.0f + (_screenHeight * 0.5f);
+				
+				return Vector2(screenX, screenY);
+			}
+
+			pos /= pos.w;
+
+			// Clamp NDC with extended margin for better size estimation.
+			pos.x = std::clamp(pos.x, -3.0f, 3.0f);
+			pos.y = std::clamp(pos.y, -3.0f, 3.0f);
+
+			float screenX = (pos.x + 1.0f) * _screenWidth * 0.5f;
+			float screenY = (1.0f - pos.y) * _screenHeight * 0.5f;
+			return Vector2(screenX, screenY);
+		};
+
+		// Project center.
+		auto center2D = projectPointClamped(worldCenter);
+
+		// Sample points along camera right/up directions.
+		auto rightWorld = worldCenter + camRight * radiusMax;
+		auto leftWorld = worldCenter - camRight * radiusMax;
+		auto upWorld = worldCenter + camUp * radiusMax;
+		auto downWorld = worldCenter - camUp * radiusMax;
+
+		auto rightProj = projectPointClamped(rightWorld);
+		auto leftProj = projectPointClamped(leftWorld);
+		auto upProj = projectPointClamped(upWorld);
+		auto downProj = projectPointClamped(downWorld);
+
+		// Calculate half extents from projected points.
+		float halfWidth = std::max(std::abs(rightProj.x - center2D.x), std::abs(leftProj.x - center2D.x));
+		float halfHeight = std::max(std::abs(upProj.y - center2D.y), std::abs(downProj.y - center2D.y));
+
+		// Ensure reasonable minimum size based on screen-space estimation.
+		// Calculate expected pixel size based on FOV and distance.
+		float angularSize = 2.0f * atan(radiusMax / std::max(dist, 1.0f));
+		float expectedPixelHeight = (angularSize / CurrentFOV) * _screenHeight;
+		float expectedPixelWidth = expectedPixelHeight * aspectRatio;
+
+		// Use the larger of projected size or estimated size.
+		halfWidth = std::max(halfWidth, expectedPixelWidth * 0.5f);
+		halfHeight = std::max(halfHeight, expectedPixelHeight * 0.5f);
+
+		// Ensure absolute minimum size.
+		halfWidth = std::max(halfWidth, 1.0f);
+		halfHeight = std::max(halfHeight, 1.0f);
+
+		auto halfExtents = Vector2(halfWidth * 2.0f, halfHeight * 2.0f);
+		return std::make_pair(center2D, halfExtents);
+	}
+}

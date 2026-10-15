@@ -156,7 +156,7 @@ if not exist %ScriptsDir% mkdir %ScriptsDir%
 if not exist %EngineDir% mkdir %EngineDir%
 
 xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
-powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\RHI\CompileShaders.ps1" -OutputDir "%ShaderDir%\RHI\Bin" -DebugInfo
+powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin" -DebugInfo
 if errorlevel 1 exit 1
 
 xcopy /Y "$(SolutionDir)Libs\bass\x86\*.dll" "$(TargetDir)"
@@ -225,7 +225,7 @@ if not exist %ScriptsDir% mkdir %ScriptsDir%
 if not exist %EngineDir% mkdir %EngineDir%
 
 xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
-powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\RHI\CompileShaders.ps1" -OutputDir "%ShaderDir%\RHI\Bin" -DebugInfo
+powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin" -DebugInfo
 if errorlevel 1 exit 1
 
 xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
@@ -307,7 +307,7 @@ if not exist %ScriptsDir% mkdir %ScriptsDir%
 if not exist %EngineDir% mkdir %EngineDir%
 
 xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
-powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\RHI\CompileShaders.ps1" -OutputDir "%ShaderDir%\RHI\Bin"
+powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin"
 if errorlevel 1 exit 1
 
 xcopy /Y "$(SolutionDir)Libs\bass\x86\*.dll" "$(TargetDir)"
@@ -390,7 +390,7 @@ if not exist "%ScriptsDir%" mkdir "%ScriptsDir%"
 if not exist "%EngineDir%" mkdir "%EngineDir%"
 
 xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" "%ShaderDir%"
-powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\RHI\CompileShaders.ps1" -OutputDir "%ShaderDir%\RHI\Bin"
+powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin"
 if errorlevel 1 exit 1
 
 xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
@@ -816,20 +816,20 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\ConstantBuffers\AtmosphericSkyBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\GodRayBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\DustStormBuffer.h" />
-    <ClInclude Include="Renderer\AtmosphericSky\AtmosphericSkySettings.h" />
-    <ClInclude Include="Renderer\Frustum.h" />
-    <ClInclude Include="Renderer\Font.h" />
-    <ClInclude Include="Renderer\Graphics\Vertices\Vertex.h" />
-    <ClInclude Include="Renderer\ImGuiIntegration.h" />
+    <ClInclude Include="Renderer\Sky\AtmosphericSkySettings.h" />
+    <ClInclude Include="Renderer\Scene\Frustum.h" />
+    <ClInclude Include="Renderer\UI\Font.h" />
+    <ClInclude Include="Renderer\Structures\Vertex.h" />
+    <ClInclude Include="Renderer\UI\ImGuiIntegration.h" />
     <ClInclude Include="Renderer\Renderer.h" />
     <ClInclude Include="Renderer\RendererEnums.h" />
     <ClInclude Include="Renderer\Structures\RendererDecal.h" />
     <ClInclude Include="Renderer\Structures\RendererDofMode.h" />
     <ClInclude Include="Renderer\Structures\RendererMirror.h" />
     <ClInclude Include="Renderer\RendererUtils.h" />
-    <ClInclude Include="Renderer\RenderView.h" />
-    <ClInclude Include="Renderer\SMAA\AreaTex.h" />
-    <ClInclude Include="Renderer\SMAA\SearchTex.h" />
+    <ClInclude Include="Renderer\Scene\RenderView.h" />
+    <ClInclude Include="Renderer\Backend\SMAA\AreaTex.h" />
+    <ClInclude Include="Renderer\Backend\SMAA\SearchTex.h" />
     <ClInclude Include="Renderer\Structures\RendererAnimatedTexture.h" />
     <ClInclude Include="Renderer\Structures\RendererAnimatedTextureSet.h" />
     <ClInclude Include="Renderer\Structures\RendererBone.h" />
@@ -855,15 +855,20 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\RHI\DirectX11\DX11Device.h" />
     <ClInclude Include="Renderer\RHI\SDLGPU\SDLGPUDevice.h" />
     <ClInclude Include="Renderer\RHI\ShaderLibrary.h" />
-    <ClInclude Include="Renderer\RHI\RHITest.h" />
+    <ClInclude Include="Renderer\RHI\Test\RHITest.h" />
     <ClInclude Include="Renderer\RHI\MemoryTracker.h" />
     <ClInclude Include="Renderer\RHI\TextureCapture.h" />
     <ClInclude Include="Renderer\RHI\RenderTargetPool.h" />
     <ClInclude Include="Renderer\RHI\UploadRing.h" />
-    <ClInclude Include="Renderer\Next\DrawSort.h" />
-    <ClInclude Include="Renderer\Next\GpuTypes.h" />
-    <ClInclude Include="Renderer\Next\NextRenderer.h" />
-    <ClInclude Include="Renderer\Next\TextureLoader.h" />
+    <ClInclude Include="Renderer\Backend\DrawSort.h" />
+    <ClInclude Include="Renderer\Backend\GpuTypes.h" />
+    <ClInclude Include="Renderer\Backend\SceneRenderer.h" />
+    <ClInclude Include="Renderer\Backend\OverlayTypes.h" />
+    <ClInclude Include="Renderer\Backend\SkyTypes.h" />
+    <ClInclude Include="Renderer\Sky\AuroraSettings.h" />
+    <ClInclude Include="Renderer\Sky\MoonSettings.h" />
+    <ClInclude Include="Renderer\Sky\UnderwaterSkySettings.h" />
+    <ClInclude Include="Renderer\Backend\TextureLoader.h" />
     <ClInclude Include="Renderer\Structures\RendererSprite.h" />
     <ClInclude Include="Renderer\Structures\RendererSprite2D.h" />
     <ClInclude Include="Renderer\Structures\RendererSpriteBucket.h" />
@@ -872,11 +877,11 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Structures\RendererStatic.h" />
     <ClInclude Include="Renderer\Structures\RendererStringToDraw.h" />
     <ClInclude Include="Renderer\Structures\RendererTriangle3D.h" />
-    <ClInclude Include="Renderer\VolumetricCloud\VolumetricCloud.h" />
-    <ClInclude Include="Renderer\VolumetricCloud\CloudNoiseTexture.h" />
-    <ClInclude Include="Renderer\GodRay\GodRaySettings.h" />
-    <ClInclude Include="Renderer\DustStorm\DustStormSettings.h" />
-    <ClInclude Include="Renderer\SkyQuality.h" />
+    <ClInclude Include="Renderer\Sky\VolumetricCloud.h" />
+    <ClInclude Include="Renderer\Sky\CloudNoiseTexture.h" />
+    <ClInclude Include="Renderer\Sky\GodRaySettings.h" />
+    <ClInclude Include="Renderer\Sky\DustStormSettings.h" />
+    <ClInclude Include="Renderer\Sky\SkyQuality.h" />
     <ClInclude Include="Renderer\Structures\RendererViewport.h" />
     <ClInclude Include="Scripting\Include\Flow\ScriptInterfaceFlowHandler.h" />
     <ClInclude Include="Scripting\Include\Objects\ScriptInterfaceObjectsHandler.h" />
@@ -1404,60 +1409,60 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\Utils\VehicleHelpers.cpp" />
     <ClCompile Include="Physics\Objects\CollisionMesh.cpp" />
     <ClCompile Include="Physics\Objects\CollisionMeshDesc.cpp" />
-    <ClCompile Include="Renderer\Frustum.cpp" />
-    <ClCompile Include="Renderer\Font.cpp" />
+    <ClCompile Include="Renderer\Scene\Frustum.cpp" />
+    <ClCompile Include="Renderer\UI\Font.cpp" />
     <ClCompile Include="Renderer\Renderer.cpp" />
-    <ClCompile Include="Renderer\ImGuiIntegration.cpp" />
-    <ClCompile Include="Renderer\RendererCompatibility.cpp" />
-    <ClCompile Include="Renderer\RendererDebug.cpp" />
-    <ClCompile Include="Renderer\RendererDebugWindow.cpp" />
-    <ClCompile Include="Renderer\RendererDraw.cpp" />
-    <ClCompile Include="Renderer\RendererDraw2D.cpp" />
-    <ClCompile Include="Renderer\RendererDrawEffect.cpp" />
-    <ClCompile Include="Renderer\RendererDrawMenu.cpp" />
-    <ClCompile Include="Renderer\RendererFrame.cpp" />
-    <ClCompile Include="Renderer\RendererHelper.cpp" />
+    <ClCompile Include="Renderer\UI\ImGuiIntegration.cpp" />
+    <ClCompile Include="Renderer\Scene\RendererCompatibility.cpp" />
+    <ClCompile Include="Renderer\UI\RendererDebug.cpp" />
+    <ClCompile Include="Renderer\UI\RendererDebugWindow.cpp" />
+    <ClCompile Include="Renderer\Scene\RendererDraw.cpp" />
+    <ClCompile Include="Renderer\UI\RendererDraw2D.cpp" />
+    <ClCompile Include="Renderer\Scene\RendererDrawEffect.cpp" />
+    <ClCompile Include="Renderer\UI\RendererDrawMenu.cpp" />
+    <ClCompile Include="Renderer\Scene\RendererFrame.cpp" />
+    <ClCompile Include="Renderer\Scene\RendererHelper.cpp" />
     <ClCompile Include="Renderer\RendererInit.cpp" />
-    <ClCompile Include="Renderer\RendererLara.cpp" />
-    <ClCompile Include="Renderer\RendererPostProcess.cpp" />
+    <ClCompile Include="Renderer\Scene\RendererLara.cpp" />
+    <ClCompile Include="Renderer\Scene\RendererPostProcess.cpp" />
     <ClCompile Include="Renderer\RendererSettings.cpp" />
-    <ClCompile Include="Renderer\RendererSkyEffects.cpp" />
-    <ClCompile Include="Renderer\RendererSorted.cpp" />
+    <ClCompile Include="Renderer\Sky\RendererSkyEffects.cpp" />
+    <ClCompile Include="Renderer\Scene\RendererSorted.cpp" />
     <ClCompile Include="Renderer\RHI\RHIDevice.cpp" />
     <ClCompile Include="Renderer\RHI\DirectX11\DX11Device.cpp" />
     <ClCompile Include="Renderer\RHI\SDLGPU\SDLGPUDevice.cpp" />
     <ClCompile Include="Renderer\RHI\ShaderLibrary.cpp" />
-    <ClCompile Include="Renderer\RHI\RHITest.cpp" />
+    <ClCompile Include="Renderer\RHI\Test\RHITest.cpp" />
     <ClCompile Include="Renderer\RHI\MemoryTracker.cpp" />
     <ClCompile Include="Renderer\RHI\TextureCapture.cpp" />
     <ClCompile Include="Renderer\RHI\RenderTargetPool.cpp" />
     <ClCompile Include="Renderer\RHI\UploadRing.cpp" />
-    <ClCompile Include="Renderer\Next\NextRenderer.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererAtmosphere.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererDebug.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererDebris.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererDOF.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererGlow.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererMirrors.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererOverlay.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererSky.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererSkyReflections.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererSMAA.cpp" />
-    <ClCompile Include="Renderer\Next\DrawSort.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererGeometry.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererImGui.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererTextures.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererVideo.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererEffects.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererPostProcess.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererShadows.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererSprites.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererStats.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererSSAO.cpp" />
-    <ClCompile Include="Renderer\Next\NextRendererUpscale.cpp" />
-    <ClCompile Include="Renderer\Next\TextureLoader.cpp" />
-    <ClCompile Include="Renderer\RendererSprites.cpp" />
-    <ClCompile Include="Renderer\RendererString.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRenderer.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererAtmosphere.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererDebug.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererDebris.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererDOF.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererGlow.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererMirrors.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererOverlay.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererSky.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererSkyReflections.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererSMAA.cpp" />
+    <ClCompile Include="Renderer\Backend\DrawSort.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererGeometry.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererImGui.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererTextures.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererVideo.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererEffects.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererPostProcess.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererShadows.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererSprites.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererStats.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererSSAO.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererUpscale.cpp" />
+    <ClCompile Include="Renderer\Backend\TextureLoader.cpp" />
+    <ClCompile Include="Renderer\Scene\RendererSprites.cpp" />
+    <ClCompile Include="Renderer\UI\RendererString.cpp" />
     <ClCompile Include="Renderer\RendererUtils.cpp" />
     <ClCompile Include="..\Libs\imgui\imgui.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -1477,13 +1482,13 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="..\Libs\imgui\backends\imgui_impl_sdl3.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Renderer\RendererVolumetricClouds.cpp" />
-    <ClCompile Include="Renderer\VolumetricCloud\CloudNoiseTexture.cpp" />
-    <ClCompile Include="Renderer\RendererAtmosphericSky.cpp" />
-    <ClCompile Include="Renderer\RendererGodRay.cpp" />
-    <ClCompile Include="Renderer\RendererDustStorm.cpp" />
-    <ClCompile Include="Renderer\SkyQuality.cpp" />
-    <ClCompile Include="Renderer\RenderView.cpp" />
+    <ClCompile Include="Renderer\Sky\RendererVolumetricClouds.cpp" />
+    <ClCompile Include="Renderer\Sky\CloudNoiseTexture.cpp" />
+    <ClCompile Include="Renderer\Sky\RendererAtmosphericSky.cpp" />
+    <ClCompile Include="Renderer\Sky\RendererGodRay.cpp" />
+    <ClCompile Include="Renderer\Sky\RendererDustStorm.cpp" />
+    <ClCompile Include="Renderer\Sky\SkyQuality.cpp" />
+    <ClCompile Include="Renderer\Scene\RenderView.cpp" />
     <ClCompile Include="Scripting\Internal\LuaHandler.cpp" />
     <ClCompile Include="Scripting\Internal\ScriptAssert.cpp" />
     <ClCompile Include="Scripting\Internal\ScriptInterfaceState.cpp" />
@@ -1561,42 +1566,64 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
   </ItemGroup>
   <ItemGroup>
     <None Include="Objects\Generic\Switches\rail_switch.h" />
-    <None Include="Renderer\TransparentSorting.md" />
     <None Include="Resources\crashmsg.exe" />
     <None Include="Resources\Title.bin" />
     <None Include="RuleSet.ruleset" />
     <None Include="Scripting\Internal\TEN\Properties\PropertySystem.md" />
-    <None Include="Shaders\CBVolumetricCloud.hlsli" />
-    <None Include="Shaders\CBGodRay.hlsli" />
-    <None Include="Shaders\CBDustStorm.hlsli" />
-    <None Include="Shaders\SMAA.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resources.rc" />
   </ItemGroup>
   <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
     <Image Include="Resources\Ten.ico" />
   </ItemGroup>
   <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
+    <None Include="Shaders\AtmosphericSky.hlsl" />
+    <None Include="Shaders\AtmosphericSkyCore.hlsli" />
+    <None Include="Shaders\AtmosphericSkyUniforms.hlsli" />
     <None Include="Shaders\CBAtmosphericSky.hlsli" />
+    <None Include="Shaders\CBDustStorm.hlsli" />
+    <None Include="Shaders\CBGodRay.hlsli" />
+    <None Include="Shaders\CBVolumetricCloud.hlsli" />
+    <None Include="Shaders\Common.hlsli" />
+    <None Include="Shaders\CompileShaders.ps1" />
+    <None Include="Shaders\DOF.hlsl" />
+    <None Include="Shaders\DebugPrimitives.hlsl" />
+    <None Include="Shaders\Decals.hlsli" />
+    <None Include="Shaders\DustStorm.hlsl" />
+    <None Include="Shaders\DustStormCore.hlsli" />
+    <None Include="Shaders\FSR.hlsl" />
+    <None Include="Shaders\FidelityFX\LICENSE.txt" />
+    <None Include="Shaders\FidelityFX\ffx_a.h" />
+    <None Include="Shaders\FidelityFX\ffx_fsr1.h" />
+    <None Include="Shaders\FogBulbs.hlsli" />
+    <None Include="Shaders\FrameUniforms.hlsli" />
+    <None Include="Shaders\Fullscreen.hlsli" />
+    <None Include="Shaders\Glow.hlsl" />
+    <None Include="Shaders\GodRay.hlsl" />
+    <None Include="Shaders\GodRayCore.hlsli" />
+    <None Include="Shaders\GpuShared.hlsli" />
+    <None Include="Shaders\Lighting.hlsli" />
+    <None Include="Shaders\Materials.hlsli" />
+    <None Include="Shaders\Noise.hlsli" />
+    <None Include="Shaders\Objects.hlsl" />
+    <None Include="Shaders\Overlay.hlsl" />
+    <None Include="Shaders\PostProcess.hlsl" />
+    <None Include="Shaders\RHITest.hlsl" />
+    <None Include="Shaders\Rooms.hlsl" />
+    <None Include="Shaders\SMAA.hlsli" />
+    <None Include="Shaders\SMAACommon.hlsli" />
+    <None Include="Shaders\SMAAMedium.hlsl" />
+    <None Include="Shaders\SMAAUltra.hlsl" />
+    <None Include="Shaders\SSAO.hlsl" />
+    <None Include="Shaders\ShaderInterop.hlsli" />
+    <None Include="Shaders\Shadows.hlsli" />
+    <None Include="Shaders\Skinning.hlsli" />
+    <None Include="Shaders\Sky.hlsl" />
+    <None Include="Shaders\SpriteEffects.hlsli" />
+    <None Include="Shaders\Sprites.hlsl" />
+    <None Include="Shaders\VolumetricClouds.hlsl" />
+    <None Include="Shaders\VolumetricCloudsCore.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,12 +1,12 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
-#include "Renderer/ImGuiIntegration.h"
-#include "Renderer/Next/NextRenderer.h"
+#include "Renderer/UI/ImGuiIntegration.h"
+#include "Renderer/Backend/SceneRenderer.h"
 #include "Game/camera.h"
 #include "Game/effects/tomb4fx.h"
 #include "Math/Math.h"
 #include "Renderer/Structures/RendererRectangle.h"
-#include "Renderer/RenderView.h"
+#include "Renderer/Scene/RenderView.h"
 #include "Renderer/RendererUtils.h"
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
@@ -60,7 +60,7 @@ namespace TEN::Renderer
 		_isLocked = true;
 	}
 
-	// Video frames fill the whole sprite; the next renderer uploads the frame of the video handler.
+	// Video frames fill the whole sprite; the scene renderer uploads the frame of the video handler.
 	void Renderer::UpdateVideoSprite(int width, int height)
 	{
 		_videoSprite.X = _videoSprite.Y = 0;
@@ -84,7 +84,7 @@ namespace TEN::Renderer
 
 	void Renderer::ReloadShaders()
 	{
-		Next::g_NextRenderer.ReloadShaders();
+		Backend::g_SceneRenderer.ReloadShaders();
 	}
 
 	int Renderer::Synchronize()

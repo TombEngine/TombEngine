@@ -1,0 +1,1534 @@
+#include "framework.h"
+#include "Renderer/Renderer.h"
+
+#include "Game/Animation/Animation.h"
+#include "Game/camera.h"
+#include "Game/collision/collide_room.h"
+#include "Game/control/box.h"
+#include "Game/control/control.h"
+#include "Game/effects/Blood.h"
+#include "Game/effects/bubble.h"
+#include "Game/effects/debris.h"
+#include "Game/effects/drip.h"
+#include "Game/effects/effects.h"
+#include "Game/effects/Electricity.h"
+#include "Game/effects/explosion.h"
+#include "Game/effects/footprint.h"
+#include "Game/effects/Ripple.h"
+#include "Game/effects/simple_particle.h"
+#include "Game/effects/ParticleGroup.h"
+#include "Game/effects/smoke.h"
+#include "Game/effects/spark.h"
+#include "Game/effects/Splash.h"
+#include "Game/effects/Streamer.h"
+#include "Game/effects/tomb4fx.h"
+#include "Game/effects/weather.h"
+#include "Game/items.h"
+#include "Game/Lara/lara.h"
+#include "Game/misc.h"
+#include "Game/Setup.h"
+#include "Math/Math.h"
+#include "Objects/Effects/Fireflies.h"
+#include "Objects/TR5/Trap/LaserBarrier.h"
+#include "Objects/TR5/Trap/LaserBeam.h"
+#include "Objects/Utils/object_helper.h"
+#include "Renderer/Structures/RendererSprite2D.h"
+#include "Renderer/Structures/RendererSprite.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Specific/level.h"
+#include "Renderer/Structures/RendererSpriteBucket.h"
+
+using namespace TEN::Animation;
+using namespace TEN::Effects::Blood;
+using namespace TEN::Effects::Bubble;
+using namespace TEN::Effects::Drip;
+using namespace TEN::Effects::Electricity;
+using namespace TEN::Effects::Environment;
+using namespace TEN::Effects::Fireflies;
+using namespace TEN::Effects::Footprint;
+using namespace TEN::Effects::Ripple;
+using namespace TEN::Effects::Splash;
+using namespace TEN::Effects::Spark;
+using namespace TEN::Effects::Streamer;
+using namespace TEN::Entities::Creatures::TR5;
+using namespace TEN::Entities::Traps;
+using namespace TEN::Math;
+using namespace TEN::Renderer::Structures;
+
+extern BLOOD_STRUCT Blood[MAX_SPARKS_BLOOD];
+extern FIRE_SPARKS FireSparks[MAX_SPARKS_FIRE];
+extern SMOKE_SPARKS SmokeSparks[MAX_SPARKS_SMOKE];
+extern SHOCKWAVE_STRUCT ShockWaves[MAX_SHOCKWAVE];
+extern std::array<DebrisFragment, MAX_DEBRIS> DebrisFragments;
+
+namespace TEN::Renderer 
+{
+	constexpr auto ELECTRICITY_RANGE_MAX = BLOCK(24);
+
+	namespace DrawEffectHelpers
+	{
+		Vector4 ScaleBloodColor(const Vector4& baseColor, float intensity)
+		{
+			auto clampedIntensity = std::clamp(intensity, 0.0f, 1.0f);
+			return Vector4(
+				baseColor.x * clampedIntensity,
+				baseColor.y * clampedIntensity,
+				baseColor.z * clampedIntensity,
+				baseColor.w * clampedIntensity);
+		}
+	}
+		
+	void Renderer::PrepareLaserBarriers(RenderView& view)
+	{
+		for (const auto& [itemNumber, barrier] : LaserBarriers)
+		{
+			for (const auto& beam : barrier.Beams)
+			{
+				AddColoredQuad(
+					beam.VertexPoints[0], beam.VertexPoints[1],
+					beam.VertexPoints[2], beam.VertexPoints[3],
+					barrier.Color, barrier.Color,
+					barrier.Color, barrier.Color,
+					BlendMode::Additive, view, SpriteRenderType::LaserBarrier);
+			}
+		}
+	}
+
+	void Renderer::PrepareSingleLaserBeam(RenderView& view)
+	{
+		for (const auto& [itemNumber, beam] : LaserBeams)
+		{
+			if (!beam.IsActive)
+				continue;
+
+			for (int i = 0; i < LaserBeamEffect::SUBDIVISION_COUNT; i++)
+			{
+				bool isLastSubdivision = (i == (LaserBeamEffect::SUBDIVISION_COUNT - 1));
+				auto& v1 = beam.Vertices[i];
+				auto& v2 = beam.Vertices[isLastSubdivision ? 0 : (i + 1)];
+				auto& v3 = beam.Vertices[LaserBeamEffect::SUBDIVISION_COUNT + (isLastSubdivision ? 0 : (i + 1))];
+				auto& v4 = beam.Vertices[LaserBeamEffect::SUBDIVISION_COUNT + i];
+				auto& beamColor = beam.Color;
+
+				// Make lerp only if beam is moving !
+				if (beam.IsDirty)
+				{
+					auto color = Color::Lerp(beam.OldColor, beamColor, GetInterpolationFactor());
+
+					AddColoredQuad(
+						Vector3::Lerp(beam.OldVertices[i], v1, GetInterpolationFactor()),
+						Vector3::Lerp(
+							beam.OldVertices[isLastSubdivision ? 0 : (i + 1)],
+							v2,
+							GetInterpolationFactor()),
+						Vector3::Lerp(
+							beam.OldVertices[LaserBeamEffect::SUBDIVISION_COUNT + (isLastSubdivision ? 0 : (i + 1))],
+							v3,
+							GetInterpolationFactor()),
+						Vector3::Lerp(
+							beam.OldVertices[LaserBeamEffect::SUBDIVISION_COUNT + i],
+							v4,
+							GetInterpolationFactor()),
+						color, color, color, color,
+						BlendMode::Additive, view, SpriteRenderType::LaserBeam);
+				}
+				else
+				{
+					AddColoredQuad(
+						v1, v2, v3, v4,
+						beamColor, beamColor, beamColor, beamColor,
+						BlendMode::Additive, view, SpriteRenderType::LaserBeam);
+				}
+			}
+		}
+	}
+
+	void Renderer::PrepareStreamers(RenderView& view)
+	{
+		for (const auto& [itemNumber, group] : StreamerEffect.GetGroups())
+		{
+			for (const auto& [tag, pool] : group.GetPools())
+			{
+				for (const auto& streamer : pool)
+				{
+					for (int i = 0; i < streamer.GetSegments().size(); i++)
+					{
+						const auto& segment = streamer.GetSegments()[i];
+						const auto& prevSegment = streamer.GetSegments()[std::max(i - 1, 0)];
+
+						if (segment.Life <= 0.0f)
+							continue;
+
+						auto vertex0 = Vector3::Lerp(segment.PrevVertices[0], segment.Vertices[0], GetInterpolationFactor());
+						auto vertex1 = Vector3::Lerp(segment.PrevVertices[1], segment.Vertices[1], GetInterpolationFactor());
+						auto prevVertex0 = Vector3::Lerp(prevSegment.PrevVertices[0], prevSegment.Vertices[0], GetInterpolationFactor());
+						auto prevVertex1 = Vector3::Lerp(prevSegment.PrevVertices[1], prevSegment.Vertices[1], GetInterpolationFactor());
+
+						auto color = Vector4::Lerp(segment.PrevColor, segment.Color, GetInterpolationFactor());
+						auto prevColor = Vector4::Lerp(prevSegment.PrevColor, prevSegment.Color, GetInterpolationFactor());
+
+						switch (streamer.GetFeatherMode())
+						{
+							default:
+							case StreamerFeatherMode::None:
+								AddColoredQuad(
+									vertex0, vertex1,
+									prevVertex1,
+									prevVertex0,
+									color,
+									color,
+									prevColor,
+									prevColor,
+									streamer.GetBlendMode(), view);
+								break;
+
+							case StreamerFeatherMode::Center:
+							{
+								auto center = (vertex0 + vertex1) / 2;
+								auto prevCenter = (prevVertex0 + prevVertex1) / 2;
+
+								AddColoredQuad(
+									center, vertex1, prevVertex1, prevCenter,
+									color, Vector4::Zero, Vector4::Zero, prevColor,
+									streamer.GetBlendMode(), view);
+								AddColoredQuad(
+									vertex0, center, prevCenter, prevVertex0,
+									Vector4::Zero, color, prevColor, Vector4::Zero,
+									streamer.GetBlendMode(), view);
+							}
+								break;
+
+							case StreamerFeatherMode::Left:
+								AddColoredQuad(
+									vertex0, vertex1, prevVertex1, prevVertex0,
+									color, Vector4::Zero, Vector4::Zero, prevColor,
+									streamer.GetBlendMode(), view);
+								break;
+
+							case StreamerFeatherMode::Right:
+								AddColoredQuad(
+									vertex0, vertex1, prevVertex1, prevVertex0,
+									Vector4::Zero, color, prevColor, Vector4::Zero,
+									streamer.GetBlendMode(), view);
+								break;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	void Renderer::PrepareHelicalLasers(RenderView& view)
+	{
+		if (HelicalLasers.empty())
+			return;
+
+		if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Helical lasers rendering"))
+			return;
+
+		for (const auto& laser : HelicalLasers)
+		{
+			if (laser.Life <= 0.0f)
+				continue;
+
+			auto color = Vector4::Lerp(laser.PrevColor, laser.Color, GetInterpolationFactor());
+			color.w = Lerp(laser.PrevOpacity, laser.Opacity, GetInterpolationFactor());
+
+			auto laserTarget = Vector3::Lerp(laser.PrevTarget, laser.Target, GetInterpolationFactor());
+
+			ElectricityKnots[0] = laserTarget;
+			ElectricityKnots[1] = Vector3::Lerp(laser.PrevOrigin, laser.Origin, GetInterpolationFactor());
+			
+			for (int j = 0; j < 2; j++)
+				ElectricityKnots[j] -= laserTarget;
+
+			CalculateHelixSpline(laser, ElectricityKnots, ElectricityBuffer);
+
+			if (abs(ElectricityKnots[0].x) <= ELECTRICITY_RANGE_MAX &&
+				abs(ElectricityKnots[0].y) <= ELECTRICITY_RANGE_MAX &&
+				abs(ElectricityKnots[0].z) <= ELECTRICITY_RANGE_MAX)
+			{
+				int bufferIndex = 0;
+
+				auto& interpPosArray = ElectricityBuffer;
+				for (int s = 0; s < laser.NumSegments ; s++)
+				{
+					auto origin = laserTarget + interpPosArray[bufferIndex];
+					bufferIndex++;
+					auto target = laserTarget + interpPosArray[bufferIndex];
+
+					auto center = (origin + target) / 2;
+					auto dir = target - origin;
+					dir.Normalize();
+
+					AddSpriteBillboardConstrained(
+						&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_LIGHTHING],
+						center, color, PI_DIV_2, 1.0f, Vector2(5 * 8.0f, Vector3::Distance(origin, target)),
+						BlendMode::Additive, dir, true, view);							
+				}
+			}
+		}
+	}
+
+	void Renderer::PrepareElectricity(RenderView& view)
+	{
+		if (ElectricityArcs.empty())
+			return;
+
+		if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Electricity rendering"))
+			return;
+
+		for (const auto& arc : ElectricityArcs)
+		{
+			if (arc.life <= 0)
+				continue;
+
+			ElectricityKnots[0] = Vector3::Lerp(arc.PrevPos1, arc.pos1, GetInterpolationFactor());
+			ElectricityKnots[1] = Vector3::Lerp(arc.PrevPos1, arc.pos1, GetInterpolationFactor());
+			ElectricityKnots[2] = Vector3::Lerp(arc.PrevPos2, arc.pos2, GetInterpolationFactor());
+			ElectricityKnots[3] = Vector3::Lerp(arc.PrevPos3, arc.pos3, GetInterpolationFactor());
+			ElectricityKnots[4] = Vector3::Lerp(arc.PrevPos4, arc.pos4, GetInterpolationFactor());
+			ElectricityKnots[5] = Vector3::Lerp(arc.PrevPos4, arc.pos4, GetInterpolationFactor());
+
+			for (int j = 0; j < ElectricityKnots.size(); j++)
+				ElectricityKnots[j] -= LaraItem->Pose.Position.ToVector3();
+
+			CalculateElectricitySpline(arc, ElectricityKnots, ElectricityBuffer);
+
+			if (abs(ElectricityKnots[0].x) <= ELECTRICITY_RANGE_MAX &&
+				abs(ElectricityKnots[0].y) <= ELECTRICITY_RANGE_MAX &&
+				abs(ElectricityKnots[0].z) <= ELECTRICITY_RANGE_MAX)
+			{
+				int bufferIndex = 0;
+
+				auto& interpPosArray = ElectricityBuffer;
+
+				for (int s = 0; s < ((arc.segments * 3) - 1); s++)
+				{
+					auto origin = (LaraItem->Pose.Position + interpPosArray[bufferIndex]).ToVector3();
+					bufferIndex++;
+					auto target = (LaraItem->Pose.Position + interpPosArray[bufferIndex]).ToVector3();
+
+					auto center = (origin + target) / 2;
+					auto dir = target - origin;
+					dir.Normalize();
+
+					unsigned char r, g, b;
+					if (arc.life >= 16)
+					{
+						r = arc.r;
+						g = arc.g;
+						b = arc.b;
+					}
+					else
+					{
+						r = (arc.life * arc.r) / 16;
+						g = (arc.life * arc.g) / 16;
+						b = (arc.life * arc.b) / 16;
+					}
+
+					unsigned char oldR, oldG, oldB;
+					if (arc.PrevLife >= 16)
+					{
+						oldR = arc.PrevR;
+						oldG = arc.PrevG;
+						oldB = arc.PrevB;
+					}
+					else
+					{
+						oldR = (arc.PrevLife * arc.PrevR) / 16;
+						oldG = (arc.PrevLife * arc.PrevG) / 16;
+						oldB = (arc.PrevLife * arc.PrevB) / 16;
+					}
+
+					r = (unsigned char)Lerp(oldR, r, GetInterpolationFactor());
+					g = (unsigned char)Lerp(oldG, g, GetInterpolationFactor());
+					b = (unsigned char)Lerp(oldB, b, GetInterpolationFactor());
+
+					AddSpriteBillboardConstrained(
+						&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_LIGHTHING],
+						center,
+						Vector4(1.0f, 1.0f, 1.0f, 0.5f),
+						PI_DIV_2, 1.0f, Vector2(4, Vector3::Distance(origin, target)), BlendMode::Additive, dir, true, view);
+
+					AddSpriteBillboardConstrained(
+						&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_LIGHTHING],
+						center,
+						Vector4(r / 255.0f, g / 255.0f, b / 255.0f, 1.0f),
+						PI_DIV_2, 1.0f, Vector2(arc.width * 8, Vector3::Distance(origin, target)), BlendMode::Additive, dir, true, view);					
+				}
+			}
+		}
+	}
+
+	void Renderer::PrepareFireflies(RenderView& view)
+	{
+		if (!Objects[ID_FIREFLY_EMITTER].loaded)
+			return;
+
+		for (auto& firefly : FireflySwarm)
+		{
+			if (!firefly.on)
+				continue;
+
+			if (!CheckIfSlotExists(ID_FIREFLY_SPRITES, "Firefly rendering"))
+				continue;
+
+			firefly.scalar = 3;
+			firefly.size = 3;
+
+			auto pos = Vector3::Lerp(
+				Vector3(firefly.PrevX, firefly.PrevY, firefly.PrevZ),
+				Vector3(firefly.Position.x, firefly.Position.y, firefly.Position.z),
+				GetInterpolationFactor());
+
+			// Disallow sprites out of bounds.
+			int spriteIndex = Objects[firefly.SpriteSeqID].meshIndex + firefly.SpriteID;
+			spriteIndex = std::clamp(spriteIndex, 0, (int)_sprites.size());
+
+			AddSpriteBillboard(
+				&_sprites[spriteIndex],
+				pos,
+				Color(firefly.r / (float)UCHAR_MAX, firefly.g / (float)UCHAR_MAX, firefly.b / (float)UCHAR_MAX, 1.0f),
+				TO_RAD(firefly.rotAng << 4), firefly.scalar,
+				Vector2(firefly.size, firefly.size),
+				firefly.blendMode, true, view);
+
+		}
+	}
+
+	void Renderer::PrepareSmokes(RenderView& view) 
+	{
+		for (const auto& smoke : SmokeSparks) 
+		{
+			if (!smoke.on)
+				continue;
+
+			AddSpriteBillboard(
+				&_sprites[smoke.def],
+				Vector3::Lerp(
+					Vector3(smoke.PrevPosition.x, smoke.PrevPosition.y, smoke.PrevPosition.z),
+					Vector3(smoke.position.x, smoke.position.y, smoke.position.z),
+					GetInterpolationFactor()),
+				Vector4::Lerp(
+					Vector4(smoke.PrevShade / 255.0f, smoke.PrevShade / 255.0f, smoke.PrevShade / 255.0f, 1.0f),
+					Vector4(smoke.shade / 255.0f, smoke.shade / 255.0f, smoke.shade / 255.0f, 1.0f),
+					GetInterpolationFactor()),
+				TO_RAD(Lerp(smoke.PrevRotAng << 4, smoke.rotAng << 4, GetInterpolationFactor())),
+				Lerp(smoke.PrevScalar, smoke.scalar, GetInterpolationFactor()),
+				{
+					Lerp(smoke.PrevSize, smoke.size, GetInterpolationFactor()) * 4.0f,
+					Lerp(smoke.PrevSize, smoke.size, GetInterpolationFactor()) * 4.0f
+				},
+				BlendMode::Additive, true, view);
+		}
+	}
+
+	void Renderer::PrepareFires(RenderView& view) 
+	{
+		for (const auto& fire : Fires)
+		{
+			auto oldFade = fire.PrevFade == 1 ? 1.0f : (float)(UCHAR_MAX - fire.PrevFade) / (float)UCHAR_MAX;
+			auto fade = fire.fade == 1 ? 1.0f : (float)(UCHAR_MAX - fire.fade) / (float)UCHAR_MAX;
+			fade = Lerp(oldFade, fade, GetInterpolationFactor());
+
+			for (int i = 0; i < MAX_SPARKS_FIRE; i++) 
+			{
+				auto* spark = &FireSparks[i];
+				if (spark->on)
+				{
+					// Calculate original flame color.
+					auto color = Vector4::Lerp(
+						Vector4(
+							spark->PrevColor.x / (float)UCHAR_MAX * fade,
+							spark->PrevColor.y / (float)UCHAR_MAX * fade,
+							spark->PrevColor.z / (float)UCHAR_MAX * fade,
+							1.0f),
+						Vector4(
+							spark->color.x / (float)UCHAR_MAX * fade,
+							spark->color.y / (float)UCHAR_MAX * fade,
+							spark->color.z / (float)UCHAR_MAX * fade,
+							1.0f),
+						GetInterpolationFactor());
+
+					// Influence flame color with object color via chroma modulation.
+					if (fire.color != NEUTRAL_COLOR)
+					{
+						auto color3 = Vector3(color.x, color.y, color.z);
+						color = Vector4::Lerp(color, fire.color * Luma(color3), Chroma(color3) * 1.5f);
+						color.w = 1.0f;
+					}
+
+					auto position = Vector3::Lerp(
+						Vector3(
+							fire.PrevPosition.x + spark->PrevPosition.x * fire.PrevSize / 2,
+							fire.PrevPosition.y + spark->PrevPosition.y * fire.PrevSize / 2,
+							fire.PrevPosition.z + spark->PrevPosition.z * fire.PrevSize / 2),
+						Vector3(
+							fire.position.x + spark->position.x * fire.size / 2,
+							fire.position.y + spark->position.y * fire.size / 2,
+							fire.position.z + spark->position.z * fire.size / 2),
+						GetInterpolationFactor());
+
+					short prevOrientation = spark->PrevRotAng << 4;
+					short currentOrientation = spark->rotAng << 4;
+					auto orientation = TO_RAD(prevOrientation + Geometry::GetShortestAngle(prevOrientation, currentOrientation) * GetInterpolationFactor());
+					auto scalar = Lerp(spark->PrevScalar, spark->scalar, GetInterpolationFactor());
+					auto size = Vector2::Lerp(
+						Vector2(fire.PrevSize * spark->PrevSize, fire.PrevSize * spark->PrevSize),
+						Vector2(fire.size * spark->size, fire.size * spark->size),
+						GetInterpolationFactor());
+
+					AddSpriteBillboard(&_sprites[spark->def], position, color, orientation, scalar, size, BlendMode::Additive, true, view);
+
+					if (g_GameFlow->GetSettings()->Graphics.FlameHeatHaze)
+						AddSpriteBillboard(&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex], position, color, orientation, scalar, size * FLAME_HEAT_HAZE_SCALE, BlendMode::Distortion, true, view);
+				}
+			}
+		}
+	}
+
+	void Renderer::PrepareParticles(RenderView& view)
+	{
+		for (int i = 0; i < ParticleNodeOffsetIDs::NodeMax; i++)
+			NodeOffsets[i].itemNumber = NO_VALUE;
+
+		for (auto& particle : Particles)
+		{
+			if (!particle.on)
+				continue;
+
+			if (particle.DisableInterpolation)
+			{
+				particle.DisableInterpolation = false;
+				particle.StoreInterpolationData();
+			}
+
+			if (particle.flags & SP_DEF)
+			{
+				auto pos = Vector3::Lerp(
+					Vector3(particle.PrevX, particle.PrevY, particle.PrevZ),
+					Vector3(particle.x, particle.y, particle.z),
+					GetInterpolationFactor());
+
+				if (particle.flags & SP_FX)
+				{
+					if (particle.fxObj < 0 || particle.fxObj >= g_Level.Items.size())
+					{
+						TENLog("Particle FX object index is out of bounds.", LogLevel::Warning);
+						continue;
+					}
+
+					const auto& fx = g_Level.Items[particle.fxObj];
+					auto& newEffect = _items[particle.fxObj];
+
+					newEffect.Translation = Matrix::CreateTranslation(fx.Pose.Position.ToVector3());
+					newEffect.Rotation = fx.Pose.Orientation.ToRotationMatrix();
+					newEffect.Scale = Matrix::CreateScale(1.0f);
+					newEffect.World = newEffect.Rotation * newEffect.Translation;
+					newEffect.ObjectID = fx.ObjectNumber;
+					newEffect.RoomNumber = fx.RoomNumber;
+					newEffect.Position = fx.Pose.Position.ToVector3();
+
+					// On the frame the effect spawns, the slot's previous transform still belongs
+					// to its last occupant, so collapse interpolation onto the current pose.
+					if (fx.DisableInterpolation)
+					{
+						newEffect.PrevPosition = newEffect.Position;
+						newEffect.PrevTranslation = newEffect.Translation;
+						newEffect.PrevRotation = newEffect.Rotation;
+						newEffect.PrevWorld = newEffect.World;
+						newEffect.PrevScale = newEffect.Scale;
+					}
+
+					newEffect.InterpolatedPosition = Vector3::Lerp(newEffect.PrevPosition, newEffect.Position, GetInterpolationFactor());
+					newEffect.InterpolatedTranslation = Matrix::Lerp(newEffect.PrevTranslation, newEffect.Translation, GetInterpolationFactor());
+					newEffect.InterpolatedRotation = Matrix::Lerp(newEffect.PrevRotation, newEffect.Rotation, GetInterpolationFactor());
+					newEffect.InterpolatedWorld = Matrix::Lerp(newEffect.PrevWorld, newEffect.World, GetInterpolationFactor());
+					newEffect.InterpolatedScale = Matrix::Lerp(newEffect.PrevScale, newEffect.Scale, GetInterpolationFactor());
+
+					pos += newEffect.InterpolatedPosition;
+
+					if ((particle.sLife - particle.life) > Random::GenerateInt(8, 12))
+					{
+						// Particle becomes autonome.
+						particle.flags &= ~SP_FX;
+
+						particle.x = particle.PrevX = pos.x;
+						particle.y = particle.PrevY = pos.y;
+						particle.z = particle.PrevZ = pos.z;
+					}
+				}
+				else if (!(particle.flags & SP_ITEM))
+				{
+					// NOTE: pos already set previously.
+					//pos.x = particle.x;
+					//pos.y = particle.y;
+					//pos.z = particle.z;
+				}
+				else
+				{
+					if (particle.fxObj < 0 || particle.fxObj >= g_Level.Items.size())
+					{
+						TENLog("Particle FX object index is out of bounds.", LogLevel::Warning);
+						continue;
+					}
+
+					auto nodePos = Vector3i::Zero;
+					if (particle.flags & SP_NODEATTACH)
+					{
+						if (NodeOffsets[particle.nodeNumber].itemNumber == particle.fxObj)
+						{
+							nodePos = NodeVectors[particle.nodeNumber];
+						}
+						else
+						{
+							auto* item = &g_Level.Items[particle.fxObj];
+
+							nodePos.x = NodeOffsets[particle.nodeNumber].x;
+							nodePos.y = NodeOffsets[particle.nodeNumber].y;
+							nodePos.z = NodeOffsets[particle.nodeNumber].z;
+
+							int meshIndex = NodeOffsets[particle.nodeNumber].meshNum;
+							if (meshIndex < 0)
+							{
+								item = LaraItem;
+								meshIndex = -meshIndex;
+							}
+
+							// Transform offset by interpolated bone matrices so attached particles
+							// stay aligned with the drawn mesh during movement and rotation.
+							const auto& rendererItem = _items[item->Index];
+							if (rendererItem.DoneAnimations)
+							{
+								auto world = rendererItem.InterpolatedAnimationTransforms[meshIndex] * rendererItem.InterpolatedWorld;
+								nodePos = Vector3i(Vector3::Transform(nodePos.ToVector3(), world));
+							}
+							else
+							{
+								nodePos = GetJointPosition(item, meshIndex, nodePos);
+							}
+
+							NodeOffsets[particle.nodeNumber].itemNumber = particle.fxObj;
+							NodeVectors[particle.nodeNumber] = nodePos;
+						}
+
+						pos += nodePos.ToVector3();
+
+						if ((particle.sLife - particle.life) > Random::GenerateInt(4, 8))
+						{
+							// Particle becomes autonome.
+							particle.flags &= ~SP_ITEM;
+
+							particle.x = particle.PrevX = pos.x;
+							particle.y = particle.PrevY = pos.y;
+							particle.z = particle.PrevZ = pos.z;
+						}
+					}
+					else
+					{
+						pos += _items[particle.fxObj].InterpolatedPosition; 
+					}
+				}
+				
+				// If sprite is a video texture, bypass it if texture is inactive.
+				if (particle.SpriteID == VIDEO_SPRITE_ID && !IsVideoSpriteActive())
+					continue;
+
+				// If sprite is not a video texture and no sprites present, bypass it.
+				if (particle.SpriteID != VIDEO_SPRITE_ID && _sprites.empty())
+					continue;
+
+				// Disallow sprites out of bounds.
+				int spriteIndex = Objects[particle.SpriteSeqID].meshIndex + particle.SpriteID;
+				spriteIndex = std::clamp(spriteIndex, 0, (int)_sprites.size());
+
+				auto* sprite = particle.SpriteID == VIDEO_SPRITE_ID ? &_videoSprite : &_sprites[spriteIndex];
+				
+				auto color = Color(particle.r / (float)UCHAR_MAX, particle.g / (float)UCHAR_MAX, particle.b / (float)UCHAR_MAX, 1.0f);
+				auto orientation = TO_RAD(particle.rotAng << 4);
+				auto size = Vector2(particle.size, particle.size);
+				
+				bool hasHaze = particle.flags & (SP_FIRE | SP_HAZE);
+				hasHaze = hasHaze && particle.blendMode != BlendMode::Distortion && g_GameFlow->GetSettings()->Graphics.FlameHeatHaze;
+				
+				if (particle.flags & SP_CONSTRAINED)
+				{
+					AddQuad(sprite, pos, color, orientation, particle.scalar, particle.size, particle.blendMode, particle.constraint, true, view);
+					
+					if (hasHaze)
+						AddQuad(sprite, pos, color, orientation, particle.scalar, particle.size * FLAME_HEAT_HAZE_SCALE, BlendMode::Distortion, particle.constraint, true, view);
+				}
+				else
+				{
+					AddSpriteBillboard(sprite, pos, color, orientation, particle.scalar, size, particle.blendMode, true, view);
+
+					if (hasHaze)
+						AddSpriteBillboard(sprite, pos, color, orientation, particle.scalar, size * FLAME_HEAT_HAZE_SCALE, BlendMode::Distortion, true, view);
+				}
+			}
+			else
+			{
+				if (!CheckIfSlotExists(ID_SPARK_SPRITE, "Particle rendering"))
+					continue;
+
+				auto pos = Vector3::Lerp(
+					Vector3(particle.PrevX, particle.PrevY, particle.PrevZ),
+					Vector3(particle.x, particle.y, particle.z),
+					GetInterpolationFactor());
+
+				auto axis = Vector3(particle.xVel, particle.yVel, particle.zVel);
+				axis.Normalize();
+
+				AddSpriteBillboardConstrained(
+					&_sprites[Objects[ID_SPARK_SPRITE].meshIndex],
+					pos,
+					Vector4(particle.r / (float)UCHAR_MAX, particle.g / (float)UCHAR_MAX, particle.b / (float)UCHAR_MAX, 1.0f),
+					TO_RAD(particle.rotAng << 4),
+					particle.scalar,
+					Vector2(4, particle.size), particle.blendMode, axis, true, view);
+			}
+		}
+	}
+
+	void Renderer::PrepareSplashes(RenderView& view) 
+	{
+		constexpr auto POINT_COUNT = 9;
+		constexpr auto ALPHA	   = 360 / POINT_COUNT;
+
+		for (const auto& splash : SplashEffects) 
+		{
+			if (!splash.isActive)
+				continue;
+
+			if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Splashes rendering"))
+				return;
+
+			unsigned char color = (splash.life >= 32 ? 128 : (unsigned char)((splash.life / 32.0f) * 128));
+
+			if (!splash.isRipple) 
+			{
+				if (splash.HeightSpeed < 0 && splash.height < 1024) 
+				{
+					float multiplier = splash.height / 1024.0f;
+					color = (float)color * multiplier;
+				}
+			}
+
+			unsigned char prevColor = (splash.PrevLife >= 32 ? 128 : (unsigned char)((splash.PrevLife / 32.0f) * 128));
+
+			if (!splash.isRipple)
+			{
+				if (splash.PrevHeightSpeed < 0 && splash.PrevHeight < 1024)
+				{
+					float multiplier = splash.PrevHeight / 1024.0f;
+					prevColor = (float)prevColor * multiplier;
+				}
+			}
+
+			color = (unsigned char)Lerp(prevColor, color, GetInterpolationFactor());
+
+			float xInner;
+			float zInner;
+			float xOuter;
+			float zOuter;
+			float x2Inner;
+			float z2Inner;
+			float x2Outer;
+			float z2Outer;
+			float yInner = splash.Position.y;
+			float yOuter = splash.Position.y - splash.height;
+
+			float innerRadius = Lerp(splash.PrevInnerRadius, splash.InnerRadius, GetInterpolationFactor());
+			float outerRadius = Lerp(splash.PrevOuterRadius, splash.OuterRadius, GetInterpolationFactor());
+
+			for (int i = 0; i < POINT_COUNT; i++) 
+			{
+				xInner = innerRadius * sin(ALPHA * i * PI / 180);
+				zInner = innerRadius * cos(ALPHA * i * PI / 180);
+				xOuter = outerRadius * sin(ALPHA * i * PI / 180);
+				zOuter = outerRadius * cos(ALPHA * i * PI / 180);
+				xInner += splash.Position.x;
+				zInner += splash.Position.z;
+				xOuter += splash.Position.x;
+				zOuter += splash.Position.z;
+				int j = (i + 1) % POINT_COUNT;
+				x2Inner = innerRadius * sin(ALPHA * j * PI / 180);
+				x2Inner += splash.Position.x;
+				z2Inner = innerRadius * cos(ALPHA * j * PI / 180);
+				z2Inner += splash.Position.z;
+				x2Outer = outerRadius * sin(ALPHA * j * PI / 180);
+				x2Outer += splash.Position.x;
+				z2Outer = outerRadius * cos(ALPHA * j * PI / 180);
+				z2Outer += splash.Position.z;
+
+				AddQuad(
+					&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + splash.SpriteSeqStart + (int)splash.AnimPhase],
+					Vector3(xOuter, yOuter, zOuter),
+					Vector3(x2Outer, yOuter, z2Outer),
+					Vector3(x2Inner, yInner, z2Inner),
+					Vector3(xInner, yInner, zInner),
+					Vector4(color / 255.0f, color / 255.0f, color / 255.0f, 1.0f),
+					0, 1, Vector2::Zero,
+					BlendMode::Additive, false, view);
+			}
+		}
+	}
+
+	void Renderer::PrepareBubbles(RenderView& view) 
+	{
+		if (Bubbles.empty())
+			return;
+
+		if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Bubbles rendering"))
+			return;
+
+		for (const auto& bubble : Bubbles)
+		{
+			if (bubble.Life <= 0.0f)
+				continue;
+
+			AddSpriteBillboard(
+				&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + bubble.SpriteIndex],
+				Vector3::Lerp(bubble.PrevPosition, bubble.Position, GetInterpolationFactor()),
+				Vector4::Lerp(bubble.PrevColor, bubble.Color, GetInterpolationFactor()),
+				0.0f,
+				1.0f,
+				Vector2::Lerp(bubble.PrevSize, bubble.Size, GetInterpolationFactor()) / 2,
+				BlendMode::Additive, true, view);
+		}
+	}
+
+	void Renderer::PrepareDrips(RenderView& view)
+	{
+		if (Drips.empty())
+			return;
+
+		if (!CheckIfSlotExists(ID_DRIP_SPRITE, "Drips rendering"))
+			return;
+
+		for (const auto& drip : Drips)
+		{
+			if (drip.Life <= 0.0f)
+				continue;
+
+			auto axis = drip.Velocity;
+			drip.Velocity.Normalize(axis);
+
+			auto prevAxis = drip.PrevVelocity;
+			drip.PrevVelocity.Normalize(prevAxis);
+
+			AddSpriteBillboardConstrained(
+				&_sprites[Objects[ID_DRIP_SPRITE].meshIndex],
+				Vector3::Lerp(drip.PrevPosition, drip.Position, GetInterpolationFactor()),
+				Vector4::Lerp(drip.PrevColor, drip.Color, GetInterpolationFactor()),
+				0.0f, 1.0f, Vector2::Lerp(drip.PrevSize, drip.Size, GetInterpolationFactor()),
+				BlendMode::Additive, -Vector3::Lerp(prevAxis, axis, GetInterpolationFactor()), false, view);
+		}
+	}
+
+	void Renderer::PrepareRipples(RenderView& view) 
+	{
+		if (Ripples.empty() || _sprites.empty())
+			return;
+
+		for (const auto& ripple : Ripples)
+		{
+			if (ripple.Life <= 0.0f)
+				continue;
+
+			float opacity = ripple.Color.w * ((ripple.Flags & (int)RippleFlags::LowOpacity) ? 0.5f : 1.0f);
+			auto color = ripple.Color;
+			color.w = opacity;
+
+			float oldOpacity = ripple.PrevColor.w * ((ripple.Flags & (int)RippleFlags::LowOpacity) ? 0.5f : 1.0f);
+			auto oldColor = ripple.PrevColor;
+			oldColor.w = oldOpacity;
+
+			AddSpriteBillboardConstrainedLookAt(
+				&_sprites[ripple.SpriteIndex],
+				Vector3::Lerp(ripple.PrevPosition, ripple.Position, GetInterpolationFactor()),
+				Vector4::Lerp(oldColor, color, GetInterpolationFactor()),
+				0.0f, 1.0f, Vector2(Lerp(ripple.PrevSize, ripple.Size, GetInterpolationFactor()) * 2),
+				BlendMode::Additive, ripple.Normal, true, view);
+		}
+	}
+
+	void Renderer::PrepareUnderwaterBloodParticles(RenderView& view)
+	{
+		if (UnderwaterBloodParticles.empty())
+			return;
+
+		auto bloodColor = (Vector4)g_GameFlow->GetSettings()->Effects.BloodColor;
+		auto bloodBlendMode = g_GameFlow->GetSettings()->Effects.BloodBlendMode;
+		auto bloodSize = g_GameFlow->GetSettings()->Effects.BloodSize;
+
+		for (const auto& uwBlood : UnderwaterBloodParticles)
+		{
+			if (uwBlood.Life <= 0.0f)
+				continue;
+
+			auto lifeValue = uwBlood.Init ? uwBlood.Init : uwBlood.Life;
+			auto prevLifeValue = uwBlood.Init ? uwBlood.Init : uwBlood.PrevLife;
+			auto color = DrawEffectHelpers::ScaleBloodColor(bloodColor, std::clamp(lifeValue / (float)(UCHAR_MAX * 0.5f), 0.0f, 1.0f));
+			auto oldColor = DrawEffectHelpers::ScaleBloodColor(bloodColor, std::clamp(prevLifeValue / (float)(UCHAR_MAX * 0.5f), 0.0f, 1.0f));
+
+			AddSpriteBillboard(
+				&_sprites[uwBlood.SpriteIndex],
+				Vector3::Lerp(uwBlood.PrevPosition, uwBlood.Position, GetInterpolationFactor()),
+				Vector4::Lerp(oldColor, color, GetInterpolationFactor()),
+				0.0f, 1.0f,
+				Vector2(
+					Lerp(uwBlood.PrevSize, uwBlood.Size, GetInterpolationFactor()),
+					Lerp(uwBlood.PrevSize, uwBlood.Size, GetInterpolationFactor())) * 2 * bloodSize,
+				bloodBlendMode, true, view);
+		}
+	}
+
+	void Renderer::PrepareShockwaves(RenderView& view)
+	{
+		unsigned char r = 0;
+		unsigned char g = 0;
+		unsigned char b = 0;
+		float c = 0;
+		float s = 0;
+		float angle = 0;
+
+		for (int i = 0; i < MAX_SHOCKWAVE; i++)
+		{
+			auto* shockwave = &ShockWaves[i];
+
+			if (!shockwave->life)
+				continue;
+
+			if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Shockwaves rendering"))
+				return;
+
+			unsigned char color = shockwave->life * 8;
+
+			shockwave->yRot += shockwave->yRot / FPS;
+
+			auto rotMatrix =
+				Matrix::CreateRotationY(shockwave->yRot / 4) *
+				Matrix::CreateRotationZ(shockwave->zRot) *
+				Matrix::CreateRotationX(shockwave->xRot);
+
+			auto pos = Vector3(shockwave->x, shockwave->y, shockwave->z);
+
+			float innerRadius = Lerp(shockwave->PrevInnerRad, shockwave->innerRad, GetInterpolationFactor());
+			float outerRadius = Lerp(shockwave->PrevOuterRad, shockwave->outerRad, GetInterpolationFactor());
+
+			// Inner circle
+			if (shockwave->style == (int)ShockwaveStyle::Normal)
+			{
+				angle = PI / 32.0f;
+				c = cos(angle);
+				s = sin(angle);
+				angle -= PI / 8.0f;
+			}
+			else
+			{
+				angle = PI / 16.0f;
+				c = cos(angle);
+				s = sin(angle);
+				angle -= PI / 4.0f;
+			}
+
+			float x1 = (innerRadius * c);
+			float z1 = (innerRadius * s);
+			float x4 = (innerRadius * c);
+			float z4 = (innerRadius * s);
+
+			auto p1 = Vector3(x1, 0, z1);
+			auto p4 = Vector3(x4, 0, z4);
+
+			p1 = Vector3::Transform(p1, rotMatrix);
+			p4 = Vector3::Transform(p4, rotMatrix);
+
+			if (shockwave->fadeIn == true)
+			{
+				if (shockwave->sr < shockwave->r)
+				{
+					shockwave->sr += shockwave->r / 18;
+					r = shockwave->sr * shockwave->life / 255.0f;
+				}
+				else
+				{
+					r = shockwave->r * shockwave->life / 255.0f;
+				}
+
+				if (shockwave->sg < shockwave->g)
+				{
+					shockwave->sg += shockwave->g / 18;
+					g = shockwave->sg * shockwave->life / 255.0f;
+				}
+				else
+				{
+					g = shockwave->g * shockwave->life / 255.0f;
+				}
+
+				if (shockwave->sb < shockwave->b)
+				{
+					shockwave->sb += shockwave->b / 18;
+					b = shockwave->sb * shockwave->life / 255.0f;
+				}
+				else
+				{
+					b = shockwave->b * shockwave->life / 255.0f;
+				}
+
+				if (r == shockwave->r && g == shockwave->g && b == shockwave->b)
+					shockwave->fadeIn = false;
+
+			}
+			else
+			{
+				r = shockwave->r * shockwave->life / 255.0f;
+				g = shockwave->g * shockwave->life / 255.0f;
+				b = shockwave->b * shockwave->life / 255.0f;
+			}
+
+			for (int j = 0; j <= 16; j++)
+			{
+				c = cos(angle);
+				s = sin(angle);
+
+				float x2 = (innerRadius * c);
+				float z2 = (innerRadius * s);
+
+				float x3 = (outerRadius * c);
+				float z3 = (outerRadius * s);
+
+				auto p2 = Vector3(x2, 0, z2);
+				auto p3 = Vector3(x3, 0, z3);
+
+				p2 = Vector3::Transform(p2, rotMatrix);
+				p3 = Vector3::Transform(p3, rotMatrix);
+
+				if (shockwave->style == (int)ShockwaveStyle::Invisible)
+					return;
+
+				if (shockwave->style == (int)ShockwaveStyle::Normal)
+				{
+					angle -= PI / 8.0f;
+
+					AddQuad(&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_SPLASH],
+						pos + p1,
+						pos + p2,
+						pos + p3,
+						pos + p4,
+						Vector4(
+							r / 16.0f,
+							g / 16.0f,
+							b / 16.0f,
+							1.0f),
+						0, 1, { 0,0 }, BlendMode::Additive, false, view);
+				}
+				else if (shockwave->style == (int)ShockwaveStyle::Sophia)
+				{
+					angle -= PI / 4.0f;
+
+					AddQuad(&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_SPLASH3],
+						pos + p1,
+						pos + p2,
+						pos + p3,
+						pos + p4,
+						Vector4(
+							r / 16.0f,
+							g / 16.0f,
+							b / 16.0f,
+							1.0f),
+						0, 1, Vector2::Zero, BlendMode::Additive, true, view);
+
+				}
+				else if (shockwave->style == (int)ShockwaveStyle::Knockback)
+				{
+					angle -= PI / 4.0f;
+
+					AddQuad(&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_SPLASH3],
+						pos + p4,
+						pos + p3,
+						pos + p2,
+						pos + p1,
+						Vector4(
+							r / 16.0f,
+							g / 16.0f,
+							b / 16.0f,
+							1.0f),
+						0, 1, Vector2::Zero, BlendMode::Additive, true, view);
+				}
+
+				p1 = p2;
+				p4 = p3;
+			}
+		}
+	}
+
+	void Renderer::PrepareBlood(RenderView& view) 
+	{
+		auto bloodColor = (Vector4)g_GameFlow->GetSettings()->Effects.BloodColor;
+		auto bloodBlendMode = g_GameFlow->GetSettings()->Effects.BloodBlendMode;
+		auto bloodSize = g_GameFlow->GetSettings()->Effects.BloodSize;
+
+		for (int i = 0; i < 32; i++) 
+		{
+			auto* blood = &Blood[i];
+
+			if (blood->on)
+			{
+				if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Blood rendering"))
+					return;
+
+				AddSpriteBillboard(
+					&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_BLOOD],
+					Vector3::Lerp(
+						Vector3(blood->PrevPosition.x, blood->PrevPosition.y, blood->PrevPosition.z),
+						Vector3(blood->x, blood->y, blood->z),
+						GetInterpolationFactor()),
+					Vector4::Lerp(
+						DrawEffectHelpers::ScaleBloodColor(bloodColor, blood->PrevShade / 255.0f),
+						DrawEffectHelpers::ScaleBloodColor(bloodColor, blood->shade / 255.0f),
+						GetInterpolationFactor()),
+					TO_RAD(Lerp(blood->PrevRotAng << 4, blood->rotAng << 4, GetInterpolationFactor())),
+					1.0f,
+					Vector2(
+						Lerp(blood->PrevSize, blood->size, GetInterpolationFactor()) * 8.0f,
+						Lerp(blood->PrevSize, blood->size, GetInterpolationFactor()) * 8.0f) * bloodSize,
+					bloodBlendMode, true, view);
+			}
+		}
+	}
+
+	void Renderer::PrepareWeatherParticles(RenderView& view) 
+	{
+		constexpr auto SNOW_CLUSTER_SPREAD = BLOCK(1.0f);
+		constexpr auto RAIN_CLUSTER_SPREAD = BLOCK(1.0f);
+
+		constexpr auto RAIN_WIDTH_NEAR = 1.5f;
+		constexpr auto RAIN_WIDTH_FAR = 15.0f;
+
+		for (const auto& part : Weather.GetParticles())
+		{
+			if (!part.Enabled)
+				continue;
+
+			auto pos  = Vector3::Lerp(part.PrevPosition, part.Position, GetInterpolationFactor());
+			auto size = Lerp(part.PrevSize, part.Size, GetInterpolationFactor());
+
+			// Underwater dust does not need clustering.
+			if (part.Type == WeatherType::None)
+			{
+				if (!view.Camera.Frustum.SphereInFrustum(pos, size))
+					continue;
+
+				if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Underwater dust rendering"))
+					continue;
+
+				AddSpriteBillboard(
+					&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_UNDERWATERDUST],
+					pos,
+					part.FinalColor(),
+					0.0f, 1.0f, Vector2(size),
+					BlendMode::Additive, true, view);
+
+				continue;
+			}
+
+			// Clamp cluster size to 1.
+			int clusterSize = std::max(1, part.ClusterSize);
+
+			// If particle is dying, immediately cancel the cluster.
+			if (part.Stopped)
+				clusterSize = 1;
+
+			auto finalPos = pos;
+			auto finalScale = size;
+
+			for (int i = 0; i < clusterSize; i++)
+			{
+				// Combine particle index and cluster index for unique seeding.
+				int uniqueSeed = part.UniqueID + i;
+
+				if (i > 0)
+				{
+					// Use bits from uniqueSeed to determine distribution pattern.
+					float spread = part.Type == WeatherType::Snow ? SNOW_CLUSTER_SPREAD : RAIN_CLUSTER_SPREAD;
+					float offsetBase = spread * ((i + 1) / (float)clusterSize);
+
+					// Use bits 0, 1, 2 for axis signs.
+					// Snow Y axis is always negative, so that snowflakes don't sink into room geometry.
+					float xSign = (uniqueSeed & 1) ? 1.0f : -1.0f;
+					float zSign = (uniqueSeed & 4) ? 1.0f : -1.0f;
+
+					// Use bits 3, 4 for axis emphasis.
+					int axisEmphasis = uniqueSeed & 3;
+					float xScale = (axisEmphasis == 0) ? 1.1f : 0.4f;
+					float yScale = (axisEmphasis == 1) ? 1.2f : 0.5f;
+					float zScale = (axisEmphasis == 2) ? 1.0f : 0.6f;
+
+					Vector3 positionOffset(
+						xSign * offsetBase * xScale,
+						-(offsetBase * yScale),
+						zSign * offsetBase * zScale
+					);
+
+					// Apply deterministic offset.
+					finalPos = pos + positionOffset;
+					finalScale = size * (1.0f + abs(phd_sin(part.UniqueID + i)));
+
+					constexpr auto SNOW_SPIN_RATE = 0.05f;
+					constexpr auto SNOW_SPIN_RADIUS = 0.3f;
+
+					if (part.Type == WeatherType::Snow)
+					{
+						// Calculate spin angle based on vertical position.
+						// Wrap the vertical position to 3 blocks and multiply by 21 to get full unsigned short value.
+						unsigned short spinAngle = ((int)abs(finalPos.y) % BLOCK(3)) * 21;
+
+						// Apply circular motion in XZ plane.
+						finalPos.x += positionOffset.x * phd_sin((short)spinAngle);
+						finalPos.z += positionOffset.z * phd_cos((short)spinAngle);
+					}
+				}
+
+				if (!view.Camera.Frustum.SphereInFrustum(finalPos, finalScale))
+					continue;
+
+				switch (part.Type)
+				{
+					case WeatherType::Snow:
+					{
+						if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Snow rendering"))
+							continue;
+
+						// Use dedicated snow sprite sequence if available, otherwise fallback to underwater dust sprite.
+						int spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_UNDERWATERDUST;
+						if (Objects[ID_SNOW_SPRITES].loaded)
+							spriteIndex = Objects[ID_SNOW_SPRITES].meshIndex + (uniqueSeed % Objects[ID_SNOW_SPRITES].nmeshes);
+
+						/// Get a deterministic particle rotation from the cluster index.
+						float rot = ((float)i / (float)clusterSize) * PI_MUL_2;
+
+						AddSpriteBillboard(
+							&_sprites[spriteIndex],
+							finalPos,
+							part.FinalColor(),
+							rot, 1.0f, Vector2(finalScale),
+							BlendMode::Additive, false, view);
+
+						break;
+					}
+
+					case WeatherType::Rain:
+					{
+						if (!CheckIfSlotExists(ID_DRIP_SPRITE, "Rain rendering"))
+							continue;
+
+						int spriteIndex = Objects[ID_DRIP_SPRITE].meshIndex;
+						if (Objects[ID_RAIN_SPRITES].loaded)
+							spriteIndex = Objects[ID_RAIN_SPRITES].meshIndex + (uniqueSeed % Objects[ID_RAIN_SPRITES].nmeshes);
+
+						Vector3 v;
+						part.Velocity.Normalize(v);
+
+						// Distance to camera
+						const Vector3 camPos = view.Camera.WorldPosition;
+						float dist = (finalPos - camPos).Length();
+
+						// Define interpolation range:
+						// near = ~1 block (no widening), far = expanded rain render range
+						float nearD = BLOCK(0.5f);
+						float farD = COLLISION_CHECK_DISTANCE * RAIN_RENDER_RANGE_MULT;
+						float t = std::clamp((dist - nearD) / std::max(1.0f, (farD - nearD)), 0.0f, 1.0f);
+
+						// Blend rain width based on distance
+						float width = Lerp(RAIN_WIDTH_NEAR, RAIN_WIDTH_FAR, t);
+
+						AddSpriteBillboardConstrained(
+							&_sprites[spriteIndex],
+							finalPos,
+							part.FinalColor(),
+							0.0f, 1.0f,
+							Vector2(width, finalScale),
+							BlendMode::Additive, -v, false, view);
+
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	void Renderer::PrepareFootprints(RenderView& view) 
+	{
+		for (const auto& footprint : Footprints)
+		{
+			AddQuad(
+				&_sprites[footprint.SpriteIndex],
+				footprint.VertexPoints[0], footprint.VertexPoints[1], footprint.VertexPoints[2], footprint.VertexPoints[3],
+				Vector4(footprint.Opacity), 0.0f, 1.0f, Vector2::One, BlendMode::Subtractive, false, view);
+		}
+	}
+
+	Matrix Renderer::GetWorldMatrixForSprite(const RendererSpriteToDraw& sprite, RenderView& view)
+	{
+		auto spriteMatrix = Matrix::Identity;
+		auto scaleMatrix = Matrix::CreateScale(sprite.Width * sprite.Scale, sprite.Height * sprite.Scale, sprite.Scale);
+
+		auto spritePos = sprite.pos;
+
+		if (sprite.Type == SpriteType::ThreeD)
+		{
+			ReflectMatrixOptionally(spriteMatrix);
+		}
+		else
+		{
+			ReflectVectorOptionally(spritePos);
+		}
+
+		switch (sprite.Type)
+		{
+		case SpriteType::Billboard:
+		{
+			auto cameraUp = Vector3(view.Camera.View._12, view.Camera.View._22, view.Camera.View._32);
+			spriteMatrix = scaleMatrix * Matrix::CreateRotationZ(sprite.Rotation) * Matrix::CreateBillboard(spritePos, Camera.pos.ToVector3(), cameraUp);
+		}
+		break;
+
+		case SpriteType::CustomBillboard:
+		{
+			auto rotMatrix = Matrix::CreateRotationY(sprite.Rotation);
+			auto quadForward = Vector3(0.0f, 0.0f, 1.0f);
+			spriteMatrix = scaleMatrix * Matrix::CreateConstrainedBillboard(
+				spritePos,
+				Camera.pos.ToVector3(),
+				sprite.ConstrainAxis,
+				nullptr,
+				&quadForward);
+		}
+		break;
+
+		case SpriteType::LookAtBillboard:
+		{
+			auto translationMatrix = Matrix::CreateTranslation(spritePos);
+			auto rotMatrix = Matrix::CreateRotationZ(sprite.Rotation) * Matrix::CreateLookAt(Vector3::Zero, sprite.LookAtAxis, Vector3::UnitZ);
+			spriteMatrix = scaleMatrix * rotMatrix * translationMatrix;
+		}
+		break;
+
+		case SpriteType::ThreeD:
+		default:
+			break;
+		}
+
+		return spriteMatrix;
+	}
+
+	void Renderer::PrepareSmokeParticles(RenderView& view)
+	{
+		using TEN::Effects::Smoke::SmokeParticles;
+		using TEN::Effects::Smoke::SmokeParticle;
+
+		for (const auto& smoke : SmokeParticles) 
+		{
+			if (!smoke.active)
+				continue;
+
+			if (!CheckIfSlotExists(ID_SMOKE_SPRITES, "Smoke rendering"))
+				return;
+
+			AddSpriteBillboard(
+				&_sprites[Objects[ID_SMOKE_SPRITES].meshIndex + smoke.sprite],
+				Vector3::Lerp(smoke.PrevPosition, smoke.position, GetInterpolationFactor()),
+				Vector4::Lerp(smoke.PrevColor, smoke.color, GetInterpolationFactor()),
+				Lerp(smoke.PrevRotation, smoke.rotation, GetInterpolationFactor()),
+				1.0f,
+				Vector2(
+					Lerp(smoke.PrevSize, smoke.size, GetInterpolationFactor()),
+					Lerp(smoke.PrevSize, smoke.size, GetInterpolationFactor())),
+				BlendMode::AlphaBlend, true, view);
+		}
+	}
+
+	void Renderer::PrepareSparkParticles(RenderView& view)
+	{
+		for (int i = 0; i < SparkParticles.size(); i++) 
+		{
+			auto& s = SparkParticles[i];
+			if (!s.active) continue;
+
+			if (!CheckIfSlotExists(ID_SPARK_SPRITE, "Spark particle rendering"))
+				return;
+
+			Vector3 prevVelocity;
+			Vector3 velocity;
+			s.PrevVelocity.Normalize(prevVelocity);
+			s.velocity.Normalize(velocity);
+
+			velocity = Vector3::Lerp(prevVelocity, velocity, GetInterpolationFactor());
+			velocity.Normalize();
+
+			float normalizedLife = s.age / s.life;
+			auto height = Lerp(1.0f, 0.0f, normalizedLife);
+			auto color = Vector4::Lerp(s.sourceColor, s.destinationColor, normalizedLife);
+
+			AddSpriteBillboardConstrained(
+				&_sprites[Objects[ID_SPARK_SPRITE].meshIndex],
+				Vector3::Lerp(s.PrevPosition, s.pos, GetInterpolationFactor()),
+				color, 
+				0, 1,
+				Vector2(
+					s.width, 
+					s.height * height),
+				BlendMode::Additive, -velocity, false, view);
+		}
+	}
+
+	void Renderer::PrepareExplosionParticles(RenderView& view)
+	{
+		using TEN::Effects::Explosion::explosionParticles;
+		using TEN::Effects::Explosion::ExplosionParticle;
+
+		for (int i = 0; i < explosionParticles.size(); i++) 
+		{
+			auto& exp = explosionParticles[i];
+			if (!exp.active) continue;
+
+			if (!CheckIfSlotExists(ID_EXPLOSION_SPRITES, "Explosion particles rendering"))
+				return;
+
+			AddSpriteBillboard(
+				&_sprites[Objects[ID_EXPLOSION_SPRITES].meshIndex + exp.sprite], 
+				Vector3::Lerp(exp.oldPos, exp.pos, GetInterpolationFactor()),
+				Vector4::Lerp(exp.oldTint, exp.tint, GetInterpolationFactor()),
+				Lerp(exp.oldRotation, exp.rotation, GetInterpolationFactor()),
+				1.0f,
+				Vector2(
+					Lerp(exp.oldSize, exp.size, GetInterpolationFactor()),
+					Lerp(exp.oldSize, exp.size, GetInterpolationFactor())),
+				BlendMode::Additive, true, view);
+		}
+	}
+
+	void Renderer::PrepareSimpleParticles(RenderView& view)
+	{
+		using namespace TEN::Effects;
+
+		for (const auto& part : simpleParticles)
+		{
+			if (!part.active)
+				continue;
+
+			if (!CheckIfSlotExists(part.sequence, "Particle rendering"))
+				continue;
+
+			AddSpriteBillboard(
+				&_sprites[Objects[part.sequence].meshIndex + part.sprite],
+				Vector3::Lerp(part.PrevWorldPosition, part.worldPosition, GetInterpolationFactor()),
+				Color(1.0f, 1.0f, 1.0f), 0, 1.0f,
+				Vector2(
+					Lerp(part.PrevSize, part.size, GetInterpolationFactor()),
+					Lerp(part.PrevSize, part.size, GetInterpolationFactor()) / 2),
+				BlendMode::AlphaBlend, true, view);
+		}
+	}
+
+	void Renderer::PrepareParticleGroups(RenderView& view)
+	{
+		using namespace TEN::Effects::ParticleGroups;
+
+		for (const auto& group : ParticleGroupList)
+		{
+			if (!group.Active)
+				continue;
+
+			// Silent check: object validity is already reported by CreateParticleGroup and
+			// SetObjectID; logging here would spam the log every frame.
+			if (!Objects[group.ObjectID].loaded)
+				continue;
+
+			// Mesh groups are rendered via DrawParticleGroupMeshes().
+			if (group.IsMeshGroup())
+				continue;
+
+			for (const auto& p : group.Particles)
+			{
+				if (!p.Active)
+					continue;
+
+				// Validate per-particle object ID.
+				if (!Objects[p.ObjectID].loaded)
+					continue;
+
+				// Validate that it's a sprite sequence (negative nmeshes).
+				if (Objects[p.ObjectID].nmeshes >= 0)
+					continue;
+
+				auto interpPos = Vector3::Lerp(p.PrevPosition, p.Position, GetInterpolationFactor());
+
+				float dist = Vector3::Distance(interpPos, view.Camera.WorldPosition);
+				if (dist > DEFAULT_RENDER_DISTANCE)
+					continue;
+
+				auto interpSize     = Lerp(p.PrevSize, p.Size, GetInterpolationFactor());
+				auto interpRotation = Lerp(p.PrevRotation, p.Rotation, GetInterpolationFactor());
+
+				int spriteCount        = std::max(1, abs(Objects[p.ObjectID].nmeshes));
+				int clampedSpriteIndex = std::clamp(p.SubIndex, 0, spriteCount - 1);
+
+				if (p.Orientation != Vector3::Zero)
+				{
+					AddQuad(
+						&_sprites[Objects[p.ObjectID].meshIndex + clampedSpriteIndex],
+						interpPos,
+						Vector4(p.ParticleColor.R(), p.ParticleColor.G(), p.ParticleColor.B(), p.ParticleColor.A()),
+						interpRotation, 1.0f,
+						interpSize, group.RenderBlendMode, p.Orientation, true, view);
+				}
+				else
+				{
+					AddSpriteBillboard(
+						&_sprites[Objects[p.ObjectID].meshIndex + clampedSpriteIndex],
+						interpPos,
+						Vector4(p.ParticleColor.R(), p.ParticleColor.G(), p.ParticleColor.B(), p.ParticleColor.A()),
+						interpRotation, 1.0f,
+						Vector2(interpSize, interpSize),
+						group.RenderBlendMode, true, view);
+				}
+			}
+		}
+	}
+
+	void Renderer::DrawEffects(RenderView& view, RendererPass rendererPass)
+	{
+		for (auto* roomPtr : view.RoomsToDraw)
+		{
+			if (IgnoreReflectionPassForRoom(roomPtr->RoomNumber))
+				continue;
+
+			for (auto* effectPtr : roomPtr->EffectsToDraw)
+			{
+				const auto& object = Objects[effectPtr->ObjectID];
+				if (object.Hidden || !object.loaded || effectPtr->Mesh == nullptr)
+					continue;
+
+				for (auto& bucket : effectPtr->Mesh->Buckets)
+				{
+					if (bucket.NumVertices == 0 || !IsSortedBlendMode(bucket.BlendMode))
+						continue;
+
+					auto sortableObject = RendererSortableObject{};
+					sortableObject.ObjectType = RendererObjectType::Effect;
+					sortableObject.BlendMode = bucket.BlendMode;
+					sortableObject.Bucket = &bucket;
+					sortableObject.LightMode = LightMode::Dynamic;
+					sortableObject.World = effectPtr->InterpolatedWorld;
+					sortableObject.Effect = effectPtr;
+					sortableObject.Room = &_rooms[effectPtr->RoomNumber];
+
+					CollectSortedBucket(view, sortableObject, &effectPtr->InterpolatedWorld, view.Camera.WorldPosition);
+				}
+			}
+		}
+	}
+}

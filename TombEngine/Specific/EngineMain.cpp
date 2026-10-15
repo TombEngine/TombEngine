@@ -4,9 +4,9 @@
 #include "Game/control/control.h"
 #include "Game/savegame.h"
 #include "Renderer/Renderer.h"
-#include "Renderer/ImGuiIntegration.h"
-#include "Renderer/Next/NextRenderer.h"
-#include "Renderer/RHI/RHITest.h"
+#include "Renderer/UI/ImGuiIntegration.h"
+#include "Renderer/Backend/SceneRenderer.h"
+#include "Renderer/RHI/Test/RHITest.h"
 #include "resource.h"
 #include "Sound/sound.h"
 #include "Specific/Benchmark.h"
@@ -64,19 +64,19 @@ bool ArgEquals(const char* incomingArg, const std::string& name)
 	return arg == lowerName;
 }
 
-TEN::Renderer::RHI::Backend ParseRHIBackend(const std::string& name)
+TEN::Renderer::RHI::GraphicsApi ParseRHIBackend(const std::string& name)
 {
 	if (name == "dx11")
-		return TEN::Renderer::RHI::Backend::DirectX11;
+		return TEN::Renderer::RHI::GraphicsApi::DirectX11;
 
 	if (name == "d3d12")
-		return TEN::Renderer::RHI::Backend::Direct3D12;
+		return TEN::Renderer::RHI::GraphicsApi::Direct3D12;
 
-	return TEN::Renderer::RHI::Backend::Vulkan;
+	return TEN::Renderer::RHI::GraphicsApi::Vulkan;
 }
 
-// Tries the requested next renderer backend, then the others in order. Returns false when none starts.
-bool StartNextRenderer(SDL_Window* window, const std::string& requestedBackend, bool preferLowPowerGpu)
+// Tries the requested scene renderer backend, then the others in order. Returns false when none starts.
+bool StartSceneRenderer(SDL_Window* window, const std::string& requestedBackend, bool preferLowPowerGpu)
 {
 	const std::string backends[] = { requestedBackend, "vulkan", "dx11" };
 	for (int i = 0; i < 3; i++)
@@ -84,10 +84,10 @@ bool StartNextRenderer(SDL_Window* window, const std::string& requestedBackend, 
 		if (std::find(backends, backends + i, backends[i]) != backends + i)
 			continue;
 
-		if (TEN::Renderer::Next::g_NextRenderer.Initialize(window, ParseRHIBackend(backends[i]), GameDirectory, preferLowPowerGpu))
+		if (TEN::Renderer::Backend::g_SceneRenderer.Initialize(window, ParseRHIBackend(backends[i]), GameDirectory, preferLowPowerGpu))
 			return true;
 
-		TENLog("Next renderer could not start on the " + backends[i] + " backend.", LogLevel::Warning);
+		TENLog("Scene renderer could not start on the " + backends[i] + " backend.", LogLevel::Warning);
 	}
 
 	return false;
@@ -295,7 +295,7 @@ int main(int argc, char* argv[])
 	bool isOnLowPowerGpu = false;
 	bool isVsyncDisabled = false;
 	bool isGpuTimingDisabled = false;
-	auto nextBackend = std::string();
+	auto rendererBackend = std::string();
 
 	for (int i = 1; i < argc; ++i)
 	{
@@ -328,7 +328,7 @@ int main(int argc, char* argv[])
 		else if (ArgEquals(arg.c_str(), "next") && i + 1 < argc)
 		{
 			// Renderer backend, overriding the configuration.
-			nextBackend = argv[++i];
+			rendererBackend = argv[++i];
 		}
 		else if (ArgEquals(arg.c_str(), "nogputiming"))
 		{
@@ -454,8 +454,8 @@ int main(int argc, char* argv[])
 	}
 
 	// The configured backend applies when the command line does not choose one; the retired legacy option uses Vulkan.
-	if (nextBackend.empty())
-		nextBackend = (g_Configuration.GraphicsBackend == GraphicsBackend::DX11) ? "dx11" : "vulkan";
+	if (rendererBackend.empty())
+		rendererBackend = (g_Configuration.GraphicsBackend == GraphicsBackend::DX11) ? "dx11" : "vulkan";
 
 	// Initialize main window.
 	int width = g_Configuration.ScreenWidth;
@@ -501,18 +501,18 @@ int main(int argc, char* argv[])
 		Sound_Init(GameDirectory);
 
 		// Initialize renderer.
-		// The next renderer draws the main window from the frames the renderer frontend prepares.
-		if (!StartNextRenderer(sdlWindow, nextBackend, isOnLowPowerGpu))
+		// The scene renderer draws the main window from the frames the renderer frontend prepares.
+		if (!StartSceneRenderer(sdlWindow, rendererBackend, isOnLowPowerGpu))
 			throw std::runtime_error("No renderer backend could be started.");
 
 		if (isVsyncDisabled)
-			TEN::Renderer::Next::g_NextRenderer.SetVsyncEnabled(false);
+			TEN::Renderer::Backend::g_SceneRenderer.SetVsyncEnabled(false);
 
-		TEN::Renderer::Next::g_NextRenderer.SetBenchmarkGpuTimingEnabled(!isGpuTimingDisabled);
+		TEN::Renderer::Backend::g_SceneRenderer.SetBenchmarkGpuTimingEnabled(!isGpuTimingDisabled);
 
 		g_Renderer.Initialize(GameDirectory, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight, g_Configuration.EnableWindowedMode);
 
-		// Initialize ImGui (debug overlay), drawn by the next renderer.
+		// Initialize ImGui (debug overlay), drawn by the scene renderer.
 		TEN::Renderer::ImGuiInit(sdlWindow);
 
 		// Initialize input.
@@ -571,7 +571,7 @@ int main(int argc, char* argv[])
 	while (running && !ThreadEnded && DoTheGame)
 	{
 		TEN::Benchmark::UpdateBenchmark();
-		TEN::Renderer::Next::g_NextRenderer.PresentOnWindowThread();
+		TEN::Renderer::Backend::g_SceneRenderer.PresentOnWindowThread();
 
 		auto event = SDL_Event{};
 		while (SDL_PollEvent(&event))
@@ -637,7 +637,7 @@ int main(int argc, char* argv[])
 	// Tear ImGui down before the window: its SDL backend holds the window.
 	TEN::Renderer::ImGuiShutdown();
 
-	TEN::Renderer::Next::g_NextRenderer.Shutdown();
+	TEN::Renderer::Backend::g_SceneRenderer.Shutdown();
 
 	SDL_DestroyWindow(sdlWindow);
 	EngineClose();
