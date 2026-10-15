@@ -2,6 +2,7 @@
 #include "Math/Math.h"
 #include "Objects/game_object_ids.h"
 #include "Renderer/RendererEnums.h"
+#include "Renderer/Structures/RendererRectangle.h"
 
 namespace TEN::Effects::DisplaySprite
 {
@@ -47,6 +48,9 @@ namespace TEN::Effects::DisplaySprite
 		BlendMode			   BlendMode = BlendMode::AlphaBlend;
 
 		DisplaySpritePhase Source = DisplaySpritePhase::Control;
+
+		bool                               HasScissor = false;
+		TEN::Renderer::Structures::RendererRectangle Scissor    = {};
 	};
 
 	// Result of display sprite layout calculation.
@@ -61,9 +65,38 @@ namespace TEN::Effects::DisplaySprite
 	
 	void AddDisplaySprite(GAME_OBJECT_ID objectID, int spriteID, const Vector2& pos, short orient, const Vector2& scale, const Vector4& color,
 						  int priority, DisplaySpriteAlignMode alignMode, DisplaySpriteScaleMode scaleMode, 
-						  BlendMode blendMode, DisplaySpritePhase source);
+					  BlendMode blendMode, DisplaySpritePhase source, bool hasScissor = false,
+					  TEN::Renderer::Structures::RendererRectangle scissor = TEN::Renderer::Structures::RendererRectangle());
 	void ClearAllDisplaySprites();
 	void ClearDrawPhaseDisplaySprites();
+
+	inline Vector2 GetDisplaySpriteScissorTopLeft(const Vector2& pos, const Vector2& size, DisplaySpriteAlignMode alignMode)
+	{
+		switch (alignMode)
+		{
+		case DisplaySpriteAlignMode::CenterTop:    return Vector2(pos.x - size.x / 2.0f, pos.y);
+		case DisplaySpriteAlignMode::CenterBottom: return Vector2(pos.x - size.x / 2.0f, pos.y - size.y);
+		case DisplaySpriteAlignMode::CenterLeft:   return Vector2(pos.x, pos.y - size.y / 2.0f);
+		case DisplaySpriteAlignMode::CenterRight:  return Vector2(pos.x - size.x, pos.y - size.y / 2.0f);
+		case DisplaySpriteAlignMode::Center:       return Vector2(pos.x - size.x / 2.0f, pos.y - size.y / 2.0f);
+		case DisplaySpriteAlignMode::TopRight:     return Vector2(pos.x - size.x, pos.y);
+		case DisplaySpriteAlignMode::BottomLeft:   return Vector2(pos.x, pos.y - size.y);
+		case DisplaySpriteAlignMode::BottomRight:  return Vector2(pos.x - size.x, pos.y - size.y);
+		default:                                   return pos;
+		}
+	}
+
+	inline TEN::Renderer::Structures::RendererRectangle GetDisplaySpriteScissorRectangle(const Vector2& screenRes,
+		const Vector2& pos, const Vector2& size, DisplaySpriteAlignMode alignMode)
+	{
+		auto topLeft = GetDisplaySpriteScissorTopLeft(pos, size, alignMode);
+
+		return TEN::Renderer::Structures::RendererRectangle(
+			(int)(topLeft.x * screenRes.x / 100.0f),
+			(int)(topLeft.y * screenRes.y / 100.0f),
+			(int)((topLeft.x + size.x) * screenRes.x / 100.0f),
+			(int)((topLeft.y + size.y) * screenRes.y / 100.0f));
+	}
 
 	// Calculate complete layout data for a display sprite.
 	// 

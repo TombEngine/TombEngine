@@ -51,6 +51,8 @@ namespace TEN::Scripting::DisplayItem
 			ScriptReserved_SetFrameNumber, &ScriptDisplayItem::SetFrameNumber,
 
 			ScriptReserved_DisplayItemSetMeshBits, &ScriptDisplayItem::SetMeshBits,
+			ScriptReserved_SetScissor,   &ScriptDisplayItem::SetScissor,
+			ScriptReserved_ClearScissor, &ScriptDisplayItem::ClearScissor,
 
 			ScriptReserved_GetObjectID, &ScriptDisplayItem::GetObjectID,
 			ScriptReserved_GetPosition, &ScriptDisplayItem::GetPosition,
@@ -307,6 +309,27 @@ namespace TEN::Scripting::DisplayItem
 	{
 		if (auto* item = TryGetItem())
 			item->SetMeshBits(meshBits);
+	}
+
+	/// Set a scissor clipping rectangle for the display item.
+	// Clips the item to the specified rectangle when drawn.
+	// @function DisplayItem:SetScissor
+	// @tparam Vec2 pos Position of the scissor rectangle in display-space percent coordinates (0-100).
+	// @tparam Vec2 size Width and height of the scissor rectangle in display-space percent coordinates (0-100).
+	// @tparam[opt=View.AlignMode.TOP_LEFT] View.AlignMode alignMode Alignment mode used to interpret `pos`.
+	void ScriptDisplayItem::SetScissor(const Vec2& pos, const Vec2& size, sol::optional<DisplaySpriteAlignMode> alignMode)
+	{
+		if (auto* item = TryGetItem())
+			item->SetScissor(Vector2(pos.x, pos.y), Vector2(size.x, size.y), alignMode.value_or(DisplaySpriteAlignMode::TopLeft));
+	}
+
+	/// Clear the scissor clipping rectangle from the display item.
+	// Removes the scissor rectangle previously specified in display-space percent coordinates (0-100).
+	// @function DisplayItem:ClearScissor
+	void ScriptDisplayItem::ClearScissor()
+	{
+		if (auto* item = TryGetItem())
+			item->ClearScissor();
 	}
 
 	/// Make the specified mesh of a display item visible or invisible.
