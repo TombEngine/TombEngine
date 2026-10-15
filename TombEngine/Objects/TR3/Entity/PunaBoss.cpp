@@ -5,20 +5,29 @@
 #include "Game/control/los.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/Electricity.h"
+#include "Game/effects/Light.h"
 #include "Game/effects/item_fx.h"
+#include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/misc.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Objects/Effects/Boss.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Specific/level.h"
+
 
 using namespace TEN::Effects::Boss;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Items;
+using namespace TEN::Effects::Light;
 
 namespace TEN::Entities::Creatures::TR3
 {
+	// Properties
+	static const auto PropName_PunaSummonColor = GetHash("PrimaryColor");
+
 	constexpr auto PUNA_LIGHTNING_DAMAGE = 350;
 
 	constexpr auto PUNA_ATTACK_RANGE = BLOCK(20);
@@ -38,6 +47,15 @@ namespace TEN::Entities::Creatures::TR3
 
 	const auto PunaBossHeadBite = CreatureBiteInfo(Vector3::Zero, 8);
 	const auto PunaBossHandBite = CreatureBiteInfo(Vector3::Zero, 14);
+
+	const auto PunaBossHeadArcBites = std::array
+	{
+		CreatureBiteInfo(Vector3(120.0f, 68.0f, 136.0f), 8),
+		CreatureBiteInfo(Vector3(128.0f, -64.0f, 136.0f), 8),
+		CreatureBiteInfo(Vector3(8.0f, -120.0f, 136.0f), 8),
+		CreatureBiteInfo(Vector3(-128.0f, -64.0f, 136.0f), 8),
+		CreatureBiteInfo(Vector3(-124.0f, 64.0f, 126.0f), 8)
+	};
 
 	enum PunaState
 	{
@@ -148,11 +166,16 @@ namespace TEN::Entities::Creatures::TR3
 		return false;
 	}
 
-	static void SpawnSummonSmoke(const Vector3& pos)
-	{
+	static void SpawnSummonSmoke(ItemInfo& item, const Vector3& pos)
+	{		
+		auto summonColor = PropertyHandler::Get(item, PropName_PunaSummonColor, ScriptColor(16,64,0));
+
 		auto& smoke = *GetFreeParticle();
 		
 		int scale = Random::GenerateInt(256, 384);
+		auto r = summonColor.GetR();
+		auto g = summonColor.GetG();
+		auto b = summonColor.GetB();
 
 		smoke.on = true;
 		smoke.SpriteSeqID = ID_DEFAULT_SPRITES;
@@ -164,12 +187,12 @@ namespace TEN::Entities::Creatures::TR3
 		smoke.xVel = Random::GenerateInt(-128, 128);
 		smoke.yVel = Random::GenerateInt(-32, -16);
 		smoke.zVel = Random::GenerateInt(-128, 128);
-		smoke.sR = 16;
-		smoke.sG = 64;
-		smoke.sB = 0;
-		smoke.dR = 8;
-		smoke.dG = 32;
-		smoke.dB = 0;
+		smoke.sR = r;
+		smoke.sG = g;
+		smoke.sB = b;
+		smoke.dR = std::max(1, r / 2);
+		smoke.dG = std::max(1, g / 2);
+		smoke.dB = std::max(1, b / 2);
 		smoke.colFadeSpeed = Random::GenerateInt(16, 24);
 		smoke.fadeToBlack = 64;
 		smoke.sLife =
@@ -206,7 +229,7 @@ namespace TEN::Entities::Creatures::TR3
 			auto& currentItem = g_Level.Items[itemNumber];
 
 			for (int i = 0; i < 20; i++)
-				SpawnSummonSmoke(currentItem.Pose.Position.ToVector3());
+				SpawnSummonSmoke(item, currentItem.Pose.Position.ToVector3());
 
 			AddActiveItem(itemNumber);
 			currentItem.ItemFlags[0] = 1; // Flag 1 = spawned lizard.
@@ -278,6 +301,79 @@ namespace TEN::Entities::Creatures::TR3
 		}
 	}
 
+	static void SpawnPunaHeadElectricity(ItemInfo& item)
+	{
+		int dx = LaraItem->Pose.Position.x - item.Pose.Position.x;
+		int dz = LaraItem->Pose.Position.z - item.Pose.Position.z;
+		bool isHeadAttackState = (item.Animation.ActiveState == PUNA_STATE_HEAD_ATTACK);
+
+		if (dx < -PUNA_ATTACK_RANGE || dx > PUNA_ATTACK_RANGE ||
+			dz < -PUNA_ATTACK_RANGE || dz > PUNA_ATTACK_RANGE)
+			return;
+
+		if (isHeadAttackState)
+		{
+			auto headCenter = GetJointPosition(&item, PunaBossHeadBite).ToVector3();
+			auto lightAccumulator = Vector3::Zero;
+
+			for (int i = 0; i < (int)PunaBossHeadArcBites.size(); i++)
+			{
+				auto start = GetJointPosition(&item, PunaBossHeadArcBites[i]).ToVector3();
+				auto segmentMid = Vector3(
+					(start.x + headCenter.x) / 2.0f,
+					(start.y + headCenter.y) / 2.0f,
+					(start.z + headCenter.z) / 2.0f);
+				lightAccumulator += segmentMid;
+
+				SpawnElectricity(
+					start,
+					headCenter,
+					Random::GenerateInt(6, 12),
+					0,
+					255,
+					255,
+					20,
+					(int)ElectricityFlags::ThinIn | (int)ElectricityFlags::ThinOut,
+					2,
+					5);
+			}
+
+			auto avgLightPos = lightAccumulator / (float)PunaBossHeadArcBites.size();
+			SpawnDynamicPointLight(avgLightPos, Color(0.0f, 0.5f, 0.5f), BLOCK(3));
+			return;
+		}
+
+		static int ringStartIndex = 0;
+		if (ringStartIndex >= (int)PunaBossHeadArcBites.size() - 1)
+			ringStartIndex = 0;
+
+		auto ringStartPos = GetJointPosition(&item, PunaBossHeadArcBites[ringStartIndex]);
+		auto ringStart = ringStartPos.ToVector3();
+		auto ringEnd = GetJointPosition(&item, PunaBossHeadArcBites[ringStartIndex + 1]).ToVector3();
+
+		auto lightPos = Vector3(
+			(ringStart.x + ringEnd.x) / 2.0f,
+			(ringStart.y + ringEnd.y) / 2.0f,
+			(ringStart.z + ringEnd.z) / 2.0f);
+
+		SpawnElectricity(
+			ringStart,
+			ringEnd,
+			Random::GenerateInt(6, 12),
+			0,
+			255,
+			255,
+			20,
+			(int)ElectricityFlags::ThinIn | (int)ElectricityFlags::ThinOut,
+			2,
+			5);
+
+		SpawnDynamicPointLight(lightPos, Color(0.0f, 0.5f, 0.5f), BLOCK(3));
+
+		ringStartIndex++;
+
+	}
+
 	void InitializePuna(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
@@ -340,9 +436,7 @@ namespace TEN::Entities::Creatures::TR3
 			{
 				// Avoid having the object stop working.
 				item.Animation.FrameNumber = endFrameNumber;
-
-				if (item.GetFlagField((int)BossItemFlags::ExplodeCount) < PUNA_EXPLOSION_NUM_MAX)
-					item.ItemFlags[(int)BossItemFlags::ExplodeCount]++;
+				item.MeshBits.ClearAll();
 
 				if (item.ItemFlags[7] < PUNA_EXPLOSION_NUM_MAX)
 					item.ItemFlags[7]++;
@@ -495,17 +589,24 @@ namespace TEN::Entities::Creatures::TR3
 		CreatureJoint(&item, 2, headOrient.x, PUNA_HEAD_X_ANGLE_MAX);
 		CreatureAnimation(itemNumber, headingAngle, 0);
 
-		// Emit sound while chair is rotating.
-		if (prevYOrient != item.Pose.Orientation.y && !hasTurned)
+		// Mirror original TR3 behavior: head electricity is emitted until the explosion phase begins.
+		if (item.GetFlagField((int)BossItemFlags::ExplodeCount) == 0)
+			SpawnPunaHeadElectricity(item);
+
+		// Emit sound while chair is rotating, but not while dying.
+		if (item.HitPoints > 0)
 		{
-			hasTurned = true;
-			SoundEffect(SFX_TR3_PUNA_BOSS_TURN_CHAIR, &item.Pose);
-		}
-		else if (prevYOrient == item.Pose.Orientation.y)
-		{
-			hasTurned = false;
-			StopSoundEffect(SFX_TR3_PUNA_BOSS_CHAIR_2);
-			StopSoundEffect(SFX_TR3_PUNA_BOSS_TURN_CHAIR);
+			if (prevYOrient != item.Pose.Orientation.y && !hasTurned)
+			{
+				hasTurned = true;
+				SoundEffect(SFX_TR3_PUNA_BOSS_TURN_CHAIR, &item.Pose);
+			}
+			else if (prevYOrient == item.Pose.Orientation.y)
+			{
+				hasTurned = false;
+				StopSoundEffect(SFX_TR3_PUNA_BOSS_CHAIR_2);
+				StopSoundEffect(SFX_TR3_PUNA_BOSS_TURN_CHAIR);
+			}
 		}
 	}
 
