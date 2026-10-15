@@ -3,12 +3,9 @@
 #include "Math/Math.h"
 
 #define SHAPE_RECTANGLE 0
-#define SHAPE_TRIANGLE	1
 
 #define PRINTSTRING_COLOR_ORANGE ARGB_TO_UINT(255, 216, 117, 49)
 #define PRINTSTRING_COLOR_WHITE ARGB_TO_UINT(255, 255, 255, 255)
-#define PRINTSTRING_COLOR_BLACK ARGB_TO_UINT(255, 0, 0, 0)
-#define PRINTSTRING_COLOR_YELLOW ARGB_TO_UINT(255, 240, 220, 32)
 
 constexpr auto MAX_LINES_2D		= 256;
 constexpr auto MAX_LINES_3D		= 16384;
@@ -18,29 +15,20 @@ constexpr auto FADE_FACTOR = 0.0625f;
 
 constexpr auto NUM_LIGHTS_PER_BUFFER = 48;
 constexpr auto MAX_LIGHTS_PER_ITEM = 8;
-constexpr auto MAX_LIGHTS_PER_ROOM = 48;
 constexpr auto MAX_LIGHTS = 100;
 constexpr auto AMBIENT_LIGHT_INTERPOLATION_STEP = 1.0f / 10.0f;
-constexpr auto MAX_DYNAMIC_SHADOWS = 1;
 constexpr auto MAX_DYNAMIC_LIGHTS = 1024;
 constexpr auto ITEM_LIGHT_COLLECTION_RADIUS = BLOCK(2);
 constexpr auto CAMERA_LIGHT_COLLECTION_RADIUS = BLOCK(4);
 
-constexpr auto MAX_TRANSPARENT_FACES		  = 16384;
-constexpr auto MAX_TRANSPARENT_VERTICES		  = MAX_TRANSPARENT_FACES * 6;
-constexpr auto MAX_TRANSPARENT_FACES_PER_ROOM = 16384;
-constexpr auto TRANSPARENT_BUCKET_SIZE		  = 3840 * 16;
-constexpr auto ALPHA_TEST_THRESHOLD			  = 0.5f;
-constexpr auto ALPHA_BLEND_THRESHOLD		  = 1.0f - EPSILON;
-constexpr auto FAST_ALPHA_BLEND_THRESHOLD	  = 0.5f;
+constexpr auto ALPHA_TEST_THRESHOLD  = 0.5f;
+constexpr auto ALPHA_BLEND_THRESHOLD = 1.0f - EPSILON;
 
-constexpr auto BONE_COUNT_MAX		 = 32;
-constexpr auto BONE_WEIGHT_COUNT_MAX = 4;
+constexpr auto BONE_COUNT_MAX = 32;
 
 constexpr auto DISPLAY_SPACE_RES = Vector2(800.0f, 600.0f);
 constexpr auto DISPLAY_SPACE_ASPECT = DISPLAY_SPACE_RES.x / DISPLAY_SPACE_RES.y;
 constexpr auto REFERENCE_FONT_SIZE = 35.0f;
-constexpr auto HUD_ZERO_Y = -DISPLAY_SPACE_RES.y;
 
 // Near/far planes for the display item virtual camera. These are intentionally tight to maximise
 // depth buffer precision and prevent z-fighting. Display items are typically rendered ~BLOCK(1)
@@ -49,39 +37,24 @@ constexpr auto HUD_ZERO_Y = -DISPLAY_SPACE_RES.y;
 constexpr float DISPLAY_ITEM_NEAR_PLANE = 0.01f;
 constexpr float DISPLAY_ITEM_FAR_PLANE  = BLOCK(10);
 
-constexpr auto UNDERWATER_FOG_MIN_DISTANCE = 4;
-constexpr auto UNDERWATER_FOG_MAX_DISTANCE = 30;
-constexpr auto MAX_ROOM_BOUNDS = 256;
-
 constexpr auto MIN_FAR_VIEW = 3200.0f;
 constexpr auto DEFAULT_FAR_VIEW = 102400.0f;
 
 constexpr auto INSTANCED_SPRITES_BUCKET_SIZE = 512;
-constexpr auto MAX_SPRITE_VERTICES 			 = INSTANCED_SPRITES_BUCKET_SIZE * 6;
 
 constexpr auto SKY_TILES_COUNT = 20;
 constexpr auto SKY_SIZE = 10240.0f;
 constexpr auto SKY_VERTICES_COUNT = 4 * SKY_TILES_COUNT * SKY_TILES_COUNT;
 constexpr auto SKY_INDICES_COUNT = 6 * SKY_TILES_COUNT * SKY_TILES_COUNT;
-constexpr auto SKY_TRIANGLES_COUNT = 2 * SKY_TILES_COUNT * SKY_TILES_COUNT;
 
-constexpr auto MAX_ROOMS_DRAW = 256;
 constexpr auto MAX_ITEMS_DRAW = 128;
 constexpr auto MAX_LIGHTS_DRAW = 48;
 constexpr auto MAX_FOG_BULBS_DRAW = 32;
-constexpr auto MAX_SPRITES_DRAW = 512;
 constexpr auto MAX_LENS_FLARES_DRAW = 8;
 
 constexpr auto ROOM_AMBIENT_MAP_SIZE = 512;
-constexpr auto MAX_ROOM_AMBIENT_MAPS = 10;
-
-constexpr auto POSTPROCESS_DOWNSCALE_FACTOR = 2.0f;
 
 constexpr auto GLOW_DOWNSCALE_FACTOR = 4.0f;
-constexpr auto GLOW_BLUR_SIGMA = 10.0f;
-constexpr auto GLOW_BLUR_RADIUS = 24.0f;
-constexpr auto INVENTORY_GLOW_BLUR_SIGMA = 4.0f;
-constexpr auto INVENTORY_GLOW_BLUR_RADIUS = 8.0f;
 
 constexpr auto GLOW_VERTEX_SHIFT = 0;
 constexpr auto MOVE_VERTEX_SHIFT = 8;
@@ -118,22 +91,13 @@ enum class BlendMode
 
 enum class SkinningMode
 {
-	// Values are uploaded directly as the Skinned scalar in CBObjects; the shader picks the
-	// VS world-transform path from this. Static is for instanced static meshes (no bones at
+	// Values are uploaded directly as the skinning mode of the object uniforms; the vertex shader picks the
+	// world transform path from it. Static is for instanced static meshes (no bones at
 	// all); the others are for moveables where every vertex carries a BoneIndex.
-	Static  = 0, // No bones — use the per-instance Object.World directly.
-	None    = 1, // Rigid moveable — apply Bones[BoneIndex[0]] without blending.
-	Full    = 2, // Modern skinning — blend bone matrices.
+	Static  = 0, // No bones - use the per-instance Object.World directly.
+	None    = 1, // Rigid moveable - apply Bones[BoneIndex[0]] without blending.
+	Full    = 2, // Modern skinning - blend bone matrices.
 	Classic = 3, // Legacy classic blend mode.
-};
-
-enum class CullMode
-{
-	Unknown = -1,
-	None = 0,
-	Clockwise = 1,
-	CounterClockwise = 2,
-	Wireframe = 3
 };
 
 enum class ShadowMode
@@ -169,14 +133,6 @@ enum class LightMode
 	Static
 };
 
-enum class DepthState
-{
-	Unknown = -1,
-	Write = 0,
-	Read = 1,
-	None = 2
-};
-
 enum class SpriteType
 {
 	Billboard,
@@ -200,75 +156,6 @@ enum class RendererDebugPage
 	SkyDebug,
 
 	Count
-};
-
-enum class TransparentFaceType
-{
-	Room,
-	Moveable,
-	Static,
-	Sprite,
-	None
-};
-
-enum class TextureRegister
-{
-	ColorMap = 0,
-	NormalMap = 1,
-	CausticsMap = 2,
-	ShadowMap = 3,
-	GBufferNormalMap = 4,
-	Hud = 5,
-	GBufferDepthMap = 6,
-	EnvironmentMapFront = 7,
-	EnvironmentMapBack = 8,
-	SSAO = 9,
-	ORSHMap = 10,
-	EmissiveMap = 11,
-	LegacyEnvironmentReflections = 12,
-	SkyboxEnvironmentReflections = 13,
-	AnimatedFrames = 14, // StructuredBuffer<AnimatedFrameUV> for per-draw animated UVs.
-	DistortionMap = 15,
-	NearBlurMap = 16,
-	FarBlurMap = 17,
-	GBufferOutdoorMask = 18
-};
-
-enum class SamplerStateRegister
-{
-	None = 0,
-	PointWrap = 1,
-	LinearWrap = 2,
-	LinearClamp = 3,
-	AnisotropicWrap = 4,
-	AnisotropicClamp = 5,
-	ShadowMap = 6
-};
-
-enum class ConstantBufferRegister
-{
-	Camera = 0,
-	// Slot 1 is currently unused — was the per-item CB before items folded into CBObjects.
-	PerDraw = 2, // Combined Material + Blending CB (was Material at b2 + Blending at b12).
-	Objects = 3, // Now holds the unified CBObjects (Bones + Skinned + Objects[N]).
-	ShadowLight = 4,
-	Room = 5,
-	// Slot 6 is currently unused — was CBAnimatedTexture before frames moved to a structured
-	// buffer (t14) and metadata folded into PerDraw at b2.
-	PostProcess = 7,
-	Sky = 8,
-	VolumetricCloud = 9,
-	Hud = 10,
-	HudBar = 11,
-	AtmosphericSky = 12,
-	Sprites = 13
-};
-
-enum class AlphaTestMode
-{
-	None = 0,
-	GreatherThan = 1,
-	LessThan = 2
 };
 
 enum class PrintStringFlags
@@ -322,44 +209,6 @@ enum class RendererObjectType
 	HairSecondary
 };
 
-enum class TextureSource
-{
-	Rooms,
-	Moveables,
-	Statics,
-	Animated
-};
-
-enum class SMAAMode
-{
-	MODE_SMAA_1X,
-	MODE_SMAA_T2X,
-	MODE_SMAA_S2X,
-	MODE_SMAA_4X,
-
-	MODE_SMAA_COUNT = MODE_SMAA_4X
-};
-
-enum class SMAAPreset
-{
-	SMAA_PRESET_LOW,
-	SMAA_PRESET_MEDIUM,
-	SMAA_PRESET_HIGH,
-	SMAA_PRESET_ULTRA,
-	SMAA_PRESET_CUSTOM,
-
-	SMAA_PRESET_COUNT = SMAA_PRESET_CUSTOM
-};
-
-enum class SMAAInput
-{
-	SMAA_INPUT_LUMA,
-	SMAA_INPUT_COLOR,
-	SMAA_INPUT_DEPTH,
-
-	SMAA_INPUT_COUNT = SMAA_INPUT_DEPTH
-};
-
 enum class PostProcessMode
 {
 	None = 0,
@@ -383,186 +232,3 @@ enum class TextureMaterialType
 	SkyboxReflective = 2
 };
 
-enum class SurfaceFormat
-{
-	Unknown,
-	SF_RGBA8_Unorm,
-	SF_RGBA8_Unorm_Srgb,
-	SF_RG8_Unorm,
-	SF_R8_Unorm,
-	SF_R32_Float,
-	SF_RGBA32_Float,
-	SF_BGRA8_Unorm,
-	SF_R11G11B10_Float,
-	SF_RGBA16_Float,
-	SF_R16_Float
-};
-
-enum class DepthFormat
-{
-	None,
-	Depth24Stencil8,
-	Depth32
-};
-
-enum class VertexInputFormat
-{
-	VI_RGBA8_Unorm,
-	VI_RGBA8_Snorm,
-	VI_RGBA8_Uint,
-	VI_RG8_Unorm,
-	VI_R32_Float,
-	VI_R32_Uint,
-	VI_RG32_Float,
-	VI_RGB32_Float,
-	VI_RGBA32_Float
-};
-
-enum class InputLayout
-{
-	Vertex,
-	PostProcessVertex
-};
-
-enum class PrimitiveType
-{
-	TriangleList,
-	TriangleStrip,
-	LineList
-};
-
-enum class DepthStencilClearFlags
-{
-	Depth,
-	Stencil,
-	DepthAndStencil
-};
-
-enum class SpriteSortingMode
-{
-	BackToFront,
-	FrontToBack,
-	Deferred,
-	Immediate,
-	Texture
-};
-
-enum class VertexType
-{
-	Vertex,
-	PostProcessVertex
-};
-
-enum class ShaderType
-{
-	Pixel,
-	Vertex,
-	PixelAndVertex,
-	Compute,
-	Geometry
-};
-
-enum class ShaderStage
-{
-	VertexShader,
-	GeometryShader,
-	PixelShader,
-	ComputeShader,
-	HullShader,
-	DomainShader
-};
-
-enum class Shader
-{
-	// General
-
-	None,
-	Rooms,
-	RoomsTransparent,
-	RoomAmbient,
-	RoomAmbientSky,
-	Items,
-	InstancedStatics,
-	InstancedSprites,
-	Sky,
-	SkyDepth,
-	SkyHorizonMask,
-	Solid,
-	Inventory,
-	FullScreenQuad,
-	ShadowMap,
-
-	// HUD
-
-	Hud,
-	HudColor,
-	HudDTexture,
-	HudBarColor,
-
-	// GBuffer
-
-	GBuffer,
-	GBufferRooms,
-	GBufferItems,
-	GBufferInstancedStatics,
-
-	// SMAA
-
-	SmaaEdgeDetection,
-	SmaaLumaEdgeDetection,
-	SmaaColorEdgeDetection,
-	SmaaDepthEdgeDetection,
-	SmaaBlendingWeightCalculation,
-	SmaaNeighborhoodBlending,
-	Fxaa,
-
-	// Post-process
-
-	PostProcess,
-	PostProcessMonochrome,
-	PostProcessNegative,
-	PostProcessExclusion,
-	PostProcessDistortion,
-	PostProcessDofDownsample,
-	PostProcessDofFarBlur,
-	PostProcessDofNearDilate,
-	PostProcessDofNearBlur,
-	PostProcessDofComposite,
-	PostProcessFinalPass,
-	PostProcessLensFlare,
-
-	// SSAO
-
-	Ssao,
-	SsaoBlurHorizontal,
-	SsaoBlurVertical,
-
-	// Fullscreen effects
-
-	Blur,
-	Downscale,
-	GlowCombine,
-
-	// Volumetric clouds
-
-	VolumetricClouds,
-	VolumetricCloudComposite,
-	VolumetricCloudOcclusion,
-
-	// Atmospheric sky dome
-
-	AtmosphericSkyDome,
-	Aurora,
-	SunMoonDisc,
-
-	// God rays
-
-	GodRay,
-	GodRayComposite,
-
-	// Volumetric dust storm
-
-	DustStorm,
-
-	Count
-};

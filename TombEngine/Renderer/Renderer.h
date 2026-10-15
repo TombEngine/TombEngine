@@ -13,7 +13,6 @@
 #include "Game/Setup.h"
 #include "Renderer/ConstantBuffers/ShadowLightBuffer.h"
 #include "Renderer/ConstantBuffers/CameraMatrixBuffer.h"
-#include "Renderer/Structures/AnimatedFrame.h"
 #include "Renderer/ConstantBuffers/VolumetricCloudBuffer.h"
 #include "Renderer/ConstantBuffers/AtmosphericSkyBuffer.h"
 #include "Renderer/ConstantBuffers/GodRayBuffer.h"
@@ -29,7 +28,6 @@
 #include "Renderer/Font.h"
 #include "Renderer/Frustum.h"
 #include "Renderer/Graphics/Vertices/Vertex.h"
-#include "Renderer/Graphics/Vertices/PostProcessVertex.h"
 #include "Renderer/Next/OverlayTypes.h"
 #include "Renderer/Next/SkyTypes.h"
 #include "Renderer/RendererEnums.h"
@@ -58,8 +56,6 @@
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Renderer/Structures/RendererImage.h"
 #include "Renderer/Structures/RendererObject.h"
-#include "Renderer/Structures/RendererSortedBatch.h"
-#include "Renderer/Structures/RendererStar.h"
 #include "Specific/Benchmark.h"
 #include "Specific/level.h"
 #include "Specific/Structures/fast_vector.h"
@@ -93,12 +89,6 @@ namespace TEN::Renderer
 	class Renderer
 	{
 	private:
-
-
-		// Render targets
-
-		// Constant buffers
-
 		RenderView _gameCamera;
 		RenderView _oldGameCamera;
 		RenderView _currentGameCamera;
@@ -111,7 +101,6 @@ namespace TEN::Renderer
 		// Atmospheric sky dome
 		ConstantBuffers::CAtmosphericSkyBuffer _stAtmosphericSky;
 		AtmosphericSkySettings _atmosphericSkySettings;
-		VolumetricCloud::CloudRenderSettings _volumetricCloudSettings;
 		VolumetricCloud::CloudRuntimeState _cloudState;
 
 		// Moon system
@@ -139,16 +128,12 @@ namespace TEN::Renderer
 		// Dual volumetric cloud layer B (layer A reuses the members above).
 		VolumetricCloud::CloudRuntimeState _cloudStateB;
 
-
 		// Text
 
 		Font _gameFont = {};
 		std::vector<RendererStringToDraw> _stringsToDraw;
 		Vector4 _blinkColorValue = Vector4::Zero;
 		float _blinkTime = 0.0f;
-		float _oldBlinkTime = 0.0f;
-
-		// Sprites
 
 		// Graphics resources
 
@@ -157,7 +142,6 @@ namespace TEN::Renderer
 		RendererImage _loadingBarBorder = {};
 		RendererImage _loadingBarInner = {};
 		RendererImage _loadingScreenTexture = {};
-
 
 		std::vector<Vertex> _roomsVertices;
 		std::vector<int> _roomsIndices;
@@ -213,41 +197,11 @@ namespace TEN::Renderer
 
 		// Debug variables
 
-		int _numDrawCalls = 0;
-
-		int _numRoomsDrawCalls = 0;
-		int _numSortedRoomsDrawCalls = 0;
-		int _numMoveablesDrawCalls = 0;
-		int _numSortedMoveablesDrawCalls = 0;
-		int _numStaticsDrawCalls = 0;
-		int _numInstancedStaticsDrawCalls = 0;
-		int _numSortedStaticsDrawCalls = 0;
-		int _numSpritesDrawCalls = 0;
-		int _numInstancedSpritesDrawCalls = 0;
-		int _numSortedSpritesDrawCalls = 0;
-
-		int _numLinesDrawCalls = 0;
-
-		int _numTriangles = 0;
-		int _numSortedTriangles = 0;
-
-		int _numShadowMapDrawCalls = 0;
-		int _numDebrisDrawCalls = 0;
-		int _numEffectsDrawCalls = 0;
-
 		int _numDotProducts = 0;
 		int _numCheckPortalCalls = 0;
 		int _numGetVisibleRoomsCalls = 0;
 
-		int _numConstantBufferUpdates = 0;
-        unsigned long long _numConstantBufferBytes = 0;
-        int _numPerDrawUpdates = 0;
 		int _numInterleavedSortedGroups = 0;
-
-		int _numExecutedMaterialsUpdates = 0;
-		int _numRequestedMaterialsUpdates = 0;
-
-		float _currentLineHeight = 0.0f;
 
 		RendererDebugPage _debugPage = RendererDebugPage::None;
 
@@ -255,11 +209,9 @@ namespace TEN::Renderer
 
 		int _timeUpdate;
 		int _timeRoomsCollector;
-		int _timeDraw;
 		int _timeFrame;
 		float _timeSortedCollect = 0.0f;
 		float _timeSortedSort = 0.0f;
-		float _timeSortedDraw = 0.0f;
 
 		TEN::Benchmark::BenchmarkFrameStats _frameStats = {};
 		std::chrono::steady_clock::time_point _lastPresentTime = {};
@@ -326,20 +278,13 @@ namespace TEN::Renderer
 		// Screen settings
 		int _screenWidth  = 0;
 		int _screenHeight = 0;
-		float _farView = DEFAULT_FAR_VIEW;
 		bool _isWindowed;
 
 		// A flag to prevent extra renderer object additions
 
 		bool _isLocked = false;
 
-		// Caching state changes
-
-
 		std::vector<RendererSpriteBucket> _spriteBuckets;
-
-		// Antialiasing
-
 
 		// Post-process
 
@@ -349,24 +294,16 @@ namespace TEN::Renderer
 		DOFState _currentDOF;
 		DOFState _lastDOF;
 
-
-
-		// SSAO
-
-
 		// Special effects
 		RendererMirror* _currentMirror = nullptr;
 
 		// Transparency
-
-
 		std::vector<RendererSortKey> _sortKeysScratch;
 
 		// High framerate
 
 		float _interpolationFactor = 0.0f;
 		bool  _graphicsSettingsChanged = false;
-
 
 		void BuildHierarchy(RendererObject* obj);
 		void BuildHierarchyRecursive(RendererObject* obj, RendererBone* node, RendererBone* parentNode);
@@ -536,13 +473,6 @@ namespace TEN::Renderer
 		void RenderOptionsMenu(Menu menu, int initialY);
 		void RenderNewInventory();
 		void RenderBlobShadows(RenderView& renderView);
-        void InvalidatePerDrawBuffer();
-        void FlushPerDrawBuffer();
-        void BeginPrimitiveBatch();
-        void EndPrimitiveBatch();
-        static bool IsBlendModeSupported(BlendMode blendMode, RendererPass rendererPass);
-        static bool HasMeshForPass(const RendererMesh& mesh, RendererPass rendererPass, float alpha = 1.0f);
-        bool HasItemForPass(RendererItem& item, RendererObject& object, RendererPass rendererPass);
 		void SortAndPrepareSprites(RenderView& view);
 		void SortTransparentFaces(RenderView& view);
 		void CollectSortedBucket(RenderView& view, const RendererSortableObject& object, const Matrix* world, const Vector3& cameraPosition);
@@ -555,7 +485,7 @@ namespace TEN::Renderer
 		void InterpolateCamera(float interpFactor);
 
 		void ProcessSkinJoints(RendererObject& jointsMoveable, RendererObject& skinMoveable, ObjectInfo& jointsObj);
-		void Renderer::ProcessHair(GAME_OBJECT_ID hairID, RendererObject& skinMoveable, bool isSecond);
+		void ProcessHair(GAME_OBJECT_ID hairID, RendererObject& skinMoveable, bool isSecond);
 
 		void AddSpriteBillboard(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D, float scale,
 			Vector2 size, BlendMode blendMode, bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
@@ -586,9 +516,6 @@ namespace TEN::Renderer
 		RendererMesh* GetMesh(int meshIndex);
 		void BackupObjectVertices(GAME_OBJECT_ID objectID);
 		void RestoreObjectVertices(GAME_OBJECT_ID objectID);
-		Vector4 GetPortalRect(Vector4 v, Vector4 vp);
-		bool SphereBoxIntersection(BoundingBox box, Vector3 sphereCentre, float sphereRadius);
-		std::optional<Vector2> ProjectDisplayItemPointToScreen(const Vector3& worldPos) const;
 		bool IsRoomReflected(RenderView& renderView, int roomNumber);
 
 		inline bool IgnoreReflectionPassForRoom(int roomNumber)
@@ -635,11 +562,6 @@ namespace TEN::Renderer
 		inline RendererObject& GetStaticRendererObject(short objectNumber)
 		{
 			return _staticObjects[Statics.GetIndex(objectNumber)].value();
-		}
-
-		static inline bool IsWaterfall(short objectNumber)
-		{
-			return (objectNumber >= ID_WATERFALL1 && objectNumber <= ID_WATERFALLSS2);
 		}
 
 		static inline unsigned int PackEffectsAndIndexInPoly(Vector3 effects, float sheen, int indexInPoly)

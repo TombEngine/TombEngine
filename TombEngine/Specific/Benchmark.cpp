@@ -28,7 +28,7 @@ namespace TEN::Benchmark
     static std::vector<float> _frameTimes = {};
     static std::vector<float> _renderTimes = {};
     static unsigned long long _drawCallSum = 0;
-    static unsigned long long _constantBufferByteSum = 0;
+    static unsigned long long _uniformByteSum = 0;
 
     static std::string GetBenchmarkTimestamp()
     {
@@ -75,10 +75,9 @@ namespace TEN::Benchmark
 
     static void WriteHeader(const BenchmarkFrameStats& stats)
     {
-        _file << "frame,time_s,cpu_frame_ms,cpu_render_ms,present_ms,draw_calls,shadow_draw_calls,triangles,"
-                 "cb_updates,cb_bytes,perdraw_updates,rooms,sorted_faces,sorted_collect_ms,sorted_sort_ms,sorted_draw_ms,"
-                 "next_cpu_ms,next_draw_calls,next_shadow_draw_calls,next_triangles,next_uniform_pushes,next_uniform_bytes,next_upload_bytes,"
-                 "next_sorted_collect_ms,next_sorted_record_ms";
+        _file << "frame,time_s,cpu_frame_ms,cpu_render_ms,present_ms,rooms,sorted_faces,frontend_sorted_collect_ms,frontend_sorted_sort_ms,"
+                 "backend_cpu_ms,draw_calls,shadow_draw_calls,triangles,uniform_pushes,uniform_bytes,upload_bytes,"
+                 "sorted_collect_ms,sorted_record_ms";
 
         for (int i = 0; i < stats.GpuPassCount; i++)
             _file << ",gpu_" << stats.GpuPassNames[i] << "_ms";
@@ -102,11 +101,11 @@ namespace TEN::Benchmark
 
         TENLog(fmt::format(
             "Benchmark summary ({} frames): frame avg {:.3f} ms, p50 {:.3f} ms, p99 {:.3f} ms; render avg {:.3f} ms, p99 {:.3f} ms; "
-            "draw calls avg {}; CB bytes avg {} KB.",
+            "draw calls avg {}; uniform bytes avg {} KB.",
             _recordedFrames,
             averageFrameTime, GetPercentile(_frameTimes, 0.5f), GetPercentile(_frameTimes, 0.99f),
             averageRenderTime, GetPercentile(_renderTimes, 0.99f),
-            _drawCallSum / _recordedFrames, (_constantBufferByteSum / _recordedFrames) / 1024), LogLevel::Info);
+            _drawCallSum / _recordedFrames, (_uniformByteSum / _recordedFrames) / 1024), LogLevel::Info);
     }
 
     void InitializeBenchmark(float durationInSeconds, const std::string& logDirContainingDir)
@@ -231,13 +230,11 @@ namespace TEN::Benchmark
 
         _file << _recordedFrames << ',' << time << ','
               << stats.CpuFrameTime << ',' << stats.CpuRenderTime << ',' << stats.PresentTime << ','
-              << stats.DrawCalls << ',' << stats.ShadowMapDrawCalls << ',' << stats.Triangles << ','
-              << stats.ConstantBufferUpdates << ',' << stats.ConstantBufferBytes << ',' << stats.PerDrawUpdates << ','
               << stats.RoomsDrawn << ',' << stats.SortedFaces << ','
-              << stats.SortedCollectTime << ',' << stats.SortedSortTime << ',' << stats.SortedDrawTime << ','
-              << stats.NextRenderTime << ',' << stats.NextDrawCalls << ',' << stats.NextShadowDrawCalls << ',' << stats.NextTriangles << ','
-              << stats.NextUniformPushes << ',' << stats.NextUniformBytes << ',' << stats.NextUploadBytes << ','
-              << stats.NextSortedCollectTime << ',' << stats.NextSortedRecordTime;
+              << stats.FrontendSortedCollectTime << ',' << stats.FrontendSortedSortTime << ','
+              << stats.BackendTime << ',' << stats.DrawCalls << ',' << stats.ShadowDrawCalls << ',' << stats.Triangles << ','
+              << stats.UniformPushes << ',' << stats.UniformBytes << ',' << stats.UploadBytes << ','
+              << stats.SortedCollectTime << ',' << stats.SortedRecordTime;
 
         for (int i = 0; i < stats.GpuPassCount; i++)
             _file << ',' << stats.GpuPassTimes[i];
@@ -250,7 +247,7 @@ namespace TEN::Benchmark
         _frameTimes.push_back(stats.CpuFrameTime);
         _renderTimes.push_back(stats.CpuRenderTime);
         _drawCallSum += stats.DrawCalls;
-        _constantBufferByteSum += stats.ConstantBufferBytes;
+        _uniformByteSum += stats.UniformBytes;
         _recordedFrames++;
 
         if ((_recordedFrames % BENCHMARK_FLUSH_FRAMES) == 0)

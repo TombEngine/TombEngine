@@ -1023,7 +1023,6 @@ namespace TEN::Renderer
 		auto sortedTime2 = std::chrono::high_resolution_clock::now();
 		_timeSortedCollect = ms(sortedTime1 - sortedTime0).count();
 		_timeSortedSort = ms(sortedTime2 - sortedTime1).count();
-		_timeSortedDraw = 0.0f;
 
 		CollectHud(view, renderMode);
 

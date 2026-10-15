@@ -386,19 +386,6 @@ namespace TEN::Renderer
 		_gameCamera        = RenderView(cam, cam->Roll, cam->Fov, 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
 	}
 
-	bool Renderer::SphereBoxIntersection(BoundingBox box, Vector3 sphereCentre, float sphereRadius)
-	{
-		if (sphereRadius == 0.0f)
-		{
-			return box.Contains(sphereCentre);
-		}
-		else
-		{
-			BoundingSphere sphere = BoundingSphere(sphereCentre, sphereRadius);
-			return box.Intersects(sphere);
-		}
-	}
-
 	void Renderer::FlipRooms(short roomNumber1, short roomNumber2)
 	{
 		std::swap(_rooms[roomNumber1], _rooms[roomNumber2]);
@@ -534,39 +521,6 @@ namespace TEN::Renderer
 			return SkinningMode::Classic;
 		else
 			return SkinningMode::None;
-	}
-
-	Vector4 Renderer::GetPortalRect(Vector4 v, Vector4 vp)
-	{
-		auto sp = (v * Vector4(0.5f, 0.5f, 0.5f, 0.5f)
-			+ Vector4(0.5f, 0.5f, 0.5f, 0.5f))
-			* Vector4(vp.z, vp.w, vp.z, vp.w);
-
-		Vector4 s(sp.x + vp.x, sp.y + vp.y, sp.z + vp.x, sp.w + vp.y);
-
-		// expand
-		s.x -= 2;
-		s.y -= 2;
-		s.z += 2;
-		s.w += 2;
-
-		// clamp
-		s.x = std::max(s.x, vp.x);
-		s.y = std::max(s.y, vp.y);
-		s.z = std::min(s.z, vp.x + vp.z);
-		s.w = std::min(s.w, vp.y + vp.w);
-
-		// convert from bounds to x,y,w,h
-		s.z -= s.x;
-		s.w -= s.y;
-
-		// Use the viewport rect if one of the dimensions is the same size
-		// as the viewport. This may fix clipping bugs while still allowing
-		// impossible geometry tricks.
-		if (s.z - s.x >= vp.z - vp.x || s.w - s.y >= vp.w - vp.y)
-			return vp;
-
-		return s;
 	}
 
 	// Rendered frames per game frame. Code advancing once per rendered frame divides its game frame step by it.
@@ -755,44 +709,6 @@ namespace TEN::Renderer
 		Next::g_NextRenderer.RequestScreenshot(screenPath);
 		TENLog(fmt::format("Saving screenshot to '{}'.", screenPath), LogLevel::Info);
 		return std::string(buffer);
-	}
-
-	std::optional<Vector2> Renderer::ProjectDisplayItemPointToScreen(const Vector3& worldPos) const
-	{
-		float t = GetInterpolationFactor(true);
-
-		Matrix viewMatrix = Matrix::CreateLookAt(
-			g_DrawItems.GetInterpolatedCameraPosition(t),
-			g_DrawItems.GetInterpolatedCameraTargetPosition(t),
-			Vector3::Up
-		);
-
-		float aspectRatio = (float)_screenWidth / _screenHeight;
-
-		Matrix projMatrix = Matrix::CreatePerspectiveFieldOfView(
-			g_DrawItems.GetInterpolatedFov(t),
-			aspectRatio,
-			DISPLAY_ITEM_NEAR_PLANE,
-			DISPLAY_ITEM_FAR_PLANE
-		);
-
-		Matrix viewProj = viewMatrix * projMatrix;
-
-		Vector4 p(worldPos.x, worldPos.y, worldPos.z, 1.0f);
-		p = Vector4::Transform(p, viewProj);
-
-		if (fabs(p.w) <= EPSILON)
-			return std::nullopt;
-
-		p /= p.w;
-
-		if (p.x < -1.0f || p.x > 1.0f || p.y < -1.0f || p.y > 1.0f)
-			return std::nullopt;
-
-		float screenX = (p.x + 1.0f) * _screenWidth * 0.5f;
-		float screenY = (1.0f - p.y) * _screenHeight * 0.5f;
-
-		return Vector2(screenX, screenY);
 	}
 
 	std::optional<std::pair<Vector2, Vector2>> Renderer::GetDisplayItemBounds(const DisplayItem& item) const

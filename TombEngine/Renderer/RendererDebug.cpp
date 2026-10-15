@@ -8,47 +8,15 @@ namespace TEN::Renderer
 	void Renderer::ResetDebugVariables()
 	{
 		_timeUpdate = 0;
-		_timeDraw = 0;
 		_timeFrame = 0;
 		_timeRoomsCollector = 0;
 		_timeSortedCollect = 0.0f;
 		_timeSortedSort = 0.0f;
-		_timeSortedDraw = 0.0f;
-		_numDrawCalls = 0;
-
-		_numRoomsDrawCalls = 0;
-		_numSortedRoomsDrawCalls = 0;
-		_numMoveablesDrawCalls = 0;
-		_numSortedMoveablesDrawCalls = 0;
-		_numStaticsDrawCalls = 0;
-		_numInstancedStaticsDrawCalls = 0;
-		_numSortedStaticsDrawCalls = 0;
-		_numSpritesDrawCalls = 0;
-		_numInstancedSpritesDrawCalls = 0;
-		_numSortedSpritesDrawCalls = 0;
-		
-		_numLinesDrawCalls = 0;
-
-		_numTriangles = 0;
-		_numSortedTriangles = 0;
-
-		_numShadowMapDrawCalls = 0;
-		_numDebrisDrawCalls = 0;
-		_numEffectsDrawCalls = 0;
 
 		_numDotProducts = 0;
 		_numCheckPortalCalls = 0;
 		_numGetVisibleRoomsCalls = 0;
-
-		_numConstantBufferUpdates = 0;
-        _numConstantBufferBytes = 0;
-        _numPerDrawUpdates = 0;
 		_numInterleavedSortedGroups = 0;
-
-		_numRequestedMaterialsUpdates = 0;
-		_numExecutedMaterialsUpdates = 0;
-
-		_currentLineHeight;
 	}
 
 	void Renderer::CollectFrameStats(const RenderView& view)
@@ -58,15 +26,8 @@ namespace TEN::Renderer
 		if (!TEN::Benchmark::IsBenchmarkActive())
 			return;
 
-		_frameStats.SortedCollectTime = _timeSortedCollect;
-		_frameStats.SortedSortTime = _timeSortedSort;
-		_frameStats.SortedDrawTime = _timeSortedDraw;
-		_frameStats.DrawCalls = _numDrawCalls;
-		_frameStats.ShadowMapDrawCalls = _numShadowMapDrawCalls;
-		_frameStats.Triangles = _numTriangles;
-		_frameStats.ConstantBufferUpdates = _numConstantBufferUpdates;
-		_frameStats.ConstantBufferBytes = _numConstantBufferBytes;
-		_frameStats.PerDrawUpdates = _numPerDrawUpdates;
+		_frameStats.FrontendSortedCollectTime = _timeSortedCollect;
+		_frameStats.FrontendSortedSortTime = _timeSortedSort;
 		_frameStats.RoomsDrawn = (int)view.RoomsToDraw.size();
 		_frameStats.SortedFaces = (int)view.TransparentSortKeys.size();
 	}
@@ -84,22 +45,22 @@ namespace TEN::Renderer
 		_frameStats.CpuFrameTime = (_lastPresentTime.time_since_epoch().count() == 0) ? 0.0f : ms(now - _lastPresentTime).count();
 		_lastPresentTime = now;
 
-		// The preview frame is recorded inside RenderScene; keep the legacy render time free of it.
-		const auto& nextStats = Next::g_NextRenderer.GetFrameStats();
-		_frameStats.NextRenderTime = Next::g_NextRenderer.IsActive() ? nextStats.CpuTime : 0.0f;
-		_frameStats.NextDrawCalls = Next::g_NextRenderer.IsActive() ? nextStats.DrawCalls : 0;
+		// The scene renderer records its frame inside RenderScene; the render time leaves it out.
 		if (Next::g_NextRenderer.IsActive())
 		{
-			_frameStats.NextShadowDrawCalls = nextStats.CategoryDrawCalls[(int)Next::DrawCategory::Shadows];
-			_frameStats.NextTriangles = nextStats.Api.Triangles;
-			_frameStats.NextUniformPushes = nextStats.Api.UniformPushes;
-			_frameStats.NextUniformBytes = nextStats.Api.UniformBytes;
-			_frameStats.NextUploadBytes = nextStats.UploadBytes;
-			_frameStats.NextSortedCollectTime = nextStats.SortedCollectTime;
-			_frameStats.NextSortedRecordTime = nextStats.SortedRecordTime;
+			const auto& stats = Next::g_NextRenderer.GetFrameStats();
+			_frameStats.BackendTime = stats.CpuTime;
+			_frameStats.DrawCalls = stats.DrawCalls;
+			_frameStats.ShadowDrawCalls = stats.CategoryDrawCalls[(int)Next::DrawCategory::Shadows];
+			_frameStats.Triangles = stats.Api.Triangles;
+			_frameStats.UniformPushes = stats.Api.UniformPushes;
+			_frameStats.UniformBytes = stats.Api.UniformBytes;
+			_frameStats.UploadBytes = stats.UploadBytes;
+			_frameStats.SortedCollectTime = stats.SortedCollectTime;
+			_frameStats.SortedRecordTime = stats.SortedRecordTime;
 		}
 
-		_frameStats.CpuRenderTime -= _frameStats.NextRenderTime;
+		_frameStats.CpuRenderTime -= _frameStats.BackendTime;
 
 		TEN::Benchmark::RecordBenchmarkFrame(_frameStats);
 	}

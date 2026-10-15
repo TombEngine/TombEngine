@@ -7,35 +7,27 @@ namespace TEN::Benchmark
     struct BenchmarkFrameStats
     {
         float CpuFrameTime       = 0.0f; // Milliseconds between consecutive presented frames.
-        float CpuRenderTime      = 0.0f; // Milliseconds spent in Renderer::Render before presenting.
+        float CpuRenderTime      = 0.0f; // Milliseconds spent in Renderer::Render before presenting, without the scene renderer recording.
         float PresentTime        = 0.0f; // Milliseconds blocked in present (vsync, frame pacing, GPU).
         // GPU milliseconds per pass, a few frames late; negative when unavailable. Names come from the renderer.
         float              GpuPassTimes[BENCHMARK_GPU_PASSES_MAX] = {};
         float              CpuPassTimes[BENCHMARK_GPU_PASSES_MAX] = {}; // CPU milliseconds of the same scopes.
         const char* const* GpuPassNames                           = nullptr;
         int                GpuPassCount                           = 0;
-        float SortedCollectTime  = 0.0f;
-        float SortedSortTime     = 0.0f;
-        float SortedDrawTime     = 0.0f;
-        float NextRenderTime     = 0.0f; // Milliseconds spent recording the next renderer preview frame.
-        int   NextDrawCalls      = 0;
-        int   NextShadowDrawCalls = 0;
-        long long NextTriangles  = 0;
-        int   NextUniformPushes  = 0;
-        long long NextUniformBytes = 0;
-        int   NextUploadBytes    = 0;
-        float NextSortedCollectTime = 0.0f;
-        float NextSortedRecordTime  = 0.0f;
+        int   RoomsDrawn                = 0;
+        int   SortedFaces               = 0;
+        float FrontendSortedCollectTime = 0.0f; // Milliseconds collecting and sorting the sorted faces of the view.
+        float FrontendSortedSortTime    = 0.0f;
 
-        int DrawCalls            = 0;
-        int ShadowMapDrawCalls   = 0;
-        int Triangles            = 0;
-        int ConstantBufferUpdates = 0;
-        int PerDrawUpdates       = 0;
-        int RoomsDrawn           = 0;
-        int SortedFaces          = 0;
-
-        unsigned long long ConstantBufferBytes = 0;
+        float     BackendTime       = 0.0f; // Milliseconds spent recording the frame in the scene renderer.
+        int       DrawCalls         = 0;
+        int       ShadowDrawCalls   = 0;
+        long long Triangles         = 0;
+        int       UniformPushes     = 0;
+        long long UniformBytes      = 0;
+        int       UploadBytes       = 0;
+        float     SortedCollectTime = 0.0f;
+        float     SortedRecordTime  = 0.0f;
     };
 
     // Benchmark mode records per-frame renderer statistics to a CSV file in the Logs directory,
