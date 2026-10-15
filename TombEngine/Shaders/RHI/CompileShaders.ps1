@@ -1,8 +1,10 @@
 # Compiles the RHI shaders offline into DXBC (FXC, for DX11) and SPIR-V (DXC, for SDL GPU / Vulkan).
 # Each .hlsl declares its entry points and resource counts in header lines:
-#   // TEN_SHADER: <Vertex|Pixel|Compute> <Entry> samplers=N storage_textures=N storage_buffers=N uniform_buffers=N [rw_storage_textures=N rw_storage_buffers=N threads=X,Y,Z permutations=DEFINE,... hlsl=YEAR]
+#   // TEN_SHADER: <Vertex|Pixel|Compute> <Entry> samplers=N storage_textures=N storage_buffers=N uniform_buffers=N [rw_storage_textures=N rw_storage_buffers=N threads=X,Y,Z permutations=DEFINE,... options=DEFINE,... hlsl=YEAR]
 # Outputs: <OutputDir>\dxbc\<Name>.<Entry>.dxbc, <OutputDir>\spirv\<Name>.<Entry>.spv, <OutputDir>\<Name>.<Entry>.meta
 # Each permutation adds a variant compiled with DEFINE=1, named <Name>.<Entry>.<DEFINE>.
+# Options add a variant for every combination of them, compiled with each DEFINE=1 and named with the chosen
+# DEFINEs joined by dots in the declared order, such as <Name>.<Entry>.<DEFINE1>.<DEFINE3>.
 # hlsl=YEAR sets the HLSL language version of DXC, for sources written for an older version.
 # DXBC needs FXC from the Windows SDK; without it only SPIR-V is produced and the DirectX 11 backend is unavailable.
 # SPIR-V needs DXC from the Vulkan SDK (VULKAN_SDK) or the PATH; without it only DXBC is produced. At least one is required.
@@ -153,7 +155,7 @@ foreach ($file in Get-ChildItem -Path $sourceDir -Filter *.hlsl)
         $settings = $Matches[3]
         $info = Get-StageInfo $stage
 
-        $meta = @{ samplers = 0; storage_textures = 0; storage_buffers = 0; uniform_buffers = 0; rw_storage_textures = 0; rw_storage_buffers = 0; threads = "1,1,1"; permutations = "" }
+        $meta = @{ samplers = 0; storage_textures = 0; storage_buffers = 0; uniform_buffers = 0; rw_storage_textures = 0; rw_storage_buffers = 0; threads = "1,1,1"; permutations = ""; options = "" }
         foreach ($pair in ($settings -split '\s+' | Where-Object { $_ -match '=' }))
         {
             $key, $value = $pair -split '=', 2
@@ -167,6 +169,12 @@ foreach ($file in Get-ChildItem -Path $sourceDir -Filter *.hlsl)
         }
 
         $variants = @("") + @($meta["permutations"] -split ',' | Where-Object { $_ -ne "" })
+        $options = @($meta["options"] -split ',' | Where-Object { $_ -ne "" })
+        for ($mask = 1; $mask -lt (1 -shl $options.Count); $mask++)
+        {
+            $variants += (@(for ($i = 0; $i -lt $options.Count; $i++) { if ($mask -band (1 -shl $i)) { $options[$i] } }) -join '.')
+        }
+
         foreach ($variant in $variants)
         {
             $base = if ($variant) { "$name.$entry.$variant" } else { "$name.$entry" }
@@ -184,7 +192,7 @@ foreach ($file in Get-ChildItem -Path $sourceDir -Filter *.hlsl)
             if ($fxc)
             {
                 $fxcArgs = @("/nologo", "/T", $info.Fxc, "/E", $entry, "/Zpr", "/Fo", $dxbcFile)
-                if ($variant) { $fxcArgs += @("/D", "$variant=1") }
+                foreach ($define in ($variant -split '\.' | Where-Object { $_ })) { $fxcArgs += @("/D", "$define=1") }
                 if ($DebugInfo) { $fxcArgs += @("/Zi", "/Od") } else { $fxcArgs += "/O3" }
                 & $fxc @fxcArgs $file.FullName | Out-Null
                 if ($LASTEXITCODE -ne 0)
@@ -199,7 +207,7 @@ foreach ($file in Get-ChildItem -Path $sourceDir -Filter *.hlsl)
             if ($dxc)
             {
                 $dxcArgs = @("-spirv", "-T", $info.Dxc, "-E", $entry, "-Zpr", "-fvk-use-dx-layout", "-fspv-target-env=vulkan1.0", "-Fo", $spirvFile)
-                if ($variant) { $dxcArgs += @("-D", "$variant=1") }
+                foreach ($define in ($variant -split '\.' | Where-Object { $_ })) { $dxcArgs += @("-D", "$define=1") }
                 if ($meta["hlsl"]) { $dxcArgs += @("-HV", $meta["hlsl"]) }
                 if ($DebugInfo) { $dxcArgs += @("-Zi", "-Od") } else { $dxcArgs += "-O3" }
                 & $dxc @dxcArgs $file.FullName

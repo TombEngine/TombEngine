@@ -29,6 +29,8 @@
 #define POM_HEIGHT_SCALE   0.0035f
 
 // Material maps are texture arrays shared by the pages of the same size and format; TextureLayer selects the page.
+// The NO_NORMAL_MAP, NO_ORSH_MAP and NO_EMISSIVE_MAP variants serve texture groups without those maps: the values of
+// the default maps become constants, so the compiler removes the samples and the work depending on them.
 TEN_PS_TEXTURE(Texture2DArray, ColorMap, 0);
 TEN_PS_TEXTURE(Texture2DArray, NormalMap, 1);
 TEN_PS_TEXTURE(Texture2DArray, ORSHMap, 2);
@@ -46,17 +48,29 @@ float4 SampleColorMap(float2 uv)
 
 float4 SampleNormalMap(float2 uv)
 {
+#ifdef NO_NORMAL_MAP
+    return float4(0.5f, 0.5f, 1.0f, 1.0f);
+#else
     return NormalMap.Sample(NormalMapSampler, float3(uv, TextureLayer));
+#endif
 }
 
 float4 SampleORSHMap(float2 uv)
 {
+#ifdef NO_ORSH_MAP
+    return float4(1.0f, 1.0f, 0.0f, 1.0f);
+#else
     return ORSHMap.Sample(ORSHMapSampler, float3(uv, TextureLayer));
+#endif
 }
 
 float4 SampleEmissiveMap(float2 uv)
 {
+#ifdef NO_EMISSIVE_MAP
+    return float4(0.0f, 0.0f, 0.0f, 0.0f);
+#else
     return EmissiveMap.Sample(EmissiveMapSampler, float3(uv, TextureLayer));
+#endif
 }
 
 struct Surface
@@ -107,7 +121,12 @@ float SampleHeight(float2 uv)
 
 float2 ParallaxOcclusionMapping(GpuMaterial material, float3 tangent, float3 binormal, float3 faceNormal, float3 position, float3 cameraPosition, float2 baseUV)
 {
-    if (!(material.TypeAndFlags & MATERIAL_FLAG_HEIGHTMAP))
+#ifdef NO_ORSH_MAP
+    bool hasHeightMap = false; // The height is the ORSH alpha.
+#else
+    bool hasHeightMap = (material.TypeAndFlags & MATERIAL_FLAG_HEIGHTMAP) != 0;
+#endif
+    if (!hasHeightMap)
         return baseUV;
 
     float3 cameraVector = cameraPosition - position;
@@ -236,7 +255,11 @@ float3 SampleScreenReflection(float3 position, float3 cameraPosition, float3 nor
 float3 ApplyReflections(GpuMaterial material, float3 color, float3 position, float3 cameraPosition, float3 normal, float specular,
                         float4x4 view, float aspectRatio)
 {
+#ifdef NO_ORSH_MAP
+    uint type = MATERIAL_DEFAULT; // The reflection strength is the specular intensity, zero without an ORSH map.
+#else
     uint type = material.TypeAndFlags & MATERIAL_TYPE_MASK;
+#endif
     if (type != MATERIAL_REFLECTIVE && type != MATERIAL_SKYBOX_REFLECTIVE)
         return color;
 

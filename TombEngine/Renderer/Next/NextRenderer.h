@@ -463,8 +463,14 @@ namespace TEN::Renderer::Next
 
         std::unique_ptr<RHI::IShader>           _roomsVertexShader   = nullptr;
         std::unique_ptr<RHI::IShader>           _roomsPixelShader    = nullptr;
-        std::unique_ptr<RHI::IGraphicsPipeline> _scenePipelines[(int)SceneShader::Count][16][2] = {}; // Last index: alpha test variant.
-        std::unique_ptr<RHI::IShader>           _noAlphaTestPixelShaders[(int)SceneShader::Count] = {}; // NO_ALPHA_TEST permutations.
+        // Pixel shader variants of rooms and objects: bit 0 leaves out the alpha test, the next bits the normal, ORSH and
+        // emissive maps a texture group lacks. Variant 0 is the base shader.
+        static constexpr auto PIXEL_VARIANT_NO_ALPHA_TEST = 1;
+        static constexpr auto PIXEL_VARIANT_MAP_SHIFT     = 1;
+        static constexpr auto PIXEL_VARIANT_COUNT         = 16;
+
+        std::unique_ptr<RHI::IGraphicsPipeline> _scenePipelines[(int)SceneShader::Count][16][PIXEL_VARIANT_COUNT] = {};
+        std::unique_ptr<RHI::IShader>           _pixelShaderVariants[(int)SceneShader::Count][PIXEL_VARIANT_COUNT] = {};
         std::unique_ptr<RHI::IShader>           _objectsVertexShader = nullptr;
         std::unique_ptr<RHI::IShader>           _objectsPixelShader  = nullptr;
         std::unique_ptr<RHI::IShader>           _skyVertexShader     = nullptr;
@@ -862,8 +868,10 @@ namespace TEN::Renderer::Next
         void UploadBuffer(RHI::IBuffer* buffer, const void* data, int size, int offset = 0);
         void LoadAnimatedTextures(const LegacyLevelGeometry& geometry);
         void AddWaterfallSets(const LegacyLevelGeometry& geometry, std::vector<GpuAnimatedFrame>& frames, std::vector<GpuAnimatedSet>& sets);
-        bool LoadNoAlphaTestShaders();
-        RHI::IGraphicsPipeline* GetScenePipeline(SceneShader shader, BlendMode blendMode, bool isAlphaTested = true);
+        bool LoadPixelShaderVariants();
+        RHI::IGraphicsPipeline* GetScenePipeline(SceneShader shader, BlendMode blendMode, bool isAlphaTested = true, int missingMaps = 0);
+        int GetMissingMaps(const Structures::RendererBucket& bucket, const std::vector<TexturePage>& pages) const;
+        void BindPixelVariant(RHI::IRenderPass& renderPass, SceneShader shader, ScenePass pass, bool isAlphaTested, int missingMaps, int& boundMissingMaps);
         void ClearPipelineCaches();
         // Level textures (NextRendererTextures.cpp).
         static void AddTextureRequest(std::vector<LevelTextureRequest>& requests, const std::vector<unsigned char>& encodedData, const std::string& name,

@@ -1,6 +1,6 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=4 uniform_buffers=4
-// TEN_SHADER: Pixel PS samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 permutations=NO_ALPHA_TEST
-// TEN_SHADER: Pixel PSDepthNormal samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 permutations=NO_ALPHA_TEST
+// TEN_SHADER: Pixel PS samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 options=NO_ALPHA_TEST,NO_NORMAL_MAP,NO_ORSH_MAP,NO_EMISSIVE_MAP
+// TEN_SHADER: Pixel PSDepthNormal samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 options=NO_ALPHA_TEST,NO_NORMAL_MAP,NO_ORSH_MAP,NO_EMISSIVE_MAP
 // TEN_SHADER: Pixel PSShadow samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3
 // TEN_SHADER: Vertex VSInventory samplers=0 storage_textures=0 storage_buffers=4 uniform_buffers=4
 // TEN_SHADER: Pixel PSInventory samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3

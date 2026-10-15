@@ -42,6 +42,12 @@ namespace TEN::Renderer::Next
 
     NextRenderer g_NextRenderer;
 
+    // While a background video plays, video sets show the frame also as emissive if the material has an emissive map.
+    static bool HasEmissiveMaterial(int materialIndex)
+    {
+        return (materialIndex >= 0 && materialIndex < (int)g_Level.Materials.size() && g_Level.Materials[materialIndex].HasEmissiveMap);
+    }
+
     bool NextRenderer::Initialize(SDL_Window* window, Backend backend, const std::string& gameDirectory, bool preferLowPowerGpu)
     {
         _device = CreateDevice(backend, window, DEBUG_BUILD, preferLowPowerGpu);
@@ -99,8 +105,11 @@ namespace TEN::Renderer::Next
 
         ClearPipelineCaches();
 
-        for (auto& shader : _noAlphaTestPixelShaders)
-            shader = nullptr;
+        for (auto& variants : _pixelShaderVariants)
+        {
+            for (auto& shader : variants)
+                shader = nullptr;
+        }
 
         _sortedIndexBuffer = {};
         _objectsVertexShader = nullptr;
@@ -313,8 +322,8 @@ namespace TEN::Renderer::Next
         {
             for (auto& variants : shaderPipelines)
             {
-                variants[0] = nullptr;
-                variants[1] = nullptr;
+                for (auto& pipeline : variants)
+                    pipeline = nullptr;
             }
         }
 
@@ -374,17 +383,18 @@ namespace TEN::Renderer::Next
         TENLog(isReloaded ? "Next renderer: shaders reloaded." : "Next renderer: shader reload failed.", isReloaded ? LogLevel::Info : LogLevel::Error);
     }
 
-    // Room and object draws without alpha test use pixel shaders without clip, which keep early depth testing.
-    bool NextRenderer::LoadNoAlphaTestShaders()
+    // Room and object draws without alpha test use pixel shaders without clip, which keep early depth testing. Texture
+    // groups without some material maps use variants where those maps are constants, without samples or branches.
+    bool NextRenderer::LoadPixelShaderVariants()
     {
-        struct NoAlphaTestShader
+        struct VariantShader
         {
             SceneShader Shader     = SceneShader::Rooms;
             const char* File       = nullptr;
             const char* EntryPoint = nullptr;
         };
 
-        constexpr NoAlphaTestShader NO_ALPHA_TEST_SHADERS[] =
+        constexpr VariantShader VARIANT_SHADERS[] =
         {
             { SceneShader::Rooms, "Rooms", "PS" },
             { SceneShader::RoomsPrepass, "Rooms", "PSDepthNormal" },
@@ -393,11 +403,24 @@ namespace TEN::Renderer::Next
             { SceneShader::ObjectsPrepass, "Objects", "PSDepthNormal" }
         };
 
-        for (const auto& entry : NO_ALPHA_TEST_SHADERS)
+        // Same order as the options of the TEN_SHADER lines, which name the compiled variants.
+        constexpr const char* OPTION_NAMES[] = { "NO_ALPHA_TEST", "NO_NORMAL_MAP", "NO_ORSH_MAP", "NO_EMISSIVE_MAP" };
+
+        for (const auto& entry : VARIANT_SHADERS)
         {
-            _noAlphaTestPixelShaders[(int)entry.Shader] = LoadShader(*_device, _shaderDirectory, entry.File, entry.EntryPoint, "NO_ALPHA_TEST");
-            if (_noAlphaTestPixelShaders[(int)entry.Shader] == nullptr)
-                return false;
+            for (int variant = 1; variant < PIXEL_VARIANT_COUNT; variant++)
+            {
+                auto name = std::string();
+                for (int option = 0; option < (int)std::size(OPTION_NAMES); option++)
+                {
+                    if (variant & (1 << option))
+                        name += (name.empty() ? "" : ".") + std::string(OPTION_NAMES[option]);
+                }
+
+                _pixelShaderVariants[(int)entry.Shader][variant] = LoadShader(*_device, _shaderDirectory, entry.File, entry.EntryPoint, name);
+                if (_pixelShaderVariants[(int)entry.Shader][variant] == nullptr)
+                    return false;
+            }
         }
 
         return true;
@@ -432,7 +455,7 @@ namespace TEN::Renderer::Next
             !CreateDebugPrimitiveResources() || !CreateCloudResources() || !CreateGodRayResources() || !CreateDustStormResources())
             return false;
 
-        if (!LoadNoAlphaTestShaders())
+        if (!LoadPixelShaderVariants())
             return false;
 
         if (GetScenePipeline(SceneShader::Rooms, BlendMode::Opaque) == nullptr ||
@@ -603,12 +626,15 @@ namespace TEN::Renderer::Next
         layout.NumAttributes = 11;
     }
 
-    // Pipelines are created on first use per shader, blend mode and alpha test; opaque and alpha test blending share one.
-    // Shaders without a NO_ALPHA_TEST permutation always use their alpha tested pixel shader.
-    IGraphicsPipeline* NextRenderer::GetScenePipeline(SceneShader shader, BlendMode blendMode, bool isAlphaTested)
+    // Pipelines are created on first use per shader, blend mode and pixel shader variant; opaque and alpha test blending
+    // share one. Shaders without variants always use their alpha tested pixel shader with every map.
+    IGraphicsPipeline* NextRenderer::GetScenePipeline(SceneShader shader, BlendMode blendMode, bool isAlphaTested, int missingMaps)
     {
         int modeIndex = (blendMode == BlendMode::AlphaTest) ? (int)BlendMode::Opaque : std::clamp((int)blendMode, 0, 15);
-        int variant = (isAlphaTested || _noAlphaTestPixelShaders[(int)shader] == nullptr) ? 1 : 0;
+        int variant = (isAlphaTested ? 0 : PIXEL_VARIANT_NO_ALPHA_TEST) | (missingMaps << PIXEL_VARIANT_MAP_SHIFT);
+        if (variant >= PIXEL_VARIANT_COUNT || _pixelShaderVariants[(int)shader][variant] == nullptr)
+            variant = 0;
+
         auto& pipeline = _scenePipelines[(int)shader][modeIndex][variant];
         if (pipeline != nullptr)
             return pipeline.get();
@@ -644,7 +670,7 @@ namespace TEN::Renderer::Next
 
         auto desc = GraphicsPipelineDesc{};
         desc.VertexShader = vertexShaders[(int)shader];
-        desc.PixelShader = (variant == 0) ? _noAlphaTestPixelShaders[(int)shader].get() : pixelShaders[(int)shader];
+        desc.PixelShader = (variant == 0) ? pixelShaders[(int)shader] : _pixelShaderVariants[(int)shader][variant].get();
         desc.Layout.NumBuffers = (isObjects || isSprites) ? 2 : 1;
         // Debris has one instance per triangle, so its instance index comes from a per vertex stream.
         desc.Layout.Buffers[1] = VertexBufferLayout{ 1, (int)sizeof(unsigned int), isDebris ? VertexInputRate::Vertex : VertexInputRate::Instance };
@@ -706,7 +732,7 @@ namespace TEN::Renderer::Next
         }
 
         desc.DepthFormat = (isDistortion || isParaboloid || isHorizonMask) ? PixelFormat::Unknown : PixelFormat::D32Float;
-        desc.Name = std::string(names[(int)shader]) + ".BlendMode" + std::to_string(modeIndex) + ((variant == 0) ? ".NoAlphaTest" : "");
+        desc.Name = std::string(names[(int)shader]) + ".BlendMode" + std::to_string(modeIndex) + ((variant == 0) ? "" : ".Variant" + std::to_string(variant));
 
         pipeline = _device->CreateGraphicsPipeline(desc);
         if (pipeline == nullptr)
@@ -1195,7 +1221,7 @@ namespace TEN::Renderer::Next
         const auto* group = (page != nullptr) ? page->Group : nullptr;
         if (videoSet != NO_VALUE)
         {
-            bool hasEmissive = (pixelUniforms.MaterialIndex < g_Level.Materials.size()) && g_Level.Materials[pixelUniforms.MaterialIndex].HasEmissiveMap;
+            bool hasEmissive = HasEmissiveMaterial((int)pixelUniforms.MaterialIndex);
             BindTexturePage(renderPass, page, _videoArrayTexture.get(), hasEmissive ? _videoArrayTexture.get() : nullptr);
             state.IsGroupBound = false;
         }
@@ -1205,6 +1231,37 @@ namespace TEN::Renderer::Next
             state.Group = group;
             state.IsGroupBound = true;
         }
+    }
+
+    // Maps the texture group of a bucket lacks, as pixel shader variant bits. Pages of a group share their maps.
+    int NextRenderer::GetMissingMaps(const RendererBucket& bucket, const std::vector<TexturePage>& pages) const
+    {
+        const auto& sourcePages = bucket.Animated ? _animatedTextures : pages;
+        const auto* page = (bucket.Texture >= 0 && bucket.Texture < (int)sourcePages.size()) ? &sourcePages[bucket.Texture] : nullptr;
+        const auto* group = (page != nullptr) ? page->Group : nullptr;
+
+        int missingMaps = 0;
+        for (int map = (int)MaterialMap::Normal; map < (int)MaterialMap::Count; map++)
+        {
+            if (group == nullptr || group->Maps[map] == nullptr)
+                missingMaps |= 1 << (map - (int)MaterialMap::Normal);
+        }
+
+        int materialIndex = (bucket.MaterialIndex >= 0 && bucket.MaterialIndex < (int)g_Level.Materials.size()) ? bucket.MaterialIndex : 0;
+        if (GetVideoSet(bucket) != NO_VALUE && HasEmissiveMaterial(materialIndex))
+            missingMaps &= ~(1 << ((int)MaterialMap::Emissive - (int)MaterialMap::Normal));
+
+        return missingMaps;
+    }
+
+    // Draws are sorted by texture group, so the pipeline changes at most once per group in the state sorted passes.
+    void NextRenderer::BindPixelVariant(IRenderPass& renderPass, SceneShader shader, ScenePass pass, bool isAlphaTested, int missingMaps, int& boundMissingMaps)
+    {
+        if (missingMaps == boundMissingMaps)
+            return;
+
+        renderPass.BindPipeline(GetScenePipeline(shader, GetPassBlendMode(pass), isAlphaTested, missingMaps));
+        boundMissingMaps = missingMaps;
     }
 
     BlendMode NextRenderer::GetPassBlendMode(ScenePass pass)
@@ -1360,6 +1417,7 @@ namespace TEN::Renderer::Next
         const auto& targetDesc = ((pass == ScenePass::Distortion) ? _distortionTarget : _sceneTarget)->GetDesc();
         bool isSorted = IsStateSortedPass(pass);
 
+        int boundMissingMaps = 0;
         const RendererRoom* lastRoom = nullptr;
         auto roomInfo = BucketDrawInfo{};
         for (int i = 0; i < (int)_roomDraws.size(); i++)
@@ -1380,6 +1438,7 @@ namespace TEN::Renderer::Next
             if ((GetAlphaThreshold(bucket, roomInfo) != 0.0f) != isAlphaTested)
                 continue;
 
+            BindPixelVariant(renderPass, shader, pass, isAlphaTested, GetMissingMaps(bucket, _roomTextures), boundMissingMaps);
             BindBucket(commandBuffer, renderPass, bucket, _roomTextures, bucket.BlendMode, (unsigned int)_roomLightCount, roomInfo, state);
             DrawBucket(renderPass, MeshSource::Rooms, bucket, 1, 0);
         }
@@ -1877,6 +1936,7 @@ namespace TEN::Renderer::Next
         BindLevelGeometry(renderPass, MeshSource::Moveables, true);
 
         auto state = BucketBindState{};
+        int boundMissingMaps = 0;
 
         bool isSorted = !isMirrored && IsStateSortedPass(pass);
         for (int i = 0; i < (int)draws.size(); i++)
@@ -1890,6 +1950,7 @@ namespace TEN::Renderer::Next
                 continue;
 
             const auto& pages = (draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures;
+            BindPixelVariant(renderPass, shader, pass, isAlphaTested, GetMissingMaps(bucket, pages), boundMissingMaps);
             BindBucket(commandBuffer, renderPass, bucket, pages, bucket.BlendMode, 0, drawInfo, state);
             DrawBucket(renderPass, draw.Source, bucket, draw.InstanceCount, draw.FirstInstance);
         }

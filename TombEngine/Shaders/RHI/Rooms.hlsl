@@ -1,6 +1,6 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=4
-// TEN_SHADER: Pixel PS samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 permutations=NO_ALPHA_TEST
-// TEN_SHADER: Pixel PSDepthNormal samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 permutations=NO_ALPHA_TEST
+// TEN_SHADER: Pixel PS samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 options=NO_ALPHA_TEST,NO_NORMAL_MAP,NO_ORSH_MAP,NO_EMISSIVE_MAP
+// TEN_SHADER: Pixel PSDepthNormal samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 options=NO_ALPHA_TEST,NO_NORMAL_MAP,NO_ORSH_MAP,NO_EMISSIVE_MAP
 
 // Room geometry: baked vertex lighting plus the room's dynamic lights with specular, material maps (normal,
 // ORSH, emissive, parallax), animated textures, vertex effects, water refraction and distance fog.
@@ -110,6 +110,7 @@ float3 GetCaustics(float3 position, float3 normal)
 }
 
 // Legacy quirk kept for parity: with mixed light types, point lights get the spot specular term.
+// Room lights have no sheen, so without an ORSH map the specular intensity is zero and the terms are left out.
 float3 GetRoomLighting(float3 vertexColor, float3 position, Surface surface, float3 tangent, float3 binormal)
 {
     float3 lighting = vertexColor * COLOR_MODULATION_SCALE;
@@ -126,13 +127,17 @@ float3 GetRoomLighting(float3 vertexColor, float3 position, Surface surface, flo
         if (onlyPointLights)
         {
             lighting += DoPointLight(position, surface.Normal, light) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
+#ifndef NO_ORSH_MAP
             lighting += DoSpecularPoint(position, surface.Normal, CameraDirection, light, 0.0f, surface.Specular, surface.Roughness) * COLOR_MODULATION_SCALE;
+#endif
         }
         else if (light.Type == LT_POINT || light.Type == LT_SPOT)
         {
             float3 diffuse = (light.Type == LT_POINT) ? DoPointLight(position, surface.Normal, light) : DoSpotLight(position, surface.Normal, light);
-            float3 specular = DoSpecularSpot(position, surface.Normal, CameraDirection, light, 0.0f, surface.Specular, surface.Roughness);
-            lighting += saturate(diffuse) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF + specular * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
+            lighting += saturate(diffuse) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
+#ifndef NO_ORSH_MAP
+            lighting += DoSpecularSpot(position, surface.Normal, CameraDirection, light, 0.0f, surface.Specular, surface.Roughness) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
+#endif
         }
     }
 
