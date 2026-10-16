@@ -3,6 +3,7 @@
 
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
+#include "Game/collision/Point.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
 #include "Game/items.h"
@@ -10,10 +11,74 @@
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Collision::Point;
 
 namespace TEN::Entities::Traps
 {
-	void VentilatorEffect(GameBoundingBox* bounds, int intensity, short rot, int speed)
+	// Adjust particle lifetime so it fades out and is canceled at the water surface above the emitter.
+	static void FadeParticleAtWaterSurface(Particle& part)
+	{
+		int yStep = part.yVel >> 5;
+
+		// Only particles moving upwards can reach water lying above the emitter.
+		if (yStep >= 0)
+			return;
+
+		// Probe at start, mid and end points, since solid portals may make a single probe return NO_HEIGHT.
+		int midY = part.y + (yStep * part.sLife / 2);
+		int endY = part.y + (yStep * part.sLife);
+		int startWaterHeight = GetPointCollision(Vector3i(part.x, part.y, part.z), part.roomNumber).GetWaterSurfaceHeight();
+		int midWaterHeight   = GetPointCollision(Vector3i(part.x, midY, part.z), FindRoomNumber(Vector3i(part.x, midY, part.z))).GetWaterSurfaceHeight();
+		int endWaterHeight   = GetPointCollision(Vector3i(part.x, endY, part.z), FindRoomNumber(Vector3i(part.x, endY, part.z))).GetWaterSurfaceHeight();
+
+		int waterSurfaceHeight = NO_HEIGHT;
+		if (startWaterHeight != NO_HEIGHT && startWaterHeight < part.y)
+		{
+			waterSurfaceHeight = startWaterHeight;
+		}
+		else if (midWaterHeight != NO_HEIGHT && midWaterHeight < part.y)
+		{
+			waterSurfaceHeight = midWaterHeight;
+		}
+		else if (endWaterHeight != NO_HEIGHT && endWaterHeight < part.y)
+		{
+			waterSurfaceHeight = endWaterHeight;
+		}
+
+		// No water above the emitter; keep behaviour as is.
+		if (waterSurfaceHeight == NO_HEIGHT)
+			return;
+
+		int simulatedY = part.y;
+		int simulatedYVelocity = part.yVel;
+		int newLife = part.sLife;
+		bool reachesWater = false;
+
+		for (int elapsedLife = 1; elapsedLife < part.sLife; elapsedLife++)
+		{
+			if (part.friction & 0xF0)
+				simulatedYVelocity -= simulatedYVelocity >> (part.friction >> 4);
+
+			simulatedY += simulatedYVelocity >> 5;
+
+			if (simulatedY <= waterSurfaceHeight)
+			{
+				newLife = elapsedLife;
+				reachesWater = true;
+				break;
+			}
+		}
+
+		if (!reachesWater)
+			return;
+
+		part.life = part.sLife = newLife;
+
+		if (part.fadeToBlack > part.life)
+			part.fadeToBlack = (unsigned char)part.life;
+	}
+
+	static void VentilatorEffect(GameBoundingBox* bounds, int intensity, short rot, int speed)
 	{
 		constexpr auto DUST_SIZE_MAX = 64.0f;
 
@@ -143,6 +208,8 @@ namespace TEN::Entities::Traps
 		part.rotAdd = ANGLE(0.0f) >> 4;
 		part.scalar = 0.5;
 		part.sSize = part.size = part.dSize = Random::GenerateFloat(DUST_SIZE_MAX / 2, DUST_SIZE_MAX);
+
+		FadeParticleAtWaterSurface(part);
 	}
 
 	void InitializeVentilator(short itemNumber)
@@ -325,7 +392,7 @@ namespace TEN::Entities::Traps
 						if (effectBounds.Y1 - LaraItem->Pose.Position.y >= item.ItemFlags[0])
 							return;
 
-						y = 96 * (effectBounds.Y2 - item.ItemFlags[0]) / item.ItemFlags[0];
+						y = -96 * (item.ItemFlags[0] - (effectBounds.Y1 - LaraItem->Pose.Position.y)) / item.ItemFlags[0];
 					}
 					else
 					{
@@ -338,7 +405,9 @@ namespace TEN::Entities::Traps
 					if (item.Animation.ActiveState == 1)
 						y = speed * y / 120;
 
-					LaraItem->Pose.Position.y += y;
+					int waterHeight = GetPointCollision(*LaraItem).GetWaterSurfaceHeight();
+					if (waterHeight < LaraItem->Pose.Position.y)
+						LaraItem->Pose.Position.y = std::max(LaraItem->Pose.Position.y + y, waterHeight);
 				}
 			}
 		}

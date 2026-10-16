@@ -66,6 +66,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed MINECART_SWITCH object not working.
 * Fixed JUMP_SWITCH not activating event sets.
 * Fixed SNOWMOBILE death being too sensitive to vertical velocity.
+* Fixed KAYAK sticking to steep slopes out of water instead of sliding down them.
 * Fixed BATS_EMITTER targeting issues.
 * Fixed CROCODILE not swimming in certain water room configurations.
 * Fixed MONKEY not picking up SMALLMEDI_ITEM and KEY_ITEM4 (latter is possible by using AI_MODIFY on the monkey).
@@ -73,6 +74,11 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed ROLLINGBALL falling through walls in some remaining cases.
 * Fixed TEETH_SPIKES behaviour for OCB 1 and move static TR1-3 mode to pre-activated trigger bit flags.
 * Fixed SHOOT_SWITCH2 shattering without OCB 444.
+* Fixed MULTIPLE_BOULDERS stopping a sector short of obstacles or immediately when placed above the floor.
+* Fixed PROPELLER_V player knockback direction and particle fading near water surface.
+* Fixed OVERHEAD_PULLEY_HOOK not damaging player unless a damage value was explicitly set.
+* Fixed doors and BREAKABLE_WALL created by script losing their collision after loading a savegame.
+* Fixed keyhole interaction not being blocked while drawing a flare.
 * Fixed empty linear inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
 * Fixed PC_LOAD_INV_ITEM and PC_SAVE_INV_ITEM presence in the inventory affecting quickload and quicksave hotkey functionality.
@@ -83,6 +89,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
 * Fixed flyby camera flag "Let Lara move in cinematic mode" being ignored.
 * Fixed flyby camera jitter by converting the spline type to floating-point.
+* Fixed Lara not focusing on camera targets properly when at a different height.
+* Fixed look key not breaking out of a camera target once it was triggered.
 * Fixed occasional flame emitter sprite jitter.
 * Fixed incorrect static mesh interpolation after a large position change.
 * Fixed interaction highlighter appearing for underwater pushable objects.
@@ -165,6 +173,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed `View.DisplayString` not working in the title level.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 * Fixed notification display bug in `CustomDiary` class.
+* Fixed ring inventory opening despite `Input.ClearAllKeys` being called in the `OnLoop` callback.
 
 ## [Version 1.11.1]
 
