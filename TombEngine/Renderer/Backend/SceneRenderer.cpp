@@ -2923,15 +2923,8 @@ namespace TEN::Renderer::Backend
 
         // Submit is excluded: on DX11 it also presents and may wait for vsync.
         _frameStats.CpuTime += std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - startTime).count();
-        if (_device->RequiresWindowThreadPresent())
-        {
-            _frameFences[_frameFenceIndex] = _readback.SubmitWithFence(*commandBuffer);
-            _frameFenceIndex = (_frameFenceIndex + 1) % FRAMES_IN_FLIGHT_MAX;
-        }
-        else
-        {
-            _readback.Submit(*commandBuffer);
-        }
+        _frameFences[_frameFenceIndex] = _readback.SubmitWithFence(*commandBuffer);
+        _frameFenceIndex = (_frameFenceIndex + 1) % FRAMES_IN_FLIGHT_MAX;
 
         _readback.Poll(*_device, false);
 

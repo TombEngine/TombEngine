@@ -510,6 +510,7 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::IShader>           _rcasPixelShader = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _easuPipeline    = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _rcasPipeline    = nullptr;
+        bool                                    _isColorTargetUpscaled = false; // EASU output, sharpened by RCAS when the overlay draws it.
         std::unique_ptr<RHI::ITexture>          _upscaleSource   = nullptr;
         float                                   _renderScale     = 1.0f;
         float                                   _materialLodBias = 0.0f; // Keeps the texture detail of the window resolution.
@@ -636,6 +637,7 @@ namespace TEN::Renderer::Backend
             OverlayBarUniforms Bar         = {};
             BlendMode          BlendMode   = BlendMode::PremultipliedAlphaBlend;
             bool               IsObjects   = false;
+            bool               IsSharpened = false; // Upscaled scene, sharpened by RCAS while drawn.
         };
 
         struct OverlayObjectDraw
@@ -718,8 +720,9 @@ namespace TEN::Renderer::Backend
         RHI::UploadRing                   _uploadRing    = {}; // Per-frame uploads of every copy pass.
         RHI::TextureReadback              _readback      = {}; // Screenshots, written when the GPU has rendered them.
 
-        // Fences of the last finished frames on window thread presenting devices, which do not block the game thread:
-        // a new frame waits for the oldest one, so the game thread cannot queue frames faster than the GPU renders them.
+        // Fences of the last finished frames: a new frame waits for the oldest one, so the game thread cannot queue frames
+        // faster than the GPU renders them. Without it, DX11 queued frames until the driver blocked a present, and slow GPUs
+        // alternated very short and very long frames.
         static constexpr auto FRAMES_IN_FLIGHT_MAX = 2;
 
         std::array<std::shared_ptr<RHI::IFence>, FRAMES_IN_FLIGHT_MAX> _frameFences     = {};
@@ -1057,6 +1060,7 @@ namespace TEN::Renderer::Backend
         void  GetSMAATargetDescs(const RHI::TextureDesc& targetDesc, RHI::TextureDesc& edgesDesc, RHI::TextureDesc& weightsDesc, RHI::TextureDesc& stencilDesc) const;
         std::unique_ptr<RHI::IGraphicsPipeline> CreateSMAAPipeline(const SmaaPreset& preset, int pass, const char* name);
         bool  CreateUpscaleResources();
+        void  PushRcasUniforms(RHI::ICommandBuffer& commandBuffer);
         bool  CreateMaterialSampler();
         int   GetRenderSize(int windowSize) const;
         void  RenderUpscale(RHI::ICommandBuffer& commandBuffer);

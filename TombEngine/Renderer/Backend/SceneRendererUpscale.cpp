@@ -56,6 +56,13 @@ namespace TEN::Renderer::Backend
         return uniforms;
     }
 
+    static FsrUniforms GetFsrUniforms(const ITexture& source, const ITexture& target)
+    {
+        const auto& sourceDesc = source.GetDesc();
+        const auto& targetDesc = target.GetDesc();
+        return GetFsrUniforms(sourceDesc.Width, sourceDesc.Height, targetDesc.Width, targetDesc.Height);
+    }
+
     bool SceneRenderer::CreateUpscaleResources()
     {
         _easuPixelShader = LoadShader(*_device, _shaderDirectory, "FSR", "PSEasu");
@@ -63,9 +70,9 @@ namespace TEN::Renderer::Backend
         if (_easuPixelShader == nullptr || _rcasPixelShader == nullptr)
             return false;
 
+        // The RCAS pipeline is an overlay pipeline, created with the overlay resources.
         _easuPipeline = CreateFullscreenPipeline(_postProcessVertexShader.get(), _easuPixelShader.get(), _device->GetSwapchainFormat(), "FSR.EASU");
-        _rcasPipeline = CreateFullscreenPipeline(_postProcessVertexShader.get(), _rcasPixelShader.get(), _device->GetSwapchainFormat(), "FSR.RCAS");
-        return (_easuPipeline != nullptr && _rcasPipeline != nullptr);
+        return (_easuPipeline != nullptr);
     }
 
     int SceneRenderer::GetRenderSize(int windowSize) const
@@ -76,26 +83,24 @@ namespace TEN::Renderer::Backend
 
     void SceneRenderer::RenderUpscale(ICommandBuffer& commandBuffer)
     {
-        const auto& sourceDesc = _upscaleSource->GetDesc();
-        const auto& targetDesc = _colorTarget->GetDesc();
-        auto uniforms = GetFsrUniforms(sourceDesc.Width, sourceDesc.Height, targetDesc.Width, targetDesc.Height);
+        auto uniforms = GetFsrUniforms(*_upscaleSource, *_colorTarget);
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &uniforms, sizeof(uniforms));
 
-        auto upscaledDesc = TextureDesc{};
-        upscaledDesc.Width = targetDesc.Width;
-        upscaledDesc.Height = targetDesc.Height;
-        upscaledDesc.Format = targetDesc.Format;
-        upscaledDesc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler;
-        upscaledDesc.Name = "FSR.Upscaled";
-        auto* upscaledTarget = _targetPool.Acquire(upscaledDesc);
-
-        // EASU gathers the source with bilinear coordinates; RCAS loads texels.
+        // EASU gathers the source with bilinear coordinates. RCAS runs when the overlay draws the result.
         auto easuBinding = TextureSamplerBinding{ _upscaleSource.get(), _linearClampSampler.get() };
-        auto rcasBinding = TextureSamplerBinding{ upscaledTarget, _pointClampSampler.get() };
-        RenderFullscreenPass(commandBuffer, _easuPipeline.get(), upscaledTarget, &easuBinding, 1, "EASU");
-        RenderFullscreenPass(commandBuffer, _rcasPipeline.get(), _colorTarget.get(), &rcasBinding, 1, "RCAS");
-        _targetPool.Release(upscaledTarget);
+        RenderFullscreenPass(commandBuffer, _easuPipeline.get(), _colorTarget.get(), &easuBinding, 1, "EASU");
+        _isColorTargetUpscaled = true;
     }
+
+    // The FSR shader declares slots 0 to 2, and the overlay command buffer may hold no data in the lower ones yet;
+    // the overlay shaders push their own data into slot 0 before using it.
+    void SceneRenderer::PushRcasUniforms(ICommandBuffer& commandBuffer)
+    {
+        auto uniforms = GetFsrUniforms(*_upscaleSource, *_colorTarget);
+        for (int slot = 0; slot <= 2; slot++)
+            commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, slot, &uniforms, sizeof(uniforms));
+    }
+
     // Overlay objects and the menu post-process draw at window resolution. At native scale they share the scene
     // targets; below it, they use pooled targets of the window size, which the pool keeps across frames.
     void SceneRenderer::AcquireOverlayTargets()

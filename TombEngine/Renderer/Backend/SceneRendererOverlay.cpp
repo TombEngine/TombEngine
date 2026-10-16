@@ -111,7 +111,12 @@ namespace TEN::Renderer::Backend
         desc.Name = "Overlay.Bar";
         _overlayBarPipeline = _device->CreateGraphicsPipeline(desc);
 
-        return (_overlayPipeline != nullptr && _overlayBarPipeline != nullptr && LoadFont(fontPath));
+        // The upscaled scene is sharpened by RCAS while it is drawn as the opaque background quad.
+        desc.PixelShader = _rcasPixelShader.get();
+        desc.Name = "Overlay.RCAS";
+        _rcasPipeline = _device->CreateGraphicsPipeline(desc);
+
+        return (_overlayPipeline != nullptr && _overlayBarPipeline != nullptr && _rcasPipeline != nullptr && LoadFont(fontPath));
     }
 
     // Overlay pipelines share the layout and shaders of the text pipeline and differ by blend mode.
@@ -405,6 +410,7 @@ namespace TEN::Renderer::Backend
         {
             auto color = Vector4(ui.BackgroundFade, ui.BackgroundFade, ui.BackgroundFade, 1.0f);
             AddOverlayQuad(_colorTarget.get(), Vector2::Zero, targetSize, Vector2::Zero, Vector2::One, color, BlendMode::Opaque);
+            _overlayDraws.back().IsSharpened = _isColorTargetUpscaled;
         }
 
         if (ui.ScreenWidth <= 0 || ui.ScreenHeight <= 0)
@@ -566,7 +572,7 @@ namespace TEN::Renderer::Backend
             if (draw.IsObjects)
                 break;
 
-            auto* pipeline = draw.IsBar ? _overlayBarPipeline.get() : GetOverlayPipeline(draw.BlendMode);
+            auto* pipeline = draw.IsBar ? _overlayBarPipeline.get() : (draw.IsSharpened ? _rcasPipeline.get() : GetOverlayPipeline(draw.BlendMode));
             if (pipeline != lastPipeline)
             {
                 renderPass->BindPipeline(pipeline);
@@ -576,6 +582,8 @@ namespace TEN::Renderer::Backend
 
             if (draw.IsBar)
                 commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 0, &draw.Bar, sizeof(draw.Bar));
+            else if (draw.IsSharpened)
+                PushRcasUniforms(commandBuffer);
 
             auto binding = TextureSamplerBinding{ draw.Texture, _linearClampSampler.get() };
             renderPass->BindPixelSamplers(0, &binding, 1);

@@ -146,6 +146,7 @@ namespace TEN::Renderer::Backend
     void SceneRenderer::RenderPostProcess(ICommandBuffer& commandBuffer)
     {
         const auto& environment = *_frameEnvironment;
+        _isColorTargetUpscaled = false;
 
         auto uniforms = PostProcessUniforms{};
         uniforms.Tint = environment.Tint;
