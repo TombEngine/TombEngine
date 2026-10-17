@@ -304,18 +304,18 @@ namespace TEN::Entities::Traps
 		item.Status = ITEM_INVISIBLE;
 	}
 
-	static bool IsCeilingSafeForAnchor(const ItemInfo& anchor, int newX, int newZ)
+	static bool IsCeilingSafeForAnchor(const ItemInfo& anchor, int currentX, int currentZ, int newX, int newZ, short& room)
 	{
 		int   anchorPosY = anchor.Pose.Position.y;
-		short room = anchor.RoomNumber;
+		short currentRoom = room;
 
 		int currentCeiling = GetCeiling(
-			GetFloor(anchor.Pose.Position.x, anchorPosY, anchor.Pose.Position.z, &room),
-			anchor.Pose.Position.x, anchorPosY, anchor.Pose.Position.z);
+			GetFloor(currentX, anchorPosY, currentZ, &currentRoom),
+			currentX, anchorPosY, currentZ);
 
-		room = anchor.RoomNumber;
+		short newRoom = currentRoom;
 		int newCeiling = GetCeiling(
-			GetFloor(newX, anchorPosY, newZ, &room),
+			GetFloor(newX, anchorPosY, newZ, &newRoom),
 			newX, anchorPosY, newZ);
 
 		if (newCeiling == NO_HEIGHT || currentCeiling == NO_HEIGHT)
@@ -324,7 +324,11 @@ namespace TEN::Entities::Traps
 		// The ball rides a ceiling rail and is locked to its height, so it can only travel across
 		// tiles whose ceiling is flush with the anchor's rail. A tile with a higher or lower ceiling
 		// would break the rail, so only an exact match lets the ball move onto it.
-		return (newCeiling == currentCeiling);
+		if (newCeiling != currentCeiling)
+			return false;
+
+		room = newRoom;
+		return true;
 	}
 
 	// Returns whether the ball can physically travel from its current tile to the given tile along the
@@ -337,6 +341,7 @@ namespace TEN::Entities::Traps
 		int curZ = (startZ & ~0x3FF) | 512;
 		int dstX = (targetX & ~0x3FF) | 512;
 		int dstZ = (targetZ & ~0x3FF) | 512;
+		short room = anchor.RoomNumber;
 
 		if (moveAxis == 0)
 			moveAxis = (std::abs(dstX - curX) > std::abs(dstZ - curZ)) ? 1 : 2;
@@ -353,7 +358,7 @@ namespace TEN::Entities::Traps
 				if (axis == 1 && dx != 0)
 				{
 					int nextX = curX + (dx > 0 ? CLICK(1) : -CLICK(1));
-					if (IsCeilingSafeForAnchor(anchor, nextX, curZ))
+					if (IsCeilingSafeForAnchor(anchor, curX, curZ, nextX, curZ, room))
 					{
 						curX = nextX;
 						moved = true;
@@ -363,7 +368,7 @@ namespace TEN::Entities::Traps
 				else if (axis == 2 && dz != 0)
 				{
 					int nextZ = curZ + (dz > 0 ? CLICK(1) : -CLICK(1));
-					if (IsCeilingSafeForAnchor(anchor, curX, nextZ))
+					if (IsCeilingSafeForAnchor(anchor, curX, curZ, curX, nextZ, room))
 					{
 						curZ = nextZ;
 						moved = true;
@@ -440,6 +445,7 @@ namespace TEN::Entities::Traps
 
 		int dx = targetX - item.Pose.Position.x;
 		int dz = targetZ - item.Pose.Position.z;
+		short room = anchor.RoomNumber;
 
 		// Lock the travel axis once per pursuit. Completing it first enforces an L-shaped path.
 		if (state.MoveAxis == 0)
@@ -454,7 +460,7 @@ namespace TEN::Entities::Traps
 
 				int step = std::clamp(dx, -moveSpeed, moveSpeed);
 				int newX = item.Pose.Position.x + step;
-				if (!IsCeilingSafeForAnchor(anchor, newX, item.Pose.Position.z))
+				if (!IsCeilingSafeForAnchor(anchor, item.Pose.Position.x, item.Pose.Position.z, newX, item.Pose.Position.z, room))
 					return false;
 
 				item.Pose.Position.x = newX;
@@ -467,7 +473,7 @@ namespace TEN::Entities::Traps
 
 			int step = std::clamp(dz, -moveSpeed, moveSpeed);
 			int newZ = item.Pose.Position.z + step;
-			if (!IsCeilingSafeForAnchor(anchor, item.Pose.Position.x, newZ))
+			if (!IsCeilingSafeForAnchor(anchor, item.Pose.Position.x, item.Pose.Position.z, item.Pose.Position.x, newZ, room))
 				return false;
 
 			item.Pose.Position.z = newZ;
