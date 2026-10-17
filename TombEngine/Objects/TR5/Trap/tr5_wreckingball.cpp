@@ -507,8 +507,11 @@ namespace TEN::Entities::Traps
 			if (Vector3i::Distance(item.Pose.Position, staticObj.Pose.Position) > SHATTER_RADIUS)
 				continue;
 
-			// Force the hit points to 0 so debris.cpp actually hides the static after shattering.
-			staticObj.HitPoints = 0;
+            if (SmashedMeshCount >= (int)std::size(SmashedMesh))
+                return;
+
+            // Force the hit points to 0 so debris.cpp actually hides the static after shattering.
+            staticObj.HitPoints = 0;
 
 			SoundEffect(GetShatterSound(staticObj.Slot), &staticObj.Pose);
 			ShatterObject(nullptr, &staticObj, -128, item.RoomNumber, 0);
