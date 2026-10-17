@@ -331,36 +331,49 @@ namespace TEN::Entities::Traps
 	// ceiling rail, following the same dominant-axis stepping as MoveAlongRail. A target tile with a
 	// flush ceiling but no continuous safe path (a rail gap) is treated as unreachable, so the ball
 	// lets its roam countdown take over instead of grinding at the rail edge.
-	static bool IsTileTravelReachable(const ItemInfo& anchor, int startX, int startZ, int targetX, int targetZ)
+	static bool IsTileTravelReachable(const ItemInfo& anchor, int startX, int startZ, int targetX, int targetZ, int moveAxis = 0)
 	{
 		int curX = (startX & ~0x3FF) | 512;
 		int curZ = (startZ & ~0x3FF) | 512;
 		int dstX = (targetX & ~0x3FF) | 512;
 		int dstZ = (targetZ & ~0x3FF) | 512;
 
-		int guard = 0;
+		if (moveAxis == 0)
+			moveAxis = (std::abs(dstX - curX) > std::abs(dstZ - curZ)) ? 1 : 2;
+
 		while (curX != dstX || curZ != dstZ)
 		{
-			if (++guard > 256)
-				return false;
-
 			int dx = dstX - curX;
 			int dz = dstZ - curZ;
 
-			if (std::abs(dx) >= std::abs(dz) && dx != 0)
+			bool moved = false;
+			for (int attempt = 0; attempt < 2; attempt++)
 			{
-				int nextX = curX + (dx > 0 ? CLICK(1) : -CLICK(1));
-				if (!IsCeilingSafeForAnchor(anchor, nextX, curZ))
-					return false;
-				curX = nextX;
+				int axis = (attempt == 0) ? moveAxis : (moveAxis == 1 ? 2 : 1);
+				if (axis == 1 && dx != 0)
+				{
+					int nextX = curX + (dx > 0 ? CLICK(1) : -CLICK(1));
+					if (IsCeilingSafeForAnchor(anchor, nextX, curZ))
+					{
+						curX = nextX;
+						moved = true;
+						break;
+					}
+				}
+				else if (axis == 2 && dz != 0)
+				{
+					int nextZ = curZ + (dz > 0 ? CLICK(1) : -CLICK(1));
+					if (IsCeilingSafeForAnchor(anchor, curX, nextZ))
+					{
+						curZ = nextZ;
+						moved = true;
+						break;
+					}
+				}
 			}
-			else if (dz != 0)
-			{
-				int nextZ = curZ + (dz > 0 ? CLICK(1) : -CLICK(1));
-				if (!IsCeilingSafeForAnchor(anchor, curX, nextZ))
-					return false;
-				curZ = nextZ;
-			}
+
+			if (!moved)
+				return false;
 		}
 		return true;
 	}
@@ -413,7 +426,7 @@ namespace TEN::Entities::Traps
 			Vector2i(item.Pose.Position.x, item.Pose.Position.z),
 			Vector2i(LaraItem->Pose.Position.x, LaraItem->Pose.Position.z));
 
-		return (distance2D <= CLICK(searchRadius));
+		return (distance2D <= BLOCK(searchRadius));
 	}
 
 	// Moves the ball along the ceiling rail toward the given tile center at a constant speed. The
@@ -897,7 +910,7 @@ namespace TEN::Entities::Traps
 
 		// If the player's tile is not physically reachable along the rail (a gap separates them), don't
 		// chase. Settle centered on the current tile and start the roam countdown immediately.
-		if (!IsTileTravelReachable(anchor, item.Pose.Position.x, item.Pose.Position.z, laraX, laraZ))
+		if (!IsTileTravelReachable(anchor, item.Pose.Position.x, item.Pose.Position.z, laraX, laraZ, state.MoveAxis))
 		{
 			item.Pose.Position.x = (item.Pose.Position.x & ~0x3FF) | 512;
 			item.Pose.Position.z = (item.Pose.Position.z & ~0x3FF) | 512;
@@ -1087,13 +1100,15 @@ namespace TEN::Entities::Traps
 
 		if (height < item.Pose.Position.y)
 		{
+			item.Pose.Position.y = height;
+			if (room != item.RoomNumber)
+				ItemNewRoom(item.Index, room);
+
 			// Crush any shatterable statics and enemies beneath the ball as it slams into the floor.
 			ShatterStaticsOnBallImpact(item);
 			KillEnemiesOnBallImpact(item);
 
-			item.Pose.Position.y = height;
-
-			if (item.Animation.Velocity.y > 48.0f)
+			if (item.Animation.Velocity.y > 48.0f * dropSpeed)
 			{
 				BounceCamera(&item, 64, 8192);
 				item.Animation.Velocity.y = -item.Animation.Velocity.y / 8.0f;
