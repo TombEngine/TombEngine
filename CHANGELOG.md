@@ -47,6 +47,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added [WILLARD](https://tombengine.com/asset/enemy/willard/)  object from TR3.
 * Added [WHALE](https://tombengine.com/asset/interactables/whale/) object from TR3.
 * Added [CIVVY](https://tombengine.com/asset/enemy/nevada-gang-member/) object from TR3.
+* Added re-worked and expanded [WRECKING_BALL](https://tombengine.com/asset/traps/wrecking-ball/) object from TR5.
 * Added optional headlight mesh support for JEEP, toggled together with the headlight.
 * Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if property is set and when the sound ID 681 (SFX_TR2_SLAM_DOOR_CLOSE) is playing.
 * Added hit sounds for TR1 enemies when shot.

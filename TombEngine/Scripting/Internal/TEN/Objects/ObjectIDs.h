@@ -1,7 +1,6 @@
 #pragma once
 
 // This file is generated automatically, do not edit it.
-
 // Last generated on 12-06-2026.
 
 #include <unordered_map>
@@ -1201,6 +1200,12 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	/// Object ID.
 	// @mem FALLING_SANDBAG
 	{ "FALLING_SANDBAG", ID_FALLING_SANDBAG },
+	/// Object ID.
+	// @mem WRECKINGBALL_ANCHOR
+	{ "WRECKINGBALL_ANCHOR", ID_WRECKINGBALL_ANCHOR },
+	/// Object ID.
+	// @mem WRECKINGBALL_CHAIN
+	{ "WRECKINGBALL_CHAIN", ID_WRECKINGBALL_CHAIN },
 	/// Pickup Object ID.
 	// @mem PUZZLE_ITEM1
 	{ "PUZZLE_ITEM1", ID_PUZZLE_ITEM1 },
