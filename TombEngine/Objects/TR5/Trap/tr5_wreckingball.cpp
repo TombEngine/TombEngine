@@ -27,6 +27,7 @@
 #include "Specific/level.h"
 
 #include <algorithm>
+#include <limits>
 #include <unordered_map>
 
 using namespace TEN::Animation;
@@ -51,6 +52,7 @@ namespace TEN::Entities::Traps
 
 	// Maximum number of individual chain links that can be stacked between the anchor and the ball.
 	constexpr int MAX_CHAIN_LINKS = 128;
+	constexpr short WRECKINGBALL_COMPANION_MARKER = 0x5742;
 
 	// Distance from the anchor (ceiling) to the ball's center when the ball is fully raised.
 	constexpr int BALL_HANG_OFFSET_Y = 1644;
@@ -131,6 +133,7 @@ namespace TEN::Entities::Traps
 		int RoamTargetX = 0;
 		int RoamTargetZ = 0;
 		int RoamWaitTimer = 0;
+		int UnderwaterBubbleTimer = 0;
 
 		float RotatingSpotlightAngle = 0.0f;
 		float PreviousSpotlightAngle = 0.0f;
@@ -140,6 +143,156 @@ namespace TEN::Entities::Traps
 	};
 
 	static std::unordered_map<short, WreckingBallState> WreckingBallStates;
+
+	static short EncodeWreckingBallSector(int coordinate)
+	{
+		int sector = (int)std::floor((float)coordinate / BLOCK(1));
+		return (short)std::clamp(sector, (int)std::numeric_limits<short>::min(), (int)std::numeric_limits<short>::max());
+	}
+
+	static int DecodeWreckingBallSector(short sector)
+	{
+		return (sector * BLOCK(1)) + BLOCK(0.5f);
+	}
+
+	static void StoreWreckingBallState(ItemInfo& item, const WreckingBallState& state)
+	{
+		item.ItemFlags[0] = state.BaseObject;
+		item.ItemFlags[1] = (short)state.PhaseState;
+		item.ItemFlags[2] = (short)state.MoveAxis;
+		item.ItemFlags[3] = (short)std::clamp(state.DropDelay, 0, (int)std::numeric_limits<short>::max());
+		item.ItemFlags[4] = (short)std::clamp(state.RoamTimer, 0, (int)std::numeric_limits<short>::max());
+		item.ItemFlags[5] = EncodeWreckingBallSector(state.RoamTargetX);
+		item.ItemFlags[6] = EncodeWreckingBallSector(state.RoamTargetZ);
+		item.ItemFlags[7] = (short)std::clamp(state.RoamWaitTimer, 0, (int)std::numeric_limits<short>::max());
+	}
+
+	static void RestoreWreckingBallState(const ItemInfo& item, WreckingBallState& state)
+	{
+		state = WreckingBallState();
+
+		short anchorNumber = item.ItemFlags[0];
+		if (anchorNumber >= 0 && anchorNumber < g_Level.Items.size() &&
+			g_Level.Items[anchorNumber].ObjectNumber == ID_WRECKINGBALL_ANCHOR)
+		{
+			state.BaseObject = anchorNumber;
+		}
+
+		if (item.ItemFlags[1] >= (short)WreckingBallState::Phase::IdleAtTop &&
+			item.ItemFlags[1] <= (short)WreckingBallState::Phase::WinchUp)
+		{
+			state.PhaseState = (WreckingBallState::Phase)item.ItemFlags[1];
+		}
+
+		state.MoveAxis = (item.ItemFlags[2] == 1 || item.ItemFlags[2] == 2) ? item.ItemFlags[2] : 0;
+		state.DropDelay = std::max(0, (int)item.ItemFlags[3]);
+		state.RoamTimer = std::max(0, (int)item.ItemFlags[4]);
+		state.RoamTargetX = DecodeWreckingBallSector(item.ItemFlags[5]);
+		state.RoamTargetZ = DecodeWreckingBallSector(item.ItemFlags[6]);
+		state.RoamWaitTimer = std::max(0, (int)item.ItemFlags[7]);
+		state.TargetX = (item.Pose.Position.x & ~0x3FF) | 512;
+		state.TargetZ = (item.Pose.Position.z & ~0x3FF) | 512;
+	}
+
+	static void RestoreWreckingBallLinks(const ItemInfo& item, WreckingBallState& state)
+	{
+		for (const auto& candidate : g_Level.Items)
+		{
+			if (candidate.ObjectNumber != ID_WRECKINGBALL_CHAIN ||
+				candidate.ItemFlags[0] != item.Index ||
+				candidate.ItemFlags[1] != WRECKINGBALL_COMPANION_MARKER)
+			{
+				continue;
+			}
+
+			int linkIndex = candidate.ItemFlags[2];
+			if (linkIndex < 0 || linkIndex >= MAX_CHAIN_LINKS)
+				continue;
+
+			if (state.Links.size() <= linkIndex)
+				state.Links.resize(linkIndex + 1, -1);
+
+			state.Links[linkIndex] = candidate.Index;
+		}
+	}
+
+	static short FindOrCreateWreckingBallAnchor(ItemInfo& item)
+	{
+		for (auto& candidate : g_Level.Items)
+		{
+			if (candidate.ObjectNumber == ID_WRECKINGBALL_ANCHOR &&
+				candidate.ItemFlags[0] == item.Index &&
+				candidate.ItemFlags[1] == WRECKINGBALL_COMPANION_MARKER)
+			{
+				return candidate.Index;
+			}
+		}
+
+		int closestAnchor = -1;
+		float closestDistance = FLT_MAX;
+		for (int i = 0; i < g_Level.NumItems; i++)
+		{
+			auto& candidate = g_Level.Items[i];
+			if (candidate.ObjectNumber != ID_WRECKINGBALL_ANCHOR ||
+				candidate.ItemFlags[1] == WRECKINGBALL_COMPANION_MARKER)
+			{
+				continue;
+			}
+
+			float distance = Vector3i::Distance(item.Pose.Position, candidate.Pose.Position);
+			if (distance < closestDistance)
+			{
+				closestDistance = distance;
+				closestAnchor = i;
+			}
+		}
+
+		short anchorNumber = (closestAnchor >= 0) ? (short)closestAnchor : SpawnItem(item, ID_WRECKINGBALL_ANCHOR);
+		if (anchorNumber >= 0)
+		{
+			auto& anchor = g_Level.Items[anchorNumber];
+			anchor.ItemFlags[0] = item.Index;
+			anchor.ItemFlags[1] = WRECKINGBALL_COMPANION_MARKER;
+		}
+
+		return anchorNumber;
+	}
+
+	static void RestoreOrAssignWreckingBallLinks(ItemInfo& item, WreckingBallState& state)
+	{
+		RestoreWreckingBallLinks(item, state);
+		if (!state.Links.empty())
+			return;
+
+		int closestLink = -1;
+		float closestDistance = FLT_MAX;
+		for (int i = 0; i < g_Level.NumItems; i++)
+		{
+			auto& candidate = g_Level.Items[i];
+			if (candidate.ObjectNumber != ID_WRECKINGBALL_CHAIN ||
+				candidate.ItemFlags[1] == WRECKINGBALL_COMPANION_MARKER)
+			{
+				continue;
+			}
+
+			float distance = Vector3i::Distance(item.Pose.Position, candidate.Pose.Position);
+			if (distance < closestDistance)
+			{
+				closestDistance = distance;
+				closestLink = i;
+			}
+		}
+
+		if (closestLink >= 0)
+		{
+			auto& link = g_Level.Items[closestLink];
+			link.ItemFlags[0] = item.Index;
+			link.ItemFlags[1] = WRECKINGBALL_COMPANION_MARKER;
+			link.ItemFlags[2] = 0;
+			link.DisableInterpolation = false;
+			state.Links.push_back((short)closestLink);
+		}
+	}
 
 	// ---------------------------------------------------------------------
 	// Helpers
@@ -326,7 +479,7 @@ namespace TEN::Entities::Traps
 	// the ball actually drops onto the floor, and is gated by the ShatterStatics property.
 	static void ShatterStaticsOnBallImpact(const ItemInfo& item)
 	{
-		if (!PropertyHandler::Get(item, PropName_ShatterStatics, true))
+		if (!PropertyHandler::Get(item, PropName_ShatterStatics, false))
 			return;
 
 		auto& room = g_Level.Rooms[item.RoomNumber];
@@ -354,7 +507,7 @@ namespace TEN::Entities::Traps
 	// KillEnemies property, so builders can decide whether Lara can bait the claw onto her foes.
 	static void KillEnemiesOnBallImpact(const ItemInfo& item)
 	{
-		if (!PropertyHandler::Get(item, PropName_KillEnemies, true))
+		if (!PropertyHandler::Get(item, PropName_KillEnemies, false))
 			return;
 
 		// Collect victims first, then kill them after the loop, so g_Level.Items cannot be
@@ -433,19 +586,24 @@ namespace TEN::Entities::Traps
 		}
 	}
 
-	// Emits a dense column of bubbles every frame while the ball is submerged during a drop, so
-	// the rising bubbles continuously refill around the plunging ball instead of quickly thinning
-	// out after the initial entry burst.
-	static void SpawnUnderwaterDiveBubbles(const ItemInfo& item)
+	// Periodically emits bubbles during a submerged drop without saturating the shared effects pool.
+	static void SpawnUnderwaterDiveBubbles(const ItemInfo& item, WreckingBallState& state)
 	{
 		if (!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, item.RoomNumber))
+		{
+			state.UnderwaterBubbleTimer = 0;
 			return;
+		}
 
 		int waterHeight = GetPointCollision(item).GetWaterTopHeight();
 		if (waterHeight == NO_HEIGHT)
 			return;
 
-		int bubbleCount = Random::GenerateInt(70, 120);
+		if (++state.UnderwaterBubbleTimer < std::max(1, FPS / 2))
+			return;
+
+		state.UnderwaterBubbleTimer = 0;
+		int bubbleCount = Random::GenerateInt(4, 6);
 		for (int i = 0; i < bubbleCount; i++)
 		{
 			auto bubblePos = Vector3(
@@ -591,6 +749,8 @@ namespace TEN::Entities::Traps
 		item.Pose.Orientation += extraRot * alpha;
 	}
 
+ static void EnsureWreckingBallLinks(ItemInfo& item, WreckingBallState& state, int requiredCount);
+
 	static void UpdateChain(ItemInfo& item, WreckingBallState& state)
 	{
 		if (state.BaseObject < 0)
@@ -606,6 +766,9 @@ namespace TEN::Entities::Traps
 		if (distance < 0.0f)
 			distance = 0.0f;
 
+		int requiredLinks = std::min<int>(MAX_CHAIN_LINKS, (int)(distance / CHAIN_LINK_SPACING) + 1);
+		EnsureWreckingBallLinks(item, state, requiredLinks);
+
 		// Stack links at an absolute, fixed spacing instead of rescaling every link when the chain
 		// length changes. This keeps the top of the chain anchored and only the bottom link moves, so
 		// the whole stack does not shimmer when the total link count changes each frame.
@@ -613,7 +776,7 @@ namespace TEN::Entities::Traps
 		if (totalLinks <= 0)
 			return;
 
-		int linkCount = std::min<int>(totalLinks, (int)(distance / CHAIN_LINK_SPACING) + 1);
+		int linkCount = std::min(totalLinks, requiredLinks);
 
 		for (int i = 0; i < totalLinks; i++)
 		{
@@ -910,7 +1073,7 @@ namespace TEN::Entities::Traps
 		SpawnWaterSplashOnSubmerge(item);
 
 		// Emit a dense bubble column every frame the ball is underwater during the drop.
-		SpawnUnderwaterDiveBubbles(item);
+		SpawnUnderwaterDiveBubbles(item, state);
 
 		short room = item.RoomNumber;
 		int   height = GetFloorHeight(
@@ -1012,49 +1175,23 @@ namespace TEN::Entities::Traps
 
 		// The anchor and chain links are created automatically so the builder only needs to place the
 		// ball itself. Builder-placed companions (legacy layouts) are still honored when present.
-		auto anchors = FindAllItems(ID_WRECKINGBALL_ANCHOR);
-		if (anchors.empty())
-			anchors.push_back(SpawnItem(item, ID_WRECKINGBALL_ANCHOR));
-
-		state.BaseObject = anchors[0];
-
-			// Spawn the pool of chain links. A builder-placed chain object, if any, is reused as the
-		// first link so legacy layouts keep working.
-		bool builderChainUsed = false;
-		for (int i = 0; i < MAX_CHAIN_LINKS; i++)
-		{
-			if (!builderChainUsed)
-			{
-				auto existing = FindAllItems(ID_WRECKINGBALL_CHAIN);
-				if (!existing.empty())
-				{
-					state.Links.push_back(existing[0]);
-					builderChainUsed = true;
-					continue;
-				}
-			}
-
-			short linkNumber = SpawnItem(item, ID_WRECKINGBALL_CHAIN);
-			if (linkNumber < 0)
-				break;
-
-			state.Links.push_back(linkNumber);
-		}
+		state.BaseObject = FindOrCreateWreckingBallAnchor(item);
+		RestoreOrAssignWreckingBallLinks(item, state);
 
 		// Enable interpolation on every link so the renderer smoothly eases their motion between
 		// frames. Spawned items default to DisableInterpolation = true, which would otherwise make the
 		// chain snap to new positions instead of gliding, causing visible jitter at high frame rates.
 		for (short link : state.Links)
-			g_Level.Items[link].DisableInterpolation = false;
+		{
+			if (link >= 0)
+			{
+				g_Level.Items[link].DisableInterpolation = false;
+				SetItemInvisible(g_Level.Items[link]);
+			}
+		}
 
 		// Hide every chain link until the trap is activated, so an untriggered wrecking ball parked in
 		// the level does not draw its chain. UpdateChain() reveals the links once the trap goes active.
-		for (short link : state.Links)
-			SetItemInvisible(g_Level.Items[link]);
-
-		// Persist the anchor index in the ball's flags so it can be recovered after a savegame is
-		// loaded (where only the flags are serialized, not this module's static state).
-		item.ItemFlags[0] = state.BaseObject;
 
 		if (state.BaseObject < 0)
 		{
@@ -1080,6 +1217,7 @@ namespace TEN::Entities::Traps
 
 		state.TargetX = item.Pose.Position.x;
 		state.TargetZ = item.Pose.Position.z;
+		StoreWreckingBallState(item, state);
 	}
 
 	// ---------------------------------------------------------------------
@@ -1089,12 +1227,21 @@ namespace TEN::Entities::Traps
 	void ControlWreckingBall(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
-		auto& state = WreckingBallStates[itemNumber];
+		auto [stateIterator, isNewState] = WreckingBallStates.try_emplace(itemNumber);
+		auto& state = stateIterator->second;
 
-		// Recover the anchor index after a savegame is loaded (only the ball's serialized flag
-		// persists, the static state map is rebuilt empty).
-		if (state.BaseObject < 0)
-			state.BaseObject = item.ItemFlags[0];
+		if (JustLoaded || isNewState)
+		{
+			RestoreWreckingBallState(item, state);
+			RestoreOrAssignWreckingBallLinks(item, state);
+		}
+
+		if (state.BaseObject >= 0 && state.BaseObject < g_Level.Items.size())
+		{
+			auto& anchor = g_Level.Items[state.BaseObject];
+			anchor.ItemFlags[0] = itemNumber;
+			anchor.ItemFlags[1] = WRECKINGBALL_COMPANION_MARKER;
+		}
 
 		// Re-initialize alarm flash timing after savegame load if needed.
 		if (state.AlarmFlashPeriod <= 0)
@@ -1106,7 +1253,10 @@ namespace TEN::Entities::Traps
 
 		// Bail out if the required companion objects are missing.
 		if (state.BaseObject < 0)
+		{
+			StoreWreckingBallState(item, state);
 			return;
+		}
 
 		// Hide the chain (and skip running the ball) until the trap is triggered/activated, matching
 		// how other traps gate their control on TriggerActive(). This prevents the chain from being
@@ -1114,7 +1264,11 @@ namespace TEN::Entities::Traps
 		if (!TriggerActive(&item))
 		{
 			for (short link : state.Links)
-				SetItemInvisible(g_Level.Items[link]);
+			{
+				if (link >= 0)
+					SetItemInvisible(g_Level.Items[link]);
+			}
+			StoreWreckingBallState(item, state);
 			return;
 		}
 
@@ -1153,6 +1307,7 @@ namespace TEN::Entities::Traps
 		UpdateAnchor(item, state);
 		UpdateChain(item, state);
 		AnimateItem(item);
+		StoreWreckingBallState(item, state);
 	}
 
 	// ---------------------------------------------------------------------
@@ -1203,6 +1358,41 @@ namespace TEN::Entities::Traps
 
 			if (!coll->Setup.EnableObjectPush || killZone)
 				playerItem->Pose.Position += prevPos;
+		}
+	}
+
+	static void EnsureWreckingBallLinks(ItemInfo& item, WreckingBallState& state, int requiredCount)
+	{
+		requiredCount = std::clamp(requiredCount, 0, MAX_CHAIN_LINKS);
+
+		for (int i = 0; i < requiredCount; i++)
+		{
+			if (i < (int)state.Links.size())
+			{
+				short linkNumber = state.Links[i];
+				if (linkNumber >= 0 &&
+					linkNumber < (int)g_Level.Items.size() &&
+					g_Level.Items[linkNumber].ObjectNumber == ID_WRECKINGBALL_CHAIN)
+				{
+					continue;
+				}
+			}
+
+			short linkNumber = SpawnItem(item, ID_WRECKINGBALL_CHAIN);
+			if (linkNumber < 0)
+				break;
+
+			auto& link = g_Level.Items[linkNumber];
+			link.ItemFlags[0] = item.Index;
+			link.ItemFlags[1] = WRECKINGBALL_COMPANION_MARKER;
+			link.ItemFlags[2] = (short)i;
+			link.DisableInterpolation = false;
+			SetItemInvisible(link);
+
+			if (i >= (int)state.Links.size())
+				state.Links.resize(i + 1, -1);
+
+			state.Links[i] = linkNumber;
 		}
 	}
 }
