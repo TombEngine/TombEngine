@@ -487,11 +487,9 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::IShader>           _postProcessPixelShader  = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _postProcessPipeline     = nullptr;
         std::unique_ptr<RHI::ITexture>          _sceneTarget             = nullptr;
-        std::unique_ptr<RHI::IShader>           _depthCopyPixelShader    = nullptr;
         std::unique_ptr<RHI::IShader>           _fxaaPixelShader         = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _fxaaPipeline            = nullptr;
         std::unique_ptr<RHI::ITexture>          _antialiasingSource      = nullptr; // Post-processed image before FXAA.
-        std::unique_ptr<RHI::IGraphicsPipeline> _depthCopyPipeline       = nullptr;
         std::unique_ptr<RHI::ITexture>          _sceneDepthCopy          = nullptr; // R32 float copy of the prepass depth.
         std::unique_ptr<RHI::ITexture>          _distortionTarget        = nullptr;
         std::unique_ptr<RHI::ITexture>          _emissiveTarget          = nullptr; // Prepass emissive, source of the glow.
@@ -1015,7 +1013,6 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::IGraphicsPipeline> CreateFullscreenPipeline(RHI::IShader* vertexShader, RHI::IShader* pixelShader, RHI::PixelFormat format, const char* name);
         bool CreatePostProcessResources();
         void RenderPostProcess(RHI::ICommandBuffer& commandBuffer);
-        void CopySceneDepth(RHI::ICommandBuffer& commandBuffer);
         bool HasDistortionDraws(const RenderView& view) const;
         void RenderDistortion(RHI::ICommandBuffer& commandBuffer);
 

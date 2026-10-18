@@ -1,6 +1,5 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=0
 // TEN_SHADER: Pixel PS samplers=6 storage_textures=0 storage_buffers=0 uniform_buffers=3
-// TEN_SHADER: Pixel PSDepthCopy samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
 // TEN_SHADER: Pixel PSFXAA samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
 
 // Distortion, depth of field, glow, lens flares, color scheme (monochrome, negative, exclusion), screen fade,
@@ -262,11 +261,6 @@ float4 PS(FullscreenPixelInput input) : SV_Target
 }
 
 // Copies the depth buffer into a color texture that the scene pass can sample while the depth is its target.
-float PSDepthCopy(FullscreenPixelInput input) : SV_Target
-{
-    return SceneMap.SampleLevel(SceneMapSampler, input.UV, 0.0f).x;
-}
-
 // FXAA of the frontend (Shaders/FXAA.hlsl), sampling the post-processed image with a linear sampler.
 #define FXAA_SPAN_MAX   8.0f
 #define FXAA_REDUCE_MUL (1.0f / 4.0f)

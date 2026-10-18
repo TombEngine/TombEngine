@@ -190,7 +190,7 @@ PrepassOutput PSDepthNormal(PixelInput input)
     float3 emissive;
     float3 normal = SampleSurfaceNormal(Materials[MaterialIndex], ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition,
                                         PixelCameraPosition, input.Normal, input.Tangent, input.Binormal, input.FaceNormal, emissive);
-    return GetPrepassOutput(EncodeViewNormal(normal, View), emissive, input.Fog, (input.LightMode & INSTANCE_OUTDOOR_FLAG) != 0);
+    return GetPrepassOutput(EncodeViewNormal(normal, View), emissive, input.Fog, (input.LightMode & INSTANCE_OUTDOOR_FLAG) != 0, input.Position.z);
 }
 
 // Objects of the 2D layer (inventory, pickups, display items): the instance color

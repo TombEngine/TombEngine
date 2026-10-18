@@ -175,5 +175,5 @@ PrepassOutput PSDepthNormal(PixelInput input)
     float3 emissive;
     float3 normal = SampleSurfaceNormal(Materials[MaterialIndex], ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition,
                                         PixelCameraPosition, input.Normal, input.Tangent, input.Binormal, input.FaceNormal, emissive);
-    return GetPrepassOutput(EncodeViewNormal(normal, View), emissive, input.Fog, IsOutdoorRoom != 0);
+    return GetPrepassOutput(EncodeViewNormal(normal, View), emissive, input.Fog, IsOutdoorRoom != 0, input.Position.z);
 }

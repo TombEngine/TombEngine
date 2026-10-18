@@ -187,8 +187,6 @@ namespace TEN::Renderer::Backend
         _rcasPixelShader = nullptr;
         _fxaaPipeline = nullptr;
         _fxaaPixelShader = nullptr;
-        _depthCopyPipeline = nullptr;
-        _depthCopyPixelShader = nullptr;
         _ssaoPipeline = nullptr;
         _ssaoBlurHorizontalPipeline = nullptr;
         _ssaoBlurVerticalPipeline = nullptr;
@@ -718,13 +716,15 @@ namespace TEN::Renderer::Backend
             desc.Layout.NumAttributes = 8;
         }
 
-        // The prepass writes view normals and emissive, the inventory color and emissive.
-        desc.NumColorTargets = (isPrepass || isInventory) ? 2 : 1;
+        // The prepass writes view normals, emissive and a copy of the depth, the inventory color and emissive.
+        desc.NumColorTargets = isPrepass ? 3 : (isInventory ? 2 : 1);
         desc.ColorTargets[0].Format = (isPrepass || isParaboloid) ? PixelFormat::RGBA8Unorm :
             (isShadow ? PixelFormat::R32Float : (isHorizonMask ? PixelFormat::R11G11B10Float : _device->GetSwapchainFormat()));
         desc.ColorTargets[0].Blend = GetBlendState((isPrepass || isShadow) ? BlendMode::Opaque : (BlendMode)modeIndex);
         desc.ColorTargets[1].Format = PixelFormat::RGBA8Unorm;
         desc.ColorTargets[1].Blend = GetBlendState(BlendMode::Opaque);
+        desc.ColorTargets[2].Format = PixelFormat::R32Float;
+        desc.ColorTargets[2].Blend = GetBlendState(BlendMode::Opaque);
         // Distortion accumulates in a half resolution target without depth; the post-process rejects occluded texels.
         bool isDistortion = (modeIndex == (int)BlendMode::Distortion);
         desc.DepthStencil.EnableDepthWrite = ((modeIndex == (int)BlendMode::Opaque) && !isSky) || isInventory;
@@ -874,7 +874,8 @@ namespace TEN::Renderer::Backend
         depthDesc.Width = width;
         depthDesc.Height = height;
         depthDesc.Format = PixelFormat::D32Float;
-        depthDesc.Usage = TextureUsage::DepthStencilTarget | TextureUsage::Sampler;
+        // Never sampled: a depth buffer read as a texture is decompressed at each transition on some GPUs (Intel).
+        depthDesc.Usage = TextureUsage::DepthStencilTarget;
         depthDesc.Name = "Scene.Depth";
         _depthTarget = _device->CreateTexture(depthDesc);
 
@@ -2630,13 +2631,12 @@ namespace TEN::Renderer::Backend
         return _frameStats;
     }
 
-    // The prepass always runs: the scene pass reuses its depth, and soft particles read a copy of it.
+    // The prepass always runs: the scene pass reuses its depth, and the later passes read the copy it writes beside it.
     // Reflective materials sample the scene of the previous frame.
     const SceneRenderer::FramePass SceneRenderer::FRAME_PASSES[] =
     {
         { "Shadow map", nullptr, &SceneRenderer::RenderShadowMap },
         { "Depth and normals prepass", nullptr, &SceneRenderer::RenderDepthPrepass },
-        { "Depth copy", nullptr, &SceneRenderer::CopySceneDepth },
         { "SSAO", &SceneRenderer::_isAmbientOcclusionActive, &SceneRenderer::RenderSSAO },
         { "Sky reflections", &SceneRenderer::_hasSkyReflectiveMaterials, &SceneRenderer::RenderSkyReflections },
         { "Distortion", &SceneRenderer::_hasDistortion, &SceneRenderer::RenderDistortion },

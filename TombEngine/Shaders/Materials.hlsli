@@ -281,12 +281,14 @@ struct PrepassOutput
 {
     float4 Normal   : SV_Target0;
     float4 Emissive : SV_Target1;
+    float  Depth    : SV_Target2; // Copy of the depth for the later passes, so the depth buffer is never sampled.
 };
 
 // Distance fog fades the emissive. The normal alpha is the outdoor mask, read by the dust storm.
-PrepassOutput GetPrepassOutput(float3 viewNormal, float3 emissive, float fog, bool isOutdoor)
+PrepassOutput GetPrepassOutput(float3 viewNormal, float3 emissive, float fog, bool isOutdoor, float depth)
 {
     PrepassOutput output;
+    output.Depth = depth;
     output.Normal = float4(viewNormal, isOutdoor ? 1.0f : 0.0f);
     output.Emissive = float4(emissive * (1.0f - fog * fog), 1.0f);
     return output;

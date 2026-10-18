@@ -119,19 +119,22 @@ namespace TEN::Renderer::Backend
         return (_normalTarget != nullptr && _emissiveTarget != nullptr && _ssaoTarget != nullptr);
     }
 
-    // Opaque geometry writes depth and view space normals; the scene pass reuses the depth.
+    // Opaque geometry writes depth, view space normals, emissive and a sampled copy of the depth; the scene pass reuses
+    // the depth.
     void SceneRenderer::RenderDepthPrepass(ICommandBuffer& commandBuffer)
     {
         const auto& view = *_frameView;
 
-        ColorTargetInfo colorTargets[2] = {};
+        ColorTargetInfo colorTargets[3] = {};
         colorTargets[0].Texture = _normalTarget.get();
         colorTargets[1].Texture = _emissiveTarget.get();
+        colorTargets[2].Texture = _sceneDepthCopy.get();
+        colorTargets[2].ClearColor[0] = 1.0f; // Far plane, as the cleared depth.
 
         auto depthTarget = DepthTargetInfo{};
         depthTarget.Texture = _depthTarget.get();
 
-        auto* renderPass = commandBuffer.BeginRenderPass(colorTargets, 2, &depthTarget);
+        auto* renderPass = commandBuffer.BeginRenderPass(colorTargets, 3, &depthTarget);
         DrawRooms(commandBuffer, *renderPass, ScenePass::Prepass);
         DrawObjects(commandBuffer, *renderPass, ScenePass::Prepass);
         commandBuffer.EndRenderPass();
@@ -181,7 +184,7 @@ namespace TEN::Renderer::Backend
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &uniforms, sizeof(uniforms));
 
         auto* blurTarget = _targetPool.Acquire(targetDesc);
-        RenderFullscreenPass(commandBuffer, _ssaoPipeline.get(), _ssaoTarget.get(), _depthTarget.get(), _pointClampSampler.get(), "Occlusion");
+        RenderFullscreenPass(commandBuffer, _ssaoPipeline.get(), _ssaoTarget.get(), _sceneDepthCopy.get(), _pointClampSampler.get(), "Occlusion");
         RenderFullscreenPass(commandBuffer, _ssaoBlurHorizontalPipeline.get(), blurTarget, _ssaoTarget.get(), _pointClampSampler.get(), "Blur horizontal");
         RenderFullscreenPass(commandBuffer, _ssaoBlurVerticalPipeline.get(), _ssaoTarget.get(), blurTarget, _pointClampSampler.get(), "Blur vertical");
         _targetPool.Release(blurTarget);

@@ -65,18 +65,12 @@ namespace TEN::Renderer::Backend
 
         _postProcessPipeline = CreateFullscreenPipeline(_postProcessVertexShader.get(), _postProcessPixelShader.get(), _device->GetSwapchainFormat(), "PostProcess");
 
-        _depthCopyPixelShader = LoadShader(*_device, _shaderDirectory, "PostProcess", "PSDepthCopy");
-        if (_depthCopyPixelShader == nullptr)
-            return false;
-
-        _depthCopyPipeline = CreateFullscreenPipeline(_postProcessVertexShader.get(), _depthCopyPixelShader.get(), PixelFormat::R32Float, "DepthCopy");
-
         _fxaaPixelShader = LoadShader(*_device, _shaderDirectory, "PostProcess", "PSFXAA");
         if (_fxaaPixelShader == nullptr)
             return false;
 
         _fxaaPipeline = CreateFullscreenPipeline(_postProcessVertexShader.get(), _fxaaPixelShader.get(), _device->GetSwapchainFormat(), "FXAA");
-        return (_postProcessPipeline != nullptr && _depthCopyPipeline != nullptr && _fxaaPipeline != nullptr);
+        return (_postProcessPipeline != nullptr && _fxaaPipeline != nullptr);
     }
 
     bool SceneRenderer::HasDistortionDraws(const RenderView& view) const
@@ -125,23 +119,6 @@ namespace TEN::Renderer::Backend
     }
 
     // The scene pass keeps the prepass depth as its target, so effects reading the depth (soft particles) use a copy.
-    void SceneRenderer::CopySceneDepth(ICommandBuffer& commandBuffer)
-    {
-        auto colorTarget = ColorTargetInfo{};
-        colorTarget.Texture = _sceneDepthCopy.get();
-        colorTarget.Load = LoadOp::DontCare;
-
-        auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
-        renderPass->BindPipeline(_depthCopyPipeline.get());
-
-        auto binding = TextureSamplerBinding{ _depthTarget.get(), _pointClampSampler.get() };
-        renderPass->BindPixelSamplers(0, &binding, 1);
-
-        CountDraw(DrawCategory::Fullscreen, 1);
-        renderPass->Draw(3, 1, 0, 0);
-        commandBuffer.EndRenderPass();
-    }
-
     // Single fullscreen pass from the scene target to the frame target, or to the upscale source below native scale.
     void SceneRenderer::RenderPostProcess(ICommandBuffer& commandBuffer)
     {
