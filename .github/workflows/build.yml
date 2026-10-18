@@ -4,6 +4,7 @@ on:
   push:
     branches: [ master, develop ]
   pull_request:
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 jobs:
@@ -14,9 +15,16 @@ jobs:
       - uses: microsoft/setup-msbuild@v2
       - name: Build (Release x64)
         run: msbuild TombEngine.sln /m /p:Configuration=Release /p:Platform=x64
+      - name: Assemble package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force Package | Out-Null
+          Copy-Item Build/Release/Bin/x64/* Package -Recurse -Force
+          Copy-Item TombEngine/Shaders Package/Shaders -Recurse -Force
+          Copy-Item Scripts Package/Scripts -Recurse -Force
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: TombEngine-Release-x64
-          path: Build/Release/Bin/x64/
+          path: Package/
           if-no-files-found: error
