@@ -63,10 +63,10 @@ struct BoneTransform
     float4x4 Transform;
 };
 
-float4x4 BlendBones(StructuredBuffer<BoneTransform> bones, uint boneOffset, uint4 boneIndices, float4 boneWeights, uint mode)
+float4x4 BlendBones(TEN_RAW_BUFFER_TYPE(BoneTransform) bones, uint boneOffset, uint4 boneIndices, float4 boneWeights, uint mode)
 {
     if (mode == SKINNING_RIGID)
-        return bones[boneOffset + boneIndices.x].Transform;
+        return TEN_LOAD_RAW(BoneTransform, bones, boneOffset + boneIndices.x).Transform;
 
     if (mode == SKINNING_CLASSIC)
     {
@@ -75,7 +75,7 @@ float4x4 BlendBones(StructuredBuffer<BoneTransform> bones, uint boneOffset, uint
         [unroll]
         for (int i = 0; i < BONE_WEIGHTS_MAX; i++)
         {
-            float4 q = RotationMatrixToQuaternion((float3x3)bones[boneOffset + boneIndices[i]].Transform);
+            float4 q = RotationMatrixToQuaternion((float3x3)TEN_LOAD_RAW(BoneTransform, bones, boneOffset + boneIndices[i]).Transform);
             q *= sign(dot(blendedQuaternion, q) + 1e-5f);
             blendedQuaternion += q * boneWeights[i];
         }
@@ -85,18 +85,18 @@ float4x4 BlendBones(StructuredBuffer<BoneTransform> bones, uint boneOffset, uint
             float4(rotation[0], 0.0f),
             float4(rotation[1], 0.0f),
             float4(rotation[2], 0.0f),
-            float4(bones[boneOffset + boneIndices.x].Transform[3].xyz, 1.0f));
+            float4(TEN_LOAD_RAW(BoneTransform, bones, boneOffset + boneIndices.x).Transform[3].xyz, 1.0f));
     }
 
     float totalWeight = boneWeights.x + boneWeights.y + boneWeights.z + boneWeights.w;
     if (totalWeight < 0.0001f)
-        return bones[boneOffset + boneIndices.x].Transform;
+        return TEN_LOAD_RAW(BoneTransform, bones, boneOffset + boneIndices.x).Transform;
 
     float4x4 result = (float4x4)0;
 
     [unroll]
     for (int i = 0; i < BONE_WEIGHTS_MAX; i++)
-        result += bones[boneOffset + boneIndices[i]].Transform * (boneWeights[i] / totalWeight);
+        result += TEN_LOAD_RAW(BoneTransform, bones, boneOffset + boneIndices[i]).Transform * (boneWeights[i] / totalWeight);
 
     result[0].w = 0.0f;
     result[1].w = 0.0f;

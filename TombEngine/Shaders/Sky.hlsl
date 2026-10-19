@@ -20,8 +20,8 @@ TEN_PS_UNIFORMS(SkyPixelUniforms, 2)
     TEN_SKY_PIXEL_UNIFORMS
 };
 
-TEN_VS_STORAGE_BUFFER(GpuAnimatedFrame, AnimatedFrames, 0);
-TEN_VS_STORAGE_BUFFER(GpuAnimatedSet, AnimatedSets, 1);
+TEN_VS_RAW_BUFFER(GpuAnimatedFrame, AnimatedFrames, 0);
+TEN_VS_RAW_BUFFER(GpuAnimatedSet, AnimatedSets, 1);
 
 TEN_PS_TEXTURE(Texture2DArray, ColorMap, 0); // Sky texture or horizon page; TextureLayer selects the layer.
 
@@ -74,15 +74,15 @@ PixelInput VS(VertexInput input)
 
     if (AnimatedSetIndex >= 0)
     {
-        GpuAnimatedSet set = AnimatedSets[AnimatedSetIndex];
+        GpuAnimatedSet set = TEN_LOAD_RAW(GpuAnimatedSet, AnimatedSets, AnimatedSetIndex);
         if (set.Type == ANIM_TYPE_UVROTATE)
         {
-            output.UVScroll = GetUVRotateScroll(AnimatedFrames[set.FirstFrame], set, InterpolatedFrame);
+            output.UVScroll = GetUVRotateScroll(TEN_LOAD_RAW(GpuAnimatedFrame, AnimatedFrames, set.FirstFrame), set, InterpolatedFrame);
         }
         else
         {
             uint frameIndex = GetAnimatedFrameIndex(set, Frame, DecodeAnimationFrameOffset(input.AnimationData));
-            output.UV = GetFrameCorner(AnimatedFrames[frameIndex], DecodeIndexInPoly(input.Effects));
+            output.UV = GetFrameCorner(TEN_LOAD_RAW(GpuAnimatedFrame, AnimatedFrames, frameIndex), DecodeIndexInPoly(input.Effects));
         }
     }
 

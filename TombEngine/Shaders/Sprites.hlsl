@@ -31,7 +31,7 @@ TEN_PS_UNIFORMS(SpriteUniforms, 3)
     float SpritePadding2;
 };
 
-TEN_VS_STORAGE_BUFFER(GpuSprite, Sprites, 0);
+TEN_VS_RAW_BUFFER(GpuSprite, Sprites, 0);
 
 TEN_PS_TEXTURE(Texture2D, ColorMap, 0);
 TEN_PS_TEXTURE(Texture2D, SceneDepthMap, 1); // Hardware depth of the opaque geometry, copied after the prepass.
@@ -64,7 +64,7 @@ float4 UnpackColor(uint packedColor)
 
 PixelInput VS(VertexInput input)
 {
-    GpuSprite sprite = Sprites[input.InstanceIndex];
+    GpuSprite sprite = TEN_LOAD_RAW(GpuSprite, Sprites, input.InstanceIndex);
     GpuSpriteCorner corner = sprite.Corners[input.Corner];
 
     PixelInput output;

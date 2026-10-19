@@ -39,7 +39,7 @@ TEN_PS_TEXTURE(Texture2D, AmbientOcclusionMap, 4);
 TEN_PS_TEXTURE(Texture2D, CausticsMap, 6);
 TEN_PS_TEXTURE(Texture2D, ReflectionMap, 7); // Previous frame, half resolution.
 TEN_PS_TEXTURE(Texture2DArray, SkyReflectionMap, 8); // Dual paraboloid sky, one hemisphere per layer.
-TEN_PS_STORAGE_BUFFER(GpuMaterial, Materials, 10);
+TEN_PS_RAW_BUFFER(GpuMaterial, Materials, 10);
 
 float4 SampleColorMap(float2 uv)
 {

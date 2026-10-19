@@ -19,12 +19,12 @@
 #include "./Decals.hlsli"
 #include "./Skinning.hlsli"
 
-TEN_VS_STORAGE_BUFFER(GpuAnimatedFrame, AnimatedFrames, 0);
-TEN_VS_STORAGE_BUFFER(GpuAnimatedSet, AnimatedSets, 1);
-TEN_VS_STORAGE_BUFFER(GpuObjectInstance, Instances, 2);
-TEN_VS_STORAGE_BUFFER(BoneTransform, Bones, 3);
+TEN_VS_RAW_BUFFER(GpuAnimatedFrame, AnimatedFrames, 0);
+TEN_VS_RAW_BUFFER(GpuAnimatedSet, AnimatedSets, 1);
+TEN_VS_RAW_BUFFER(GpuObjectInstance, Instances, 2);
+TEN_VS_RAW_BUFFER(BoneTransform, Bones, 3);
 
-TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 9);
+TEN_PS_RAW_BUFFER(GpuLight, Lights, 9);
 
 struct VertexInput
 {
@@ -70,7 +70,7 @@ float3 CombineLights(float3 ambient, float3 vertexLight, float3 position, Surfac
     uint count = min(lightSlice.y & LT_MASK, LIGHTS_PER_DRAW_MAX);
     for (uint i = 0; i < count; i++)
     {
-        GpuLight light = Lights[lightSlice.x + i];
+        GpuLight light = TEN_LOAD_RAW(GpuLight, Lights, lightSlice.x + i);
 
         if (light.Type == LT_SUN)
         {
@@ -101,7 +101,7 @@ float3 CombineLights(float3 ambient, float3 vertexLight, float3 position, Surfac
 
 PixelInput VS(VertexInput input)
 {
-    GpuObjectInstance instance = Instances[input.InstanceIndex];
+    GpuObjectInstance instance = TEN_LOAD_RAW(GpuObjectInstance, Instances, input.InstanceIndex);
 
     float4x4 world = instance.World;
     uint skinningMode = instance.Skinning >> 24;
@@ -118,11 +118,11 @@ PixelInput VS(VertexInput input)
 
     if (AnimatedSetIndex >= 0)
     {
-        GpuAnimatedSet set = AnimatedSets[AnimatedSetIndex];
+        GpuAnimatedSet set = TEN_LOAD_RAW(GpuAnimatedSet, AnimatedSets, AnimatedSetIndex);
         if (set.Type == ANIM_TYPE_LEGACY_WATERFALL)
         {
             // Waterfall UV scroll, affine in V so it is evaluated per vertex.
-            GpuAnimatedFrame frame = AnimatedFrames[set.FirstFrame];
+            GpuAnimatedFrame frame = TEN_LOAD_RAW(GpuAnimatedFrame, AnimatedFrames, set.FirstFrame);
             float top = frame.TopLeft.y;
             float height = (frame.BottomLeft.y - top) / 2.0f;
             float relative = 1.0f - fmod(InterpolatedFrame, (float)set.Fps) / (float)set.Fps;
@@ -130,12 +130,12 @@ PixelInput VS(VertexInput input)
         }
         else if (set.Type == ANIM_TYPE_UVROTATE)
         {
-            output.UVScroll = GetUVRotateScroll(AnimatedFrames[set.FirstFrame], set, InterpolatedFrame);
+            output.UVScroll = GetUVRotateScroll(TEN_LOAD_RAW(GpuAnimatedFrame, AnimatedFrames, set.FirstFrame), set, InterpolatedFrame);
         }
         else
         {
             uint frameIndex = GetAnimatedFrameIndex(set, Frame, DecodeAnimationFrameOffset(input.AnimationData));
-            output.UV = GetFrameCorner(AnimatedFrames[frameIndex], DecodeIndexInPoly(input.Effects));
+            output.UV = GetFrameCorner(TEN_LOAD_RAW(GpuAnimatedFrame, AnimatedFrames, frameIndex), DecodeIndexInPoly(input.Effects));
         }
     }
 
@@ -157,7 +157,7 @@ PixelInput VS(VertexInput input)
 
 float4 PS(PixelInput input) : SV_TARGET
 {
-    GpuMaterial material = Materials[MaterialIndex];
+    GpuMaterial material = TEN_LOAD_RAW(GpuMaterial, Materials, MaterialIndex);
     Surface surface = SampleSurface(material, ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition, PixelCameraPosition,
                                     input.Normal, input.Tangent, input.Binormal, input.FaceNormal);
     surface.Color.rgb = ApplyReflections(material, surface.Color.rgb, input.WorldPosition, PixelCameraPosition, surface.Normal,
@@ -188,7 +188,7 @@ float4 PS(PixelInput input) : SV_TARGET
 PrepassOutput PSDepthNormal(PixelInput input)
 {
     float3 emissive;
-    float3 normal = SampleSurfaceNormal(Materials[MaterialIndex], ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition,
+    float3 normal = SampleSurfaceNormal(TEN_LOAD_RAW(GpuMaterial, Materials, MaterialIndex), ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition,
                                         PixelCameraPosition, input.Normal, input.Tangent, input.Binormal, input.FaceNormal, emissive);
     return GetPrepassOutput(EncodeViewNormal(normal, View), emissive, input.Fog, (input.LightMode & INSTANCE_OUTDOOR_FLAG) != 0, input.Position.z);
 }
@@ -198,7 +198,7 @@ PrepassOutput PSDepthNormal(PixelInput input)
 PixelInput VSInventory(VertexInput input)
 {
     PixelInput output = VS(input);
-    output.Color = Instances[input.InstanceIndex].Color;
+    output.Color = TEN_LOAD_RAW(GpuObjectInstance, Instances, input.InstanceIndex).Color;
     return output;
 }
 
@@ -216,7 +216,7 @@ InventoryOutput PSInventory(PixelInput input)
     ApplyAlphaTest(color.a, AlphaThreshold);
 
     float4 orsh = SampleORSHMap(uv);
-    float3 emissive = SampleEmissiveMap(uv).rgb * GetEmissiveIntensity(Materials[MaterialIndex]);
+    float3 emissive = SampleEmissiveMap(uv).rgb * GetEmissiveIntensity(TEN_LOAD_RAW(GpuMaterial, Materials, MaterialIndex));
     float3x3 tangentFrame = float3x3(input.Tangent, input.Binormal, input.Normal);
     float3 normal = normalize(mul(UnpackNormalMap(SampleNormalMap(uv)), tangentFrame));
 

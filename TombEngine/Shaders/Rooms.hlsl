@@ -16,10 +16,10 @@
 #include "./FogBulbs.hlsli"
 #include "./Decals.hlsli"
 
-TEN_VS_STORAGE_BUFFER(GpuAnimatedFrame, AnimatedFrames, 0);
-TEN_VS_STORAGE_BUFFER(GpuAnimatedSet, AnimatedSets, 1);
+TEN_VS_RAW_BUFFER(GpuAnimatedFrame, AnimatedFrames, 0);
+TEN_VS_RAW_BUFFER(GpuAnimatedSet, AnimatedSets, 1);
 
-TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 9);
+TEN_PS_RAW_BUFFER(GpuLight, Lights, 9);
 
 struct VertexInput
 {
@@ -70,15 +70,15 @@ PixelInput VS(VertexInput input)
 
     if (AnimatedSetIndex >= 0)
     {
-        GpuAnimatedSet set = AnimatedSets[AnimatedSetIndex];
+        GpuAnimatedSet set = TEN_LOAD_RAW(GpuAnimatedSet, AnimatedSets, AnimatedSetIndex);
         if (set.Type == ANIM_TYPE_UVROTATE)
         {
-            output.UVScroll = GetUVRotateScroll(AnimatedFrames[set.FirstFrame], set, InterpolatedFrame);
+            output.UVScroll = GetUVRotateScroll(TEN_LOAD_RAW(GpuAnimatedFrame, AnimatedFrames, set.FirstFrame), set, InterpolatedFrame);
         }
         else
         {
             uint frameIndex = GetAnimatedFrameIndex(set, Frame, DecodeAnimationFrameOffset(input.AnimationData));
-            output.UV = GetFrameCorner(AnimatedFrames[frameIndex], DecodeIndexInPoly(input.Effects));
+            output.UV = GetFrameCorner(TEN_LOAD_RAW(GpuAnimatedFrame, AnimatedFrames, frameIndex), DecodeIndexInPoly(input.Effects));
         }
     }
 
@@ -122,7 +122,7 @@ float3 GetRoomLighting(float3 vertexColor, float3 position, Surface surface, flo
 
     for (uint i = 0; i < count; i++)
     {
-        GpuLight light = Lights[LightOffset + i];
+        GpuLight light = TEN_LOAD_RAW(GpuLight, Lights, LightOffset + i);
 
         if (onlyPointLights)
         {
@@ -152,7 +152,7 @@ float3 GetRoomLighting(float3 vertexColor, float3 position, Surface surface, flo
 
 float4 PS(PixelInput input) : SV_TARGET
 {
-    GpuMaterial material = Materials[MaterialIndex];
+    GpuMaterial material = TEN_LOAD_RAW(GpuMaterial, Materials, MaterialIndex);
     Surface surface = SampleSurface(material, ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition, PixelCameraPosition,
                                     input.Normal, input.Tangent, input.Binormal, input.FaceNormal);
     surface.Color.rgb = ApplyReflections(material, surface.Color.rgb, input.WorldPosition, PixelCameraPosition,
@@ -173,7 +173,7 @@ float4 PS(PixelInput input) : SV_TARGET
 PrepassOutput PSDepthNormal(PixelInput input)
 {
     float3 emissive;
-    float3 normal = SampleSurfaceNormal(Materials[MaterialIndex], ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition,
+    float3 normal = SampleSurfaceNormal(TEN_LOAD_RAW(GpuMaterial, Materials, MaterialIndex), ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition,
                                         PixelCameraPosition, input.Normal, input.Tangent, input.Binormal, input.FaceNormal, emissive);
     return GetPrepassOutput(EncodeViewNormal(normal, View), emissive, input.Fog, IsOutdoorRoom != 0, input.Position.z);
 }

@@ -8,6 +8,9 @@
 //   so their binding is (number of sampled textures + index).
 // - Uniform buffers: slot N is register bN, at most 4 per stage.
 // - Vertex inputs: TEN_LOCATION(N) with semantic TEXCOORD<N>.
+// - Raw buffers: storage buffers read with TEN_LOAD_RAW. SDL GPU creates raw views on Direct3D 12, where structured
+//   loads with divergent indices or small elements read wrong data on AMD, so DXIL reads byte address buffers.
+//   SPIR-V keeps structured buffers: its templated byte address loads change the matrix layout.
 
 #ifdef __spirv__
 
@@ -36,6 +39,10 @@
 #define TEN_VS_STORAGE_BUFFER(type, name, index) [[vk::binding(index, 0)]] StructuredBuffer<type> name
 #define TEN_PS_STORAGE_BUFFER(type, name, index) [[vk::binding(index, 2)]] StructuredBuffer<type> name
 #define TEN_CS_STORAGE_BUFFER(type, name, index) [[vk::binding(index, 0)]] StructuredBuffer<type> name
+#define TEN_VS_RAW_BUFFER(type, name, index)     [[vk::binding(index, 0)]] StructuredBuffer<type> name
+#define TEN_PS_RAW_BUFFER(type, name, index)     [[vk::binding(index, 2)]] StructuredBuffer<type> name
+#define TEN_RAW_BUFFER_TYPE(type)                StructuredBuffer<type>
+#define TEN_LOAD_RAW(type, name, index)          name[index]
 
 #define TEN_CS_RW_TEXTURE(type, name, index)        [[vk::binding(index, 1)]] type name
 #define TEN_CS_RW_STORAGE_BUFFER(type, name, index) [[vk::binding(index, 1)]] RWStructuredBuffer<type> name
@@ -68,6 +75,10 @@
 #define TEN_VS_STORAGE_BUFFER(type, name, index) StructuredBuffer<type> name : register(t##index, space0)
 #define TEN_PS_STORAGE_BUFFER(type, name, index) StructuredBuffer<type> name : register(t##index, space2)
 #define TEN_CS_STORAGE_BUFFER(type, name, index) StructuredBuffer<type> name : register(t##index, space0)
+#define TEN_VS_RAW_BUFFER(type, name, index)     ByteAddressBuffer name : register(t##index, space0)
+#define TEN_PS_RAW_BUFFER(type, name, index)     ByteAddressBuffer name : register(t##index, space2)
+#define TEN_RAW_BUFFER_TYPE(type)                ByteAddressBuffer
+#define TEN_LOAD_RAW(type, name, index)          name.Load<type>((index) * sizeof(type))
 
 #define TEN_CS_RW_TEXTURE(type, name, index)        type name : register(u##index, space1)
 #define TEN_CS_RW_STORAGE_BUFFER(type, name, index) RWStructuredBuffer<type> name : register(u##index, space1)
@@ -99,6 +110,10 @@
 #define TEN_VS_STORAGE_BUFFER(type, name, index) StructuredBuffer<type> name : register(t##index)
 #define TEN_PS_STORAGE_BUFFER(type, name, index) StructuredBuffer<type> name : register(t##index)
 #define TEN_CS_STORAGE_BUFFER(type, name, index) StructuredBuffer<type> name : register(t##index)
+#define TEN_VS_RAW_BUFFER(type, name, index)     StructuredBuffer<type> name : register(t##index)
+#define TEN_PS_RAW_BUFFER(type, name, index)     StructuredBuffer<type> name : register(t##index)
+#define TEN_RAW_BUFFER_TYPE(type)                StructuredBuffer<type>
+#define TEN_LOAD_RAW(type, name, index)          name[index]
 
 #define TEN_CS_RW_TEXTURE(type, name, index)        type name : register(u##index)
 #define TEN_CS_RW_STORAGE_BUFFER(type, name, index) RWStructuredBuffer<type> name : register(u##index)

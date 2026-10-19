@@ -8,7 +8,7 @@
 #include "./ShaderInterop.hlsli"
 #include "./Noise.hlsli"
 
-TEN_PS_STORAGE_BUFFER(GpuDecal, Decals, 11);
+TEN_PS_RAW_BUFFER(GpuDecal, Decals, 11);
 
 #define DECALS_PER_DRAW_MAX 64
 
@@ -18,7 +18,7 @@ float GetDecalMask(float3 position, float3 tangent, float3 binormal, uint decalO
 
     for (uint i = 0; i < min(decalCount, DECALS_PER_DRAW_MAX); i++)
     {
-        GpuDecal decal = Decals[decalOffset + i];
+        GpuDecal decal = TEN_LOAD_RAW(GpuDecal, Decals, decalOffset + i);
 
         float3 offset = position - decal.Position;
         float distanceToCenter = length(offset);
