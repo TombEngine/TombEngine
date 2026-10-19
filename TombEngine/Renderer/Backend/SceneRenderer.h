@@ -734,6 +734,9 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::ITexture> _defaultMapArrays[(int)MaterialMap::Count] = {}; // One layer arrays: white, flat normal, default ORSH, black.
         LevelGeometry           _levelGeometry   = {};
 
+        // Light counts hold the count in the low 16 bits and the light type mask in the high bits.
+        static constexpr auto LIGHT_COUNT_MASK = 0xFFFF;
+
         // Frame instance data: collected on the CPU, uploaded once per frame before the scene pass.
         std::unique_ptr<RHI::IBuffer> _instanceIndexBuffer = nullptr;
         FrameStorageBuffer            _instanceBuffer      = {};
@@ -742,6 +745,8 @@ namespace TEN::Renderer::Backend
         std::vector<unsigned char>    _boneData            = {};
         std::vector<unsigned char>    _instanceData        = {};
         std::vector<unsigned char>    _lightData           = {};
+        FrameStorageBuffer            _lightClusterBuffer  = {};
+        std::vector<unsigned char>    _lightClusterData    = {}; // Room light masks per cluster of the view frustum.
         std::vector<ObjectDraw>       _objectDraws         = {};
         std::vector<DrawSortKey>      _objectDrawOrder     = {}; // Object draws by draw state, for the passes whose order does not matter.
         std::vector<RoomDraw>         _roomDraws           = {}; // Portal order, front to back.
@@ -935,6 +940,9 @@ namespace TEN::Renderer::Backend
         void CollectDebris(float interpolationFactor);
         void DrawDebris(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, DebrisPass pass);
         int  AddLights(const std::vector<Structures::RendererLight*>& lights, float interpolationFactor, int roomNumber, int prevRoomNumber, float fade, int& lightOffset);
+        void SetLightClusterUniforms(FramePixelUniforms& uniforms) const;
+        void BuildLightClusters(int lightOffset, int lightCount);
+        void AddClusterLight(const GpuLight& light, int lightIndex);
         static GpuLight ToGpuLight(const Structures::RendererLight& light, float interpolationFactor, float fade);
         void UploadMaterials();
         void UploadFrameStorage(FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, unsigned int usage, const char* name);

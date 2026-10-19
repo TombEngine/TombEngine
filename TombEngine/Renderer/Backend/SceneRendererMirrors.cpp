@@ -9,8 +9,6 @@ using namespace TEN::Renderer::Structures;
 
 namespace TEN::Renderer::Backend
 {
-    constexpr auto LIGHT_COUNT_MASK = 0xFFFF;
-
     bool SceneRenderer::IsMirrored(const InstanceOrigin& origin, const RendererMirror& mirror)
     {
         if (origin.RoomNumber != mirror.RoomNumber)

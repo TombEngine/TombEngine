@@ -11,11 +11,21 @@
 
 constexpr auto FOG_BULBS_MAX      = 32;
 constexpr auto SHADOW_SPHERES_MAX = 16;
+
+constexpr auto LIGHT_CLUSTER_TILES_X    = 16;
+constexpr auto LIGHT_CLUSTER_TILES_Y    = 9;
+constexpr auto LIGHT_CLUSTER_SLICES     = 24;
+constexpr auto LIGHT_CLUSTER_LIGHTS_MAX = 64;
 #else
 #define TEN_DEFAULT(value)
 
 #define FOG_BULBS_MAX      32
 #define SHADOW_SPHERES_MAX 16
+
+#define LIGHT_CLUSTER_TILES_X    16
+#define LIGHT_CLUSTER_TILES_Y    9
+#define LIGHT_CLUSTER_SLICES     24
+#define LIGHT_CLUSTER_LIGHTS_MAX 64
 #endif
 
 // Storage buffer elements.
@@ -168,6 +178,7 @@ struct GpuFogBulb
 // Pixel slot 0, pushed once per frame. AmbientOcclusionExponent is zero when ambient occlusion is disabled.
 // Gamma applies to overlay objects only: the scene applies gamma in the post-process.
 // CausticsStartUV and CausticsSize: current caustics frame in its sprite atlas page.
+// ClusterViewProjection, ClusterNearDepth and ClusterSliceScale place the room light clusters; a zero scale means none.
 #define TEN_FRAME_PIXEL_UNIFORMS \
     float4   FogColor                 TEN_DEFAULT(Vector4::Zero); \
     float3   PixelCameraPosition      TEN_DEFAULT(Vector3::Zero); \
@@ -178,7 +189,9 @@ struct GpuFogBulb
     float2   InverseViewportSize      TEN_DEFAULT(Vector2::Zero); \
     float2   CausticsStartUV          TEN_DEFAULT(Vector2::Zero); \
     float2   CausticsSize             TEN_DEFAULT(Vector2::Zero); \
-    float2   FramePixelPadding1       TEN_DEFAULT(Vector2::Zero);
+    float    ClusterNearDepth         TEN_DEFAULT(0.0f); \
+    float    ClusterSliceScale        TEN_DEFAULT(0.0f); \
+    float4x4 ClusterViewProjection    TEN_DEFAULT(Matrix::Identity);
 
 // Pixel slot 1, per draw. Light and decal slices and the caustics flag apply to rooms only.
 // TextureLayer selects the page in the texture arrays of the bound material maps.

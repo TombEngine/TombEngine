@@ -98,6 +98,7 @@ namespace TEN::Renderer::Backend
 
         _instanceBuffer = {};
         _lightBuffer = {};
+        _lightClusterBuffer = {};
         _boneBuffer = {};
         _instanceIndexBuffer = nullptr;
         _animatedFramesBuffer = nullptr;
@@ -1100,8 +1101,8 @@ namespace TEN::Renderer::Backend
 
     void SceneRenderer::BindScenePixelStorage(IRenderPass& renderPass)
     {
-        IBuffer* buffers[3] = { _lightBuffer.Buffer.get(), _materialBuffer.Buffer.get(), _decalBuffer.Buffer.get() };
-        renderPass.BindPixelStorageBuffers(0, buffers, 3);
+        IBuffer* buffers[4] = { _lightBuffer.Buffer.get(), _materialBuffer.Buffer.get(), _decalBuffer.Buffer.get(), _lightClusterBuffer.Buffer.get() };
+        renderPass.BindPixelStorageBuffers(0, buffers, 4);
     }
 
     SceneRenderer::BucketDrawInfo SceneRenderer::GetBucketDrawInfo(int roomNumber, bool hasDecals)
@@ -1558,6 +1559,7 @@ namespace TEN::Renderer::Backend
         // Rooms share the view light list.
         int roomLightOffset = 0;
         _roomLightCount = AddLights(view.LightsToDraw, interpolationFactor, NO_VALUE, NO_VALUE, 1.0f, roomLightOffset);
+        BuildLightClusters(roomLightOffset, _roomLightCount & LIGHT_COUNT_MASK);
 
         _boneData.clear();
 
@@ -1919,6 +1921,7 @@ namespace TEN::Renderer::Backend
 
         UploadFrameStorage(_instanceBuffer, _instanceData, (int)sizeof(GpuObjectInstance), BufferUsage::GraphicsStorageRead, "Frame.Instances");
         UploadFrameStorage(_lightBuffer, _lightData, (int)sizeof(GpuLight), BufferUsage::GraphicsStorageRead, "Frame.Lights");
+        UploadFrameStorage(_lightClusterBuffer, _lightClusterData, (int)sizeof(unsigned int) * 2, BufferUsage::GraphicsStorageRead, "Frame.LightClusters");
         UploadFrameStorage(_boneBuffer, _boneData, (int)sizeof(Matrix), BufferUsage::GraphicsStorageRead, "Frame.Bones");
         UploadFrameStorage(_sortedIndexBuffer, _sortedIndexData, (int)sizeof(int), BufferUsage::Index, "Frame.SortedIndices");
         UploadFrameStorage(_spriteBuffer, _spriteData, (int)sizeof(GpuSprite), BufferUsage::GraphicsStorageRead, "Frame.Sprites");
@@ -2775,6 +2778,7 @@ namespace TEN::Renderer::Backend
         framePixelUniforms.View = view.Camera.View;
         framePixelUniforms.InverseViewportSize = Vector2(1.0f / _sceneTarget->GetDesc().Width, 1.0f / _sceneTarget->GetDesc().Height);
         PrepareCaustics(framePixelUniforms);
+        SetLightClusterUniforms(framePixelUniforms);
         commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 0, &framePixelUniforms, sizeof(framePixelUniforms));
 
         auto fogBulbUniforms = GetFogBulbUniforms(view);

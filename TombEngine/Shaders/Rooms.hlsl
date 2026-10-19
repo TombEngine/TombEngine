@@ -1,5 +1,5 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=4
-// TEN_SHADER: Pixel PS samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 options=NO_ALPHA_TEST,NO_NORMAL_MAP,NO_ORSH_MAP,NO_EMISSIVE_MAP
+// TEN_SHADER: Pixel PS samplers=9 storage_textures=0 storage_buffers=4 uniform_buffers=3 options=NO_ALPHA_TEST,NO_NORMAL_MAP,NO_ORSH_MAP,NO_EMISSIVE_MAP
 // TEN_SHADER: Pixel PSDepthNormal samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 options=NO_ALPHA_TEST,NO_NORMAL_MAP,NO_ORSH_MAP,NO_EMISSIVE_MAP
 
 // Room geometry: baked vertex lighting plus the room's dynamic lights with specular, material maps (normal,
@@ -20,6 +20,7 @@ TEN_VS_RAW_BUFFER(GpuAnimatedFrame, AnimatedFrames, 0);
 TEN_VS_RAW_BUFFER(GpuAnimatedSet, AnimatedSets, 1);
 
 TEN_PS_RAW_BUFFER(GpuLight, Lights, 9);
+TEN_PS_RAW_BUFFER(uint2, LightClusters, 12);
 
 struct VertexInput
 {
@@ -111,6 +112,66 @@ float3 GetCaustics(float3 position, float3 normal)
 
 // Kept from the original renderer: with mixed light types, point lights get the spot specular term.
 // Room lights have no sheen, so without an ORSH map the specular intensity is zero and the terms are left out.
+float3 GetRoomLight(GpuLight light, bool onlyPointLights, float3 position, Surface surface)
+{
+    float3 lighting = float3(0.0f, 0.0f, 0.0f);
+    if (onlyPointLights)
+    {
+        lighting += DoPointLight(position, surface.Normal, light) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
+#ifndef NO_ORSH_MAP
+        lighting += DoSpecularPoint(position, surface.Normal, CameraDirection, light, 0.0f, surface.Specular, surface.Roughness) * COLOR_MODULATION_SCALE;
+#endif
+    }
+    else if (light.Type == LT_POINT || light.Type == LT_SPOT)
+    {
+        float3 diffuse = (light.Type == LT_POINT) ? DoPointLight(position, surface.Normal, light) : DoSpotLight(position, surface.Normal, light);
+        lighting += saturate(diffuse) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
+#ifndef NO_ORSH_MAP
+        lighting += DoSpecularSpot(position, surface.Normal, CameraDirection, light, 0.0f, surface.Specular, surface.Roughness) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
+#endif
+    }
+
+    return lighting;
+}
+
+// Mask of the room lights reaching the light cluster of a position; false outside the cluster grid.
+bool GetClusterLightMask(float3 position, out uint2 mask)
+{
+    mask = uint2(0, 0);
+    if (ClusterSliceScale <= 0.0f)
+        return false;
+
+    float4 clip = mul(float4(position, 1.0f), ClusterViewProjection);
+    if (clip.w <= 0.0f)
+        return false;
+
+    float2 ndc = clip.xy / clip.w;
+    if (any(abs(ndc) > 1.0f))
+        return false;
+
+    uint2 tile = min((uint2)((ndc * 0.5f + 0.5f) * float2(LIGHT_CLUSTER_TILES_X, LIGHT_CLUSTER_TILES_Y)), uint2(LIGHT_CLUSTER_TILES_X - 1, LIGHT_CLUSTER_TILES_Y - 1));
+    uint slice = (uint)clamp(floor(log2(max(clip.w / ClusterNearDepth, 1.0f)) * ClusterSliceScale), 0.0f, LIGHT_CLUSTER_SLICES - 1.0f);
+    uint cluster = ((slice * LIGHT_CLUSTER_TILES_Y) + tile.y) * LIGHT_CLUSTER_TILES_X + tile.x;
+    mask = TEN_LOAD_RAW(uint2, LightClusters, cluster);
+    return true;
+}
+
+// Lights of one mask word, lowest bit first as in the light list.
+float3 GetMaskedRoomLights(uint bits, uint firstLight, bool onlyPointLights, float3 position, Surface surface)
+{
+    float3 lighting = float3(0.0f, 0.0f, 0.0f);
+
+    [loop]
+    while (bits != 0)
+    {
+        uint light = firstLight + firstbitlow(bits);
+        bits &= bits - 1;
+        lighting += GetRoomLight(TEN_LOAD_RAW(GpuLight, Lights, LightOffset + light), onlyPointLights, position, surface);
+    }
+
+    return lighting;
+}
+
 float3 GetRoomLighting(float3 vertexColor, float3 position, Surface surface, float3 tangent, float3 binormal)
 {
     float3 lighting = vertexColor * COLOR_MODULATION_SCALE;
@@ -120,25 +181,17 @@ float3 GetRoomLighting(float3 vertexColor, float3 position, Surface surface, flo
     uint count = min(LightCount & LT_MASK, LIGHTS_PER_DRAW_MAX);
     bool onlyPointLights = (LightCount & ~LT_MASK) == LT_MASK_POINT;
 
-    for (uint i = 0; i < count; i++)
+    // Only the lights reaching the light cluster of the position are evaluated.
+    uint2 mask;
+    if (count > 0 && count <= LIGHT_CLUSTER_LIGHTS_MAX && GetClusterLightMask(position, mask))
     {
-        GpuLight light = TEN_LOAD_RAW(GpuLight, Lights, LightOffset + i);
-
-        if (onlyPointLights)
-        {
-            lighting += DoPointLight(position, surface.Normal, light) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
-#ifndef NO_ORSH_MAP
-            lighting += DoSpecularPoint(position, surface.Normal, CameraDirection, light, 0.0f, surface.Specular, surface.Roughness) * COLOR_MODULATION_SCALE;
-#endif
-        }
-        else if (light.Type == LT_POINT || light.Type == LT_SPOT)
-        {
-            float3 diffuse = (light.Type == LT_POINT) ? DoPointLight(position, surface.Normal, light) : DoSpotLight(position, surface.Normal, light);
-            lighting += saturate(diffuse) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
-#ifndef NO_ORSH_MAP
-            lighting += DoSpecularSpot(position, surface.Normal, CameraDirection, light, 0.0f, surface.Specular, surface.Roughness) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
-#endif
-        }
+        lighting += GetMaskedRoomLights(mask.x, 0, onlyPointLights, position, surface);
+        lighting += GetMaskedRoomLights(mask.y, 32, onlyPointLights, position, surface);
+    }
+    else
+    {
+        for (uint i = 0; i < count; i++)
+            lighting += GetRoomLight(TEN_LOAD_RAW(GpuLight, Lights, LightOffset + i), onlyPointLights, position, surface);
     }
 
     if (DecalCount > 0)

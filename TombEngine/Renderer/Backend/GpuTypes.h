@@ -85,12 +85,13 @@ namespace TEN::Renderer::Backend
     static_assert(sizeof(SkyVertexUniforms) == 160, "SkyVertexUniforms size.");
     static_assert(sizeof(SkyPixelUniforms) == 32, "SkyPixelUniforms size.");
     static_assert(sizeof(FogBulbUniforms) == 2064, "FogBulbUniforms size.");
-    static_assert(sizeof(FramePixelUniforms) == 144, "FramePixelUniforms size.");
+    static_assert(sizeof(FramePixelUniforms) == 208, "FramePixelUniforms size.");
     static_assert(sizeof(DrawPixelUniforms) == 48, "DrawPixelUniforms size.");
     static_assert(sizeof(GpuShadowUniforms) == 720, "GpuShadowUniforms size.");
     static_assert(sizeof(OverlayUniforms) == 16, "OverlayUniforms size.");
 
     static_assert(offsetof(FramePixelUniforms, View) == 48, "FramePixelUniforms.View must start a register.");
+    static_assert(offsetof(FramePixelUniforms, ClusterViewProjection) == 144, "FramePixelUniforms.ClusterViewProjection must start a register.");
     static_assert(offsetof(SkyVertexUniforms, ParaboloidView) == 80, "SkyVertexUniforms.ParaboloidView must start a register.");
     static_assert(offsetof(FogBulbUniforms, FogBulbs) == 16, "FogBulbUniforms.FogBulbs must start a register.");
     static_assert(offsetof(GpuShadowUniforms, LightViewProjections) == 64, "GpuShadowUniforms.LightViewProjections must start a register.");

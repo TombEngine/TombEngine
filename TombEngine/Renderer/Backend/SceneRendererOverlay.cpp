@@ -546,6 +546,9 @@ namespace TEN::Renderer::Backend
 
         if (_decalBuffer.Buffer == nullptr)
             UploadFrameStorage(_decalBuffer, noData, (int)sizeof(GpuDecal), BufferUsage::GraphicsStorageRead, "Frame.Decals");
+
+        if (_lightClusterBuffer.Buffer == nullptr)
+            UploadFrameStorage(_lightClusterBuffer, noData, (int)sizeof(unsigned int) * 2, BufferUsage::GraphicsStorageRead, "Frame.LightClusters");
     }
 
     // Quad runs up to the next object range, in one pass; returns the index of the first draw not drawn.

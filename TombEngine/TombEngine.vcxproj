@@ -1453,6 +1453,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\Backend\SceneRendererSMAA.cpp" />
     <ClCompile Include="Renderer\Backend\DrawSort.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererGeometry.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererLightClusters.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererPipelines.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererImGui.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererTextures.cpp" />
