@@ -874,6 +874,11 @@ namespace TEN::Renderer::Backend
         int GetMissingMaps(const Structures::RendererBucket& bucket, const std::vector<TexturePage>& pages) const;
         void BindPixelVariant(RHI::IRenderPass& renderPass, SceneShader shader, ScenePass pass, bool isAlphaTested, int missingMaps, int& boundMissingMaps);
         void ClearPipelineCaches();
+        int  GetScenePipelineCount() const;
+        void PrecompileLevelPipelines(const LevelGeometry& geometry);
+        void PrecompilePassPipelines(SceneShader shader, SceneShader prepassShader);
+        void PrecompileObjectPipelines(const std::vector<std::optional<Structures::RendererObject>>& objects, const std::vector<TexturePage>& pages);
+        void PrecompileBucketPipelines(const Structures::RendererBucket& bucket, const std::vector<TexturePage>& pages, SceneShader shader, SceneShader prepassShader);
         // Level textures (SceneRendererTextures.cpp).
         static void AddTextureRequest(std::vector<LevelTextureRequest>& requests, const std::vector<unsigned char>& encodedData, const std::string& name,
                                       std::unique_ptr<RHI::ITexture>& target);

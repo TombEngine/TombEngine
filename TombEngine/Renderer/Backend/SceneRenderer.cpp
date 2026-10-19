@@ -948,6 +948,7 @@ namespace TEN::Renderer::Backend
         _hasEmissiveMaps = false;
         LoadLevelTextures();
         LoadAnimatedTextures(geometry);
+        PrecompileLevelPipelines(geometry);
 
         _levelGeometry = geometry;
 

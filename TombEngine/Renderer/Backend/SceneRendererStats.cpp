@@ -88,15 +88,7 @@ namespace TEN::Renderer::Backend
         info.PooledTargets = _targetPool.GetCount();
         info.UploadRingSize = _uploadRing.GetCapacity();
 
-        for (const auto& shaderPipelines : _scenePipelines)
-        {
-            for (const auto& modePipelines : shaderPipelines)
-            {
-                for (const auto& pipeline : modePipelines)
-                    info.ScenePipelines += (pipeline != nullptr) ? 1 : 0;
-            }
-        }
-
+        info.ScenePipelines = GetScenePipelineCount();
         return info;
     }
 
