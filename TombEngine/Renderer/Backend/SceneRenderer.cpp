@@ -74,7 +74,7 @@ namespace TEN::Renderer::Backend
             return false;
         }
 
-        TENLog("Scene renderer initialized on " + _device->GetDeviceName(), LogLevel::Info);
+        TENLog(fmt::format("Scene renderer initialized on {}, window {}x{}.", _device->GetDeviceName(), width, height), LogLevel::Info);
         return true;
     }
 

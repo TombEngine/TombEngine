@@ -300,6 +300,10 @@ int main(int argc, char* argv[])
 	bool isVsyncDisabled = false;
 	bool isGpuTimingDisabled = false;
 	int renderScaleOverride = -1;
+	int ambientOcclusionOverride = -1;
+	int antialiasingOverride = -1;
+	int widthOverride = 0;
+	int heightOverride = 0;
 	auto rendererBackend = std::string();
 
 	for (int i = 1; i < argc; ++i)
@@ -349,6 +353,22 @@ int main(int argc, char* argv[])
 		{
 			// Render scale mode for this run (0 native to 4 FSR 1 performance), overriding the configuration, for benchmarks.
 			renderScaleOverride = std::stoi(argv[++i]);
+		}
+		else if (ArgEquals(arg.c_str(), "ssao") && i + 1 < argc)
+		{
+			// Ambient occlusion on or off for this run, overriding the configuration, for benchmarks.
+			ambientOcclusionOverride = std::stoi(argv[++i]);
+		}
+		else if (ArgEquals(arg.c_str(), "antialiasing") && i + 1 < argc)
+		{
+			// Antialiasing mode for this run (0 none to 3 high), overriding the configuration, for benchmarks.
+			antialiasingOverride = std::stoi(argv[++i]);
+		}
+		else if (ArgEquals(arg.c_str(), "resolution") && i + 2 < argc)
+		{
+			// Windowed screen resolution for this run, overriding the configuration, for benchmarks.
+			widthOverride = std::stoi(argv[++i]);
+			heightOverride = std::stoi(argv[++i]);
 		}
 		else if (ArgEquals(arg.c_str(), "lowpower"))
 		{
@@ -465,6 +485,19 @@ int main(int argc, char* argv[])
 
 	if (renderScaleOverride >= 0)
 		g_Configuration.RenderScale = (RenderScaleMode)std::clamp(renderScaleOverride, 0, (int)RenderScaleMode::Count - 1);
+
+	if (ambientOcclusionOverride >= 0)
+		g_Configuration.EnableAmbientOcclusion = (ambientOcclusionOverride != 0);
+
+	if (antialiasingOverride >= 0)
+		g_Configuration.AntialiasingMode = (AntialiasingMode)std::clamp(antialiasingOverride, 0, (int)AntialiasingMode::High);
+
+	if (widthOverride > 0 && heightOverride > 0)
+	{
+		g_Configuration.ScreenWidth = widthOverride;
+		g_Configuration.ScreenHeight = heightOverride;
+		g_Configuration.EnableWindowedMode = true;
+	}
 
 	// The configured backend applies when the command line does not choose one; the retired legacy option uses Vulkan.
 	if (rendererBackend.empty())

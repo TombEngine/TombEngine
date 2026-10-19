@@ -10,6 +10,8 @@ namespace TEN::Benchmark
     constexpr auto BENCHMARK_WARMUP_TIME = 3.0f;
     constexpr auto BENCHMARK_FLUSH_FRAMES = 60;
     constexpr auto BENCHMARK_SCREENSHOT_GAME_FRAME = 240;
+    constexpr auto BENCHMARK_SCREENSHOT_INTERVAL   = 240; // One screenshot per profiling flyby sequence.
+    constexpr auto BENCHMARK_SCREENSHOT_SKIPPED_FRAMES = 4; // The capture stalls the frame and the readback writes its file frames later.
     constexpr auto BENCHMARK_MENU_SCREENSHOT_TICK = 90;
     constexpr auto BENCHMARK_MENU_EXIT_TICK       = 150;
 
@@ -19,7 +21,8 @@ namespace TEN::Benchmark
     static float _duration = 0.0f;
     static std::chrono::steady_clock::time_point _startTime = {};
     static int _recordedFrames = 0;
-    static bool _isScreenshotTaken = false;
+    static int  _screenshotCount = 0;
+    static int  _screenshotSkippedFrames = 0;
     static int  _menuStartTick     = -1;
     static bool _isMenuCaptured    = false;
     static bool _isQuitRequested   = false;
@@ -151,15 +154,21 @@ namespace TEN::Benchmark
 
     bool ConsumeBenchmarkScreenshotRequest(int gameFrame)
     {
-        if (!_isActive || _isScreenshotTaken || gameFrame < BENCHMARK_SCREENSHOT_GAME_FRAME)
+        if (!_isActive || gameFrame < (BENCHMARK_SCREENSHOT_GAME_FRAME + (_screenshotCount * BENCHMARK_SCREENSHOT_INTERVAL)))
             return false;
 
-        _isScreenshotTaken = true;
+        _screenshotCount++;
+        _screenshotSkippedFrames = BENCHMARK_SCREENSHOT_SKIPPED_FRAMES;
         return true;
     }
 
     // Title and inventory frames do not run the game loop that ends the benchmark: they are captured after a fixed
     // number of logic ticks, and the run then ends.
+    std::string GetBenchmarkScreenshotName()
+    {
+        return ((_screenshotCount <= 1) ? std::string("Benchmark.png") : fmt::format("Benchmark_{}.png", _screenshotCount - 1));
+    }
+
     bool ConsumeMenuScreenshotRequest()
     {
         if (!_isActive)
@@ -224,6 +233,13 @@ namespace TEN::Benchmark
         float time = GetElapsedTime() - BENCHMARK_WARMUP_TIME;
         if (time < 0.0f || time > _duration)
             return;
+
+        // Frames of the screenshot capture are not representative of the scene.
+        if (_screenshotSkippedFrames > 0)
+        {
+            _screenshotSkippedFrames--;
+            return;
+        }
 
         if (_recordedFrames == 0)
             WriteHeader(stats);

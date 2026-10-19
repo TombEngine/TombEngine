@@ -1491,7 +1491,7 @@ namespace TEN::Renderer
 
 		bool captureScreenshots = TEN::Benchmark::ConsumeBenchmarkScreenshotRequest(GlobalCounter);
 		if (captureScreenshots && Backend::g_SceneRenderer.IsActive())
-			Backend::g_SceneRenderer.RequestScreenshot(g_GameFlow->GetGameDir() + "Logs/Benchmark.png");
+			Backend::g_SceneRenderer.RequestScreenshot(g_GameFlow->GetGameDir() + "Logs/" + TEN::Benchmark::GetBenchmarkScreenshotName());
 
 		// Screenshots show the game frame itself: the interpolation between game frames depends on the frame pacing of the run.
 		if (captureScreenshots)

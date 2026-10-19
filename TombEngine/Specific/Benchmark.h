@@ -42,5 +42,6 @@ namespace TEN::Benchmark
     // True once, when the game frame counter reaches a fixed value, so renderers and backends capture
     // the same game state for comparison.
     bool ConsumeBenchmarkScreenshotRequest(int gameFrame);
+    std::string GetBenchmarkScreenshotName(); // File name of the last requested gameplay screenshot.
     bool ConsumeMenuScreenshotRequest();
 }
