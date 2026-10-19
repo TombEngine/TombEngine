@@ -85,6 +85,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed GOLDROSE_ITEM, FLARE_ITEM, and HAMMER_ITEM flickering in the pickup summary.
 * Fixed enemy gunfire not affecting other enemies in some cases.
 * Fixed regular spark sprite distance while moving with flare in hand.
+* Fixed gun smoke particles position when enemy is targeted.
 * Fixed fireflies emitting bright white light while in fly form (negative OCB).
 * Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
 * Fixed flyby camera flag "Let Lara move in cinematic mode" being ignored.
