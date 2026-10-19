@@ -14,6 +14,7 @@ namespace TEN::Renderer::Backend
     };
 
     // Size and format of an encoded image, read from its header. PNG images report one level: their mips are generated.
+    // Opaque BC3 images report BC1, the format DecodeImage converts them to.
     struct ImageInfo
     {
         int              Width     = 0;

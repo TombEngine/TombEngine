@@ -323,10 +323,16 @@ namespace TEN::Renderer::Backend
         auto layerCounts = std::vector<int>{};
         auto pageKeys = std::vector<ArrayGroupKey>(pages.size());
         auto pageGroups = std::vector<int>(pages.size());
+
+        // Reading the keys scans BC3 data for transparency, so the pages are read in parallel.
+        g_Parallel.AddTasks((int)pages.size(), [&](int start, int end)
+        {
+            for (int i = start; i < end; i++)
+                pageKeys[i] = GetArrayGroupKey(*pages[i].Texture, pages[i].IsColorOnly);
+        }).wait();
+
         for (int i = 0; i < (int)pages.size(); i++)
         {
-            pageKeys[i] = GetArrayGroupKey(*pages[i].Texture, pages[i].IsColorOnly);
-
             int group = 0;
             while (group < (int)groupKeys.size() && !IsSameGroupKey(groupKeys[group], pageKeys[i]))
                 group++;
