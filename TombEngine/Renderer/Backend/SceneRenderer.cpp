@@ -1383,7 +1383,7 @@ namespace TEN::Renderer::Backend
 
             for (const auto& bucket : room->Buckets)
             {
-                if (bucket.NumIndices == 0 || !IsRoomBucketVisible(bucket))
+                if (bucket.NumIndices == 0 || !IsRoomBucketVisible(bucket) || !IsRoomBucketInPortals(bucket, *room, view.Camera.ViewProjection))
                     continue;
 
                 _roomDrawOrder.push_back(DrawSortKey{ GetBucketSortKey(MeshSource::Rooms, bucket), (int)_roomDraws.size() });

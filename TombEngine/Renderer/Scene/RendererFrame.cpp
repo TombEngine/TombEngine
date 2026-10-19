@@ -34,6 +34,10 @@ namespace TEN::Renderer
 	{
 		constexpr auto VIEW_PORT = Vector4(-1.0f, -1.0f, 1.0f, 1.0f);
 
+		// Rooms start with an empty rectangle: traversal grows it to the union of the portals they are seen through, which
+		// the backend uses as the room scissor.
+		constexpr auto EMPTY_VIEW_PORT = Vector4(FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX);
+
 		_visitedRoomsStack.clear();
 
 		for (int i = 0; i < g_Level.Rooms.size(); i++)
@@ -46,7 +50,7 @@ namespace TEN::Renderer
 			room.LightsToDraw.clear();
 			room.Decals.clear();
 			room.Visited = false;
-			room.ViewPort = VIEW_PORT;
+			room.ViewPort = EMPTY_VIEW_PORT;
 
 			for (auto& door : room.Doors)
 			{
@@ -78,6 +82,7 @@ namespace TEN::Renderer
 		// HACK: Force adding Lara's room to room list, in case she is in one of camera's neighbor rooms.
 		if (!laraFound && Contains(_rooms[renderView.Camera.RoomNumber].Neighbors, (int)LaraItem->RoomNumber))
 		{
+			_rooms[LaraItem->RoomNumber].ViewPort = VIEW_PORT;
 			renderView.RoomsToDraw.push_back(&_rooms[LaraItem->RoomNumber]);
 			CollectItems(LaraItem->RoomNumber, renderView);
 		}

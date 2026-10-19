@@ -2,6 +2,7 @@
 #include "Renderer/Renderer.h"
 
 #include <execution>
+#include <numeric>
 #include <stack>
 #include <tuple>
 
@@ -22,6 +23,68 @@ using namespace TEN::Effects::Hair;
 
 namespace TEN::Renderer
 {
+	// Splits the polygons of a room bucket into compact chunks by recursive median splits along the longest axis of
+	// their centres, so large rooms are culled per chunk instead of as a whole.
+	static std::vector<std::vector<const POLYGON*>> GetPolygonChunks(const RoomData& room, const BUCKET& bucket)
+	{
+		constexpr auto CHUNK_POLYGONS_MAX = 1024;
+
+		auto polygons = std::vector<const POLYGON*>{};
+		auto centres = std::vector<Vector3>{};
+		polygons.reserve(bucket.polygons.size());
+		centres.reserve(bucket.polygons.size());
+		for (const auto& polygon : bucket.polygons)
+		{
+			polygons.push_back(&polygon);
+			centres.push_back((room.positions[polygon.indices[0]] + room.positions[polygon.indices[1]] + room.positions[polygon.indices[2]]) / 3.0f);
+		}
+
+		auto order = std::vector<int>(polygons.size());
+		std::iota(order.begin(), order.end(), 0);
+
+		auto chunks = std::vector<std::vector<const POLYGON*>>{};
+		auto ranges = std::stack<std::pair<int, int>>{};
+		ranges.push({ 0, (int)order.size() });
+		while (!ranges.empty())
+		{
+			auto [start, end] = ranges.top();
+			ranges.pop();
+
+			if ((end - start) <= CHUNK_POLYGONS_MAX)
+			{
+				auto& chunk = chunks.emplace_back();
+				chunk.reserve(end - start);
+				for (int i = start; i < end; i++)
+					chunk.push_back(polygons[order[i]]);
+
+				continue;
+			}
+
+			auto boundsMin = Vector3(FLT_MAX);
+			auto boundsMax = Vector3(-FLT_MAX);
+			for (int i = start; i < end; i++)
+			{
+				boundsMin = Vector3::Min(boundsMin, centres[order[i]]);
+				boundsMax = Vector3::Max(boundsMax, centres[order[i]]);
+			}
+
+			auto size = boundsMax - boundsMin;
+			int axis = (size.x >= size.y && size.x >= size.z) ? 0 : ((size.y >= size.z) ? 1 : 2);
+			int middle = (start + end) / 2;
+			std::nth_element(order.begin() + start, order.begin() + middle, order.begin() + end, [&](int a, int b)
+			{
+				const auto& left = centres[a];
+				const auto& right = centres[b];
+				return ((axis == 0) ? (left.x < right.x) : ((axis == 1) ? (left.y < right.y) : (left.z < right.z)));
+			});
+
+			ranges.push({ middle, end });
+			ranges.push({ start, middle });
+		}
+
+		return chunks;
+	}
+
 	bool Renderer::PrepareDataForTheRenderer()
 	{
 		TENLog("Preparing renderer...", LogLevel::Info);
@@ -186,105 +249,110 @@ namespace TEN::Renderer
 
 			for (auto& levelBucket : room.buckets)
 			{
-				RendererBucket bucket{};
-
-				bucket.Animated = levelBucket.animated;
-				bucket.BlendMode = (BlendMode)levelBucket.blendMode;
-				bucket.MaterialIndex = levelBucket.materialIndex;
-				bucket.Texture = levelBucket.texture;
-				bucket.StartVertex = lastVertex;
-				bucket.StartIndex = lastIndex;
-				bucket.NumVertices += levelBucket.numQuads * 4 + levelBucket.numTriangles * 3;
-				bucket.NumIndices += levelBucket.numQuads * 6 + levelBucket.numTriangles * 3;
-				bucket.Centre = Vector3::Zero;
-				bucket.BoundsMin = Vector3(FLT_MAX);
-				bucket.BoundsMax = Vector3(-FLT_MAX);
-
-				for (auto& poly : levelBucket.polygons)
+				for (const auto& chunk : GetPolygonChunks(room, levelBucket))
 				{
-					RendererPolygon newPoly;
+					RendererBucket bucket{};
 
-					newPoly.Shape = poly.shape;
+					bucket.Animated = levelBucket.animated;
+					bucket.BlendMode = (BlendMode)levelBucket.blendMode;
+					bucket.MaterialIndex = levelBucket.materialIndex;
+					bucket.Texture = levelBucket.texture;
+					bucket.StartVertex = lastVertex;
+					bucket.StartIndex = lastIndex;
+					bucket.Centre = Vector3::Zero;
+					bucket.BoundsMin = Vector3(FLT_MAX);
+					bucket.BoundsMax = Vector3(-FLT_MAX);
 
-					newPoly.Centre = (
-						room.positions[poly.indices[0]] +
-						room.positions[poly.indices[1]] +
-						room.positions[poly.indices[2]]) / 3.0f;
-
-					newPoly.Centre += room.Position.ToVector3();
-
-					Vector3 p1 = room.positions[poly.indices[0]];
-					Vector3 p2 = room.positions[poly.indices[1]];
-					Vector3 p3 = room.positions[poly.indices[2]];
-
-					Vector3 n = (p2 - p1).Cross(p3 - p1);
-					n.Normalize();
-
-					newPoly.Normal = n;
-
-					int baseVertices = lastVertex;
-					for (int k = 0; k < poly.indices.size(); k++)
+					for (const auto* polyPtr : chunk)
 					{
-						Vertex* vertex = &_roomsVertices[lastVertex];
-						int index = poly.indices[k];
+						const auto& poly = *polyPtr;
+						bucket.NumVertices += (int)poly.indices.size();
+						bucket.NumIndices += (poly.shape == 0) ? 6 : 3;
 
-						vertex->Position.x = room.Position.x + room.positions[index].x;
-						vertex->Position.y = room.Position.y + room.positions[index].y;
-						vertex->Position.z = room.Position.z + room.positions[index].z;
+						RendererPolygon newPoly;
 
-						bucket.Centre += vertex->Position;
-						bucket.BoundsMin = Vector3::Min(bucket.BoundsMin, vertex->Position);
-						bucket.BoundsMax = Vector3::Max(bucket.BoundsMax, vertex->Position);
+						newPoly.Shape = poly.shape;
 
-						vertex->Normal = PackVector3(poly.normals[k]);
-						vertex->UV = poly.textureCoordinates[k];
-						vertex->Color = VectorColorToRGBA(Vector4(room.colors[index].x, room.colors[index].y, room.colors[index].z, 1.0f));
-						vertex->Tangent = PackVector3(poly.tangents[k]);
-						vertex->FaceNormal = PackVector3(poly.normal);
+						newPoly.Centre = (
+							room.positions[poly.indices[0]] +
+							room.positions[poly.indices[1]] +
+							room.positions[poly.indices[2]]) / 3.0f;
 
-						const unsigned long long primes[]{ 73856093ULL, 19349663ULL, 83492791ULL };
-						unsigned int hash = (unsigned int)std::hash<float>{}
-						((vertex->Position.x) * primes[0]) ^
-							((unsigned int)std::hash<float>{}(vertex->Position.y)* primes[1]) ^
-							(unsigned int)std::hash<float>{}(vertex->Position.z)* primes[2];
+						newPoly.Centre += room.Position.ToVector3();
 
-						vertex->AnimationFrameOffsetIndexHash = PackAnimationFrameOffsetIndexHash(poly.animatedFrame, index, hash);
-						vertex->Effects = PackEffectsAndIndexInPoly(room.effects[index], poly.shineStrength, k);
+						Vector3 p1 = room.positions[poly.indices[0]];
+						Vector3 p2 = room.positions[poly.indices[1]];
+						Vector3 p3 = room.positions[poly.indices[2]];
 
-						lastVertex++;
+						Vector3 n = (p2 - p1).Cross(p3 - p1);
+						n.Normalize();
+
+						newPoly.Normal = n;
+
+						int baseVertices = lastVertex;
+						for (int k = 0; k < poly.indices.size(); k++)
+						{
+							Vertex* vertex = &_roomsVertices[lastVertex];
+							int index = poly.indices[k];
+
+							vertex->Position.x = room.Position.x + room.positions[index].x;
+							vertex->Position.y = room.Position.y + room.positions[index].y;
+							vertex->Position.z = room.Position.z + room.positions[index].z;
+
+							bucket.Centre += vertex->Position;
+							bucket.BoundsMin = Vector3::Min(bucket.BoundsMin, vertex->Position);
+							bucket.BoundsMax = Vector3::Max(bucket.BoundsMax, vertex->Position);
+
+							vertex->Normal = PackVector3(poly.normals[k]);
+							vertex->UV = poly.textureCoordinates[k];
+							vertex->Color = VectorColorToRGBA(Vector4(room.colors[index].x, room.colors[index].y, room.colors[index].z, 1.0f));
+							vertex->Tangent = PackVector3(poly.tangents[k]);
+							vertex->FaceNormal = PackVector3(poly.normal);
+
+							const unsigned long long primes[]{ 73856093ULL, 19349663ULL, 83492791ULL };
+							unsigned int hash = (unsigned int)std::hash<float>{}
+							((vertex->Position.x) * primes[0]) ^
+								((unsigned int)std::hash<float>{}(vertex->Position.y)* primes[1]) ^
+								(unsigned int)std::hash<float>{}(vertex->Position.z)* primes[2];
+
+							vertex->AnimationFrameOffsetIndexHash = PackAnimationFrameOffsetIndexHash(poly.animatedFrame, index, hash);
+							vertex->Effects = PackEffectsAndIndexInPoly(room.effects[index], poly.shineStrength, k);
+
+							lastVertex++;
+						}
+
+						if (poly.shape == 0)
+						{
+							newPoly.BaseIndex = lastIndex;
+
+							_roomsIndices[lastIndex + 0] = baseVertices + 0;
+							_roomsIndices[lastIndex + 1] = baseVertices + 1;
+							_roomsIndices[lastIndex + 2] = baseVertices + 3;
+							_roomsIndices[lastIndex + 3] = baseVertices + 2;
+							_roomsIndices[lastIndex + 4] = baseVertices + 3;
+							_roomsIndices[lastIndex + 5] = baseVertices + 1;
+
+							lastIndex += 6;
+						}
+						else
+						{
+							newPoly.BaseIndex = lastIndex;
+
+							_roomsIndices[lastIndex + 0] = baseVertices + 0;
+							_roomsIndices[lastIndex + 1] = baseVertices + 1;
+							_roomsIndices[lastIndex + 2] = baseVertices + 2;
+
+							lastIndex += 3;
+						}
+
+						bucket.Polygons.push_back(newPoly);
 					}
 
-					if (poly.shape == 0)
-					{
-						newPoly.BaseIndex = lastIndex;
+					if (bucket.NumVertices > 0)
+						bucket.Centre /= (float)bucket.NumVertices;
 
-						_roomsIndices[lastIndex + 0] = baseVertices + 0;
-						_roomsIndices[lastIndex + 1] = baseVertices + 1;
-						_roomsIndices[lastIndex + 2] = baseVertices + 3;
-						_roomsIndices[lastIndex + 3] = baseVertices + 2;
-						_roomsIndices[lastIndex + 4] = baseVertices + 3;
-						_roomsIndices[lastIndex + 5] = baseVertices + 1;
-
-						lastIndex += 6;
-					}
-					else
-					{
-						newPoly.BaseIndex = lastIndex;
-
-						_roomsIndices[lastIndex + 0] = baseVertices + 0;
-						_roomsIndices[lastIndex + 1] = baseVertices + 1;
-						_roomsIndices[lastIndex + 2] = baseVertices + 2;
-
-						lastIndex += 3;
-					}
-
-					bucket.Polygons.push_back(newPoly);
+					rendererRoom.Buckets.push_back(bucket);
 				}
-
-				if (bucket.NumVertices > 0)
-					bucket.Centre /= (float)bucket.NumVertices;
-
-				rendererRoom.Buckets.push_back(bucket);		
 			}
 
 			if (room.lights.size() != 0)

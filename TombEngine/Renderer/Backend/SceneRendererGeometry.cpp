@@ -157,6 +157,32 @@ namespace TEN::Renderer::Backend
         return _frustum.AABBInFrustum(bucket.BoundsMin - margin, bucket.BoundsMax + margin);
     }
 
+    // Room buckets outside the portal rectangles the room is seen through are skipped. The box is projected with the
+    // frontend camera, whose normalized device coordinates the rectangle uses; a box crossing the near plane is kept.
+    bool SceneRenderer::IsRoomBucketInPortals(const RendererBucket& bucket, const RendererRoom& room, const Matrix& viewProjection) const
+    {
+        constexpr auto VERTEX_EFFECT_MARGIN = 128.0f;
+
+        auto boundsMin = bucket.BoundsMin - Vector3(VERTEX_EFFECT_MARGIN);
+        auto boundsMax = bucket.BoundsMax + Vector3(VERTEX_EFFECT_MARGIN);
+
+        auto rectMin = Vector2(FLT_MAX);
+        auto rectMax = Vector2(-FLT_MAX);
+        for (int i = 0; i < 8; i++)
+        {
+            auto corner = Vector4((i & 1) ? boundsMax.x : boundsMin.x, (i & 2) ? boundsMax.y : boundsMin.y, (i & 4) ? boundsMax.z : boundsMin.z, 1.0f);
+            auto clip = Vector4::Transform(corner, viewProjection);
+            if (clip.w <= 0.0f)
+                return true;
+
+            auto point = Vector2(clip.x / clip.w, clip.y / clip.w);
+            rectMin = Vector2::Min(rectMin, point);
+            rectMax = Vector2::Max(rectMax, point);
+        }
+
+        return (rectMin.x <= room.ViewPort.z && rectMax.x >= room.ViewPort.x && rectMin.y <= room.ViewPort.w && rectMax.y >= room.ViewPort.y);
+    }
+
     // Portal rectangle of a room. The frontend computes it in the normalized device coordinates of its own projection;
     // the target projection may have another aspect ratio, which scales the horizontal axis.
     ScissorRect SceneRenderer::GetRoomScissor(const RendererRoom& room, int targetWidth, int targetHeight) const

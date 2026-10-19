@@ -894,6 +894,7 @@ namespace TEN::Renderer::Backend
         void BindLevelGeometry(RHI::IRenderPass& renderPass, MeshSource source, bool hasInstanceStream);
         void DrawBucket(RHI::IRenderPass& renderPass, MeshSource source, const Structures::RendererBucket& bucket, int instanceCount, int firstInstance);
         bool IsRoomBucketVisible(const Structures::RendererBucket& bucket) const;
+        bool IsRoomBucketInPortals(const Structures::RendererBucket& bucket, const Structures::RendererRoom& room, const Matrix& viewProjection) const;
         RHI::ScissorRect GetRoomScissor(const Structures::RendererRoom& room, int targetWidth, int targetHeight) const;
         void CollectObjects(const RenderView& view, float interpolationFactor);
         void CollectPlayer(float interpolationFactor);
