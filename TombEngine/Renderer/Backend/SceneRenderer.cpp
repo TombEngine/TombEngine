@@ -274,10 +274,11 @@ namespace TEN::Renderer::Backend
         return (_device != nullptr);
     }
 
-    // Vulkan presents in mailbox mode where the driver allows it: in a window, the immediate mode of some drivers (NVIDIA)
-    // adds a copy of the image to each present, which mailbox avoids without tearing. With vertical sync the game thread
-    // is then paced to the refresh rate (Renderer::PaceFrame). DX11 tears without vertical sync: its flip model is capped
-    // at the refresh rate otherwise.
+    // With vertical sync, Vulkan presents in mailbox mode where the driver allows it: in a window, the immediate mode of
+    // some drivers (NVIDIA) adds a copy of the image to each present, which mailbox avoids without tearing, and the game
+    // thread is paced to the refresh rate (Renderer::PaceFrame). Without vertical sync the immediate mode is used: in a
+    // window the compositor takes one mailbox image per refresh, which capped a 60 Hz display at about 120 fps.
+    // DX11 tears without vertical sync: its flip model is capped at the refresh rate otherwise.
     void SceneRenderer::SetVsyncEnabled(bool enabled)
     {
         _isVsyncEnabled = enabled;
@@ -285,7 +286,7 @@ namespace TEN::Renderer::Backend
             return;
 
         auto mode = enabled ? PresentMode::Vsync : PresentMode::Immediate;
-        if (_device->RequiresWindowThreadPresent() && _device->SupportsPresentMode(PresentMode::Mailbox))
+        if (enabled && _device->RequiresWindowThreadPresent() && _device->SupportsPresentMode(PresentMode::Mailbox))
             mode = PresentMode::Mailbox;
 
         _device->SetPresentMode(mode);
