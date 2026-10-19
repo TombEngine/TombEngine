@@ -457,6 +457,7 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::IDevice> _device = nullptr;
         SDL_Window*                   _window = nullptr;
         std::string                   _shaderDirectory = {};
+        std::string                   _textureCacheDirectory = {}; // Block compressed copies of PNG and JPEG level textures.
 
         std::unique_ptr<RHI::IShader>           _roomsVertexShader   = nullptr;
         std::unique_ptr<RHI::IShader>           _roomsPixelShader    = nullptr;

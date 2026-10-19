@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 
+#include "Renderer/Backend/TextureCompressor.h"
 #include "Renderer/Backend/TextureLoader.h"
 #include "Renderer/RHI/MemoryTracker.h"
 #include "Specific/level.h"
@@ -430,10 +431,26 @@ namespace TEN::Renderer::Backend
         _device->WaitIdle();
     }
 
+    // Every texture of the level, for the block compression of the PNG and JPEG maps.
+    static std::vector<::TEXTURE*> GetLevelTextureSources()
+    {
+        auto sources = std::vector<::TEXTURE*>{};
+        for (auto* textures : { &g_Level.RoomTextures, &g_Level.StaticsTextures, &g_Level.MoveablesTextures, &g_Level.AnimatedTextures, &g_Level.SpritesTextures })
+        {
+            for (auto& texture : *textures)
+                sources.push_back(&texture);
+        }
+
+        sources.push_back(&g_Level.SkyTexture);
+        return sources;
+    }
+
     // Animated texture pages and the sky use their color map only. Sprite pages stay
     // single textures: the 2D layer samples them too.
     void SceneRenderer::LoadLevelTextures()
     {
+        CompressLevelTextures(GetLevelTextureSources(), _textureCacheDirectory);
+
         auto pages = std::vector<ArrayPageSource>{};
         AddArrayPages(g_Level.RoomTextures, _roomTextures, false, pages);
         AddArrayPages(g_Level.StaticsTextures, _staticTextures, false, pages);
