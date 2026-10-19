@@ -48,16 +48,20 @@ float GetGaussianWeight(float x)
     return exp(-(x * x) / (2.0f * GLOW_BLUR_SIGMA * GLOW_BLUR_SIGMA));
 }
 
+// Neighbouring taps are paired into one bilinear sample between them, at the offset weighted by their gaussian weights,
+// which halves the samples for the same filter.
 float4 PSBlur(FullscreenPixelInput input) : SV_Target
 {
     float3 color = SampleSource(input.UV);
     float weightSum = 1.0f;
 
     [unroll]
-    for (int i = 1; i <= GLOW_BLUR_RADIUS; i++)
+    for (int i = 1; i <= GLOW_BLUR_RADIUS; i += 2)
     {
-        float weight = GetGaussianWeight((float)i);
-        float2 offset = Direction * TexelSize * i;
+        float weight0 = GetGaussianWeight((float)i);
+        float weight1 = GetGaussianWeight((float)(i + 1));
+        float weight = weight0 + weight1;
+        float2 offset = Direction * TexelSize * ((i * weight0 + (i + 1) * weight1) / weight);
         color += (SampleSource(input.UV + offset) + SampleSource(input.UV - offset)) * weight;
         weightSum += weight * 2.0f;
     }

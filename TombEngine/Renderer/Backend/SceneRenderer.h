@@ -870,7 +870,7 @@ namespace TEN::Renderer::Backend
         void LoadAnimatedTextures(const LevelGeometry& geometry);
         void AddWaterfallSets(const LevelGeometry& geometry, std::vector<GpuAnimatedFrame>& frames, std::vector<GpuAnimatedSet>& sets);
         bool LoadPixelShaderVariants();
-        RHI::IGraphicsPipeline* GetScenePipeline(SceneShader shader, BlendMode blendMode, bool isAlphaTested = true, int missingMaps = 0);
+        RHI::IGraphicsPipeline* GetScenePipeline(SceneShader shader, BlendMode blendMode, bool isAlphaTested = true, int missingMaps = 0, bool isAlphaEdge = false);
         int GetMissingMaps(const Structures::RendererBucket& bucket, const std::vector<TexturePage>& pages) const;
         void BindPixelVariant(RHI::IRenderPass& renderPass, SceneShader shader, ScenePass pass, bool isAlphaTested, int missingMaps, int& boundMissingMaps);
         void ClearPipelineCaches();
@@ -1034,6 +1034,7 @@ namespace TEN::Renderer::Backend
         bool  CreateDOFResources();
         bool  EnsureDOFTargets(int width, int height);
         static bool IsDOFActive(const FrameEnvironment& environment);
+        static int  GetDOFLayers(const FrameEnvironment& environment); // Bit 0 far blur, bit 1 near blur.
         void  RenderDOF(RHI::ICommandBuffer& commandBuffer);
         void  AddVideoSets(const LevelGeometry& geometry, std::vector<GpuAnimatedFrame>& frames, std::vector<GpuAnimatedSet>& sets);
         void  UploadVideoFrame(const unsigned char* frame, int width, int height);

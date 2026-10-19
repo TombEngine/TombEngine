@@ -25,7 +25,10 @@ TEN_PS_TEXTURE(Texture2D, SceneAfterClouds, 0);
 
 FullscreenPixelInput VS(uint vertexId : SV_VertexID)
 {
-    return FullscreenVS(vertexId);
+    // On the far plane: the dome is depth tested against the prepass, so covered texels are skipped.
+    FullscreenPixelInput output = FullscreenVS(vertexId);
+    output.Position.z = 1.0f;
+    return output;
 }
 
 #include "AtmosphericSkyCore.hlsli"

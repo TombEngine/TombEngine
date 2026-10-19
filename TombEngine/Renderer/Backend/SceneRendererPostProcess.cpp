@@ -139,7 +139,7 @@ namespace TEN::Renderer::Backend
         uniforms.IsDistortionActive = _hasDistortion ? 1 : 0;
         uniforms.Time = _time;
         uniforms.IsGlowActive = _hasVisibleEmissive ? 1 : 0;
-        uniforms.IsDofActive = _isDofActive ? 1 : 0;
+        uniforms.IsDofActive = _isDofActive ? (unsigned int)GetDOFLayers(environment) : 0;
 
         // Flares are projected here; the frontend collection already dropped those behind the camera.
         for (int i = 0; i < environment.LensFlareCount; i++)

@@ -27,12 +27,13 @@ namespace TEN::Renderer::Backend
             return false;
         }
 
-        // Drawn inside the sky pass, so the pipeline matches its targets; the dome ignores depth.
+        // Drawn inside the sky pass, so the pipeline matches its targets; the dome is on the far plane and tested
+        // against the prepass depth.
         auto desc = GraphicsPipelineDesc{};
         desc.VertexShader = _atmosphericSkyVertexShader.get();
         desc.PixelShader = _atmosphericSkyPixelShader.get();
         desc.Rasterizer.Cull = RHI::CullMode::None;
-        desc.DepthStencil.EnableDepthTest = false;
+        desc.DepthStencil.EnableDepthTest = true;
         desc.DepthStencil.EnableDepthWrite = false;
         desc.DepthFormat = PixelFormat::D32Float;
         desc.NumColorTargets = 1;

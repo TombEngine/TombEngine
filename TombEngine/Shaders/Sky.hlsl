@@ -52,6 +52,7 @@ PixelInput VS(VertexInput input)
 
     PixelInput output;
     output.Position = mul(float4(worldPosition, 1.0f), ViewProjection);
+    output.Position.z = output.Position.w; // On the far plane: the depth test of the sky pass skips texels the prepass covered.
     output.ClipDepth = 1.0f;
     output.RelativeY = worldPosition.y - CameraPosition.y;
 

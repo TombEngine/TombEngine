@@ -33,7 +33,7 @@ TEN_PS_UNIFORMS(PostProcessUniforms, 2)
     float  Time;
     uint   LensFlareCount;
     uint   IsGlowActive;
-    uint   IsDofActive;
+    uint   IsDofActive; // Bit 0 far blur, bit 1 near blur.
     float  PostProcessPadding1;
     float  PostProcessPadding2;
     float  PostProcessPadding3;
@@ -238,11 +238,15 @@ float4 PS(FullscreenPixelInput input) : SV_Target
     float3 color = SceneMap.SampleLevel(SceneMapSampler, uv, 0.0f).rgb;
 
     // Depth of field: far blur, then near blur on top.
-    if (IsDofActive)
+    if (IsDofActive & 1)
     {
         float4 farBlur = FarBlurMap.SampleLevel(FarBlurMapSampler, input.UV, 0.0f);
-        float4 nearBlur = NearBlurMap.SampleLevel(NearBlurMapSampler, input.UV, 0.0f);
         color = lerp(color, farBlur.rgb, saturate(farBlur.a));
+    }
+
+    if (IsDofActive & 2)
+    {
+        float4 nearBlur = NearBlurMap.SampleLevel(NearBlurMapSampler, input.UV, 0.0f);
         color = lerp(color, nearBlur.rgb, saturate(nearBlur.a));
     }
 

@@ -69,6 +69,18 @@ namespace TEN::Renderer::Backend
         return (environment.DofMode != 0 && environment.DofStrength > EPSILON);
     }
 
+    // The front mode blurs only the near side, the back mode only the far side.
+    int SceneRenderer::GetDOFLayers(const FrameEnvironment& environment)
+    {
+        constexpr auto DOF_MODE_FRONT = 2;
+        constexpr auto DOF_MODE_BACK  = 3;
+
+        if (!IsDOFActive(environment))
+            return 0;
+
+        return ((environment.DofMode != DOF_MODE_FRONT) ? 1 : 0) | ((environment.DofMode != DOF_MODE_BACK) ? 2 : 0);
+    }
+
     // Same passes. The near blur ends in _dofTargets[0], the far blur in _dofTargets[1].
     void SceneRenderer::RenderDOF(ICommandBuffer& commandBuffer)
     {
@@ -97,11 +109,17 @@ namespace TEN::Renderer::Backend
             RenderFullscreenPass(commandBuffer, _dofPipelines[pass].get(), target, bindings, (pass == 0) ? 2 : 1, name);
         };
 
-        auto* dilatedTarget = _targetPool.Acquire(targetDesc);
+        int layers = GetDOFLayers(environment);
         drawPass(0, _dofTargets[0].get(), _sceneTarget.get(), "Downsample");
-        drawPass(1, _dofTargets[1].get(), _dofTargets[0].get(), "Far blur");
-        drawPass(2, dilatedTarget, _dofTargets[0].get(), "Near dilate");
-        drawPass(3, _dofTargets[0].get(), dilatedTarget, "Near blur");
-        _targetPool.Release(dilatedTarget);
+        if (layers & 1)
+            drawPass(1, _dofTargets[1].get(), _dofTargets[0].get(), "Far blur");
+
+        if (layers & 2)
+        {
+            auto* dilatedTarget = _targetPool.Acquire(targetDesc);
+            drawPass(2, dilatedTarget, _dofTargets[0].get(), "Near dilate");
+            drawPass(3, _dofTargets[0].get(), dilatedTarget, "Near blur");
+            _targetPool.Release(dilatedTarget);
+        }
     }
 }

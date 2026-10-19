@@ -634,9 +634,15 @@ namespace TEN::Renderer::Backend
 
     // Pipelines are created on first use per shader, blend mode and pixel shader variant; opaque and alpha test blending
     // share one. Shaders without variants always use their alpha tested pixel shader with every map.
-    IGraphicsPipeline* SceneRenderer::GetScenePipeline(SceneShader shader, BlendMode blendMode, bool isAlphaTested, int missingMaps)
+    IGraphicsPipeline* SceneRenderer::GetScenePipeline(SceneShader shader, BlendMode blendMode, bool isAlphaTested, int missingMaps, bool isAlphaEdge)
     {
+        // Alpha edges blend like alpha blending, in a slot of their own: the slot of no blend mode.
+        constexpr auto ALPHA_EDGE_MODE_INDEX = 7;
+
         int modeIndex = (blendMode == BlendMode::AlphaTest) ? (int)BlendMode::Opaque : std::clamp((int)blendMode, 0, 15);
+        if (isAlphaEdge)
+            modeIndex = ALPHA_EDGE_MODE_INDEX;
+
         int variant = (isAlphaTested ? 0 : PIXEL_VARIANT_NO_ALPHA_TEST) | (missingMaps << PIXEL_VARIANT_MAP_SHIFT);
         if (variant >= PIXEL_VARIANT_COUNT || _pixelShaderVariants[(int)shader][variant] == nullptr)
             variant = 0;
@@ -721,7 +727,7 @@ namespace TEN::Renderer::Backend
         desc.NumColorTargets = isPrepass ? 3 : (isInventory ? 2 : 1);
         desc.ColorTargets[0].Format = (isPrepass || isParaboloid) ? PixelFormat::RGBA8Unorm :
             (isShadow ? PixelFormat::R32Float : (isHorizonMask ? PixelFormat::R11G11B10Float : _device->GetSwapchainFormat()));
-        desc.ColorTargets[0].Blend = GetBlendState((isPrepass || isShadow) ? BlendMode::Opaque : (BlendMode)modeIndex);
+        desc.ColorTargets[0].Blend = GetBlendState((isPrepass || isShadow) ? BlendMode::Opaque : (isAlphaEdge ? BlendMode::AlphaBlend : (BlendMode)modeIndex));
         desc.ColorTargets[1].Format = PixelFormat::RGBA8Unorm;
         desc.ColorTargets[1].Blend = GetBlendState(BlendMode::Opaque);
         desc.ColorTargets[2].Format = PixelFormat::R32Float;
@@ -729,7 +735,8 @@ namespace TEN::Renderer::Backend
         // Distortion accumulates in a half resolution target without depth; the post-process rejects occluded texels.
         bool isDistortion = (modeIndex == (int)BlendMode::Distortion);
         desc.DepthStencil.EnableDepthWrite = ((modeIndex == (int)BlendMode::Opaque) && !isSky) || isInventory;
-        desc.DepthStencil.EnableDepthTest = !isSky && !isDistortion;
+        // The sky is on the far plane and tested against the prepass depth; its reflection targets have no depth.
+        desc.DepthStencil.EnableDepthTest = (!isSky || shader == SceneShader::Sky) && !isDistortion;
 
         // Opaque rooms and objects of the scene pass are the same draws as the prepass, so they shade only the texels
         // whose depth the prepass kept.
@@ -738,6 +745,10 @@ namespace TEN::Renderer::Backend
             desc.DepthStencil.EnableDepthWrite = false;
             desc.DepthStencil.DepthCompare = CompareOp::Equal;
         }
+
+        // Texels the prepass kept are already drawn by the opaque pass: early depth rejects them and only the edges shade.
+        if (isAlphaEdge)
+            desc.DepthStencil.DepthCompare = CompareOp::Less;
 
         desc.DepthFormat = (isDistortion || isParaboloid || isHorizonMask) ? PixelFormat::Unknown : PixelFormat::D32Float;
         desc.Name = std::string(names[(int)shader]) + ".BlendMode" + std::to_string(modeIndex) + ((variant == 0) ? "" : ".Variant" + std::to_string(variant));
@@ -1271,12 +1282,16 @@ namespace TEN::Renderer::Backend
     }
 
     // Draws are sorted by texture group, so the pipeline changes at most once per group in the state sorted passes.
+    // Without ambient occlusion only the outdoor mask of the prepass normals is read, so the prepass skips normal maps.
     void SceneRenderer::BindPixelVariant(IRenderPass& renderPass, SceneShader shader, ScenePass pass, bool isAlphaTested, int missingMaps, int& boundMissingMaps)
     {
+        if (pass == ScenePass::Prepass && !_isAmbientOcclusionActive)
+            missingMaps |= 1; // NO_NORMAL_MAP.
+
         if (missingMaps == boundMissingMaps)
             return;
 
-        renderPass.BindPipeline(GetScenePipeline(shader, GetPassBlendMode(pass), isAlphaTested, missingMaps));
+        renderPass.BindPipeline(GetScenePipeline(shader, GetPassBlendMode(pass), isAlphaTested, missingMaps, pass == ScenePass::AlphaEdges));
         boundMissingMaps = missingMaps;
     }
 
@@ -1419,7 +1434,7 @@ namespace TEN::Renderer::Backend
     void SceneRenderer::DrawRoomBuckets(ICommandBuffer& commandBuffer, IRenderPass& renderPass, ScenePass pass, bool isAlphaTested)
     {
         auto shader = (pass == ScenePass::Prepass) ? SceneShader::RoomsPrepass : SceneShader::Rooms;
-        renderPass.BindPipeline(GetScenePipeline(shader, GetPassBlendMode(pass), isAlphaTested));
+        renderPass.BindPipeline(GetScenePipeline(shader, GetPassBlendMode(pass), isAlphaTested, 0, pass == ScenePass::AlphaEdges));
 
         BindLevelGeometry(renderPass, MeshSource::Rooms, false);
 
@@ -1942,7 +1957,7 @@ namespace TEN::Renderer::Backend
         bool isAlphaEdges = (pass == ScenePass::AlphaEdges);
 
         auto shader = (pass == ScenePass::Prepass) ? SceneShader::ObjectsPrepass : (isMirrored ? SceneShader::ObjectsMirrored : SceneShader::Objects);
-        renderPass.BindPipeline(GetScenePipeline(shader, GetPassBlendMode(pass), isAlphaTested));
+        renderPass.BindPipeline(GetScenePipeline(shader, GetPassBlendMode(pass), isAlphaTested, 0, pass == ScenePass::AlphaEdges));
 
         IBuffer* storageBuffers[4] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _instanceBuffer.Buffer.get(), _boneBuffer.Buffer.get() };
         renderPass.BindVertexStorageBuffers(0, storageBuffers, 4);
