@@ -804,17 +804,13 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::IShader>           _aoVertexShader             = nullptr;
         std::unique_ptr<RHI::IShader>           _gtaoPixelShader            = nullptr;
         std::unique_ptr<RHI::IShader>           _aoTemporalPixelShader      = nullptr;
-        std::unique_ptr<RHI::IShader>           _aoBlurHorizontalShader     = nullptr;
-        std::unique_ptr<RHI::IShader>           _aoBlurVerticalShader       = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _gtaoPipeline               = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _aoTemporalPipeline         = nullptr;
-        std::unique_ptr<RHI::IGraphicsPipeline> _aoBlurHorizontalPipeline   = nullptr;
-        std::unique_ptr<RHI::IGraphicsPipeline> _aoBlurVerticalPipeline     = nullptr;
         std::unique_ptr<RHI::ITexture>          _normalTarget               = nullptr;
-        std::unique_ptr<RHI::ITexture>          _ambientOcclusionTarget     = nullptr; // Half resolution, read by the scene pass.
-        std::unique_ptr<RHI::ITexture>          _aoHistory[AO_HISTORY_COUNT] = {};     // Accumulated occlusion, read and written in turn.
+        std::unique_ptr<RHI::ITexture>          _aoHistory[AO_HISTORY_COUNT] = {};     // Accumulated occlusion, read and written in turn; the last one is read by the scene pass.
         int                                     _aoHistoryIndex             = 0;       // History written by the last frame.
         bool                                    _isAoHistoryValid           = false;
+        int                                     _aoHistoryFrame             = NO_VALUE; // Motion frame of the last accumulation.
         std::unique_ptr<RHI::ISampler>          _pointClampSampler          = nullptr;
         bool                                    _isAmbientOcclusionActive   = false;
 
@@ -1312,8 +1308,9 @@ namespace TEN::Renderer::Backend
         bool           CreateSpriteResources();
         RHI::ITexture* GetSpriteTexture(const Structures::RendererSprite* sprite) const;
         bool           AddSprite(const Structures::RendererSpriteToDraw& sprite, const RenderView& view, const Structures::RendererMirror* mirror = nullptr);
+        Vector3        GetSpriteLight(const Vector3& position) const;
         void           CollectSprites(const RenderView& view);
-        void           DrawSpriteRun(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const SpriteDraw& draw, const RHI::IGraphicsPipeline*& lastPipeline, const RHI::ITexture*& lastTexture, bool isSky = false, DrawCategory category = DrawCategory::Sprites, bool isMirrored = false);
+        void           DrawSpriteRun(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const SpriteDraw& draw, const RHI::IGraphicsPipeline*& lastPipeline, const RHI::ITexture*& lastTexture, bool isSky = false, DrawCategory category = DrawCategory::Sprites);
         void           SetSkySpriteMoon(Vector3& direction, float& diskCosRadius) const;
         void           DrawSprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
 

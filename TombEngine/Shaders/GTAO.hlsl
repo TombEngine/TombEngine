@@ -1,14 +1,12 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=0
 // TEN_SHADER: Pixel PS samplers=2 storage_textures=0 storage_buffers=0 uniform_buffers=3
 // TEN_SHADER: Pixel PSTemporal samplers=4 storage_textures=0 storage_buffers=0 uniform_buffers=3
-// TEN_SHADER: Pixel PSBlurHorizontal samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
-// TEN_SHADER: Pixel PSBlurVertical samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
 
 // Ground truth ambient occlusion (GTAO, Jimenez et al. 2016) at half resolution (SceneRendererSSAO.cpp), the "GTAO" pass
 // after the prepass. PS searches the horizons of one screen space slice per texel in the prepass depth and integrates
 // the cosine weighted visibility between them; the slice angles and step offsets change every frame. PSTemporal blends
-// the result with the history reprojected through the prepass motion vectors, which accumulates many slices over a
-// few frames, and the separable bilateral blur removes the remaining noise. 1 is unoccluded.
+// the result with the history reprojected through the prepass motion vectors (or the camera motion without TAA), which accumulates many slices over a
+// few frames, filtered with a bilateral 3x3 average in the same pass. 1 is unoccluded.
 
 #include "./ShaderInterop.hlsli"
 #include "./Fullscreen.hlsli"
@@ -17,7 +15,6 @@
 #define GTAO_STEP_COUNT  4
 #define GTAO_PI          3.14159265f
 #define GTAO_HALF_PI     1.57079633f
-#define BLUR_SIZE        5
 #define BLUR_SIGMA       3.0f
 #define BLUR_BSIGMA      0.3f
 
@@ -26,6 +23,7 @@ TEN_PS_UNIFORMS(AmbientOcclusionUniforms, 2)
 {
     float4x4 Projection;
     float4x4 InverseProjection;
+    float4x4 ReprojectionMatrix; // Current clip space to the previous frame, when there are no motion vectors.
     float2   TargetSize;      // Half resolution occlusion target.
     float2   TexelSize;
     float2   DepthTexelSize;  // Texel of the full resolution depth.
@@ -34,7 +32,8 @@ TEN_PS_UNIFORMS(AmbientOcclusionUniforms, 2)
     float    FrameNoise;      // Changes the slice angles and step offsets every frame.
     float    HistoryWeight;   // Share of the history in the temporal blend.
     uint     IsHistoryValid;
-    float    AoPadding0;
+    uint     HasVelocity;     // The prepass wrote motion vectors (TAA); otherwise the camera motion reprojects.
+
 };
 
 // Slot 0: depth for PS, the raw occlusion for PSTemporal, the accumulated occlusion for the blur passes.
@@ -169,18 +168,22 @@ float PS(PixelInput input) : SV_Target
     return max(visibility / GTAO_SLICE_COUNT, 0.0f);
 }
 
-// Temporal accumulation at half resolution. The history is clamped to the range of the current 3x3 neighborhood,
-// widened because a single slice is noisy, so disocclusions do not keep old occlusion.
+float GetGaussian(float x, float sigma)
+{
+    return 0.39894f * exp(-0.5f * x * x / (sigma * sigma)) / sigma;
+}
+
+// Spatial and temporal filtering in one pass at half resolution. The 3x3 neighborhood of the raw occlusion is averaged
+// with a bilateral weight on the occlusion difference, which keeps edges sharp, and its range clamps the history,
+// widened because a single slice is noisy, so disocclusions do not keep old occlusion. The result is the new history,
+// which the scene pass samples directly.
 float PSTemporal(PixelInput input) : SV_Target
 {
     float current = SourceMap.SampleLevel(SourceMapSampler, input.UV, 0.0f).x;
-    if (IsHistoryValid == 0 || DepthMap.SampleLevel(DepthMapSampler, input.UV, 0.0f).x >= 1.0f)
-        return current;
+    float normalization = 1.0f / GetGaussian(0.0f, BLUR_BSIGMA);
 
-    float2 historyUV = input.UV - VelocityMap.SampleLevel(VelocityMapSampler, input.UV, 0.0f).xy;
-    if (any(historyUV < 0.0f) || any(historyUV > 1.0f))
-        return current;
-
+    float filtered = 0.0f;
+    float weightSum = 0.0f;
     float minimum = current;
     float maximum = current;
 
@@ -191,51 +194,37 @@ float PSTemporal(PixelInput input) : SV_Target
         for (int x = -1; x <= 1; x++)
         {
             float neighbor = SourceMap.SampleLevel(SourceMapSampler, input.UV + float2(x, y) * TexelSize, 0.0f).x;
+            float weight = GetGaussian(length(float2(x, y)), BLUR_SIGMA) * GetGaussian(neighbor - current, BLUR_BSIGMA) * normalization;
+            filtered += neighbor * weight;
+            weightSum += weight;
             minimum = min(minimum, neighbor);
             maximum = max(maximum, neighbor);
         }
     }
 
-    float history = clamp(AuxMap.SampleLevel(AuxMapSampler, historyUV, 0.0f).x, minimum - 0.1f, maximum + 0.1f);
-    return lerp(current, history, HistoryWeight);
-}
+    filtered /= weightSum;
 
-float GetGaussian(float x, float sigma)
-{
-    return 0.39894f * exp(-0.5f * x * x / (sigma * sigma)) / sigma;
-}
+    float depth = DepthMap.SampleLevel(DepthMapSampler, input.UV, 0.0f).x;
+    if (IsHistoryValid == 0 || depth >= 1.0f)
+        return filtered;
 
-// Bilateral blur along one axis; two passes approximate the 2D filter. The range weight on the occlusion difference
-// keeps edges sharp.
-float Blur(float2 uv, float2 direction)
-{
-    const int halfSize = (BLUR_SIZE - 1) / 2;
-
-    float baseValue = SourceMap.SampleLevel(SourceMapSampler, uv, 0.0f).x;
-    float normalization = 1.0f / GetGaussian(0.0f, BLUR_BSIGMA);
-
-    float result = 0.0f;
-    float weightSum = 0.0f;
-
-    [unroll]
-    for (int i = -halfSize; i <= halfSize; i++)
+    // Without motion vectors the texel is reprojected with the camera alone: moving objects keep some stale occlusion,
+    // which the neighborhood clamp limits.
+    float2 historyUV;
+    if (HasVelocity != 0)
     {
-        float value = SourceMap.SampleLevel(SourceMapSampler, uv + direction * (i * TexelSize), 0.0f).x;
-        float weight = GetGaussian((float)i, BLUR_SIGMA) * GetGaussian(value - baseValue, BLUR_BSIGMA) * normalization;
-
-        result += weight * value;
-        weightSum += weight;
+        historyUV = input.UV - VelocityMap.SampleLevel(VelocityMapSampler, input.UV, 0.0f).xy;
+    }
+    else
+    {
+        float2 ndc = float2(input.UV.x * 2.0f - 1.0f, 1.0f - input.UV.y * 2.0f);
+        float4 previousClip = mul(float4(ndc, depth, 1.0f), ReprojectionMatrix);
+        historyUV = (previousClip.w > 0.0f) ? (previousClip.xy / previousClip.w * float2(0.5f, -0.5f) + 0.5f) : float2(-1.0f, -1.0f);
     }
 
-    return result / weightSum;
-}
+    if (any(historyUV < 0.0f) || any(historyUV > 1.0f))
+        return filtered;
 
-float PSBlurHorizontal(PixelInput input) : SV_Target
-{
-    return Blur(input.UV, float2(1.0f, 0.0f));
-}
-
-float PSBlurVertical(PixelInput input) : SV_Target
-{
-    return Blur(input.UV, float2(0.0f, 1.0f));
+    float history = clamp(AuxMap.SampleLevel(AuxMapSampler, historyUV, 0.0f).x, minimum - 0.1f, maximum + 0.1f);
+    return lerp(filtered, history, HistoryWeight);
 }

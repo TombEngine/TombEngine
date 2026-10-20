@@ -154,7 +154,7 @@ Collected on the CPU, uploaded once per frame through `RHI::UploadRing` before t
 | Instances | `GpuObjectInstance` | World matrix, color, ambient light, light range, bone offset and skinning mode of each drawn object, with the world matrix and bone offset of the previous frame for the motion vectors (cached per item number). |
 | Instance indices | vertex stream | Instance number per draw instance. |
 | Lights | `GpuLight` | Lights of rooms and objects; objects reference a range. |
-| Light clusters | masks | Masks of the dynamic lights of the view per cluster of the view frustum (`SceneRendererLightClusters.cpp`): screen tiles times logarithmic depth slices. Room, object and lit sprite pixels evaluate only the dynamic lights near them; object light slices hold static lights only, and mirrored instances get the view lights in their own slice. |
+| Light clusters | masks | Masks of the dynamic lights of the view per cluster of the view frustum (`SceneRendererLightClusters.cpp`): screen tiles times logarithmic depth slices. Room and object pixels evaluate only the dynamic lights near them; object light slices hold static lights only, and mirrored instances get the view lights in their own slice. Opaque and alpha blended sprites are lit once per sprite on the CPU from the same light slice (`GetSpriteLight`), which costs far less than per pixel lighting of overdrawn particles. |
 | Bones | matrices | Animation transforms of moveables and the player. |
 | Materials | `GpuMaterial` | Material values of the level, re-uploaded when they change. |
 | Decals | `GpuDecal` | Decals per room. |
@@ -173,8 +173,8 @@ skipped when the flag is false for the frame.
 | # | Pass | Runs when | Output | Notes |
 |---|---|---|---|---|
 | 1 | Shadow map | A shadow casting light is active | Cube shadow map (R32F, size from the settings) | Six faces; casters culled per face. |
-| 2 | Depth and normals prepass | Always | Depth (D32F), normals, R32F depth copy, emissive, motion vectors (RG16F) while TAA or ambient occlusion is on | Room and object prepass shaders; the `VSVelocity`/`PSDepthNormalVelocity` variants add the motion vectors. |
-| 3 | GTAO | Ambient occlusion on | Half resolution occlusion | Ground truth ambient occlusion: one slice per texel and frame from the depth (normals reconstructed from it), accumulated over frames through the motion vectors, then a separable bilateral blur. |
+| 2 | Depth and normals prepass | Always | Depth (D32F), normals, R32F depth copy, emissive, motion vectors (RG16F) with TAA | Room and object prepass shaders without normal maps; the `VSVelocity`/`PSDepthNormalVelocity` variants add the motion vectors. |
+| 3 | GTAO | Ambient occlusion on | Half resolution R16F history | Ground truth ambient occlusion: one slice per texel and frame from the depth (normals reconstructed from it), then one pass that filters it with a bilateral 3x3 average and accumulates it through the motion vectors (camera reprojection without TAA). The scene samples the history. |
 | 4 | Sky reflections | Sky reflective materials or water reflecting a visible sky | Dual paraboloid sky map | One hemisphere per layer. |
 | 5 | Distortion | Distortion draws in the view | Distortion target | Applied by the post-process. |
 | 6 | Sky | Always | Scene target | Classic sky layers, atmospheric dome, sun, moon, aurora, stars, volumetric clouds, horizon meshes, god rays. Occluded sky is not shaded. |
@@ -205,14 +205,14 @@ keep the game thread at most two frames ahead of the GPU on every backend.
 
 ### 5.6 Temporal passes and dynamic resolution
 
-While TAA or ambient occlusion is on, the prepass writes motion vectors in UV units. Rooms move with the camera only;
+With TAA, the prepass writes motion vectors in UV units. Rooms move with the camera only;
 objects use the transforms of the previous frame, which `SceneRendererTAA.cpp` caches per item number (interpolated
 world matrix and bones), so skinned and animated meshes move correctly. Vertex effects (wibble, refraction) are not part
 of the motion. Texels without geometry reproject with the camera matrices alone.
 
 With TAA, the projection of the frame is offset by an 8 sample Halton(2, 3) sub-pixel jitter. The TAA pass blends the
 scene with the history and writes both the scene target and the next history; camera cuts (a jump longer than two
-sectors) and target changes discard the history. GTAO accumulates through the same motion vectors in its own half float
+sectors) and target changes discard the history. GTAO accumulates through the same motion vectors (or, without TAA, the camera reprojection) in its own half float
 history.
 
 The dynamic render scale measures the frame interval and the time the game thread waits for its frame fence over 30

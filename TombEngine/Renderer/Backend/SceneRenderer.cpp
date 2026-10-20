@@ -199,20 +199,15 @@ namespace TEN::Renderer::Backend
         _fxaaPixelShader = nullptr;
         _gtaoPipeline = nullptr;
         _aoTemporalPipeline = nullptr;
-        _aoBlurHorizontalPipeline = nullptr;
-        _aoBlurVerticalPipeline = nullptr;
         _aoVertexShader = nullptr;
         _gtaoPixelShader = nullptr;
         _aoTemporalPixelShader = nullptr;
-        _aoBlurHorizontalShader = nullptr;
-        _aoBlurVerticalShader = nullptr;
         for (auto& history : _aoHistory)
             history = nullptr;
 
         _roomsPrepassPixelShader = nullptr;
         _objectsPrepassPixelShader = nullptr;
         _normalTarget = nullptr;
-        _ambientOcclusionTarget = nullptr;
         _emissiveTarget = nullptr;
         _reflectionTarget = nullptr;
         _videoTexture = nullptr;
@@ -886,7 +881,7 @@ namespace TEN::Renderer::Backend
 
         _targetPool.Reserve(_sceneTarget->GetDesc());
         _targetPool.Reserve(_dofTargets[0]->GetDesc());
-        _targetPool.Reserve(_ambientOcclusionTarget->GetDesc());
+        _targetPool.Reserve(_aoHistory[0]->GetDesc());
         _targetPool.Reserve(_glowTarget->GetDesc());
     }
 
@@ -1242,7 +1237,7 @@ namespace TEN::Renderer::Backend
         };
 
         auto* sampler = _anisotropicSampler.get();
-        auto* ambientOcclusion = _isAmbientOcclusionActive ? _ambientOcclusionTarget.get() : _whiteTexture.get();
+        auto* ambientOcclusion = _isAmbientOcclusionActive ? _aoHistory[_aoHistoryIndex].get() : _whiteTexture.get();
         auto* shadowMap = _isRenderingShadowMap ? _dummyShadowMap.get() : _shadowMap.get();
         auto* caustics = (_causticsTexture != nullptr) ? _causticsTexture : _whiteTexture.get();
         auto* reflections = _hasReflectiveMaterials ? _reflectionTarget.get() : _blackTexture.get();
@@ -1356,10 +1351,11 @@ namespace TEN::Renderer::Backend
     }
 
     // Draws are sorted by texture group, so the pipeline changes at most once per group in the state sorted passes.
-    // Without ambient occlusion only the outdoor mask of the prepass normals is read, so the prepass skips normal maps.
+    // The prepass skips normal maps: its normals feed the outdoor mask of the dust storm and the sky test of GTAO, which
+    // reconstructs its normals from the depth.
     void SceneRenderer::BindPixelVariant(IRenderPass& renderPass, SceneShader shader, ScenePass pass, bool isAlphaTested, int missingMaps, int& boundMissingMaps)
     {
-        if (pass == ScenePass::Prepass && !_isAmbientOcclusionActive)
+        if (pass == ScenePass::Prepass)
             missingMaps |= 1; // NO_NORMAL_MAP.
 
         if (missingMaps == boundMissingMaps)
@@ -2388,7 +2384,7 @@ namespace TEN::Renderer::Backend
                     scissorRoom = nullptr;
                 }
 
-                DrawSpriteRun(commandBuffer, renderPass, draw.Sprites, lastPipeline, lastSpriteTexture, false, DrawCategory::SortedSprites, isMirrored);
+                DrawSpriteRun(commandBuffer, renderPass, draw.Sprites, lastPipeline, lastSpriteTexture, false, DrawCategory::SortedSprites);
                 lastStreamCount = 0;
                 state = BucketBindState{};
                 continue;
@@ -3056,7 +3052,7 @@ namespace TEN::Renderer::Backend
             if (_isAmbientOcclusionActive)
             {
                 auto occlusionPath = _screenshotPath.substr(0, _screenshotPath.find_last_of('.')) + "_AO.png";
-                SaveTextureToPng(*_device, _ambientOcclusionTarget.get(), occlusionPath);
+                SaveTextureToPng(*_device, _aoHistory[_aoHistoryIndex].get(), occlusionPath);
             }
 
             if (_shadowUniforms.CastShadows)

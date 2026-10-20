@@ -123,6 +123,50 @@ namespace TEN::Renderer::Backend
 
     // As in the frontend, a mirror reflects the corners of 3D sprites, and the position of billboards,
     // which still face the camera. Returns false when the frame sprite capacity is exhausted.
+    // Sprites that blend over the scene without adding or subtracting light (opaque, alpha test and alpha blended ones,
+    // such as smoke) are lit by the dynamic lights of the view; laser effects keep their own colors.
+    static bool IsLitSprite(const RendererSpriteToDraw& sprite)
+    {
+        if (sprite.renderType != SpriteRenderType::Default)
+            return false;
+
+        return (sprite.BlendMode == BlendMode::Opaque || sprite.BlendMode == BlendMode::AlphaTest || sprite.BlendMode == BlendMode::AlphaBlend ||
+                sprite.BlendMode == BlendMode::FastAlphaBlend || sprite.BlendMode == BlendMode::PremultipliedAlphaBlend);
+    }
+
+    // Light of the point and spot lights of the view at a position, without a surface normal: particles are lit from
+    // every side. Reads the dynamic light slice that CollectObjects writes first into the frame light buffer; per sprite
+    // on the CPU, which costs far less than per pixel on the GPU for overdrawn particles.
+    Vector3 SceneRenderer::GetSpriteLight(const Vector3& position) const
+    {
+        auto lighting = Vector3::Zero;
+        int count = _roomLightCount & LIGHT_COUNT_MASK;
+        const auto* lights = (const GpuLight*)_lightData.data();
+        for (int i = 0; i < count; i++)
+        {
+            const auto& light = lights[i];
+            if (light.Type != (unsigned int)LightType::Point && light.Type != (unsigned int)LightType::Spot)
+                continue;
+
+            auto lightVector = light.Position - position;
+            float distanceSquared = lightVector.LengthSquared();
+            if (distanceSquared >= (light.Out * light.Out))
+                continue;
+
+            float distance = std::sqrt(distanceSquared);
+            float attenuation = std::clamp((light.Out - distance) / std::max(light.Out - light.In, 1.0f), 0.0f, 1.0f);
+            if (light.Type == (unsigned int)LightType::Spot && distance > 0.0f)
+            {
+                float cosine = (-lightVector / distance).Dot(light.Direction);
+                attenuation *= std::clamp((cosine - light.OutRange) / std::max(light.InRange - light.OutRange, 0.0001f), 0.0f, 1.0f);
+            }
+
+            lighting += light.Color * (light.Intensity * attenuation);
+        }
+
+        return lighting;
+    }
+
     bool SceneRenderer::AddSprite(const RendererSpriteToDraw& sprite, const RenderView& view, const RendererMirror* mirror)
     {
         if ((int)(_spriteData.size() / sizeof(GpuSprite)) >= INSTANCE_INDEX_COUNT)
@@ -151,12 +195,27 @@ namespace TEN::Renderer::Backend
             corners[3] = Vector3::Transform(Vector3(-0.5f, -0.5f, 0.0f), world);
         }
 
-        const Vector4* colors[4] = { &sprite.c1, &sprite.c2, &sprite.c3, &sprite.c4 };
+        Vector4 colors[4] = { sprite.c1, sprite.c2, sprite.c3, sprite.c4 };
         const auto* uv = sprite.Sprite->UV;
+
+        // Lit sprites brighten near the dynamic lights of the view, evaluated once at the center of the sprite.
+        if (mirror == nullptr && IsLitSprite(sprite))
+        {
+            auto light = GetSpriteLight((corners[0] + corners[1] + corners[2] + corners[3]) * 0.25f);
+            if (light != Vector3::Zero)
+            {
+                for (auto& color : colors)
+                {
+                    color.x = std::min(color.x * (1.0f + light.x), 1.0f);
+                    color.y = std::min(color.y * (1.0f + light.y), 1.0f);
+                    color.z = std::min(color.z * (1.0f + light.z), 1.0f);
+                }
+            }
+        }
 
         auto gpuSprite = GpuSprite{};
         for (int i = 0; i < 4; i++)
-            gpuSprite.Corners[i] = GpuSpriteCorner{ corners[i], PackSpriteColor(*colors[i]) };
+            gpuSprite.Corners[i] = GpuSpriteCorner{ corners[i], PackSpriteColor(colors[i]) };
 
         gpuSprite.UVX = Vector4(uv[0].x, uv[1].x, uv[2].x, uv[3].x);
         gpuSprite.UVY = Vector4(uv[0].y, uv[1].y, uv[2].y, uv[3].y);

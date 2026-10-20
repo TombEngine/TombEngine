@@ -101,12 +101,13 @@ namespace TEN::Renderer::Backend
         if (isTaaActive != _isTaaActive || isCameraCut)
             _isTaaHistoryValid = false;
 
-        // The ambient occlusion accumulates over frames too, through the same motion vectors.
-        if (!_isVelocityActive || isCameraCut)
+        // The ambient occlusion accumulates over frames too, through the motion vectors or the camera motion.
+        if (isCameraCut)
             _isAoHistoryValid = false;
 
+        // Motion vectors cost prepass bandwidth: only TAA needs them per texel.
         _isTaaActive = isTaaActive;
-        _isVelocityActive = _isTaaActive || environment.IsAmbientOcclusionEnabled;
+        _isVelocityActive = _isTaaActive;
         _prevCameraPosition = view.Camera.WorldPosition;
         _unjitteredViewProjection = view.Camera.View * projection;
         _motionFrame++;

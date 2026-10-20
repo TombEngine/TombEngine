@@ -1,9 +1,9 @@
 // Depth and normals prepass and ambient occlusion. "Depth and normals prepass" in FRAME_PASSES always runs after the
 // shadow map: opaque rooms and objects write the scene depth, view space normals, emissive color, a sampled R32 depth
-// copy and, while a temporal pass is active, motion vectors, all at scene resolution. "GTAO" (when enabled) computes
-// ground truth ambient occlusion at half resolution from the depth copy and normals, accumulates it over frames with the
-// motion vectors and blurs it into the occlusion target sampled by the scene pass (Shaders/GTAO.hlsl). Also hosts the
-// shared RenderFullscreenPass helper.
+// copy and, with TAA, motion vectors, all at scene resolution. "GTAO" (when enabled) computes ground truth ambient
+// occlusion at half resolution from the depth copy, then filters it with a bilateral 3x3 average and accumulates it over
+// frames through the motion vectors (or the camera motion without TAA) in one pass; the scene pass samples the
+// accumulated history (Shaders/GTAO.hlsl). Also hosts the shared RenderFullscreenPass helper.
 
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
@@ -26,6 +26,7 @@ namespace TEN::Renderer::Backend
     {
         Matrix       Projection        = Matrix::Identity;
         Matrix       InverseProjection = Matrix::Identity;
+        Matrix       ReprojectionMatrix = Matrix::Identity;
         Vector2      TargetSize        = Vector2::Zero;
         Vector2      TexelSize         = Vector2::Zero;
         Vector2      DepthTexelSize    = Vector2::Zero;
@@ -34,7 +35,7 @@ namespace TEN::Renderer::Backend
         float        FrameNoise        = 0.0f;
         float        HistoryWeight     = AMBIENT_OCCLUSION_HISTORY_WEIGHT;
         unsigned int IsHistoryValid    = 0;
-        float        Padding           = 0.0f;
+        unsigned int HasVelocity       = 0;
     };
 
     // Exponent applied to the occlusion by the scene shaders; zero disables it when ambient occlusion is off.
@@ -49,21 +50,17 @@ namespace TEN::Renderer::Backend
         _aoVertexShader = LoadShader(*_device, _shaderDirectory, "GTAO", "VS");
         _gtaoPixelShader = LoadShader(*_device, _shaderDirectory, "GTAO", "PS");
         _aoTemporalPixelShader = LoadShader(*_device, _shaderDirectory, "GTAO", "PSTemporal");
-        _aoBlurHorizontalShader = LoadShader(*_device, _shaderDirectory, "GTAO", "PSBlurHorizontal");
-        _aoBlurVerticalShader = LoadShader(*_device, _shaderDirectory, "GTAO", "PSBlurVertical");
         _roomsPrepassPixelShader = LoadShader(*_device, _shaderDirectory, "Rooms", "PSDepthNormal");
         _objectsPrepassPixelShader = LoadShader(*_device, _shaderDirectory, "Objects", "PSDepthNormal");
-        if (_aoVertexShader == nullptr || _gtaoPixelShader == nullptr || _aoTemporalPixelShader == nullptr || _aoBlurHorizontalShader == nullptr ||
-            _aoBlurVerticalShader == nullptr || _roomsPrepassPixelShader == nullptr || _objectsPrepassPixelShader == nullptr)
+        if (_aoVertexShader == nullptr || _gtaoPixelShader == nullptr || _aoTemporalPixelShader == nullptr ||
+            _roomsPrepassPixelShader == nullptr || _objectsPrepassPixelShader == nullptr)
         {
             return false;
         }
 
         _gtaoPipeline = CreateFullscreenPipeline(_aoVertexShader.get(), _gtaoPixelShader.get(), PixelFormat::R16Float, "GTAO");
         _aoTemporalPipeline = CreateFullscreenPipeline(_aoVertexShader.get(), _aoTemporalPixelShader.get(), PixelFormat::R16Float, "GTAO.Temporal");
-        _aoBlurHorizontalPipeline = CreateFullscreenPipeline(_aoVertexShader.get(), _aoBlurHorizontalShader.get(), PixelFormat::R8Unorm, "GTAO.BlurHorizontal");
-        _aoBlurVerticalPipeline = CreateFullscreenPipeline(_aoVertexShader.get(), _aoBlurVerticalShader.get(), PixelFormat::R8Unorm, "GTAO.BlurVertical");
-        if (_gtaoPipeline == nullptr || _aoTemporalPipeline == nullptr || _aoBlurHorizontalPipeline == nullptr || _aoBlurVerticalPipeline == nullptr)
+        if (_gtaoPipeline == nullptr || _aoTemporalPipeline == nullptr)
             return false;
 
         auto samplerDesc = SamplerDesc{};
@@ -89,16 +86,13 @@ namespace TEN::Renderer::Backend
         normalDesc.Name = "Prepass.Emissive";
         _emissiveTarget = _device->CreateTexture(normalDesc);
 
-        // Occlusion is low frequency: half resolution, upsampled by bilinear filtering in the scene pass.
+        // Occlusion is low frequency: half resolution, upsampled by bilinear filtering in the scene pass, which reads the
+        // last history directly.
         auto occlusionDesc = TextureDesc{};
         occlusionDesc.Width = std::max(width / 2, 1);
         occlusionDesc.Height = std::max(height / 2, 1);
-        occlusionDesc.Format = PixelFormat::R8Unorm;
-        occlusionDesc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler;
-        occlusionDesc.Name = "GTAO.Occlusion";
-        _ambientOcclusionTarget = _device->CreateTexture(occlusionDesc);
-
         occlusionDesc.Format = PixelFormat::R16Float;
+        occlusionDesc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler;
         for (int i = 0; i < AO_HISTORY_COUNT; i++)
         {
             occlusionDesc.Name = "GTAO.History[" + std::to_string(i) + "]";
@@ -108,7 +102,7 @@ namespace TEN::Renderer::Backend
         }
 
         _isAoHistoryValid = false;
-        return (_normalTarget != nullptr && _emissiveTarget != nullptr && _ambientOcclusionTarget != nullptr);
+        return (_normalTarget != nullptr && _emissiveTarget != nullptr);
     }
 
     // Opaque geometry writes depth, view space normals, emissive, a sampled copy of the depth and with temporal passes
@@ -150,13 +144,13 @@ namespace TEN::Renderer::Backend
         commandBuffer.PopDebugGroup();
     }
 
-    // Occlusion of one slice per texel, temporal accumulation into the next history, then a separable bilateral blur
-    // into _ambientOcclusionTarget. The slice angles change every frame with the motion frame counter.
+    // Occlusion of one slice per texel, then spatial and temporal filtering into the next history, which the scene pass
+    // samples. The slice angles change every frame with the motion frame counter.
     void SceneRenderer::RenderAmbientOcclusion(ICommandBuffer& commandBuffer)
     {
         constexpr auto FRAME_NOISE_STEPS = 16;
 
-        const auto& targetDesc = _ambientOcclusionTarget->GetDesc();
+        const auto& targetDesc = _aoHistory[0]->GetDesc();
         int nextHistory = (_aoHistoryIndex + 1) % AO_HISTORY_COUNT;
 
         auto uniforms = AmbientOcclusionUniforms{};
@@ -165,15 +159,15 @@ namespace TEN::Renderer::Backend
         uniforms.TargetSize = Vector2((float)targetDesc.Width, (float)targetDesc.Height);
         uniforms.TexelSize = Vector2(1.0f / targetDesc.Width, 1.0f / targetDesc.Height);
         uniforms.FrameNoise = (float)(_motionFrame % FRAME_NOISE_STEPS) / FRAME_NOISE_STEPS;
-        uniforms.IsHistoryValid = _isAoHistoryValid ? 1 : 0;
+        // The history is valid when the previous frame accumulated into it.
+        uniforms.IsHistoryValid = (_isAoHistoryValid && _aoHistoryFrame == (_motionFrame - 1)) ? 1 : 0;
+        uniforms.HasVelocity = _isVelocityActive ? 1 : 0;
+        uniforms.ReprojectionMatrix = _projection.Invert() * _view.Invert() * GetPrevViewProjection();
         uniforms.DepthTexelSize = Vector2(1.0f / _sceneDepthCopy->GetDesc().Width, 1.0f / _sceneDepthCopy->GetDesc().Height);
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &uniforms, sizeof(uniforms));
 
-        // The raw occlusion of one slice exceeds 1 on slanted surfaces: half float until it is accumulated.
-        auto rawDesc = targetDesc;
-        rawDesc.Format = PixelFormat::R16Float;
-        auto* rawTarget = _targetPool.Acquire(rawDesc);
-        auto* blurTarget = _targetPool.Acquire(targetDesc);
+        // The raw occlusion of one slice exceeds 1 on slanted surfaces: half float, as the history.
+        auto* rawTarget = _targetPool.Acquire(targetDesc);
 
         TextureSamplerBinding occlusionBindings[2] =
         {
@@ -191,15 +185,9 @@ namespace TEN::Renderer::Backend
         };
         RenderFullscreenPass(commandBuffer, _aoTemporalPipeline.get(), _aoHistory[nextHistory].get(), temporalBindings, 4, "Temporal accumulation");
 
-        auto horizontalBinding = TextureSamplerBinding{ _aoHistory[nextHistory].get(), _pointClampSampler.get() };
-        RenderFullscreenPass(commandBuffer, _aoBlurHorizontalPipeline.get(), blurTarget, &horizontalBinding, 1, "Blur horizontal");
-
-        auto verticalBinding = TextureSamplerBinding{ blurTarget, _pointClampSampler.get() };
-        RenderFullscreenPass(commandBuffer, _aoBlurVerticalPipeline.get(), _ambientOcclusionTarget.get(), &verticalBinding, 1, "Blur vertical");
-
         _targetPool.Release(rawTarget);
-        _targetPool.Release(blurTarget);
         _aoHistoryIndex = nextHistory;
         _isAoHistoryValid = true;
+        _aoHistoryFrame = _motionFrame;
     }
 }
