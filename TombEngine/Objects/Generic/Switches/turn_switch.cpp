@@ -131,10 +131,11 @@ namespace TEN::Entities::Switches
 
 			if (GetSwitchTrigger(switchItem, ItemNos, 0))
 			{
-				if (!TriggerActive(&g_Level.Items[ItemNos[0]]))
+				auto& targetItem = g_Level.Items[ItemNos[0]];
+				if (!TriggerActive(&targetItem))
 				{
-					g_Level.Items[ItemNos[0]].Animation.AnimNumber = 0;
-					g_Level.Items[ItemNos[0]].Animation.FrameNumber = 0;
+					targetItem.Animation.AnimNumber = doSwitch >= 0 ? 4 : 0;
+					targetItem.Animation.FrameNumber = 0;
 				}
 			}
 		}
