@@ -18,7 +18,6 @@ namespace TEN::Renderer::Structures
 		int StartIndex;
 		int NumVertices;
 		int NumIndices;
-		Vector3 Centre;
 		Vector3 BoundsMin = Vector3::Zero; // Box of the bucket vertices: world space for rooms, object space for meshes.
 		Vector3 BoundsMax = Vector3::Zero;
 		std::vector<RendererPolygon> Polygons;

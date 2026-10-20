@@ -36,7 +36,6 @@
 #include "Renderer/Structures/RendererSprite.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/level.h"
-#include "Renderer/Structures/RendererSpriteBucket.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Effects::Blood;
@@ -522,10 +521,7 @@ namespace TEN::Renderer
 					const auto& fx = g_Level.Items[particle.fxObj];
 					auto& newEffect = _items[particle.fxObj];
 
-					newEffect.Translation = Matrix::CreateTranslation(fx.Pose.Position.ToVector3());
-					newEffect.Rotation = fx.Pose.Orientation.ToRotationMatrix();
-					newEffect.Scale = Matrix::CreateScale(1.0f);
-					newEffect.World = newEffect.Rotation * newEffect.Translation;
+					newEffect.World = fx.Pose.Orientation.ToRotationMatrix() * Matrix::CreateTranslation(fx.Pose.Position.ToVector3());
 					newEffect.ObjectID = fx.ObjectNumber;
 					newEffect.RoomNumber = fx.RoomNumber;
 					newEffect.Position = fx.Pose.Position.ToVector3();
@@ -535,17 +531,11 @@ namespace TEN::Renderer
 					if (fx.DisableInterpolation)
 					{
 						newEffect.PrevPosition = newEffect.Position;
-						newEffect.PrevTranslation = newEffect.Translation;
-						newEffect.PrevRotation = newEffect.Rotation;
 						newEffect.PrevWorld = newEffect.World;
-						newEffect.PrevScale = newEffect.Scale;
 					}
 
 					newEffect.InterpolatedPosition = Vector3::Lerp(newEffect.PrevPosition, newEffect.Position, GetInterpolationFactor());
-					newEffect.InterpolatedTranslation = Matrix::Lerp(newEffect.PrevTranslation, newEffect.Translation, GetInterpolationFactor());
-					newEffect.InterpolatedRotation = Matrix::Lerp(newEffect.PrevRotation, newEffect.Rotation, GetInterpolationFactor());
 					newEffect.InterpolatedWorld = Matrix::Lerp(newEffect.PrevWorld, newEffect.World, GetInterpolationFactor());
-					newEffect.InterpolatedScale = Matrix::Lerp(newEffect.PrevScale, newEffect.Scale, GetInterpolationFactor());
 
 					pos += newEffect.InterpolatedPosition;
 

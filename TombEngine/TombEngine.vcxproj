@@ -808,10 +808,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Physics\Objects\CollisionMesh.h" />
     <ClInclude Include="Physics\Objects\CollisionMeshDesc.h" />
     <ClInclude Include="Physics\Physics.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\CameraMatrixBuffer.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\ShaderFogBulb.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\ShaderLight.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\ShadowLightBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\VolumetricCloudBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\AtmosphericSkyBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\GodRayBuffer.h" />
@@ -842,12 +838,10 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Structures\RendererItem.h" />
     <ClInclude Include="Renderer\Structures\RendererLensFlare.h" />
     <ClInclude Include="Renderer\Structures\RendererLight.h" />
-    <ClInclude Include="Renderer\Structures\RendererLine2D.h" />
     <ClInclude Include="Renderer\Structures\RendererLine3D.h" />
     <ClInclude Include="Renderer\Structures\RendererMesh.h" />
     <ClInclude Include="Renderer\Structures\RendererObject.h" />
     <ClInclude Include="Renderer\Structures\RendererPolygon.h" />
-    <ClInclude Include="Renderer\Structures\RendererRectangle.h" />
     <ClInclude Include="Renderer\Structures\RendererRoom.h" />
     <ClInclude Include="Renderer\Structures\RendererSortableObject.h" />
     <ClInclude Include="Renderer\RHI\RHITypes.h" />
@@ -872,8 +866,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Backend\TextureLoader.h" />
     <ClInclude Include="Renderer\Structures\RendererSprite.h" />
     <ClInclude Include="Renderer\Structures\RendererSprite2D.h" />
-    <ClInclude Include="Renderer\Structures\RendererSpriteBucket.h" />
-    <ClInclude Include="Renderer\Structures\RendererSpriteSequence.h" />
     <ClInclude Include="Renderer\Structures\RendererSpriteToDraw.h" />
     <ClInclude Include="Renderer\Structures\RendererStatic.h" />
     <ClInclude Include="Renderer\Structures\RendererStringToDraw.h" />
@@ -883,7 +875,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Sky\GodRaySettings.h" />
     <ClInclude Include="Renderer\Sky\DustStormSettings.h" />
     <ClInclude Include="Renderer\Sky\SkyQuality.h" />
-    <ClInclude Include="Renderer\Structures\RendererViewport.h" />
     <ClInclude Include="Scripting\Include\Flow\ScriptInterfaceFlowHandler.h" />
     <ClInclude Include="Scripting\Include\Objects\ScriptInterfaceObjectsHandler.h" />
     <ClInclude Include="Scripting\Include\ScriptInterfaceGame.h" />
@@ -1479,9 +1470,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\Libs\imgui\imgui_widgets.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="..\Libs\imgui\backends\imgui_impl_dx11.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\Libs\imgui\backends\imgui_impl_sdl3.cpp">

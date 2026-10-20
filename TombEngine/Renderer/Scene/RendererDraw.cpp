@@ -5,7 +5,6 @@
 #include <execution>
 #include <filesystem>
 
-#include "Renderer/ConstantBuffers/CameraMatrixBuffer.h"
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/control.h"
@@ -56,7 +55,8 @@ namespace TEN::Renderer
 {
 	void Renderer::RenderBlobShadows(RenderView& renderView)
 	{
-		auto nearestSpheres = std::vector<Sphere>{};
+		auto& nearestSpheres = _blobShadowSpheres;
+		nearestSpheres.clear();
 		nearestSpheres.reserve(g_Configuration.ShadowBlobsMax);
 
 		// Collect player spheres.
@@ -88,8 +88,8 @@ namespace TEN::Renderer
 							offset.y += 8;
 
 						auto& newSphere = nearestSpheres.emplace_back();
-						newSphere.position = GetJointPosition(LaraItem, sphereMeshes[i], offset).ToVector3();;
-						newSphere.radius = mesh.sphere.Radius * sphereScaleFactors[i];
+						newSphere.Center = GetJointPosition(LaraItem, sphereMeshes[i], offset).ToVector3();
+						newSphere.Radius = mesh.sphere.Radius * sphereScaleFactors[i];
 					}
 				}
 				else
@@ -100,27 +100,21 @@ namespace TEN::Renderer
 					center.y = nativeItem.Pose.Position.y;
 
 					auto& newSphere = nearestSpheres.emplace_back();
-					newSphere.position = center;
-					newSphere.radius = std::max(abs(extents.x), abs(extents.z)) * 1.5f;
+					newSphere.Center = center;
+					newSphere.Radius = std::max(abs(extents.x), abs(extents.z)) * 1.5f;
 				}
 			}
 		}
 
 		if (nearestSpheres.size() > g_Configuration.ShadowBlobsMax)
 		{
-			std::sort(nearestSpheres.begin(), nearestSpheres.end(), [](const Sphere& a, const Sphere& b)
+			std::sort(nearestSpheres.begin(), nearestSpheres.end(), [](const BoundingSphere& a, const BoundingSphere& b)
 				{
 					auto& laraPos = LaraItem->Pose.Position;
-					return Vector3::Distance(laraPos.ToVector3(), a.position) < Vector3::Distance(laraPos.ToVector3(), b.position);
+					return Vector3::Distance(laraPos.ToVector3(), a.Center) < Vector3::Distance(laraPos.ToVector3(), b.Center);
 				});
 
-			std::copy(nearestSpheres.begin(), nearestSpheres.begin() + g_Configuration.ShadowBlobsMax, _stShadowMap.Spheres);
-			_stShadowMap.NumSpheres = g_Configuration.ShadowBlobsMax;
-		}
-		else
-		{
-			std::copy(nearestSpheres.begin(), nearestSpheres.end(), _stShadowMap.Spheres);
-			_stShadowMap.NumSpheres = (int)nearestSpheres.size();
+			nearestSpheres.resize(g_Configuration.ShadowBlobsMax);
 		}
 	}
 
@@ -934,14 +928,10 @@ namespace TEN::Renderer
 			_dynamicLights[_dynamicLightList].clear();
 		}
 
-		_lines2DToDraw.clear();
 		_lines3DToDraw.clear();
 		_triangles3DToDraw.clear();
 		_stringsToDraw.clear();
 		_debugMessages.clear();
-
-		_currentCausticsFrame++;
-		_currentCausticsFrame %= 32;
 
 		constexpr auto BLINK_VALUE_MAX = 1.0f;
 		constexpr auto BLINK_VALUE_MIN = 0.1f;
@@ -997,7 +987,6 @@ namespace TEN::Renderer
 		_timeUpdate = (std::chrono::duration_cast<ns>(time2 - time1)).count() / 1000000;
 		time1 = time2;
 
-		auto camera = GetCameraUniforms(view);
 		PrepareSkyEffects(view);
 
 		auto sortedTime0 = std::chrono::high_resolution_clock::now();
@@ -1014,7 +1003,7 @@ namespace TEN::Renderer
 		_timeFrame = (std::chrono::duration_cast<ns>(time2 - time1)).count() / 1000000;
 
 		CollectFrameStats(view);
-		SubmitFrame(view, camera);
+		SubmitFrame(view);
 
 		ClearScene();
 		CalculateFrameRate();
@@ -1051,52 +1040,6 @@ namespace TEN::Renderer
 		SortAndPrepareSprites(view);
 	}
 
-	// Camera, fog and frame values shared by the scene shaders.
-	CCameraMatrixBuffer Renderer::GetCameraUniforms(RenderView& view)
-	{
-		auto& level = *g_GameFlow->GetLevel(CurrentLevel);
-
-		auto camera = CCameraMatrixBuffer{};
-		view.FillConstantBuffer(camera);
-		camera.Frame = GlobalCounter;
-		camera.InterpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
-		camera.RefreshRate = GetScreenRefreshRate();
-		camera.CameraUnderwater = g_Level.Rooms[camera.RoomNumber].flags & ENV_FLAG_WATER;
-		camera.DualParaboloidView = Matrix::CreateLookAt(_gameCamera.Camera.WorldPosition, _gameCamera.Camera.WorldPosition + Vector3(0, -1024, 0), Vector3::UnitX);
-		camera.Gamma = g_Configuration.Gamma;
-
-		if (level.GetFogMaxDistance() > 0)
-		{
-			auto fogColor = level.GetFogColor();
-			camera.FogColor = Vector4(fogColor.GetR() / 255.0f, fogColor.GetG() / 255.0f, fogColor.GetB() / 255.0f, 1.0f);
-			camera.FogMinDistance = level.GetFogMinDistance();
-			camera.FogMaxDistance = level.GetFogMaxDistance();
-		}
-		else
-		{
-			camera.FogMaxDistance = 0.0f;
-			camera.FogColor = Vector4::Zero;
-		}
-
-		camera.AmbientOcclusion = (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion) ? 1 : 0;
-		camera.AmbientOcclusionExponent = 2;
-
-		// Set fog bulbs.
-		camera.NumFogBulbs = (int)view.FogBulbsToDraw.size();
-		for (int i = 0; i < view.FogBulbsToDraw.size(); i++)
-		{
-			camera.FogBulbs[i].Position = view.FogBulbsToDraw[i].Position;
-			camera.FogBulbs[i].Density = view.FogBulbsToDraw[i].Density * (CLICK(1) / view.FogBulbsToDraw[i].Radius);
-			camera.FogBulbs[i].SquaredRadius = SQUARE(view.FogBulbsToDraw[i].Radius);
-			camera.FogBulbs[i].Color = view.FogBulbsToDraw[i].Color;
-			camera.FogBulbs[i].SquaredCameraToFogBulbDistance = SQUARE(view.FogBulbsToDraw[i].Distance);
-			camera.FogBulbs[i].FogBulbToCameraVector = view.FogBulbsToDraw[i].FogBulbToCameraVector;
-		}
-
-		camera.Hemisphere = 0;
-		return camera;
-	}
-
 	// HUD objects, HUD bars and texts, screen overlays and display sprites of the 2D layer.
 	void Renderer::CollectHud(RenderView& view, SceneRenderMode renderMode)
 	{
@@ -1126,21 +1069,32 @@ namespace TEN::Renderer
 		}
 	}
 
-	void Renderer::SubmitFrame(RenderView& view, const CCameraMatrixBuffer& camera)
+	// Distance fog of the level; a zero maximum distance turns it off.
+	static void SetFrameFog(Backend::FrameEnvironment& environment)
+	{
+		const auto& level = *g_GameFlow->GetLevel(CurrentLevel);
+		if (level.GetFogMaxDistance() <= 0)
+			return;
+
+		auto fogColor = level.GetFogColor();
+		environment.FogColor = Vector4(fogColor.GetR() / 255.0f, fogColor.GetG() / 255.0f, fogColor.GetB() / 255.0f, 1.0f);
+		environment.FogMinDistance = level.GetFogMinDistance();
+		environment.FogMaxDistance = level.GetFogMaxDistance();
+	}
+
+	void Renderer::SubmitFrame(RenderView& view)
 	{
 		if (!Backend::g_SceneRenderer.IsActive())
 			return;
 
 		auto environment = Backend::FrameEnvironment{};
-		environment.CameraPosition = Vector3(camera.CamPositionWS.x, camera.CamPositionWS.y, camera.CamPositionWS.z);
-		environment.FogColor = camera.FogColor;
-		environment.FogMinDistance = camera.FogMinDistance;
-		environment.FogMaxDistance = camera.FogMaxDistance;
-		environment.Frame = camera.Frame;
-		environment.InterpolatedFrame = camera.InterpolatedFrame;
+		environment.CameraPosition = view.Camera.WorldPosition;
+		SetFrameFog(environment);
+		environment.Frame = GlobalCounter;
+		environment.InterpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
 		environment.InterpolationFactor = GetInterpolationFactor();
-		environment.IsCameraUnderwater = (camera.CameraUnderwater != 0);
-		environment.IsAmbientOcclusionEnabled = (camera.AmbientOcclusion != 0);
+		environment.IsCameraUnderwater = ((g_Level.Rooms[view.Camera.RoomNumber].flags & ENV_FLAG_WATER) != 0);
+		environment.IsAmbientOcclusionEnabled = (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion);
 		environment.Tint = _postProcessTint;
 		environment.Gamma = g_Configuration.Gamma;
 		environment.ColorScheme = (int)_postProcessMode;
@@ -1211,9 +1165,10 @@ namespace TEN::Renderer
 		environment.IsShadowMapEnabled = (g_Configuration.ShadowType != ShadowMode::None);
 		environment.IsPlayerShadowOnly = (g_Configuration.ShadowType == ShadowMode::Player);
 		environment.ShadowMapSize = g_Configuration.ShadowMapSize;
-		environment.ShadowSphereCount = std::min(_stShadowMap.NumSpheres, Backend::SHADOW_SPHERES_MAX);
+		environment.ShadowSphereCount = std::min((int)_blobShadowSpheres.size(), Backend::SHADOW_SPHERES_MAX);
 		for (int i = 0; i < environment.ShadowSphereCount; i++)
-			environment.ShadowSpheres[i] = Vector4(_stShadowMap.Spheres[i].position.x, _stShadowMap.Spheres[i].position.y, _stShadowMap.Spheres[i].position.z, _stShadowMap.Spheres[i].radius);
+			environment.ShadowSpheres[i] = Vector4(_blobShadowSpheres[i].Center.x, _blobShadowSpheres[i].Center.y, _blobShadowSpheres[i].Center.z, _blobShadowSpheres[i].Radius);
+
 		Backend::g_SceneRenderer.RenderFrame(view, environment);
 	}
 

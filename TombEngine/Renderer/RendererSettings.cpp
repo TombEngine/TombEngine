@@ -11,7 +11,7 @@ namespace TEN::Renderer
 	void Renderer::ChangeScreenResolution(int width, int height, bool windowed, bool resyncWindow)
 	{
 		_isWindowed = windowed;
-		InitializeScreen(width, height, true, resyncWindow);
+		InitializeScreen(width, height, resyncWindow);
 	}
 
 	// Image files are decoded by the scene renderer; only their size is read here, for layouts.

@@ -7,7 +7,7 @@ using namespace TEN::Renderer::RHI;
 
 namespace TEN::Renderer::Backend
 {
-    constexpr auto SKY_REFLECTION_MAP_SIZE = 512; // Matches ROOM_AMBIENT_MAP_SIZE.
+    constexpr auto SKY_REFLECTION_MAP_SIZE = 512;
 
     bool SceneRenderer::CreateSkyReflectionResources()
     {

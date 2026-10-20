@@ -12,11 +12,6 @@
 #include "Game/control/control.h"
 #include "Specific/trutils.h"
 
-#include <imgui.h>
-
-// Forward declaration as instructed by imgui_impl_win32.h (guarded by #if 0 in the header).
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
 extern "C"
 {
 	__declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;

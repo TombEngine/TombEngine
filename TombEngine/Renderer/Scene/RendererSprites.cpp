@@ -2,7 +2,6 @@
 #include "Renderer/Renderer.h"
 
 #include "Renderer/Structures/RendererSprite.h"
-#include "Renderer/Structures/RendererSpriteBucket.h"
 #include "Specific/Parallel.h"
 
 using namespace TEN::Renderer::Structures;
@@ -179,8 +178,6 @@ namespace TEN::Renderer
 			return;
 		}
 
-		_spriteBuckets.clear();
-
 		// Sort sprites by sprite and blend mode for faster batching.
 		std::sort(
 			view.SpritesToDraw.begin(),
@@ -202,36 +199,9 @@ namespace TEN::Renderer
 			}
 		);
 
-		// Group sprites to draw in buckets for instancing (billboards only).
-		RendererSpriteBucket currentSpriteBucket;
-
-		currentSpriteBucket.Sprite = view.SpritesToDraw[0].Sprite;
-		currentSpriteBucket.BlendMode = view.SpritesToDraw[0].BlendMode;
-		currentSpriteBucket.IsBillboard = view.SpritesToDraw[0].Type != SpriteType::ThreeD;
-		currentSpriteBucket.IsSoftParticle = view.SpritesToDraw[0].SoftParticle;
-		currentSpriteBucket.RenderType = view.SpritesToDraw[0].renderType;
-
+		// Sorted blend modes go to the sorted faces; the others stay in the list, batched by the scene renderer.
 		for (auto& rDrawSprite : view.SpritesToDraw)
 		{
-			bool isBillboard = rDrawSprite.Type != SpriteType::ThreeD;
-
-			if (rDrawSprite.Sprite != currentSpriteBucket.Sprite ||
-				rDrawSprite.BlendMode != currentSpriteBucket.BlendMode ||
-				rDrawSprite.SoftParticle != currentSpriteBucket.IsSoftParticle ||
-				rDrawSprite.renderType != currentSpriteBucket.RenderType ||
-				currentSpriteBucket.SpritesToDraw.size() == INSTANCED_SPRITES_BUCKET_SIZE ||
-				isBillboard != currentSpriteBucket.IsBillboard)
-			{
-				_spriteBuckets.push_back(currentSpriteBucket);
-
-				currentSpriteBucket.Sprite = rDrawSprite.Sprite;
-				currentSpriteBucket.BlendMode = rDrawSprite.BlendMode;
-				currentSpriteBucket.IsBillboard = isBillboard;
-				currentSpriteBucket.IsSoftParticle = rDrawSprite.SoftParticle;
-				currentSpriteBucket.RenderType = rDrawSprite.renderType;
-				currentSpriteBucket.SpritesToDraw.clear();
-			}
-
 			if (rDrawSprite.BlendMode != BlendMode::Opaque &&
 				rDrawSprite.BlendMode != BlendMode::Additive &&
 				rDrawSprite.BlendMode != BlendMode::Distortion &&
@@ -245,13 +215,7 @@ namespace TEN::Renderer
 
 				CollectSortedSprite(view, object, distance);
 			}
-			else
-			{
-				currentSpriteBucket.SpritesToDraw.push_back(rDrawSprite);
-			}
 		}
-
-		_spriteBuckets.push_back(currentSpriteBucket);
 	}
 
 }

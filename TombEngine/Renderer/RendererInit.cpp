@@ -23,20 +23,15 @@ namespace TEN::Renderer
 
 		_isWindowed = windowed;
 
-		InitializeScreen(w, h, false);
+		InitializeScreen(w, h);
 		InitializeCommonTextures();
-		_currentCausticsFrame = 0;
 
 		// Preallocate lists.
-		_lines2DToDraw = createVector<RendererLine2D>(MAX_LINES_2D);
 		_lines3DToDraw = createVector<RendererLine3D>(MAX_LINES_3D);
 		_triangles3DToDraw = createVector<RendererTriangle3D>(MAX_TRIANGLES_3D);
 
 		for (auto& dynamicLightList : _dynamicLights)
 			dynamicLightList = createVector<RendererLight>(MAX_DYNAMIC_LIGHTS);
-
-		for (auto& item : _items)
-			item.LightsToDraw = createVector<RendererLight*>(MAX_LIGHTS_PER_ITEM);
 
 		InitializeGameBars();
 		InitializeVolumetricClouds();
@@ -47,7 +42,7 @@ namespace TEN::Renderer
 		ImGuiInit(g_Platform->GetSDL3Window());
 	}
 
-	void Renderer::InitializeScreen(int w, int h, bool reset, bool resyncWindow)
+	void Renderer::InitializeScreen(int w, int h, bool resyncWindow)
 	{
 		_screenWidth = w;
 		_screenHeight = h;
@@ -56,11 +51,6 @@ namespace TEN::Renderer
 		// via UpdateCameraMatrices() every frame, but title/pause paths reuse the last values.
 		for (auto* view : { &_gameCamera, &_oldGameCamera, &_currentGameCamera })
 		{
-			view->Viewport.X = 0;
-			view->Viewport.Y = 0;
-			view->Viewport.Width = w;
-			view->Viewport.Height = h;
-
 			view->Camera.ViewSize = { (float)w, (float)h };
 			view->Camera.InvViewSize = { 1.0f / w, 1.0f / h };
 			view->Camera.Projection = Matrix::CreatePerspectiveFieldOfView(view->Camera.FOV, (float)w / (float)h, view->Camera.NearPlane, view->Camera.FarPlane);
@@ -85,7 +75,7 @@ namespace TEN::Renderer
 		_loadingBarInner = LoadImage(GetAssetPath("Textures/LoadingBarInner.png"));
 
 		// Colored quads use the white texture of the scene renderer.
-		_whiteSprite = RendererSprite{ 0, 1, 1, { Vector2(0.0f, 0.0f), Vector2(1.0f, 0.0f), Vector2(1.0f, 1.0f), Vector2(0.0f, 1.0f) } };
+		_whiteSprite = RendererSprite{ 1, 1, { Vector2(0.0f, 0.0f), Vector2(1.0f, 0.0f), Vector2(1.0f, 1.0f), Vector2(0.0f, 1.0f) } };
 	}
 
 	void Renderer::ToggleFullScreen(bool force)

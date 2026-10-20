@@ -1,15 +1,10 @@
-// CBAtmosphericSky.hlsli - Constant buffer for the atmospheric sky dome shader.
-// Bound to register b10 (shared with HUD - different render pass).
-// Must match CAtmosphericSkyBuffer in C++ exactly.
+// CBAtmosphericSky.hlsli - Uniform block of the atmospheric sky dome, declared by the including shader through TEN_ATMOSPHERIC_SKY_BLOCK
+// (pixel uniform slot 2). Must match CAtmosphericSkyBuffer in C++ exactly.
 
 #ifndef CB_ATMOSPHERIC_SKY_HLSLI
 #define CB_ATMOSPHERIC_SKY_HLSLI
 
-#ifdef TEN_ATMOSPHERIC_SKY_BLOCK
 TEN_ATMOSPHERIC_SKY_BLOCK
-#else
-cbuffer CBAtmosphericSky : register(b12)
-#endif
 {
     // Row 0 - Sun direction and elevation
     float3 AtmoSunDirection;        // Normalized world-space sun direction.

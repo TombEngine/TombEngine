@@ -844,7 +844,7 @@ namespace TEN::Collision::Floordata
 		constexpr auto ACTIVATOR_MINECART_LEFT_COLOR = Vector4(1.0f, 0.4f, 1.0f, 1.0f);
 		constexpr auto MINECART_STOP_COLOR			 = Vector4(0.4f, 1.0f, 1.0f, 1.0f);
 
-		if (g_Renderer.GetCurrentDebugPage() != RendererDebugPage::CollisionStats)
+		if (g_Renderer.GetDebugPage() != RendererDebugPage::CollisionStats)
 			return;
 
 		// Get point collision.

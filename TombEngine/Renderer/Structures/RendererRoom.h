@@ -7,7 +7,6 @@
 #include "Renderer/Structures/RendererEffect.h"
 #include "Renderer/Structures/RendererItem.h"
 #include "Renderer/Structures/RendererLight.h"
-#include "Renderer/Structures/RendererRectangle.h"
 #include "Renderer/Structures/RendererStatic.h"
 
 namespace TEN::Renderer::Structures
@@ -26,12 +25,10 @@ namespace TEN::Renderer::Structures
 		std::vector<RendererStatic> Statics;
 		std::vector<RendererItem*> ItemsToDraw;
 		std::vector<RendererEffect*> EffectsToDraw;
-		std::vector<RendererStatic*> StaticsToDraw;
 		std::vector<RendererLight*> LightsToDraw;
 		std::vector<RendererDecal> Decals;
 		std::vector<RendererDoor> Doors;
 		BoundingBox BoundingBox;
-		RendererRectangle ClipBounds;
 		std::vector<int> Neighbors;
 	};
 }

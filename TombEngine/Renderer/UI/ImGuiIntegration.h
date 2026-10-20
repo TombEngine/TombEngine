@@ -18,7 +18,6 @@ namespace TEN::Renderer
 	// Returns true if ImGui consumed the event (engine should ignore it).
 	bool ImGuiProcessEvent(const SDL_Event& event);
 
-	void ImGuiToggleOverlay();
 	void ImGuiSetOverlayVisible(bool isVisible);
 	bool ImGuiIsOverlayVisible();
 

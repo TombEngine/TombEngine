@@ -9,11 +9,8 @@ namespace TEN::Renderer::Structures
 
 	struct RendererSprite
 	{
-		int Index;
 		int Width;
 		int Height;
 		Vector2 UV[4];
-		int X;
-		int Y;
 	};
 }

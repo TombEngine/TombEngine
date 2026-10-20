@@ -3,45 +3,12 @@
 
 namespace TEN::Renderer
 {
-	RenderView::RenderView(CAMERA_INFO* cam, float roll, float fov, float nearPlane, float farPlane, int w, int h) : Camera(cam, roll, fov, nearPlane, farPlane, w, h) 
+	RenderView::RenderView(CAMERA_INFO* cam, float roll, float fov, float nearPlane, float farPlane, int w, int h) : Camera(cam, roll, fov, nearPlane, farPlane, w, h)
 	{
-		Viewport = {};
-		Viewport.X = 0;
-		Viewport.Y = 0;
-		Viewport.Width = w;
-		Viewport.Height = h;
-		Viewport.MinDepth = 0;
-		Viewport.MaxDepth = 1;
 	}
 
-	RenderView::RenderView(const Vector3& pos, const Vector3& dir, const Vector3& up, int w, int h, int room, float nearPlane, float farPlane, float fov) : Camera(pos, dir, up, room, w, h, fov, nearPlane, farPlane) 
+	RenderView::RenderView(const Vector3& pos, const Vector3& dir, const Vector3& up, int w, int h, int room, float nearPlane, float farPlane, float fov) : Camera(pos, dir, up, room, w, h, fov, nearPlane, farPlane)
 	{
-
-		Viewport = {};
-		Viewport.X = 0;
-		Viewport.Y = 0;
-		Viewport.Width = w;
-		Viewport.Height = h;
-		Viewport.MinDepth = 0;
-		Viewport.MaxDepth = 1;
-	}
-	 
-	void RenderView::FillConstantBuffer(CCameraMatrixBuffer& bufferToFill)
-	{
-		bufferToFill.Projection = Camera.Projection;
-		bufferToFill.View = Camera.View;
-		bufferToFill.ViewProjection = Camera.ViewProjection;
-		bufferToFill.InverseView = Camera.View.Invert();
-		bufferToFill.InverseProjection = Camera.Projection.Invert();
-		bufferToFill.CamDirectionWS = Vector4(Camera.WorldDirection);
-		bufferToFill.CamPositionWS = Vector4(Camera.WorldPosition);
-		bufferToFill.ViewSize = Camera.ViewSize;
-		bufferToFill.InvViewSize = Camera.InvViewSize;
-		bufferToFill.RoomNumber = Camera.RoomNumber;
-		bufferToFill.NearPlane = Camera.NearPlane;
-		bufferToFill.FarPlane = Camera.FarPlane;
-		bufferToFill.AspectRatio = Camera.ViewSize.x / Camera.ViewSize.y;
-		bufferToFill.TanHalfFOV = tanf(DEG_TO_RAD(Camera.FOV / 2.0f));
 	}
 
 	void RenderView::Clear() 

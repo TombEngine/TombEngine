@@ -7,7 +7,6 @@
 #define PRINTSTRING_COLOR_ORANGE ARGB_TO_UINT(255, 216, 117, 49)
 #define PRINTSTRING_COLOR_WHITE ARGB_TO_UINT(255, 255, 255, 255)
 
-constexpr auto MAX_LINES_2D		= 256;
 constexpr auto MAX_LINES_3D		= 16384;
 constexpr auto MAX_TRIANGLES_3D = 16384;
 
@@ -15,7 +14,6 @@ constexpr auto FADE_FACTOR = 0.0625f;
 
 constexpr auto NUM_LIGHTS_PER_BUFFER = 48;
 constexpr auto MAX_LIGHTS_PER_ITEM = 8;
-constexpr auto MAX_LIGHTS = 100;
 constexpr auto AMBIENT_LIGHT_INTERPOLATION_STEP = 1.0f / 10.0f;
 constexpr auto MAX_DYNAMIC_LIGHTS = 1024;
 constexpr auto ITEM_LIGHT_COLLECTION_RADIUS = BLOCK(2);
@@ -40,8 +38,6 @@ constexpr float DISPLAY_ITEM_FAR_PLANE  = BLOCK(10);
 constexpr auto MIN_FAR_VIEW = 3200.0f;
 constexpr auto DEFAULT_FAR_VIEW = 102400.0f;
 
-constexpr auto INSTANCED_SPRITES_BUCKET_SIZE = 512;
-
 constexpr auto SKY_TILES_COUNT = 20;
 constexpr auto SKY_SIZE = 10240.0f;
 constexpr auto SKY_VERTICES_COUNT = 4 * SKY_TILES_COUNT * SKY_TILES_COUNT;
@@ -51,10 +47,6 @@ constexpr auto MAX_ITEMS_DRAW = 128;
 constexpr auto MAX_LIGHTS_DRAW = 48;
 constexpr auto MAX_FOG_BULBS_DRAW = 32;
 constexpr auto MAX_LENS_FLARES_DRAW = 8;
-
-constexpr auto ROOM_AMBIENT_MAP_SIZE = 512;
-
-constexpr auto GLOW_DOWNSCALE_FACTOR = 4.0f;
 
 constexpr auto GLOW_VERTEX_SHIFT = 0;
 constexpr auto MOVE_VERTEX_SHIFT = 8;
@@ -171,8 +163,7 @@ enum class PrintStringFlags
 enum class SceneRenderMode
 {
 	Full,
-	NoHud,
-	NoPostprocess
+	NoHud
 };
 
 enum class SpriteRenderType

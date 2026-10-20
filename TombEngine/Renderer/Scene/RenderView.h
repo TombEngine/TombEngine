@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Game/camera.h"
-#include "Renderer/ConstantBuffers/CameraMatrixBuffer.h"
 #include "Renderer/Scene/Frustum.h"
 #include "Renderer/RendererEnums.h"
 #include "Specific/memory/LinearArrayBuffer.h"
@@ -17,11 +16,9 @@
 #include "Renderer/Structures/RendererSpriteToDraw.h"
 #include "Renderer/Structures/RendererLensFlare.h"
 #include "Renderer/Structures/RendererMirror.h"
-#include "Renderer/Structures/RendererViewport.h"
 
 namespace TEN::Renderer 
 {
-	using namespace TEN::Renderer::ConstantBuffers;
 	using namespace TEN::Renderer::Structures;
 
 	struct RenderViewCamera
@@ -46,7 +43,6 @@ namespace TEN::Renderer
 	struct RenderView
 	{
 		RenderViewCamera Camera;
-		RendererViewport Viewport;
 
 		std::vector<RendererRoom*>					RoomsToDraw				 = {};
 		std::vector<RendererLight*>					LightsToDraw			 = {};
@@ -63,7 +59,6 @@ namespace TEN::Renderer
 		RenderView(CAMERA_INFO* cam, float roll, float fov, float nearPlane, float farPlane, int w, int h);
 		RenderView(const Vector3& pos, const Vector3& dir, const Vector3& up, int w, int h, int room, float nearPlane, float farPlane, float fov);
 		
-		void FillConstantBuffer(CCameraMatrixBuffer& bufferToFill);
 		void Clear();
 	};
 }

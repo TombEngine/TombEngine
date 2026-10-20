@@ -1,16 +1,10 @@
-// CBGodRay.hlsli - Constant buffer for the god ray shader.
-// Bound to register b12 (reuses the AtmosphericSky slot; safe since god rays
-// render between sky dome and HUD passes).
-// Must match CGodRayBuffer in C++ exactly.
+// CBGodRay.hlsli - Uniform block of the god rays, declared by the including shader through TEN_GOD_RAY_BLOCK
+// (pixel uniform slot 2). Must match CGodRayBuffer in C++ exactly.
 
 #ifndef CB_GOD_RAY_HLSLI
 #define CB_GOD_RAY_HLSLI
 
-#ifdef TEN_GOD_RAY_BLOCK
 TEN_GOD_RAY_BLOCK
-#else
-cbuffer CBGodRay : register(b12)
-#endif
 {
     // Row 0 - Sun position and ray parameters
     float2 GodRaySunScreenPos;    // Projected sun UV [0,1]x[0,1].

@@ -69,17 +69,6 @@ namespace TEN::Renderer
 		NormalizePlane(5);
 	}
 
-	bool Frustum::PointInFrustum(const Vector3& position) const
-	{
-		for (unsigned int i = 0; i < 6; i++)
-		{
-			if (frustum[i][0] * position.x + frustum[i][1] * position.y + frustum[i][2] * position.z + frustum[i][3] <= 0.0f)
-				return false;
-		}
-
-		return true;
-	}
-
 	bool Frustum::SphereInFrustum(const Vector3& position, float radius) const
 	{
 		for (unsigned int i = 0; i < 6; i++)

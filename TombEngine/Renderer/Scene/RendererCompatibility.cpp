@@ -92,7 +92,6 @@ namespace TEN::Renderer
 		_skinVertexBackups.clear();
 
 		_moveableObjects.resize(ID_NUMBER_OBJECTS);
-		_spriteSequences.resize(ID_NUMBER_OBJECTS);
 		_rooms.resize(g_Level.Rooms.size());
 
 		_meshes.clear();
@@ -113,7 +112,6 @@ namespace TEN::Renderer
 		{  
 			RendererAnimatedTextureSet set{};
 
-			set.NumTextures = sequence.NumFrames;
 			set.Type = (AnimatedTextureType)sequence.Type;
 			set.Fps = sequence.Fps;
 			set.UVRotateSpeed = sequence.UVRotateSpeed;
@@ -238,7 +236,6 @@ namespace TEN::Renderer
 					rendererStatic.Pose =
 					rendererStatic.PrevPose = nativeStatic.Pose;
 					rendererStatic.OriginalSphere = Statics[rendererStatic.ObjectNumber].visibilityBox.ToLocalBoundingSphere();
-					rendererStatic.IndexInRoom = l;
 
 					rendererStatic.Update(GetInterpolationFactor());
 				}
@@ -259,7 +256,6 @@ namespace TEN::Renderer
 					bucket.Texture = levelBucket.texture;
 					bucket.StartVertex = lastVertex;
 					bucket.StartIndex = lastIndex;
-					bucket.Centre = Vector3::Zero;
 					bucket.BoundsMin = Vector3(FLT_MAX);
 					bucket.BoundsMax = Vector3(-FLT_MAX);
 
@@ -280,15 +276,6 @@ namespace TEN::Renderer
 
 						newPoly.Centre += room.Position.ToVector3();
 
-						Vector3 p1 = room.positions[poly.indices[0]];
-						Vector3 p2 = room.positions[poly.indices[1]];
-						Vector3 p3 = room.positions[poly.indices[2]];
-
-						Vector3 n = (p2 - p1).Cross(p3 - p1);
-						n.Normalize();
-
-						newPoly.Normal = n;
-
 						int baseVertices = lastVertex;
 						for (int k = 0; k < poly.indices.size(); k++)
 						{
@@ -299,7 +286,6 @@ namespace TEN::Renderer
 							vertex->Position.y = room.Position.y + room.positions[index].y;
 							vertex->Position.z = room.Position.z + room.positions[index].z;
 
-							bucket.Centre += vertex->Position;
 							bucket.BoundsMin = Vector3::Min(bucket.BoundsMin, vertex->Position);
 							bucket.BoundsMax = Vector3::Max(bucket.BoundsMax, vertex->Position);
 
@@ -347,9 +333,6 @@ namespace TEN::Renderer
 
 						bucket.Polygons.push_back(newPoly);
 					}
-
-					if (bucket.NumVertices > 0)
-						bucket.Centre /= (float)bucket.NumVertices;
 
 					rendererRoom.Buckets.push_back(bucket);
 				}
@@ -420,9 +403,6 @@ namespace TEN::Renderer
 						light->Luma = Luma(light->Color);
 					} 
 
-					// Monty's temp variables for sorting
-					light->LocalIntensity = 0;
-					light->Distance = 0;
 					light->RoomNumber = i;
 					light->AffectNeighbourRooms = light->Type != LightType::Sun;
 
@@ -690,32 +670,6 @@ namespace TEN::Renderer
 			const auto& page = g_Level.SpritesTextures[oldSprite->tile];
 			sprite.Width = round((oldSprite->x2 - oldSprite->x1) * (float)page.width + 1.0f);
 			sprite.Height = round((oldSprite->y3 - oldSprite->y2) * (float)page.height + 1.0f);
-			sprite.X = oldSprite->x1 * page.width;
-			sprite.Y = oldSprite->y1 * page.height;
-		}
-
-		for (int i = 0; i < SpriteSequencesIds.size(); i++)
-		{
-			ObjectInfo *obj = &Objects[SpriteSequencesIds[i]];
-
-			if (obj->nmeshes < 0)
-			{
-				short numSprites = abs(obj->nmeshes);
-				short baseSprite = obj->meshIndex;
-				_spriteSequences[SpriteSequencesIds[i]] = RendererSpriteSequence();
-
-				// TODO: Why a custom =& operator is needed? It creates everytime new N null sprites
-				RendererSpriteSequence &sequence = _spriteSequences[SpriteSequencesIds[i]];
-
-				sequence.NumSprites = numSprites;
-				sequence.SpritesList.resize(numSprites);
-				for (int j = baseSprite; j < baseSprite + numSprites; j++)
-				{
-					sequence.SpritesList[j - baseSprite] = &_sprites[j];
-				}
-
-				_spriteSequences[SpriteSequencesIds[i]] = sequence;
-			}
 		}
 
 		auto geometry = Backend::LevelGeometry{};

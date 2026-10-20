@@ -20,8 +20,6 @@ namespace TEN::Renderer::Structures
 		
 		BoundingSphere BoundingSphere;
 		int RoomNumber;
-		float LocalIntensity;
-		float Distance;
 		bool AffectNeighbourRooms;
 		bool CastShadows;
 		float Luma;

@@ -10,7 +10,6 @@ namespace TEN::Renderer::Structures
 	{
 		int ObjectNumber;
 		int RoomNumber;
-		int IndexInRoom;
 
 		Pose 	PrevPose;
 		Pose	Pose;

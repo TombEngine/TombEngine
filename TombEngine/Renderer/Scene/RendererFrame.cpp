@@ -46,7 +46,6 @@ namespace TEN::Renderer
 
 			room.ItemsToDraw.clear();
 			room.EffectsToDraw.clear();
-			room.StaticsToDraw.clear();
 			room.LightsToDraw.clear();
 			room.Decals.clear();
 			room.Visited = false;
@@ -68,12 +67,6 @@ namespace TEN::Renderer
 
 		for (auto* roomPtr : renderView.RoomsToDraw)
 		{
-			// Prepare real DX scissor test rectangle.
-			roomPtr->ClipBounds.Left = (roomPtr->ViewPort.x + 1.0f) * _screenWidth * 0.5f;
-			roomPtr->ClipBounds.Bottom = (1.0f - roomPtr->ViewPort.y) * _screenHeight * 0.5f;
-			roomPtr->ClipBounds.Right = (roomPtr->ViewPort.z + 1.0f) * _screenWidth * 0.5f;
-			roomPtr->ClipBounds.Top = (1.0f - roomPtr->ViewPort.w) * _screenHeight * 0.5f;
-
 			// Indicate that Lara object is found.
 			if (roomPtr->RoomNumber == LaraItem->RoomNumber)
 				laraFound = true;
@@ -489,8 +482,7 @@ namespace TEN::Renderer
 				// for updating first positions and animations data
 			}
 
-			Matrix translationMatrix, rotMatrix;
-			auto worldMatrix = GetWorldMatrixForMoveable(item, &rotMatrix, &translationMatrix);
+			auto worldMatrix = GetWorldMatrixForMoveable(item);
 
 			auto& newItem = _items[itemNumber];
 
@@ -498,9 +490,6 @@ namespace TEN::Renderer
 			newItem.ObjectID = item.ObjectNumber;
 			newItem.Color = item.Model.Color;
 			newItem.Position = item.Pose.Position.ToVector3();
-			newItem.Translation = translationMatrix;
-			newItem.Rotation = rotMatrix;
-			newItem.Scale = Matrix::CreateScale(item.Pose.Scale);
 			newItem.World = worldMatrix;
 
 			// Disable interpolation either when renderer slot or item slot has flag. 
@@ -515,9 +504,6 @@ namespace TEN::Renderer
 			{
 				// NOTE: Interpolation always returns same result.
 				newItem.PrevPosition = newItem.Position;
-				newItem.PrevTranslation = newItem.Translation;
-				newItem.PrevRotation = newItem.Rotation;
-				newItem.PrevScale = newItem.Scale;
 				newItem.PrevWorld = newItem.World;
 
 				// Otherwise all frames until next ControlPhase will not be interpolated.
@@ -532,9 +518,6 @@ namespace TEN::Renderer
 			float interpFactor = GetInterpolationFactor(forceValue);
 
 			newItem.InterpolatedPosition = Vector3::Lerp(newItem.PrevPosition, newItem.Position, interpFactor);
-			newItem.InterpolatedTranslation = Matrix::Lerp(newItem.PrevTranslation, newItem.Translation, interpFactor);
-			newItem.InterpolatedRotation = Matrix::Lerp(newItem.PrevRotation, newItem.Rotation, interpFactor);
-			newItem.InterpolatedScale = Matrix::Lerp(newItem.PrevScale, newItem.Scale, interpFactor);
 			newItem.InterpolatedWorld = Matrix::Lerp(newItem.PrevWorld, newItem.World, interpFactor);
 			
 			for (int j = 0; j < BONE_COUNT_MAX; j++)
@@ -566,10 +549,7 @@ namespace TEN::Renderer
 		effect.ObjectID = item.ObjectNumber;
 		effect.RoomNumber = item.RoomNumber;
 		effect.Position = item.Pose.Position.ToVector3();
-		effect.Translation = Matrix::CreateTranslation(effect.Position);
-		effect.Rotation = item.Pose.Orientation.ToRotationMatrix();
-		effect.Scale = Matrix::CreateScale(Vector3::One);
-		effect.World = effect.Rotation * effect.Translation;
+		effect.World = item.Pose.Orientation.ToRotationMatrix() * Matrix::CreateTranslation(effect.Position);
 		effect.Color = item.Model.Color;
 		effect.AmbientLight = room.AmbientLight;
 		effect.Mesh = GetMesh(item.Model.MeshIndex[0]);
@@ -578,18 +558,12 @@ namespace TEN::Renderer
 		if (item.DisableInterpolation)
 		{
 			effect.PrevPosition = effect.Position;
-			effect.PrevTranslation = effect.Translation;
-			effect.PrevRotation = effect.Rotation;
 			effect.PrevWorld = effect.World;
-			effect.PrevScale = effect.Scale;
 		}
 
 		float interpFactor = GetInterpolationFactor();
 		effect.InterpolatedPosition = Vector3::Lerp(effect.PrevPosition, effect.Position, interpFactor);
-		effect.InterpolatedTranslation = Matrix::Lerp(effect.PrevTranslation, effect.Translation, interpFactor);
-		effect.InterpolatedRotation = Matrix::Lerp(effect.PrevRotation, effect.Rotation, interpFactor);
 		effect.InterpolatedWorld = Matrix::Lerp(effect.PrevWorld, effect.World, interpFactor);
-		effect.InterpolatedScale = Matrix::Lerp(effect.PrevScale, effect.Scale, interpFactor);
 
 		CollectLightsForEffect(item.RoomNumber, &effect);
 
@@ -660,8 +634,6 @@ namespace TEN::Renderer
 				}
 			}
 			rendererStatic.LightsToDraw = lights;
-
-			rendererRoom.StaticsToDraw.push_back(&rendererStatic);
 
 			if (renderView.SortedStaticsToDraw.find(rendererStatic.ObjectNumber) == renderView.SortedStaticsToDraw.end())
 			{
@@ -995,9 +967,6 @@ namespace TEN::Renderer
 		{
 			item.PrevPosition = item.Position;
 			item.PrevWorld = item.World;
-			item.PrevTranslation = item.Translation;
-			item.PrevRotation = item.Rotation;
-			item.PrevScale = item.Scale;
 
 			for (int j = 0; j < BONE_COUNT_MAX; j++)
 				item.PrevAnimationTransforms[j] = item.AnimationTransforms[j];
@@ -1007,9 +976,6 @@ namespace TEN::Renderer
 		{
 			effect.PrevPosition = effect.Position;
 			effect.PrevWorld = effect.World;
-			effect.PrevTranslation = effect.Translation;
-			effect.PrevRotation = effect.Rotation;
-			effect.PrevScale = effect.Scale;
 		}
 
 		for (auto& room : _rooms)

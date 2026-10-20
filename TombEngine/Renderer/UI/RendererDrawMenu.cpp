@@ -1389,11 +1389,6 @@ namespace TEN::Renderer
 #endif
 	}
 
-	RendererDebugPage Renderer::GetCurrentDebugPage()
-	{
-		return _debugPage;
-	}
-
 	// The debug window selects the tab of the new page; the ImGui overlay is shown while a page is active.
 	void Renderer::SwitchDebugPage(bool goBack)
 	{

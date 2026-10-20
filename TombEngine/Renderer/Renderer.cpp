@@ -5,7 +5,6 @@
 #include "Game/camera.h"
 #include "Game/effects/tomb4fx.h"
 #include "Math/Math.h"
-#include "Renderer/Structures/RendererRectangle.h"
 #include "Renderer/Scene/RenderView.h"
 #include "Renderer/RendererUtils.h"
 #include "Renderer/Structures/RendererHudBar.h"
@@ -63,7 +62,6 @@ namespace TEN::Renderer
 	// Video frames fill the whole sprite; the scene renderer uploads the frame of the video handler.
 	void Renderer::UpdateVideoSprite(int width, int height)
 	{
-		_videoSprite.X = _videoSprite.Y = 0;
 		_videoSprite.Width = width;
 		_videoSprite.Height = height;
 		_videoSprite.UV[0] = Vector2(0.0f, 0.0f);

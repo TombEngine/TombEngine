@@ -11,8 +11,6 @@
 #include "Game/effects/effects.h"
 #include "Game/effects/Electricity.h"
 #include "Game/Setup.h"
-#include "Renderer/ConstantBuffers/ShadowLightBuffer.h"
-#include "Renderer/ConstantBuffers/CameraMatrixBuffer.h"
 #include "Renderer/ConstantBuffers/VolumetricCloudBuffer.h"
 #include "Renderer/ConstantBuffers/AtmosphericSkyBuffer.h"
 #include "Renderer/ConstantBuffers/GodRayBuffer.h"
@@ -39,8 +37,6 @@
 #include "Renderer/Structures/RendererDofMode.h"
 #include "Renderer/Structures/RendererStringToDraw.h"
 #include "Renderer/Structures/RendererRoom.h"
-#include "Renderer/Structures/RendererRectangle.h"
-#include "Renderer/Structures/RendererViewport.h"
 #include "Renderer/Structures/RendererSprite.h"
 #include "Renderer/Structures/RendererAnimatedTexture.h"
 #include "Renderer/Structures/RendererAnimatedTextureSet.h"
@@ -49,10 +45,7 @@
 #include "Renderer/Structures/RendererLine3D.h"
 #include "Renderer/Structures/RendererTriangle3D.h"
 #include "Renderer/Structures/RendererMesh.h"
-#include "Renderer/Structures/RendererSpriteSequence.h"
-#include "Renderer/Structures/RendererSpriteBucket.h"
 #include "Renderer/Structures/RendererLight.h"
-#include "Renderer/Structures/RendererLine2D.h"
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Renderer/Structures/RendererImage.h"
 #include "Renderer/Structures/RendererObject.h"
@@ -81,7 +74,6 @@ namespace TEN::Renderer
 	using namespace TEN::Hud;
 	using namespace TEN::Renderer::ConstantBuffers;
 	using namespace TEN::Renderer::Structures;
-	using namespace TEN::Renderer::Structures;
 	using namespace TEN::Renderer::Utils;
 	using namespace TEN::Math::Library;
 
@@ -91,7 +83,7 @@ namespace TEN::Renderer
 		RenderView _gameCamera;
 		RenderView _oldGameCamera;
 		RenderView _currentGameCamera;
-		CShadowLightBuffer _stShadowMap;
+		std::vector<BoundingSphere> _blobShadowSpheres = {}; // Nearest blob shadow casters of the frame.
 
 		// Volumetric clouds
 		ConstantBuffers::CVolumetricCloudBuffer _stVolumetricCloud;
@@ -164,7 +156,6 @@ namespace TEN::Renderer
 
 		// Lines
 
-		std::vector<RendererLine2D>		_lines2DToDraw = {};
 		std::vector<RendererLine3D>		_lines3DToDraw = {};
 		std::vector<RendererTriangle3D> _triangles3DToDraw = {};
 
@@ -173,7 +164,6 @@ namespace TEN::Renderer
 		std::vector<std::optional<RendererObject>>			   _moveableObjects;
 		std::vector<std::optional<RendererObject>>			   _staticObjects; // Key = static ID, value = renderer object.
 		std::vector<RendererSprite>							   _sprites;
-		std::vector<RendererSpriteSequence>					   _spriteSequences;
 		std::vector<RendererAnimatedTextureSet>				   _animatedTextureSets;
 		std::vector<RendererMesh*>							   _meshes;
 		RendererSprite										   _videoSprite; // Video texture is an unique case
@@ -191,7 +181,7 @@ namespace TEN::Renderer
 
 		// Preallocated pools of objects for avoiding new/delete.
 		// Items and effects are safe (can't be more than 1024 items in TR), 
-		// lights should be oversized (eventually ignore lights more than MAX_LIGHTS)
+		// lights should be oversized.
 
 		std::vector<RendererItem> _items;
 		std::vector<RendererEffect> _effects;
@@ -220,7 +210,6 @@ namespace TEN::Renderer
 		float                                 _frameRate       = 0.0f; // Presented frames per second, smoothed.
 		unsigned long long                    _framePaceTime   = 0;    // Start of the paced frame, in SDL nanosecond ticks.
 		float _fps;
-		int _currentCausticsFrame;
 
 		// ImGui debug window (RendererDebugWindow.cpp). Debug messages of the game code are kept for the window.
 		// View counts of the last scene, kept for the debug window: the view is cleared before the window is drawn.
@@ -285,8 +274,6 @@ namespace TEN::Renderer
 
 		bool _isLocked = false;
 
-		std::vector<RendererSpriteBucket> _spriteBuckets;
-
 		// Post-process
 
 		PostProcessMode _postProcessMode = PostProcessMode::None;
@@ -320,7 +307,7 @@ namespace TEN::Renderer
 		void CalculateLightFades(RendererItem* item);
 		void CollectDecalsForRoom(short roomNumber, RenderView& renderView);
 		void UpdateItemAnimations(RenderView& view);
-		void InitializeScreen(int w, int h, bool reset, bool resyncWindow = true);
+		void InitializeScreen(int w, int h, bool resyncWindow = true);
 		void InitializeCommonTextures();
 		void InitializeGameBars();
 		void InitializeMenuBars(int y);
@@ -607,9 +594,8 @@ namespace TEN::Renderer
 		void CaptureMenuScreenshot();
 		void RenderScene(RenderView& view, SceneRenderMode renderMode = SceneRenderMode::Full);
 		void PrepareSceneSprites(RenderView& view);
-		ConstantBuffers::CCameraMatrixBuffer GetCameraUniforms(RenderView& view);
 		void CollectHud(RenderView& view, SceneRenderMode renderMode);
-		void SubmitFrame(RenderView& view, const ConstantBuffers::CCameraMatrixBuffer& camera);
+		void SubmitFrame(RenderView& view);
 		void PrepareScene();
 		void ClearScene();
 		void DrawDisplayPickup(const DisplayPickup& pickup);
@@ -635,8 +621,6 @@ namespace TEN::Renderer
 		bool IsFullScreen();
 		void RenderTitleImage();
 
-		void AddLine2D(const Vector2& origin, const Vector2& target, const Color& color, RendererDebugPage page = RendererDebugPage::None);
-
 		void AddDebugLine(const Vector3& origin, const Vector3& target, const Color& color, RendererDebugPage page = RendererDebugPage::None);
 		void AddDebugTriangle(const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Color& color, RendererDebugPage page = RendererDebugPage::None);
 		void AddDebugTarget(const Vector3& center, const Quaternion& orient, float radius, const Color& color, RendererDebugPage page = RendererDebugPage::None);
@@ -653,7 +637,6 @@ namespace TEN::Renderer
 		void PrintDebugMessage(const char* msg, ...);
 		void DrawDebugInfo(RenderView& view);
 		void SwitchDebugPage(bool goBack);
-		RendererDebugPage GetCurrentDebugPage();
 
 		void ChangeScreenResolution(int width, int height, bool windowed, bool resyncWindow = true);
 		void FlipRooms(short roomNumber1, short roomNumber2);

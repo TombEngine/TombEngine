@@ -81,18 +81,6 @@ namespace TEN::Renderer
 		AddUiLayer(Backend::OverlayLayerType::Bars, (int)_uiFrame.Bars.size() - 1);
 	}
 
-	void Renderer::AddLine2D(const Vector2& origin, const Vector2& target, const Color& color, RendererDebugPage page)
-	{
-		if (_isLocked)
-			return;
-
-		if (!DebugMode || (_debugPage != page && page != RendererDebugPage::None))
-			return;
-
-		auto line = RendererLine2D{ origin, target, color };
-		_lines2DToDraw.push_back(line);
-	}
-
 	// Binocular or laser sight sprite while looking through optics outside the title level, null otherwise.
 	const RendererSprite* Renderer::GetOpticOverlaySprite() const
 	{
