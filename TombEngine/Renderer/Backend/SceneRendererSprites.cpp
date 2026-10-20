@@ -29,7 +29,7 @@ namespace TEN::Renderer::Backend
         float        FarPlane       = 1.0f;
         float        Time              = 0.0f;
         float        MoonDiskCosRadius = 2.0f; // Above 1: no moon disc hides the sky sprites.
-        unsigned int IsLit             = 0;    // Dynamic lights of the view brighten the sprite.
+        float        Padding0          = 0.0f;
         float        Padding1          = 0.0f;
         Vector3      MoonDirection     = Vector3::Zero;
         float        Padding2          = 0.0f;
@@ -256,20 +256,8 @@ namespace TEN::Renderer::Backend
 
     // One instanced draw of six corner indices per sprite. Pipeline, buffers and textures are rebound only when they
     // change from the previous run.
-    // Sprites that blend over the scene without adding or subtracting light (opaque, alpha test and alpha blended
-    // ones) are lit by the dynamic lights of the view; reflected sprites are not, as the light clusters are placed
-    // for the unreflected view.
-    static bool IsLitSprite(BlendMode blendMode, int renderType, bool isMirrored)
-    {
-        if (isMirrored || renderType != (int)SpriteRenderType::Default)
-            return false;
-
-        return (blendMode == BlendMode::Opaque || blendMode == BlendMode::AlphaTest || blendMode == BlendMode::AlphaBlend ||
-                blendMode == BlendMode::FastAlphaBlend || blendMode == BlendMode::PremultipliedAlphaBlend);
-    }
-
     void SceneRenderer::DrawSpriteRun(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const SpriteDraw& draw,
-                                     const IGraphicsPipeline*& lastPipeline, const ITexture*& lastTexture, bool isSky, DrawCategory category, bool isMirrored)
+                                     const IGraphicsPipeline*& lastPipeline, const ITexture*& lastTexture, bool isSky, DrawCategory category)
     {
         auto* pipeline = GetScenePipeline(isSky ? SceneShader::SkySprites : SceneShader::Sprites, draw.BlendMode);
         if (pipeline != lastPipeline)
@@ -278,13 +266,6 @@ namespace TEN::Renderer::Backend
 
             IBuffer* spriteBuffer = _spriteBuffer.Buffer.get();
             renderPass.BindVertexStorageBuffers(0, &spriteBuffer, 1);
-
-            // Light buffer and light clusters of the lit scene sprites.
-            if (!isSky)
-            {
-                IBuffer* lightBuffers[2] = { _lightBuffer.Buffer.get(), _lightClusterBuffer.Buffer.get() };
-                renderPass.BindPixelStorageBuffers(0, lightBuffers, 2);
-            }
 
             BufferBinding vertexBindings[2] = { { _spriteCornerBuffer.get(), 0 }, { _instanceIndexBuffer.get(), 0 } };
             renderPass.BindVertexBuffers(0, vertexBindings, 2);
@@ -311,15 +292,13 @@ namespace TEN::Renderer::Backend
                 { cloudLayerA, _linearClampSampler.get() },
                 { cloudLayerB, _linearClampSampler.get() }
             };
-            renderPass.BindPixelSamplers(0, bindings, 4);
+            renderPass.BindPixelSamplers(0, bindings, isSky ? 4 : 2);
             lastTexture = draw.Texture;
         }
 
         auto spriteUniforms = SpriteUniforms{ draw.IsSoftParticle ? 1u : 0u, (unsigned int)draw.RenderType, _nearPlane, _farPlane, _time };
         if (isSky)
             SetSkySpriteMoon(spriteUniforms.MoonDirection, spriteUniforms.MoonDiskCosRadius);
-        else
-            spriteUniforms.IsLit = IsLitSprite(draw.BlendMode, draw.RenderType, isMirrored) ? 1u : 0u;
 
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 3, &spriteUniforms, sizeof(spriteUniforms));
 
@@ -345,7 +324,7 @@ namespace TEN::Renderer::Backend
         {
             bool isOpaque = (draw.BlendMode == BlendMode::Opaque || draw.BlendMode == BlendMode::AlphaTest);
             if (isOpaque ? (pass == ScenePass::Opaque) : (GetPassBlendMode(pass) == draw.BlendMode))
-                DrawSpriteRun(commandBuffer, renderPass, draw, lastPipeline, lastTexture, false, DrawCategory::Sprites, isMirrored);
+                DrawSpriteRun(commandBuffer, renderPass, draw, lastPipeline, lastTexture);
         }
 
         commandBuffer.PopDebugGroup();

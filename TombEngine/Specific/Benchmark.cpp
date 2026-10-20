@@ -14,6 +14,7 @@ namespace TEN::Benchmark
     constexpr auto BENCHMARK_SCREENSHOT_SKIPPED_FRAMES = 4; // The capture stalls the frame and the readback writes its file frames later.
     constexpr auto BENCHMARK_MENU_SCREENSHOT_TICK = 90;
     constexpr auto BENCHMARK_MENU_EXIT_TICK       = 150;
+    constexpr auto BENCHMARK_HEADER_WAIT_FRAMES   = 16; // Frames to wait for the first GPU timings, which are read a few frames late.
 
     static bool _isActive = false;
     static bool _isStarted = false;
@@ -21,6 +22,7 @@ namespace TEN::Benchmark
     static float _duration = 0.0f;
     static std::chrono::steady_clock::time_point _startTime = {};
     static int _recordedFrames = 0;
+    static int _headerWaitFrames = 0;
     static int  _screenshotCount = 0;
     static int  _screenshotSkippedFrames = 0;
     static int  _menuStartTick     = -1;
@@ -238,6 +240,13 @@ namespace TEN::Benchmark
         if (_screenshotSkippedFrames > 0)
         {
             _screenshotSkippedFrames--;
+            return;
+        }
+
+        // GPU timings arrive some frames late: the header waits for them, so the CSV gets its per pass columns.
+        if (_recordedFrames == 0 && stats.GpuPassCount == 0 && _headerWaitFrames < BENCHMARK_HEADER_WAIT_FRAMES)
+        {
+            _headerWaitFrames++;
             return;
         }
 
