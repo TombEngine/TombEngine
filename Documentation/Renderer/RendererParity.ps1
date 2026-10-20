@@ -93,7 +93,7 @@ foreach ($level in $Levels)
         # "Title" runs the title menu; other names are level files.
         $levelArgs = $(if ($level -eq "Title") { @() } else { @("level", "Data/$level.ten") })
         $process = Start-Process -FilePath $executable -WorkingDirectory $BuildDir -PassThru `
-            -ArgumentList (@("debug") + $levelArgs + @("next", $backend, "benchmark", "$Seconds") + $ExtraArgs) `
+            -ArgumentList (@("debug") + $levelArgs + @("backend", $backend, "benchmark", "$Seconds") + $ExtraArgs) `
             -RedirectStandardOutput $stdout -RedirectStandardError $stderr
         if (-not $process.WaitForExit(($Seconds + 120) * 1000))
         {

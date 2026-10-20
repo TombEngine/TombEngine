@@ -334,7 +334,7 @@ int main(int argc, char* argv[])
 		{
 			rhiTestBackend = argv[++i];
 		}
-		else if (ArgEquals(arg.c_str(), "next") && i + 1 < argc)
+		else if (ArgEquals(arg.c_str(), "backend") && i + 1 < argc)
 		{
 			// Renderer backend, overriding the configuration.
 			rendererBackend = argv[++i];
