@@ -103,6 +103,7 @@ local strings =
 	render_options = { "Render Options" },
 	render_scale = { "Render Scale" },
 	render_scale_balanced = { "Balanced (FSR 1)" },
+	render_scale_dynamic = { "Dynamic (FSR 1)" },
 	render_scale_native = { "Native" },
 	render_scale_performance = { "Performance (FSR 1)" },
 	render_scale_quality = { "Quality (FSR 1)" },

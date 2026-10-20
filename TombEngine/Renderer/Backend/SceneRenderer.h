@@ -94,7 +94,8 @@ namespace TEN::Renderer::Backend
         float        ScreenFade          = 1.0f;
         float        CinematicBarsHeight = 0.0f;
         int          AntialiasingMode    = 0; // Antialiasing setting: FXAA for low, SMAA for medium and high.
-        float        RenderScale         = 1.0f; // Scene resolution relative to the window; below 1, FSR 1 upscales the scene.
+        float        RenderScale         = 1.0f; // Scene resolution relative to the window; below 1, FSR 1 upscales the scene. 0 is dynamic.
+        float        TargetFrameTime     = 0.0f; // Milliseconds per frame the dynamic render scale aims at.
 
         // Background video of the video handler: BGRA8 frame, null when no background video plays.
         const unsigned char*                 VideoFrame  = nullptr;
@@ -551,6 +552,18 @@ namespace TEN::Renderer::Backend
         bool                                    _isColorTargetSharpened = false; // EASU or TAA output, sharpened by RCAS when the overlay draws it.
         std::unique_ptr<RHI::ITexture>          _upscaleSource   = nullptr;
         float                                   _renderScale     = 1.0f;
+
+        // Dynamic resolution (SceneRendererDynamicResolution.cpp).
+        bool                                    _isRenderScaleDynamic = false;
+        float                                   _dynamicScale         = 1.0f;
+        float                                   _dynamicUpDelay       = 2.0f;  // Seconds of headroom before a rise, doubled by failed rises.
+        bool                                    _isDynamicRise        = false; // The last change was a rise.
+        float                                   _dynamicFrameTimeSum  = 0.0f;
+        float                                   _dynamicFenceWaitSum  = 0.0f;
+        int                                     _dynamicFrameCount    = 0;
+        std::chrono::steady_clock::time_point   _dynamicLastFrameTime = {};
+        std::chrono::steady_clock::time_point   _dynamicChangeTime    = {};
+        float                                   _fenceWaitTime        = 0.0f;  // Milliseconds the last scene frame waited for its frame slot.
         float                                   _materialLodBias = 0.0f; // Keeps the texture detail of the window resolution.
         bool                                    _isUpscaleActive = false;
 
@@ -1288,6 +1301,10 @@ namespace TEN::Renderer::Backend
         bool  CreateMaterialSampler();
         int   GetRenderSize(int windowSize) const;
         void  RenderUpscale(RHI::ICommandBuffer& commandBuffer);
+
+        // Dynamic resolution (SceneRendererDynamicResolution.cpp).
+        float UpdateDynamicResolution(float targetFrameTime);
+        void  ResetDynamicResolution();
         void  AcquireOverlayTargets();
         void  ReleaseOverlayTargets();
 

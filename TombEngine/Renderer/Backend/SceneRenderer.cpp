@@ -996,6 +996,9 @@ namespace TEN::Renderer::Backend
         // Release the previous level once the GPU no longer uses it.
         _device->WaitIdle();
         _isLevelLoaded = false;
+
+        // The load stalls the frames: the dynamic resolution starts again at full scale.
+        _isRenderScaleDynamic = false;
         _roomTextures.clear();
         _animatedTextures.clear();
         _staticTextures.clear();
@@ -2719,11 +2722,15 @@ namespace TEN::Renderer::Backend
     // Blocks until the GPU finished the frame submitted FRAMES_IN_FLIGHT_MAX frames ago, whose slot is reused next.
     void SceneRenderer::WaitForFrameInFlight()
     {
+        _fenceWaitTime = 0.0f;
         auto& fence = _frameFences[_frameFenceIndex];
         if (fence == nullptr)
             return;
 
+        // The wait is the GPU load signal of the dynamic resolution.
+        auto startTime = std::chrono::steady_clock::now();
         _device->WaitForFence(fence.get());
+        _fenceWaitTime = GetMilliseconds(startTime, std::chrono::steady_clock::now());
         fence = nullptr;
     }
 
@@ -2895,7 +2902,13 @@ namespace TEN::Renderer::Backend
         WaitForFrameInFlight();
 
         auto lock = std::lock_guard<std::mutex>(_frameMutex);
-        _renderScale = environment.RenderScale;
+        // A render scale of 0 is dynamic: the scale follows the GPU load measured by the frame fences.
+        bool isRenderScaleDynamic = (environment.RenderScale <= 0.0f);
+        if (isRenderScaleDynamic && !_isRenderScaleDynamic)
+            ResetDynamicResolution();
+
+        _isRenderScaleDynamic = isRenderScaleDynamic;
+        _renderScale = isRenderScaleDynamic ? UpdateDynamicResolution(environment.TargetFrameTime) : environment.RenderScale;
         _targetPool.CollectUnused();
         if (!EnsureRenderTargets(width, height))
             return;

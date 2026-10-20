@@ -121,6 +121,7 @@ enum class RenderScaleMode
 	Quality,
 	Balanced,
 	Performance,
+	Dynamic, // Follows the GPU load to hold the frame rate, between the performance and native scales.
 
 	Count
 };

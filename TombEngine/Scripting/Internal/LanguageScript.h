@@ -89,6 +89,7 @@
 #define STRING_RENDER_SCALE_QUALITY		"render_scale_quality"
 #define STRING_RENDER_SCALE_BALANCED	"render_scale_balanced"
 #define STRING_RENDER_SCALE_PERFORMANCE	"render_scale_performance"
+#define STRING_RENDER_SCALE_DYNAMIC		"render_scale_dynamic"
 #define STRING_ANTIALIASING_NONE		"none"
 #define STRING_ANTIALIASING_LOW			"low"
 #define STRING_ANTIALIASING_MEDIUM		"medium"

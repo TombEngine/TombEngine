@@ -351,7 +351,7 @@ int main(int argc, char* argv[])
 		}
 		else if (ArgEquals(arg.c_str(), "renderscale") && i + 1 < argc)
 		{
-			// Render scale mode for this run (0 native to 4 FSR 1 performance), overriding the configuration, for benchmarks.
+			// Render scale mode for this run (0 native to 4 FSR 1 performance, 5 dynamic), overriding the configuration, for benchmarks.
 			renderScaleOverride = std::stoi(argv[++i]);
 		}
 		else if (ArgEquals(arg.c_str(), "ssao") && i + 1 < argc)
