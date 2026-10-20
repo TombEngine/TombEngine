@@ -21,18 +21,55 @@ namespace TEN::Renderer::RHI
         return transferBuffer;
     }
 
+    // IEEE half float to float, for the R16 float targets (accumulated ambient occlusion).
+    static float GetHalfValue(unsigned short half)
+    {
+        unsigned int sign = (unsigned int)(half & 0x8000) << 16;
+        unsigned int exponent = (half >> 10) & 0x1F;
+        unsigned int mantissa = half & 0x3FF;
+
+        unsigned int bits = 0;
+        if (exponent == 0)
+        {
+            // Zero or subnormal: small enough to read as zero for an image.
+            bits = sign;
+        }
+        else if (exponent == 31)
+        {
+            bits = sign | 0x7F800000 | (mantissa << 13);
+        }
+        else
+        {
+            bits = sign | ((exponent + 112) << 23) | (mantissa << 13);
+        }
+
+        float value = 0.0f;
+        memcpy(&value, &bits, sizeof(value));
+        return value;
+    }
+
     static bool WritePng(const TextureDesc& desc, const unsigned char* data, const std::string& path)
     {
+        bool isSingleChannel = (desc.Format == PixelFormat::R8Unorm || desc.Format == PixelFormat::R16Float || desc.Format == PixelFormat::R32Float);
+        if (!isSingleChannel && desc.Format != PixelFormat::RGBA8Unorm && desc.Format != PixelFormat::BGRA8Unorm)
+        {
+            TENLog("Texture capture: unsupported format of " + desc.Name + ".", LogLevel::Warning);
+            return false;
+        }
+
         // Single channel targets are saved as grayscale.
         auto expanded = std::vector<unsigned char>{};
-        if (desc.Format == PixelFormat::R8Unorm || desc.Format == PixelFormat::R32Float)
+        if (isSingleChannel)
         {
             expanded.resize(desc.Width * desc.Height * 4);
             for (int i = 0; i < desc.Width * desc.Height; i++)
             {
                 // Depth values crowd near 1, so R32 float is stretched with a power curve.
-                auto value = (desc.Format == PixelFormat::R8Unorm) ? data[i] :
-                    (unsigned char)(std::pow(std::clamp(((const float*)data)[i], 0.0f, 1.0f), 64.0f) * 255.0f);
+                unsigned char value = data[i];
+                if (desc.Format == PixelFormat::R16Float)
+                    value = (unsigned char)(std::clamp(GetHalfValue(((const unsigned short*)data)[i]), 0.0f, 1.0f) * 255.0f);
+                else if (desc.Format == PixelFormat::R32Float)
+                    value = (unsigned char)(std::pow(std::clamp(((const float*)data)[i], 0.0f, 1.0f), 64.0f) * 255.0f);
 
                 expanded[i * 4 + 0] = expanded[i * 4 + 1] = expanded[i * 4 + 2] = value;
                 expanded[i * 4 + 3] = 255;
