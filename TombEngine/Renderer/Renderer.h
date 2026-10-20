@@ -67,6 +67,11 @@ namespace TEN::Effects::Environment
 	struct MeteorParticle;
 }
 
+namespace TEN::Renderer::Backend
+{
+	struct SceneFrameStats;
+}
+
 namespace TEN::Renderer
 {
 	using namespace TEN::Effects::Electricity;
@@ -215,6 +220,7 @@ namespace TEN::Renderer
 
 		TEN::Benchmark::BenchmarkFrameStats _frameStats = {};
 		std::chrono::steady_clock::time_point _lastPresentTime = {};
+		const char* _benchmarkPassNames[TEN::Benchmark::BENCHMARK_GPU_PASSES_MAX] = {};
 		std::chrono::steady_clock::time_point _lastFrameTime   = {};
 		float                                 _frameRate       = 0.0f; // Presented frames per second, smoothed.
 		unsigned long long                    _framePaceTime   = 0;    // Start of the paced frame, in SDL nanosecond ticks.
@@ -476,6 +482,7 @@ namespace TEN::Renderer
 		void ResetItems();
 		void ResetDebugVariables();
 		void CollectFrameStats(const RenderView& view);
+		void FillBenchmarkPassTimes(const Backend::SceneFrameStats& stats);
 		void RecordBenchmarkFrame(std::chrono::steady_clock::time_point renderStartTime, std::chrono::steady_clock::time_point presentStartTime);
 		float CalculateFrameRate();
 		void InterpolateCamera(float interpFactor);

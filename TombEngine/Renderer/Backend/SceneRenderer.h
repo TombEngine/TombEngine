@@ -975,6 +975,7 @@ namespace TEN::Renderer::Backend
         // Statistics, GPU timings and presentation settings.
         SceneFrameStats                _frameStats          = {};
         std::vector<RHI::GpuTiming> _gpuTimings                  = {};
+        std::vector<RHI::GpuTiming> _gpuTimingTotals             = {}; // Sum of the sampled milliseconds of the run, for the exit log.
         int                         _gpuTimingFrames             = 0;
         bool                        _isGpuTimingRequested        = false;
         bool                        _isVsyncEnabled              = true;
@@ -1115,6 +1116,7 @@ namespace TEN::Renderer::Backend
         int  GetSortedObjectInstance(const Structures::RendererSortableObject& object, float interpolationFactor);
         void DrawSortedFaces(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, bool isMirrored = false);
         void LogGpuTimings();
+        void AddGpuTimingTotals(const std::vector<RHI::GpuTiming>& timings);
         void LogMemoryUsage();
         void WaitForFrameInFlight();
 
@@ -1349,7 +1351,7 @@ namespace TEN::Renderer::Backend
         // Debug statistics.
         const SceneFrameStats& GetFrameStats() const;
         SceneRendererInfo      GetInfo() const;
-        const std::vector<RHI::GpuTiming>& SampleGpuTimings();
+        const std::vector<RHI::GpuTiming>& SampleGpuTimings(bool isRequested = true);
     };
 
     extern SceneRenderer g_SceneRenderer;

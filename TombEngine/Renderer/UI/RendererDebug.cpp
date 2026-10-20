@@ -36,6 +36,32 @@ namespace TEN::Renderer
 		_frameStats.SortedFaces = (int)view.TransparentSortKeys.size();
 	}
 
+	// GPU time per pass, sampled about once a second and a few frames late, with the CPU recording time of the same
+	// pass in this frame. Reading does not turn the measurement on: the benchmark does, unless nogputiming is set.
+	void Renderer::FillBenchmarkPassTimes(const Backend::SceneFrameStats& stats)
+	{
+		const auto& timings = Backend::g_SceneRenderer.SampleGpuTimings(false);
+
+		int count = std::min((int)timings.size(), TEN::Benchmark::BENCHMARK_GPU_PASSES_MAX);
+		for (int i = 0; i < count; i++)
+		{
+			_benchmarkPassNames[i] = timings[i].Name.c_str();
+			_frameStats.GpuPassTimes[i] = timings[i].Milliseconds;
+			_frameStats.CpuPassTimes[i] = -1.0f;
+			for (const auto& pass : stats.Passes)
+			{
+				if (pass.Name != nullptr && timings[i].Name == pass.Name)
+				{
+					_frameStats.CpuPassTimes[i] = pass.CpuTime;
+					break;
+				}
+			}
+		}
+
+		_frameStats.GpuPassNames = _benchmarkPassNames;
+		_frameStats.GpuPassCount = count;
+	}
+
 	// Records the CPU, present and scene renderer timings and counters of the frame in the benchmark.
 	void Renderer::RecordBenchmarkFrame(std::chrono::steady_clock::time_point renderStartTime, std::chrono::steady_clock::time_point presentStartTime)
 	{
@@ -63,6 +89,7 @@ namespace TEN::Renderer
 			_frameStats.UploadBytes = stats.UploadBytes;
 			_frameStats.SortedCollectTime = stats.SortedCollectTime;
 			_frameStats.SortedRecordTime = stats.SortedRecordTime;
+			FillBenchmarkPassTimes(stats);
 		}
 
 		_frameStats.CpuRenderTime -= _frameStats.BackendTime;

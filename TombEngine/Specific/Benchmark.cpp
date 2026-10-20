@@ -32,6 +32,7 @@ namespace TEN::Benchmark
     static std::mutex _mutex;
     static std::vector<float> _frameTimes = {};
     static std::vector<float> _renderTimes = {};
+    static std::vector<std::string> _passColumns = {}; // Passes of the header columns, in order.
     static unsigned long long _drawCallSum = 0;
     static unsigned long long _uniformByteSum = 0;
 
@@ -84,13 +85,36 @@ namespace TEN::Benchmark
                  "backend_cpu_ms,draw_calls,shadow_draw_calls,triangles,uniform_pushes,uniform_bytes,upload_bytes,"
                  "sorted_collect_ms,sorted_record_ms";
 
+        _passColumns.clear();
         for (int i = 0; i < stats.GpuPassCount; i++)
-            _file << ",gpu_" << stats.GpuPassNames[i] << "_ms";
+            _passColumns.push_back(stats.GpuPassNames[i]);
 
-        for (int i = 0; i < stats.GpuPassCount; i++)
-            _file << ",cpuscope_" << stats.GpuPassNames[i] << "_ms";
+        for (const auto& name : _passColumns)
+            _file << ",gpu_" << name << "_ms";
+
+        for (const auto& name : _passColumns)
+            _file << ",cpuscope_" << name << "_ms";
 
         _file << '\n';
+    }
+
+    // Pass times by header column, since the measured passes can change during the run; -1 when a pass is missing.
+    static void WritePassTimes(const BenchmarkFrameStats& stats, const float* times)
+    {
+        for (const auto& name : _passColumns)
+        {
+            float time = -1.0f;
+            for (int i = 0; i < stats.GpuPassCount; i++)
+            {
+                if (name == stats.GpuPassNames[i])
+                {
+                    time = times[i];
+                    break;
+                }
+            }
+
+            _file << ',' << time;
+        }
     }
 
     static void WriteSummary()
@@ -131,6 +155,7 @@ namespace TEN::Benchmark
         _isFinished = false;
         _duration = durationInSeconds;
         _recordedFrames = 0;
+        _headerWaitFrames = 0;
         _frameTimes.reserve(10000);
         _renderTimes.reserve(10000);
 
@@ -261,11 +286,8 @@ namespace TEN::Benchmark
               << stats.UniformPushes << ',' << stats.UniformBytes << ',' << stats.UploadBytes << ','
               << stats.SortedCollectTime << ',' << stats.SortedRecordTime;
 
-        for (int i = 0; i < stats.GpuPassCount; i++)
-            _file << ',' << stats.GpuPassTimes[i];
-
-        for (int i = 0; i < stats.GpuPassCount; i++)
-            _file << ',' << stats.CpuPassTimes[i];
+        WritePassTimes(stats, stats.GpuPassTimes);
+        WritePassTimes(stats, stats.CpuPassTimes);
 
         _file << '\n';
 

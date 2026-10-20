@@ -98,15 +98,18 @@ namespace TEN::Renderer::Backend
 
     // GPU pass timings averaged over 60 frames, about a second; SDL GPU measures them only while requested. Calling
     // this every frame keeps the measurement on (see FinishFrame).
-    const std::vector<GpuTiming>& SceneRenderer::SampleGpuTimings()
+    // Without isRequested the timings are only read: benchmarks measure them unless nogputiming disables it.
+    const std::vector<GpuTiming>& SceneRenderer::SampleGpuTimings(bool isRequested)
     {
         constexpr auto SAMPLE_INTERVAL = 60;
 
-        _isGpuTimingRequested = true;
+        if (isRequested)
+            _isGpuTimingRequested = true;
 
         if (_device != nullptr && ++_gpuTimingFrames >= SAMPLE_INTERVAL)
         {
             auto timings = _device->ConsumeGpuTimings();
+            AddGpuTimingTotals(timings);
             if (!timings.empty())
                 _gpuTimings = std::move(timings);
 

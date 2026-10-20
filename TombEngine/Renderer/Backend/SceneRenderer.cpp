@@ -2697,22 +2697,40 @@ namespace TEN::Renderer::Backend
         }
     }
 
-    // Logs the average GPU time per pass that the device measured, at shutdown.
+    // Logs the average GPU time per pass over the whole run, at shutdown: the timings sampled during the run and the
+    // ones the device still holds.
     void SceneRenderer::LogGpuTimings()
     {
         if (_device == nullptr)
             return;
 
-        auto timings = _device->ConsumeGpuTimings();
-        if (timings.empty())
+        AddGpuTimingTotals(_device->ConsumeGpuTimings());
+        if (_gpuTimingTotals.empty())
             return;
 
         auto message = std::string("Scene renderer GPU time per pass:");
-        for (const auto& timing : timings)
-            message += fmt::format(" {} {:.3f} ms,", timing.Name, timing.Milliseconds);
+        for (const auto& timing : _gpuTimingTotals)
+            message += fmt::format(" {} {:.3f} ms,", timing.Name, (timing.Samples > 0) ? (timing.Milliseconds / timing.Samples) : 0.0f);
 
         message.back() = '.';
-        TENLog(message + fmt::format(" ({} frames)", timings.front().Samples), LogLevel::Info);
+        TENLog(message + fmt::format(" ({} frames)", _gpuTimingTotals.front().Samples), LogLevel::Info);
+    }
+
+    // Adds sampled averages to the run totals, which hold the sum of the milliseconds of every sample.
+    void SceneRenderer::AddGpuTimingTotals(const std::vector<GpuTiming>& timings)
+    {
+        for (const auto& timing : timings)
+        {
+            auto it = std::find_if(_gpuTimingTotals.begin(), _gpuTimingTotals.end(), [&](const GpuTiming& total) { return total.Name == timing.Name; });
+            if (it == _gpuTimingTotals.end())
+            {
+                _gpuTimingTotals.push_back(GpuTiming{ timing.Name, 0.0f, 0 });
+                it = _gpuTimingTotals.end() - 1;
+            }
+
+            it->Milliseconds += timing.Milliseconds * timing.Samples;
+            it->Samples += timing.Samples;
+        }
     }
 
     // Blocks until the GPU finished the frame submitted FRAMES_IN_FLIGHT_MAX frames ago, whose slot is reused next.
