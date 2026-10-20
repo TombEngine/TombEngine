@@ -1455,7 +1455,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\Backend\SceneRendererShadows.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererSprites.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererStats.cpp" />
-    <ClCompile Include="Renderer\Backend\SceneRendererSSAO.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererAmbientOcclusion.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererUpscale.cpp" />
     <ClCompile Include="Renderer\Backend\TextureLoader.cpp" />
     <ClCompile Include="Renderer\Scene\RendererSprites.cpp" />
@@ -1610,7 +1610,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <None Include="Shaders\SMAACommon.hlsli" />
     <None Include="Shaders\SMAAMedium.hlsl" />
     <None Include="Shaders\SMAAUltra.hlsl" />
-    <None Include="Shaders\SSAO.hlsl" />
+    <None Include="Shaders\GTAO.hlsl" />
     <None Include="Shaders\ShaderInterop.hlsli" />
     <None Include="Shaders\Shadows.hlsli" />
     <None Include="Shaders\Skinning.hlsli" />

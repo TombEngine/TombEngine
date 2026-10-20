@@ -97,11 +97,16 @@ namespace TEN::Renderer::Backend
     void SceneRenderer::PrepareTemporalFrame(const RenderView& view, const FrameEnvironment& environment, Matrix& projection)
     {
         bool isTaaActive = (environment.AntialiasingMode == ANTIALIASING_MODE_TEMPORAL);
-        if (isTaaActive != _isTaaActive || Vector3::Distance(view.Camera.WorldPosition, _prevCameraPosition) > TAA_CAMERA_CUT_DISTANCE)
+        bool isCameraCut = (Vector3::Distance(view.Camera.WorldPosition, _prevCameraPosition) > TAA_CAMERA_CUT_DISTANCE);
+        if (isTaaActive != _isTaaActive || isCameraCut)
             _isTaaHistoryValid = false;
 
+        // The ambient occlusion accumulates over frames too, through the same motion vectors.
+        if (!_isVelocityActive || isCameraCut)
+            _isAoHistoryValid = false;
+
         _isTaaActive = isTaaActive;
-        _isVelocityActive = _isTaaActive;
+        _isVelocityActive = _isTaaActive || environment.IsAmbientOcclusionEnabled;
         _prevCameraPosition = view.Camera.WorldPosition;
         _unjitteredViewProjection = view.Camera.View * projection;
         _motionFrame++;

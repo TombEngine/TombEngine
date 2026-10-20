@@ -197,18 +197,22 @@ namespace TEN::Renderer::Backend
         _rcasPixelShader = nullptr;
         _fxaaPipeline = nullptr;
         _fxaaPixelShader = nullptr;
-        _ssaoPipeline = nullptr;
-        _ssaoBlurHorizontalPipeline = nullptr;
-        _ssaoBlurVerticalPipeline = nullptr;
-        _ssaoVertexShader = nullptr;
-        _ssaoPixelShader = nullptr;
-        _ssaoBlurHorizontalShader = nullptr;
-        _ssaoBlurVerticalShader = nullptr;
+        _gtaoPipeline = nullptr;
+        _aoTemporalPipeline = nullptr;
+        _aoBlurHorizontalPipeline = nullptr;
+        _aoBlurVerticalPipeline = nullptr;
+        _aoVertexShader = nullptr;
+        _gtaoPixelShader = nullptr;
+        _aoTemporalPixelShader = nullptr;
+        _aoBlurHorizontalShader = nullptr;
+        _aoBlurVerticalShader = nullptr;
+        for (auto& history : _aoHistory)
+            history = nullptr;
+
         _roomsPrepassPixelShader = nullptr;
         _objectsPrepassPixelShader = nullptr;
-        _ssaoNoiseTexture = nullptr;
         _normalTarget = nullptr;
-        _ssaoTarget = nullptr;
+        _ambientOcclusionTarget = nullptr;
         _emissiveTarget = nullptr;
         _reflectionTarget = nullptr;
         _videoTexture = nullptr;
@@ -292,7 +296,6 @@ namespace TEN::Renderer::Backend
         _previousItemTransforms.clear();
         _targetPool.Clear();
         _pointClampSampler = nullptr;
-        _pointWrapSampler = nullptr;
         _spritesVertexShader = nullptr;
         _spritesPixelShader = nullptr;
         _skySpritesPixelShader = nullptr;
@@ -495,7 +498,7 @@ namespace TEN::Renderer::Backend
         if (_skyVertexShader == nullptr || _skyPixelShader == nullptr || _horizonMaskPixelShader == nullptr || !CreateSkyGeometry())
             return false;
 
-        if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources() || !CreateDOFResources() || !CreateSMAAResources() || !CreateUpscaleResources() ||
+        if (!CreateSpriteResources() || !CreateAmbientOcclusionResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources() || !CreateDOFResources() || !CreateSMAAResources() || !CreateUpscaleResources() ||
             !CreateSkyReflectionResources() || !CreateAtmosphereResources() || !CreateOverlayResources(TEN::Renderer::Utils::GetAssetPath("Textures/Font.spritefont")) ||
             !CreateDebugPrimitiveResources() || !CreateCloudResources() || !CreateGodRayResources() || !CreateDustStormResources() || !CreateWaterResources() ||
             !CreateTemporalResources())
@@ -817,7 +820,8 @@ namespace TEN::Renderer::Backend
         ITexture* targets[] =
         {
             _distortionTarget.get(), _emissiveTarget.get(), _glowTarget.get(), _reflectionTarget.get(), _dofTargets[0].get(), _dofTargets[1].get(),
-            _antialiasingSource.get(), includeFrameTargets ? _colorTarget.get() : nullptr, _skyReflectionTarget.get()
+            _antialiasingSource.get(), includeFrameTargets ? _colorTarget.get() : nullptr, _skyReflectionTarget.get(),
+            _velocityTarget.get(), _taaHistory[0].get(), _taaHistory[1].get(), _aoHistory[0].get(), _aoHistory[1].get()
         };
 
         auto* commandBuffer = _device->AcquireCommandBuffer();
@@ -882,7 +886,7 @@ namespace TEN::Renderer::Backend
 
         _targetPool.Reserve(_sceneTarget->GetDesc());
         _targetPool.Reserve(_dofTargets[0]->GetDesc());
-        _targetPool.Reserve(_ssaoTarget->GetDesc());
+        _targetPool.Reserve(_ambientOcclusionTarget->GetDesc());
         _targetPool.Reserve(_glowTarget->GetDesc());
     }
 
@@ -950,7 +954,7 @@ namespace TEN::Renderer::Backend
             return false;
         }
 
-        if (!EnsureSSAOTargets(width, height) || !EnsureGlowTargets(width, height) || !EnsureDOFTargets(width, height) || !EnsureTemporalTargets(width, height))
+        if (!EnsureAmbientOcclusionTargets(width, height) || !EnsureGlowTargets(width, height) || !EnsureDOFTargets(width, height) || !EnsureTemporalTargets(width, height))
             return false;
 
         // Texture mips are biased by the scale, so the scene keeps the texture detail of the window resolution.
@@ -1235,7 +1239,7 @@ namespace TEN::Renderer::Backend
         };
 
         auto* sampler = _anisotropicSampler.get();
-        auto* ambientOcclusion = _isAmbientOcclusionActive ? _ssaoTarget.get() : _whiteTexture.get();
+        auto* ambientOcclusion = _isAmbientOcclusionActive ? _ambientOcclusionTarget.get() : _whiteTexture.get();
         auto* shadowMap = _isRenderingShadowMap ? _dummyShadowMap.get() : _shadowMap.get();
         auto* caustics = (_causticsTexture != nullptr) ? _causticsTexture : _whiteTexture.get();
         auto* reflections = _hasReflectiveMaterials ? _reflectionTarget.get() : _blackTexture.get();
@@ -2802,7 +2806,7 @@ namespace TEN::Renderer::Backend
     {
         { "Shadow map", nullptr, &SceneRenderer::RenderShadowMap },
         { "Depth and normals prepass", nullptr, &SceneRenderer::RenderDepthPrepass },
-        { "SSAO", &SceneRenderer::_isAmbientOcclusionActive, &SceneRenderer::RenderSSAO },
+        { "GTAO", &SceneRenderer::_isAmbientOcclusionActive, &SceneRenderer::RenderAmbientOcclusion },
         { "Sky reflections", &SceneRenderer::_isSkyReflectionActive, &SceneRenderer::RenderSkyReflections },
         { "Distortion", &SceneRenderer::_hasDistortion, &SceneRenderer::RenderDistortion },
         { "Sky", nullptr, &SceneRenderer::RenderSkyPass },
@@ -3039,7 +3043,7 @@ namespace TEN::Renderer::Backend
             if (_isAmbientOcclusionActive)
             {
                 auto occlusionPath = _screenshotPath.substr(0, _screenshotPath.find_last_of('.')) + "_AO.png";
-                SaveTextureToPng(*_device, _ssaoTarget.get(), occlusionPath);
+                SaveTextureToPng(*_device, _ambientOcclusionTarget.get(), occlusionPath);
             }
 
             if (_shadowUniforms.CastShadows)

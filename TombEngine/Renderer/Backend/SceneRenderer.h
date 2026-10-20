@@ -783,22 +783,26 @@ namespace TEN::Renderer::Backend
         bool                                    _isRenderingShadowMap     = false;
         RHI::ITexture*                          _causticsTexture          = nullptr; // Atlas page of the current caustics frame.
 
-        // Depth and normals prepass and screen space ambient occlusion (SceneRendererSSAO.cpp).
+        // Depth and normals prepass and ground truth ambient occlusion (SceneRendererAmbientOcclusion.cpp).
+        static constexpr auto AO_HISTORY_COUNT = 2;
+
         std::unique_ptr<RHI::IShader>           _roomsPrepassPixelShader    = nullptr;
         std::unique_ptr<RHI::IShader>           _objectsPrepassPixelShader  = nullptr;
-        std::unique_ptr<RHI::IShader>           _ssaoVertexShader           = nullptr;
-        std::unique_ptr<RHI::IShader>           _ssaoPixelShader            = nullptr;
-        std::unique_ptr<RHI::IShader>           _ssaoBlurHorizontalShader   = nullptr;
-        std::unique_ptr<RHI::IShader>           _ssaoBlurVerticalShader     = nullptr;
-        std::unique_ptr<RHI::IGraphicsPipeline> _ssaoPipeline               = nullptr;
-        std::unique_ptr<RHI::IGraphicsPipeline> _ssaoBlurHorizontalPipeline = nullptr;
-        std::unique_ptr<RHI::IGraphicsPipeline> _ssaoBlurVerticalPipeline   = nullptr;
-        std::unique_ptr<RHI::ITexture>          _ssaoNoiseTexture           = nullptr;
+        std::unique_ptr<RHI::IShader>           _aoVertexShader             = nullptr;
+        std::unique_ptr<RHI::IShader>           _gtaoPixelShader            = nullptr;
+        std::unique_ptr<RHI::IShader>           _aoTemporalPixelShader      = nullptr;
+        std::unique_ptr<RHI::IShader>           _aoBlurHorizontalShader     = nullptr;
+        std::unique_ptr<RHI::IShader>           _aoBlurVerticalShader       = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _gtaoPipeline               = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _aoTemporalPipeline         = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _aoBlurHorizontalPipeline   = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _aoBlurVerticalPipeline     = nullptr;
         std::unique_ptr<RHI::ITexture>          _normalTarget               = nullptr;
-        std::unique_ptr<RHI::ITexture>          _ssaoTarget                 = nullptr;
+        std::unique_ptr<RHI::ITexture>          _ambientOcclusionTarget     = nullptr; // Half resolution, read by the scene pass.
+        std::unique_ptr<RHI::ITexture>          _aoHistory[AO_HISTORY_COUNT] = {};     // Accumulated occlusion, read and written in turn.
+        int                                     _aoHistoryIndex             = 0;       // History written by the last frame.
+        bool                                    _isAoHistoryValid           = false;
         std::unique_ptr<RHI::ISampler>          _pointClampSampler          = nullptr;
-        std::unique_ptr<RHI::ISampler>          _pointWrapSampler           = nullptr;
-        Vector4                                 _ssaoKernel[SSAO_KERNEL_SIZE] = {};
         bool                                    _isAmbientOcclusionActive   = false;
 
         // Material sampler and the 1x1 defaults bound in place of missing maps and inactive effect textures.
@@ -1238,9 +1242,9 @@ namespace TEN::Renderer::Backend
         void         PrepareShadows(const FrameEnvironment& environment, float interpolationFactor);
         void         RenderShadowMap(RHI::ICommandBuffer& commandBuffer);
 
-        // Prepass and ambient occlusion (SceneRendererSSAO.cpp).
-        bool  CreateSSAOResources();
-        bool  EnsureSSAOTargets(int width, int height);
+        // Prepass and ambient occlusion (SceneRendererAmbientOcclusion.cpp).
+        bool  CreateAmbientOcclusionResources();
+        bool  EnsureAmbientOcclusionTargets(int width, int height);
 
         // Depth of field (SceneRendererDOF.cpp).
         bool  CreateDOFResources();
@@ -1264,12 +1268,10 @@ namespace TEN::Renderer::Backend
         void  ClearSampledTargets(bool includeFrameTargets);
         void  DownscaleTexture(RHI::ICommandBuffer& commandBuffer, RHI::ITexture* source, RHI::ITexture* target, const char* name);
 
-        // Prepass, ambient occlusion and fullscreen pass helpers (SceneRendererSSAO.cpp).
+        // Prepass, ambient occlusion and fullscreen pass helpers (SceneRendererAmbientOcclusion.cpp).
         float GetAmbientOcclusionExponent() const;
         void  RenderDepthPrepass(RHI::ICommandBuffer& commandBuffer);
-        void  RenderSSAO(RHI::ICommandBuffer& commandBuffer);
-        void  RenderFullscreenPass(RHI::ICommandBuffer& commandBuffer, RHI::IGraphicsPipeline* pipeline, RHI::ITexture* target, RHI::ITexture* source,
-                                   RHI::ISampler* sourceSampler, const char* name);
+        void  RenderAmbientOcclusion(RHI::ICommandBuffer& commandBuffer);
         void  RenderFullscreenPass(RHI::ICommandBuffer& commandBuffer, RHI::IGraphicsPipeline* pipeline, RHI::ITexture* target,
                                    const RHI::TextureSamplerBinding* bindings, int bindingCount, const char* name, RHI::LoadOp load = RHI::LoadOp::DontCare,
                                    const RHI::DepthTargetInfo* depthTarget = nullptr);
