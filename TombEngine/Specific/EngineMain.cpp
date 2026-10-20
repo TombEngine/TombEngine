@@ -232,6 +232,8 @@ void ResumeGameThread()
 	if (ThreadSuspendCount == 0)
 	{
 		GamePaused = false;
+		ResetClock = true;
+
 		SDL_BroadcastCondition(GamePauseCond);
 	}
 

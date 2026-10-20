@@ -19,7 +19,7 @@ using namespace TEN::Scripting::Properties;
 namespace TEN::Entities::Traps
 {
 	constexpr auto PENDULUM_FIRE_FOG_DENSITY   = 15;
-	constexpr auto PENDULUM_FIRE_FOG_RADIUS    = 4;
+	constexpr auto PENDULUM_FIRE_FOG_RADIUS    = 4; // Clicks; SpawnDynamicFogBulb converts to world units (radius * CLICK(1)).
 	constexpr auto PENDULUM_FLAME_SPARK_LENGTH = 80;
 	constexpr auto PENDULUM_FLAME_SPARK_COUNT  = 3;
 	constexpr auto PENDULUM_FLAME_SPARK_SPREAD = 48;

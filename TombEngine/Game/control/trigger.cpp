@@ -712,6 +712,7 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 
 					if (!UseSpotCam || CurrentLevel == 0)
 					{
+						UseSpotCam = true;
 						if (LastSpotCamSequence != value)
 							TrackCameraInit = false;
 
