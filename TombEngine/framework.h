@@ -57,9 +57,11 @@
 #include <bass.h>
 #include <bass_fx.h>
 
-// Discord
-#define DISCORD_DYNAMIC_LIB
-#include <discord_rpc.h>
+// Discord (binaries are only available for 64-bit platforms).
+#if PLATFORM_64BIT
+	#define DISCORD_DYNAMIC_LIB
+	#include <discord_rpc.h>
+#endif
 
 // DXTK
 #include <SimpleMath.h>

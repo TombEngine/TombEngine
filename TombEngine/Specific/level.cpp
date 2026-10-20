@@ -25,6 +25,7 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Sound/sound.h"
+#include "Specific/Discord.h"
 #include "Specific/EngineMain.h"
 #include "Specific/Input/Input.h"
 #include "Specific/trutils.h"
@@ -36,6 +37,7 @@ using namespace TEN::Entities::Doors;
 using namespace TEN::Input;
 using namespace TEN::SpotCam;
 using namespace TEN::Utils;
+using namespace TEN::Utils::Discord;
 
 constexpr auto DUMMY_LEVEL_NAME = "dummy.ten";
 
@@ -1905,6 +1907,10 @@ bool LoadLevelFile(int levelIndex)
 
 	if (loadSuccess && isDummyLevel)
 		std::filesystem::remove(levelPath);
+
+	// Presence is refreshed on level load instead of every frame.
+	if (loadSuccess)
+		UpdateDiscordPresence(levelIndex);
 
 	return loadSuccess;
 }

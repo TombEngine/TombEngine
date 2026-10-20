@@ -3,6 +3,9 @@
 namespace TEN::Utils::Discord
 {
     void InitializeDiscord();
-    void UpdateDiscord();
+
+    // Publishes presence data for the given level if it changed.
+    void UpdateDiscordPresence(int levelIndex);
+
     void DeInitializeDiscord();
 }
