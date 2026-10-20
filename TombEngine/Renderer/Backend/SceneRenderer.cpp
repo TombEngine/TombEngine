@@ -278,6 +278,18 @@ namespace TEN::Renderer::Backend
 
         _smaaAreaTexture = nullptr;
         _smaaSearchTexture = nullptr;
+        _taaPipeline = nullptr;
+        _taaVertexShader = nullptr;
+        _taaPixelShader = nullptr;
+        _roomsVelocityVertexShader = nullptr;
+        _objectsVelocityVertexShader = nullptr;
+        _roomsVelocityPixelShader = nullptr;
+        _objectsVelocityPixelShader = nullptr;
+        _velocityTarget = nullptr;
+        for (auto& history : _taaHistory)
+            history = nullptr;
+
+        _previousItemTransforms.clear();
         _targetPool.Clear();
         _pointClampSampler = nullptr;
         _pointWrapSampler = nullptr;
@@ -429,7 +441,9 @@ namespace TEN::Renderer::Backend
             { SceneShader::RoomsPrepass, "Rooms", "PSDepthNormal" },
             { SceneShader::Objects, "Objects", "PS" },
             { SceneShader::ObjectsMirrored, "Objects", "PS" },
-            { SceneShader::ObjectsPrepass, "Objects", "PSDepthNormal" }
+            { SceneShader::ObjectsPrepass, "Objects", "PSDepthNormal" },
+            { SceneShader::RoomsPrepassVelocity, "Rooms", "PSDepthNormalVelocity" },
+            { SceneShader::ObjectsPrepassVelocity, "Objects", "PSDepthNormalVelocity" }
         };
 
         // Same order as the options of the TEN_SHADER lines, which name the compiled variants.
@@ -483,7 +497,8 @@ namespace TEN::Renderer::Backend
 
         if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources() || !CreateDOFResources() || !CreateSMAAResources() || !CreateUpscaleResources() ||
             !CreateSkyReflectionResources() || !CreateAtmosphereResources() || !CreateOverlayResources(TEN::Renderer::Utils::GetAssetPath("Textures/Font.spritefont")) ||
-            !CreateDebugPrimitiveResources() || !CreateCloudResources() || !CreateGodRayResources() || !CreateDustStormResources() || !CreateWaterResources())
+            !CreateDebugPrimitiveResources() || !CreateCloudResources() || !CreateGodRayResources() || !CreateDustStormResources() || !CreateWaterResources() ||
+            !CreateTemporalResources())
             return false;
 
         if (!LoadPixelShaderVariants())
@@ -677,12 +692,13 @@ namespace TEN::Renderer::Backend
         if (pipeline != nullptr)
             return pipeline.get();
 
-        bool isObjects = (shader == SceneShader::Objects || shader == SceneShader::ObjectsPrepass);
+        bool isVelocity = (shader == SceneShader::RoomsPrepassVelocity || shader == SceneShader::ObjectsPrepassVelocity);
+        bool isObjects = (shader == SceneShader::Objects || shader == SceneShader::ObjectsPrepass || shader == SceneShader::ObjectsPrepassVelocity);
         bool isHorizonMask = (shader == SceneShader::SkyHorizonMask);
         bool isParaboloid = (shader == SceneShader::SkyParaboloid);
         bool isSky = (shader == SceneShader::Sky) || isParaboloid || isHorizonMask;
         bool isSprites = (shader == SceneShader::Sprites || shader == SceneShader::SkySprites);
-        bool isPrepass = (shader == SceneShader::RoomsPrepass || shader == SceneShader::ObjectsPrepass);
+        bool isPrepass = (shader == SceneShader::RoomsPrepass || shader == SceneShader::ObjectsPrepass) || isVelocity;
         bool isShadow = (shader == SceneShader::ObjectsShadow);
         bool isDebris = (shader == SceneShader::ObjectsDebris);
         bool isMirrored = (shader == SceneShader::ObjectsMirrored);
@@ -693,17 +709,20 @@ namespace TEN::Renderer::Backend
         {
             _roomsVertexShader.get(), _objectsVertexShader.get(), _skyVertexShader.get(), _spritesVertexShader.get(),
             _roomsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(),
-            _skyVertexShader.get(), _inventoryVertexShader.get(), _skyVertexShader.get(), _spritesVertexShader.get()
+            _skyVertexShader.get(), _inventoryVertexShader.get(), _skyVertexShader.get(), _spritesVertexShader.get(),
+            _roomsVelocityVertexShader.get(), _objectsVelocityVertexShader.get()
         };
         IShader* pixelShaders[(int)SceneShader::Count] =
         {
             _roomsPixelShader.get(), _objectsPixelShader.get(), _skyPixelShader.get(), _spritesPixelShader.get(),
             _roomsPrepassPixelShader.get(), _objectsPrepassPixelShader.get(), _objectsShadowPixelShader.get(), _objectsPixelShader.get(), _objectsPixelShader.get(),
-            _skyPixelShader.get(), _inventoryPixelShader.get(), _horizonMaskPixelShader.get(), _skySpritesPixelShader.get()
+            _skyPixelShader.get(), _inventoryPixelShader.get(), _horizonMaskPixelShader.get(), _skySpritesPixelShader.get(),
+            _roomsVelocityPixelShader.get(), _objectsVelocityPixelShader.get()
         };
         const char* names[(int)SceneShader::Count] =
         {
-            "Rooms", "Objects", "Sky", "Sprites", "RoomsPrepass", "ObjectsPrepass", "ObjectsShadow", "ObjectsDebris", "ObjectsMirrored", "SkyParaboloid", "Inventory", "SkyHorizonMask", "SkySprites"
+            "Rooms", "Objects", "Sky", "Sprites", "RoomsPrepass", "ObjectsPrepass", "ObjectsShadow", "ObjectsDebris", "ObjectsMirrored", "SkyParaboloid", "Inventory", "SkyHorizonMask", "SkySprites",
+            "RoomsPrepassVelocity", "ObjectsPrepassVelocity"
         };
 
         // Vertex streams: stream 0 holds the vertices, stream 1 the instance indices of objects and sprites.
@@ -750,8 +769,11 @@ namespace TEN::Renderer::Backend
             desc.Layout.NumAttributes = 8;
         }
 
-        // The prepass writes view normals, emissive and a copy of the depth, the inventory color and emissive.
-        desc.NumColorTargets = isPrepass ? 3 : (isInventory ? 2 : 1);
+        // The prepass writes view normals, emissive, a copy of the depth and with temporal passes the motion vectors; the
+        // inventory writes color and emissive.
+        desc.NumColorTargets = isPrepass ? (isVelocity ? 4 : 3) : (isInventory ? 2 : 1);
+        desc.ColorTargets[3].Format = PixelFormat::RG16Float;
+        desc.ColorTargets[3].Blend = GetBlendState(BlendMode::Opaque);
         desc.ColorTargets[0].Format = (isPrepass || isParaboloid) ? PixelFormat::RGBA8Unorm :
             (isShadow ? PixelFormat::R32Float : (isHorizonMask ? PixelFormat::R11G11B10Float : _device->GetSwapchainFormat()));
         desc.ColorTargets[0].Blend = GetBlendState((isPrepass || isShadow) ? BlendMode::Opaque : (isAlphaEdge ? BlendMode::AlphaBlend : (BlendMode)modeIndex));
@@ -928,7 +950,7 @@ namespace TEN::Renderer::Backend
             return false;
         }
 
-        if (!EnsureSSAOTargets(width, height) || !EnsureGlowTargets(width, height) || !EnsureDOFTargets(width, height))
+        if (!EnsureSSAOTargets(width, height) || !EnsureGlowTargets(width, height) || !EnsureDOFTargets(width, height) || !EnsureTemporalTargets(width, height))
             return false;
 
         // Texture mips are biased by the scale, so the scene keeps the texture detail of the window resolution.
@@ -1485,7 +1507,7 @@ namespace TEN::Renderer::Backend
     // the portal scissor change only between rooms.
     void SceneRenderer::DrawRoomBuckets(ICommandBuffer& commandBuffer, IRenderPass& renderPass, ScenePass pass, bool isAlphaTested)
     {
-        auto shader = (pass == ScenePass::Prepass) ? SceneShader::RoomsPrepass : SceneShader::Rooms;
+        auto shader = (pass == ScenePass::Prepass) ? (_isVelocityActive ? SceneShader::RoomsPrepassVelocity : SceneShader::RoomsPrepass) : SceneShader::Rooms;
         renderPass.BindPipeline(GetScenePipeline(shader, GetPassBlendMode(pass), isAlphaTested, 0, pass == ScenePass::AlphaEdges));
 
         BindLevelGeometry(renderPass, MeshSource::Rooms, false);
@@ -1687,6 +1709,9 @@ namespace TEN::Renderer::Backend
                 // shadow casting items keep their own draws, which per item steps below adjust.
                 bool isGrouped = !isFullSkin && waterfallSet == _waterfallSets.end() && item->Color.w >= ALPHA_BLEND_THRESHOLD && !isShadowCaster;
 
+                // Transforms of the previous frame, for the motion vectors.
+                const auto* previous = _isVelocityActive ? GetPreviousItemTransforms(item->ItemNumber) : nullptr;
+
                 // Full skin: the skin mesh with bind pose corrected bones, and only the rigid meshes not hidden by it.
                 if (isFullSkin)
                 {
@@ -1699,6 +1724,14 @@ namespace TEN::Renderer::Backend
                     int skinInstance = AddInstance(item->InterpolatedWorld, item->Color, item->AmbientLight, skinMesh->LightMode, lightOffset, lightCount,
                                                    AddBones(skinBones, boneCount), SKINNING_FULL);
                     AddMeshDraws(*skinMesh, skinInstance);
+
+                    if (previous != nullptr)
+                    {
+                        for (int i = 0; i < boneCount; i++)
+                            skinBones[i] = object->BindPoseTransforms[i] * previous->Bones[i];
+
+                        SetInstanceMotion(skinInstance, previous->World, AddBones(skinBones, boneCount));
+                    }
                 }
 
                 // Rigid meshes, one instance each unless grouped.
@@ -1712,15 +1745,20 @@ namespace TEN::Renderer::Backend
 
                     const auto* mesh = (*_levelGeometry.Meshes)[item->MeshIndex[meshIndex]];
                     auto world = item->InterpolatedAnimationTransforms[meshIndex] * item->InterpolatedWorld;
+                    auto prevWorld = (previous != nullptr) ? (previous->Bones[meshIndex] * previous->World) : world;
                     if (isGrouped)
                     {
-                        QueueMeshInstance(*mesh, world, item->Color, item->AmbientLight, mesh->LightMode, lightOffset, lightCount, item->RoomNumber, isReflectable);
+                        QueueMeshInstance(*mesh, world, item->Color, item->AmbientLight, mesh->LightMode, lightOffset, lightCount, item->RoomNumber, isReflectable, &prevWorld);
                         continue;
                     }
 
                     int instance = AddInstance(world, item->Color, item->AmbientLight, mesh->LightMode, lightOffset, lightCount, 0, SKINNING_NONE);
+                    SetInstanceMotion(instance, prevWorld, NO_VALUE);
                     AddMeshDraws(*mesh, instance);
                 }
+
+                if (_isVelocityActive)
+                    StoreItemTransforms(*item);
 
                 // Per item adjustments of the draws just added.
                 if (waterfallSet != _waterfallSets.end())
@@ -1762,6 +1800,10 @@ namespace TEN::Renderer::Backend
         instance.LightOffset = (unsigned int)lightOffset;
         instance.LightCount = (unsigned int)lightCount;
         instance.Skinning = ((unsigned int)boneOffset & 0xFFFFFF) | ((unsigned int)skinningMode << 24);
+
+        // Without a previous transform (SetInstanceMotion) the instance did not move.
+        instance.PrevWorld = world;
+        instance.PrevSkinning = instance.Skinning;
 
         int index = (int)(_instanceData.size() / sizeof(GpuObjectInstance));
         AppendInstance(instance, _currentOrigin);
@@ -1846,6 +1888,9 @@ namespace TEN::Renderer::Backend
         int animationBones = AddBones(item->InterpolatedAnimationTransforms, boneCount);
         auto lightMode = (*_levelGeometry.Meshes)[item->MeshIndex[0]]->LightMode;
 
+        // Transforms of the previous frame, for the motion vectors.
+        const auto* previous = _isVelocityActive ? GetPreviousItemTransforms(item->ItemNumber) : nullptr;
+
         bool isFullSkin = (item->SkinIndex != NO_VALUE);
         if (isFullSkin)
         {
@@ -1856,9 +1901,22 @@ namespace TEN::Renderer::Backend
             int skinBoneOffset = AddBones(skinBones, boneCount);
             int skinInstance = AddInstance(item->InterpolatedWorld, item->Color, item->AmbientLight, lightMode, lightOffset, lightCount, skinBoneOffset, SKINNING_FULL);
             AddMeshDraws(*(*_levelGeometry.Meshes)[item->SkinIndex], skinInstance);
+
+            if (previous != nullptr)
+            {
+                for (int i = 0; i < boneCount; i++)
+                    skinBones[i] = laraObject->BindPoseTransforms[i] * previous->Bones[i];
+
+                SetInstanceMotion(skinInstance, previous->World, AddBones(skinBones, boneCount));
+            }
         }
 
         int instance = AddInstance(item->InterpolatedWorld, item->Color, item->AmbientLight, lightMode, lightOffset, lightCount, animationBones, SKINNING_CLASSIC);
+        if (previous != nullptr)
+            SetInstanceMotion(instance, previous->World, AddBones(previous->Bones, boneCount));
+
+        if (_isVelocityActive)
+            StoreItemTransforms(*item);
 
         for (int meshIndex = 0; meshIndex < (int)item->MeshIndex.size(); meshIndex++)
         {
@@ -2031,7 +2089,7 @@ namespace TEN::Renderer::Backend
     {
         bool isAlphaEdges = (pass == ScenePass::AlphaEdges);
 
-        auto shader = (pass == ScenePass::Prepass) ? SceneShader::ObjectsPrepass : (isMirrored ? SceneShader::ObjectsMirrored : SceneShader::Objects);
+        auto shader = (pass == ScenePass::Prepass) ? (_isVelocityActive ? SceneShader::ObjectsPrepassVelocity : SceneShader::ObjectsPrepass) : (isMirrored ? SceneShader::ObjectsMirrored : SceneShader::Objects);
         renderPass.BindPipeline(GetScenePipeline(shader, GetPassBlendMode(pass), isAlphaTested, 0, pass == ScenePass::AlphaEdges));
 
         IBuffer* storageBuffers[4] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _instanceBuffer.Buffer.get(), _boneBuffer.Buffer.get() };
@@ -2749,6 +2807,7 @@ namespace TEN::Renderer::Backend
         { "Distortion", &SceneRenderer::_hasDistortion, &SceneRenderer::RenderDistortion },
         { "Sky", nullptr, &SceneRenderer::RenderSkyPass },
         { "Scene", nullptr, &SceneRenderer::RenderScenePass },
+        { "TAA", &SceneRenderer::_isTaaActive, &SceneRenderer::RenderTemporalAntialiasing },
         { "DOF", &SceneRenderer::_isDofActive, &SceneRenderer::RenderDOF },
         { "Reflections", &SceneRenderer::_hasReflectiveMaterials, &SceneRenderer::CopyReflectionSource },
         { "Glow", &SceneRenderer::_hasVisibleEmissive, &SceneRenderer::RenderGlow },
@@ -2851,6 +2910,9 @@ namespace TEN::Renderer::Backend
         // Projection is rebuilt for the target aspect ratio; position and orientation follow the game camera.
         auto projection = Matrix::CreatePerspectiveFieldOfView(view.Camera.FOV, (float)width / (float)height, view.Camera.NearPlane, view.Camera.FarPlane);
         _isAmbientOcclusionActive = environment.IsAmbientOcclusionEnabled;
+
+        // Temporal passes jitter the projection; the motion vectors use the unjittered one.
+        PrepareTemporalFrame(view, environment, projection);
         _nearPlane = view.Camera.NearPlane;
         _farPlane = view.Camera.FarPlane;
         _time = (float)environment.Frame;
@@ -2862,6 +2924,8 @@ namespace TEN::Renderer::Backend
 
         auto frameVertexUniforms = FrameVertexUniforms{};
         frameVertexUniforms.ViewProjection = view.Camera.View * projection;
+        frameVertexUniforms.UnjitteredViewProjection = _unjitteredViewProjection;
+        frameVertexUniforms.PrevViewProjection = GetPrevViewProjection();
         _viewProjection = frameVertexUniforms.ViewProjection;
         _view = view.Camera.View;
         _projection = projection;
@@ -2955,6 +3019,7 @@ namespace TEN::Renderer::Backend
         }
 
         CollectFrameStats(view, environment);
+        FinishTemporalFrame();
 
         _frameView = nullptr;
         _frameEnvironment = nullptr;

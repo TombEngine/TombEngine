@@ -43,6 +43,7 @@ namespace TEN::Renderer::Backend
     {
         auto instance = ((const GpuObjectInstance*)_instanceData.data())[instanceIndex];
         instance.World = instance.World * mirror.ReflectionMatrix;
+        instance.PrevWorld = instance.PrevWorld * mirror.ReflectionMatrix;
 
         int lightCount = (int)(instance.LightCount & LIGHT_COUNT_MASK);
         bool hasClusterLights = (instance.LightMode & INSTANCE_CLUSTER_LIGHTS_FLAG) != 0;

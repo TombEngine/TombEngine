@@ -95,14 +95,15 @@ namespace TEN::Renderer::Backend
         // EASU gathers the source with bilinear coordinates. RCAS runs when the overlay draws the result.
         auto easuBinding = TextureSamplerBinding{ _upscaleSource.get(), _linearClampSampler.get() };
         RenderFullscreenPass(commandBuffer, _easuPipeline.get(), _colorTarget.get(), &easuBinding, 1, "EASU");
-        _isColorTargetUpscaled = true;
+        _isColorTargetSharpened = true;
     }
 
     // The FSR shader declares slots 0 to 2, and the overlay command buffer may hold no data in the lower ones yet;
     // the overlay shaders push their own data into slot 0 before using it.
     void SceneRenderer::PushRcasUniforms(ICommandBuffer& commandBuffer)
     {
-        auto uniforms = GetFsrUniforms(*_upscaleSource, *_colorTarget);
+        // At native scale RCAS sharpens the temporal antialiasing; its constants do not depend on the source size.
+        auto uniforms = GetFsrUniforms((_upscaleSource != nullptr) ? *_upscaleSource : *_colorTarget, *_colorTarget);
         for (int slot = 0; slot <= 2; slot++)
             commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, slot, &uniforms, sizeof(uniforms));
     }

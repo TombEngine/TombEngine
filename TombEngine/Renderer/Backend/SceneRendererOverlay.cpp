@@ -423,7 +423,7 @@ namespace TEN::Renderer::Backend
         {
             auto color = Vector4(ui.BackgroundFade, ui.BackgroundFade, ui.BackgroundFade, 1.0f);
             AddOverlayQuad(_colorTarget.get(), Vector2::Zero, targetSize, Vector2::Zero, Vector2::One, color, BlendMode::Opaque);
-            _overlayDraws.back().IsSharpened = _isColorTargetUpscaled;
+            _overlayDraws.back().IsSharpened = _isColorTargetSharpened;
         }
 
         if (ui.ScreenWidth <= 0 || ui.ScreenHeight <= 0)

@@ -1,6 +1,8 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=4
 // TEN_SHADER: Pixel PS samplers=9 storage_textures=0 storage_buffers=4 uniform_buffers=3 options=NO_ALPHA_TEST,NO_NORMAL_MAP,NO_ORSH_MAP,NO_EMISSIVE_MAP
 // TEN_SHADER: Pixel PSDepthNormal samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 options=NO_ALPHA_TEST,NO_NORMAL_MAP,NO_ORSH_MAP,NO_EMISSIVE_MAP
+// TEN_SHADER: Vertex VSVelocity samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=4
+// TEN_SHADER: Pixel PSDepthNormalVelocity samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 options=NO_ALPHA_TEST,NO_NORMAL_MAP,NO_ORSH_MAP,NO_EMISSIVE_MAP
 
 // Room geometry: baked vertex lighting plus the room's dynamic lights with specular, material maps (normal,
 // ORSH, emissive, parallax), animated textures, vertex effects, water refraction and distance fog.
@@ -213,4 +215,27 @@ PrepassOutput PSDepthNormal(PixelInput input)
     float3 normal = SampleSurfaceNormal(TEN_LOAD_RAW(GpuMaterial, Materials, MaterialIndex), ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition,
                                         PixelCameraPosition, input.Normal, input.Tangent, input.Binormal, input.FaceNormal, emissive);
     return GetPrepassOutput(EncodeViewNormal(normal, View), emissive, input.Fog, IsOutdoorRoom != 0, input.Position.z);
+}
+
+// Prepass with motion vectors: room geometry does not move, so the camera motion alone moves its texels. Vertex
+// effects (wibble, refraction) are left out of the motion.
+struct VelocityPixelInput
+{
+    PixelInput Base;
+    float4 CurrentClip  : TEXCOORD10;
+    float4 PreviousClip : TEXCOORD11;
+};
+
+VelocityPixelInput VSVelocity(VertexInput input)
+{
+    VelocityPixelInput output;
+    output.Base = VS(input);
+    output.CurrentClip = mul(float4(output.Base.WorldPosition, 1.0f), UnjitteredViewProjection);
+    output.PreviousClip = mul(float4(output.Base.WorldPosition, 1.0f), PrevViewProjection);
+    return output;
+}
+
+VelocityPrepassOutput PSDepthNormalVelocity(VelocityPixelInput input)
+{
+    return AddVelocity(PSDepthNormal(input.Base), input.CurrentClip, input.PreviousClip);
 }

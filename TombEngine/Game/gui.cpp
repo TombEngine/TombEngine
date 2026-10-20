@@ -605,7 +605,7 @@ namespace TEN::Gui
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 
 				if (CurrentSettings.Configuration.AntialiasingMode == AntialiasingMode::None)
-					CurrentSettings.Configuration.AntialiasingMode = AntialiasingMode::High;
+					CurrentSettings.Configuration.AntialiasingMode = AntialiasingMode::Temporal;
 				else
 					CurrentSettings.Configuration.AntialiasingMode = AntialiasingMode(int(CurrentSettings.Configuration.AntialiasingMode) - 1);
 
@@ -702,7 +702,7 @@ namespace TEN::Gui
 			case DisplaySettingsOption::Antialiasing:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 
-				if (CurrentSettings.Configuration.AntialiasingMode == AntialiasingMode::High)
+				if (CurrentSettings.Configuration.AntialiasingMode == AntialiasingMode::Temporal)
 					CurrentSettings.Configuration.AntialiasingMode = AntialiasingMode::None;
 				else
 					CurrentSettings.Configuration.AntialiasingMode = AntialiasingMode(int(CurrentSettings.Configuration.AntialiasingMode) + 1);

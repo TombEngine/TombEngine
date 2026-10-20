@@ -186,6 +186,10 @@ namespace TEN::Renderer
 		case AntialiasingMode::High:
 			antialiasMode = STRING_ANTIALIASING_HIGH;
 			break;
+
+		case AntialiasingMode::Temporal:
+			antialiasMode = STRING_ANTIALIASING_TEMPORAL;
+			break;
 		}
 
 		switch (menu)

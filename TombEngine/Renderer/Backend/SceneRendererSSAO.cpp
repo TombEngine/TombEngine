@@ -135,16 +135,17 @@ namespace TEN::Renderer::Backend
     {
         const auto& view = *_frameView;
 
-        ColorTargetInfo colorTargets[3] = {};
+        ColorTargetInfo colorTargets[4] = {};
         colorTargets[0].Texture = _normalTarget.get();
         colorTargets[1].Texture = _emissiveTarget.get();
         colorTargets[2].Texture = _sceneDepthCopy.get();
         colorTargets[2].ClearColor[0] = 1.0f; // Far plane, as the cleared depth.
+        colorTargets[3].Texture = _velocityTarget.get(); // Motion vectors of the temporal passes, zero where nothing moves.
 
         auto depthTarget = DepthTargetInfo{};
         depthTarget.Texture = _depthTarget.get();
 
-        auto* renderPass = commandBuffer.BeginRenderPass(colorTargets, 3, &depthTarget);
+        auto* renderPass = commandBuffer.BeginRenderPass(colorTargets, _isVelocityActive ? 4 : 3, &depthTarget);
         DrawRooms(commandBuffer, *renderPass, ScenePass::Prepass);
         DrawObjects(commandBuffer, *renderPass, ScenePass::Prepass);
         commandBuffer.EndRenderPass();

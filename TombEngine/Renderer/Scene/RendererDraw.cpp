@@ -1537,7 +1537,8 @@ namespace TEN::Renderer
 			_uiFrame.ScreenWidth = screenResolution.x;
 			_uiFrame.ScreenHeight = screenResolution.y;
 			_uiFrame.Gamma = g_Configuration.Gamma;
-			_uiFrame.AntialiasingMode = (int)g_Configuration.AntialiasingMode;
+			// Menu frames have no history for the temporal antialiasing: SMAA replaces it.
+			_uiFrame.AntialiasingMode = (g_Configuration.AntialiasingMode == AntialiasingMode::Temporal) ? (int)AntialiasingMode::High : (int)g_Configuration.AntialiasingMode;
 			if (IsVideoSpriteActive())
 			{
 				auto videoSize = TEN::Video::g_VideoPlayer.GetFrameSize();

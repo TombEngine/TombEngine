@@ -50,6 +50,7 @@ local strings =
 	ambient_occlusion = { "Ambient Occlusion" },
 	ammo_used = { "Ammo Used" },
 	antialiasing = { "Antialiasing" },
+	antialiasing_temporal = { "Temporal (TAA)" },
 	apply = { "Apply" },
 	atmospheric_sky_quality = { "Atmospheric Sky Quality" },
 	auto_monkey_swing_jump = { "Auto Monkey Jump" },

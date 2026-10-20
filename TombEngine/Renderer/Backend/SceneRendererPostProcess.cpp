@@ -133,7 +133,7 @@ namespace TEN::Renderer::Backend
     void SceneRenderer::RenderPostProcess(ICommandBuffer& commandBuffer)
     {
         const auto& environment = *_frameEnvironment;
-        _isColorTargetUpscaled = false;
+        _isColorTargetSharpened = false;
 
         auto uniforms = PostProcessUniforms{};
         uniforms.Tint = environment.Tint;
@@ -164,7 +164,8 @@ namespace TEN::Renderer::Backend
         }
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &uniforms, sizeof(uniforms));
 
-        bool isAntialiased = (environment.AntialiasingMode != 0);
+        // The temporal antialiasing already resolved the scene after the scene pass.
+        bool isAntialiased = (environment.AntialiasingMode != 0 && environment.AntialiasingMode != ANTIALIASING_MODE_TEMPORAL);
         auto* outputTarget = _isUpscaleActive ? _upscaleSource.get() : _colorTarget.get();
 
         auto colorTarget = ColorTargetInfo{};
@@ -192,5 +193,10 @@ namespace TEN::Renderer::Backend
 
         if (isAntialiased)
             RenderAntialiasing(commandBuffer, environment.AntialiasingMode, _antialiasingSource.get(), outputTarget);
+
+        // The temporal antialiasing softens the image; at native scale RCAS sharpens it while the overlay draws it, as
+        // it does for the FSR upscale.
+        if (_isTaaActive && !_isUpscaleActive)
+            _isColorTargetSharpened = true;
     }
 }

@@ -93,6 +93,7 @@
 #define STRING_ANTIALIASING_LOW			"low"
 #define STRING_ANTIALIASING_MEDIUM		"medium"
 #define STRING_ANTIALIASING_HIGH		"high"
+#define STRING_ANTIALIASING_TEMPORAL	"antialiasing_temporal"
 #define STRING_APPLY					"apply"
 #define STRING_BACK						"back"
 #define STRING_SOUND					"sound"

@@ -68,6 +68,12 @@ struct GpuObjectInstance
     uint     LightOffset  TEN_DEFAULT(0);
     uint     LightCount   TEN_DEFAULT(0); // Light count in the low 16 bits, light type mask in the high bits.
     uint     Skinning     TEN_DEFAULT(0); // Bone palette offset in the low 24 bits, skinning mode in the high 8 bits.
+    // Transform of the previous frame, for the motion vectors of the prepass; the current one when it did not move.
+    float4x4 PrevWorld    TEN_DEFAULT(Matrix::Identity);
+    uint     PrevSkinning TEN_DEFAULT(0); // As Skinning, with the bone palette of the previous frame.
+    uint     PrevPadding0 TEN_DEFAULT(0);
+    uint     PrevPadding1 TEN_DEFAULT(0);
+    uint     PrevPadding2 TEN_DEFAULT(0);
 };
 
 // Element of the frame light buffer, filled by SceneRenderer::ToGpuLight. Type is an LT_* value of Lighting.hlsli;
@@ -134,9 +140,12 @@ struct GpuFogBulb
 
 // Uniform blocks. Field names are unique across blocks: HLSL cbuffer members are globals.
 
-// Vertex slot 0, pushed once per frame.
+// Vertex slot 0, pushed once per frame. ViewProjection carries the sub-pixel jitter of the temporal antialiasing;
+// the motion vectors use the unjittered matrices of this frame and of the previous one.
 #define TEN_FRAME_VERTEX_UNIFORMS \
     float4x4 ViewProjection    TEN_DEFAULT(Matrix::Identity); \
+    float4x4 UnjitteredViewProjection TEN_DEFAULT(Matrix::Identity); \
+    float4x4 PrevViewProjection TEN_DEFAULT(Matrix::Identity); \
     float3   CameraPosition    TEN_DEFAULT(Vector3::Zero); \
     float    FogMinDistance    TEN_DEFAULT(0.0f); \
     float    FogMaxDistance    TEN_DEFAULT(0.0f); \

@@ -2,6 +2,8 @@
 // TEN_SHADER: Pixel PS samplers=9 storage_textures=0 storage_buffers=4 uniform_buffers=3 options=NO_ALPHA_TEST,NO_NORMAL_MAP,NO_ORSH_MAP,NO_EMISSIVE_MAP
 // TEN_SHADER: Pixel PSDepthNormal samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 options=NO_ALPHA_TEST,NO_NORMAL_MAP,NO_ORSH_MAP,NO_EMISSIVE_MAP
 // TEN_SHADER: Pixel PSShadow samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3
+// TEN_SHADER: Vertex VSVelocity samplers=0 storage_textures=0 storage_buffers=4 uniform_buffers=4
+// TEN_SHADER: Pixel PSDepthNormalVelocity samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 options=NO_ALPHA_TEST,NO_NORMAL_MAP,NO_ORSH_MAP,NO_EMISSIVE_MAP
 // TEN_SHADER: Vertex VSInventory samplers=0 storage_textures=0 storage_buffers=4 uniform_buffers=4
 // TEN_SHADER: Pixel PSInventory samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3
 
@@ -236,6 +238,39 @@ PrepassOutput PSDepthNormal(PixelInput input)
     float3 normal = SampleSurfaceNormal(TEN_LOAD_RAW(GpuMaterial, Materials, MaterialIndex), ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition,
                                         PixelCameraPosition, input.Normal, input.Tangent, input.Binormal, input.FaceNormal, emissive);
     return GetPrepassOutput(EncodeViewNormal(normal, View), emissive, input.Fog, (input.LightMode & INSTANCE_OUTDOOR_FLAG) != 0, input.Position.z);
+}
+
+// Prepass with motion vectors: the vertex is placed again with the instance transform and bones of the previous frame.
+// Vertex effects (wibble) are left out of the motion.
+struct VelocityPixelInput
+{
+    PixelInput Base;
+    float4 CurrentClip  : TEXCOORD14;
+    float4 PreviousClip : TEXCOORD15;
+};
+
+VelocityPixelInput VSVelocity(VertexInput input)
+{
+    VelocityPixelInput output;
+    output.Base = VS(input);
+
+    GpuObjectInstance instance = TEN_LOAD_RAW(GpuObjectInstance, Instances, input.InstanceIndex);
+    float4x4 prevWorld = instance.PrevWorld;
+    uint skinningMode = instance.PrevSkinning >> 24;
+    if (skinningMode != SKINNING_NONE)
+        prevWorld = mul(BlendBones(Bones, instance.PrevSkinning & 0xFFFFFF, input.BoneIndices, input.BoneWeights, skinningMode), instance.PrevWorld);
+
+    float wibble = Wibble(input.Effects, DecodeHash(input.AnimationData), InterpolatedFrame);
+    float4 prevPosition = mul(float4(Move(input.Position, input.Effects, wibble), 1.0f), prevWorld);
+
+    output.CurrentClip = mul(float4(output.Base.WorldPosition, 1.0f), UnjitteredViewProjection);
+    output.PreviousClip = mul(prevPosition, PrevViewProjection);
+    return output;
+}
+
+VelocityPrepassOutput PSDepthNormalVelocity(VelocityPixelInput input)
+{
+    return AddVelocity(PSDepthNormal(input.Base), input.CurrentClip, input.PreviousClip);
 }
 
 // Objects of the 2D layer (inventory, pickups, display items): the instance color

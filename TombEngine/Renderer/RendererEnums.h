@@ -109,7 +109,8 @@ enum class AntialiasingMode
 	None,
 	Low,
 	Medium,
-	High
+	High,
+	Temporal // Temporal antialiasing (TAA) instead of FXAA or SMAA.
 };
 
 // Resolution of the 3D scene relative to the screen; the scene is upscaled with AMD FSR 1. The values are stored in the configuration.

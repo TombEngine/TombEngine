@@ -60,13 +60,14 @@ namespace TEN::Renderer::Backend
 
     // Defers one mesh instance until FlushMeshInstances, so instances of the same mesh can share a draw.
     void SceneRenderer::QueueMeshInstance(const RendererMesh& mesh, const Matrix& world, const Vector4& color, const Vector4& ambientLight,
-                                         LightMode lightMode, int lightOffset, int lightCount, int roomNumber, bool isReflectable)
+                                         LightMode lightMode, int lightOffset, int lightCount, int roomNumber, bool isReflectable, const Matrix* prevWorld)
     {
         auto queued = QueuedMeshInstance{};
         queued.Mesh = &mesh;
         queued.RoomNumber = roomNumber;
         queued.IsReflectable = isReflectable;
         queued.Instance.World = world;
+        queued.Instance.PrevWorld = (prevWorld != nullptr) ? *prevWorld : world;
         queued.Instance.Color = color;
         queued.Instance.AmbientLight = ambientLight;
         queued.Instance.LightMode = (unsigned int)lightMode;

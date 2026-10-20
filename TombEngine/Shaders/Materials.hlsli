@@ -295,6 +295,28 @@ PrepassOutput GetPrepassOutput(float3 viewNormal, float3 emissive, float fog, bo
     return output;
 }
 
+// Prepass with motion vectors, for the temporal antialiasing and ambient occlusion: the targets of PrepassOutput and
+// the screen motion of the texel.
+struct VelocityPrepassOutput
+{
+    float4 Normal   : SV_Target0;
+    float4 Emissive : SV_Target1;
+    float  Depth    : SV_Target2;
+    float2 Velocity : SV_Target3;
+};
+
+// Motion in UV units from the previous frame to this one, from the unjittered clip positions of both frames. A point
+// behind the camera in the previous frame has no usable motion.
+VelocityPrepassOutput AddVelocity(PrepassOutput prepass, float4 currentClip, float4 previousClip)
+{
+    VelocityPrepassOutput output;
+    output.Normal = prepass.Normal;
+    output.Emissive = prepass.Emissive;
+    output.Depth = prepass.Depth;
+    output.Velocity = (previousClip.w > 0.0f) ? (currentClip.xy / currentClip.w - previousClip.xy / previousClip.w) * float2(0.5f, -0.5f) : float2(0.0f, 0.0f);
+    return output;
+}
+
 // View space normal remapped from [-1, 1] to [0, 1] for storage in a color target.
 float3 EncodeViewNormal(float3 normal, float4x4 view)
 {

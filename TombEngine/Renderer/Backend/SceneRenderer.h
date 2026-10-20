@@ -153,6 +153,9 @@ namespace TEN::Renderer::Backend
 
     float GetMilliseconds(std::chrono::steady_clock::time_point start, std::chrono::steady_clock::time_point end);
 
+    // Antialiasing setting of the temporal antialiasing (AntialiasingMode::Temporal); FXAA and SMAA are skipped with it.
+    constexpr auto ANTIALIASING_MODE_TEMPORAL = 4;
+
     // Content of a draw call, as the draw call statistics of the frontend.
     enum class DrawCategory
     {
@@ -405,6 +408,8 @@ namespace TEN::Renderer::Backend
             Inventory,       // Objects of the 2D layer: depth written by every blend mode.
             SkyHorizonMask,  // Horizon silhouette of the god rays.
             SkySprites,      // Stars and meteors, hidden by the moon disc and the clouds.
+            RoomsPrepassVelocity,   // Prepass with motion vectors, while a temporal pass is active.
+            ObjectsPrepassVelocity,
 
             Count
         };
@@ -543,7 +548,7 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::IShader>           _rcasPixelShader = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _easuPipeline    = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _rcasPipeline    = nullptr;
-        bool                                    _isColorTargetUpscaled = false; // EASU output, sharpened by RCAS when the overlay draws it.
+        bool                                    _isColorTargetSharpened = false; // EASU or TAA output, sharpened by RCAS when the overlay draws it.
         std::unique_ptr<RHI::ITexture>          _upscaleSource   = nullptr;
         float                                   _renderScale     = 1.0f;
         float                                   _materialLodBias = 0.0f; // Keeps the texture detail of the window resolution.
@@ -588,6 +593,37 @@ namespace TEN::Renderer::Backend
         bool                                    _isWaterSkyReflected     = false;
         float                                   _underwaterSurfaceHeight = 0.0f; // Where the fog of the rays rising out of the water ends.
         Vector3                                 _underwaterAmbient       = Vector3::One;
+
+        // Temporal antialiasing and motion vectors (SceneRendererTAA.cpp).
+        static constexpr auto TAA_HISTORY_COUNT = 2;
+
+        // Interpolated transforms of an item in the frame Frame, the previous transforms of its motion vectors.
+        struct PreviousItemTransforms
+        {
+            Matrix World                  = Matrix::Identity;
+            Matrix Bones[BONE_COUNT_MAX]  = {};
+            int    Frame                  = NO_VALUE;
+        };
+
+        std::unique_ptr<RHI::IShader>           _roomsVelocityVertexShader   = nullptr;
+        std::unique_ptr<RHI::IShader>           _objectsVelocityVertexShader = nullptr;
+        std::unique_ptr<RHI::IShader>           _roomsVelocityPixelShader    = nullptr;
+        std::unique_ptr<RHI::IShader>           _objectsVelocityPixelShader  = nullptr;
+        std::unique_ptr<RHI::IShader>           _taaVertexShader             = nullptr;
+        std::unique_ptr<RHI::IShader>           _taaPixelShader              = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _taaPipeline                 = nullptr;
+        std::unique_ptr<RHI::ITexture>          _velocityTarget              = nullptr; // Prepass motion in UV units, RG16F.
+        std::unique_ptr<RHI::ITexture>          _taaHistory[TAA_HISTORY_COUNT] = {};    // Antialiased scenes, read and written in turn.
+        int                                     _taaHistoryIndex             = 0;       // History written by the last frame.
+        bool                                    _isTaaHistoryValid           = false;
+        bool                                    _isTaaActive                 = false;
+        bool                                    _isVelocityActive            = false;   // The prepass writes motion vectors.
+        int                                     _motionFrame                 = 0;       // Frame counter of the motion data.
+        Matrix                                  _unjitteredViewProjection    = Matrix::Identity;
+        Matrix                                  _prevViewProjection          = Matrix::Identity;
+        bool                                    _hasPrevViewProjection       = false;
+        Vector3                                 _prevCameraPosition          = Vector3::Zero;
+        std::unordered_map<int, PreviousItemTransforms> _previousItemTransforms = {}; // By item number.
 
         // Depth of field (SceneRendererDOF.cpp).
         static constexpr int DOF_PASS_COUNT   = 4;
@@ -984,6 +1020,7 @@ namespace TEN::Renderer::Backend
         // Pipeline precompilation at load (SceneRendererPipelines.cpp).
         int  GetScenePipelineCount() const;
         void PrecompileLevelPipelines(const LevelGeometry& geometry);
+        static SceneShader GetVelocityPrepassShader(SceneShader prepassShader);
         void PrecompilePassPipelines(SceneShader shader, SceneShader prepassShader);
         void PrecompileObjectPipelines(const std::vector<std::optional<Structures::RendererObject>>& objects, const std::vector<TexturePage>& pages);
         void PrecompileBucketPipelines(const Structures::RendererBucket& bucket, const std::vector<TexturePage>& pages, SceneShader shader, SceneShader prepassShader);
@@ -1024,7 +1061,7 @@ namespace TEN::Renderer::Backend
         // Mesh effects, gun shells and swarms (SceneRendererEffects.cpp).
         void GetRoomLightSlice(int roomNumber, float interpolationFactor, int& lightOffset, int& lightCount);
         void QueueMeshInstance(const Structures::RendererMesh& mesh, const Matrix& world, const Vector4& color, const Vector4& ambientLight,
-                               LightMode lightMode, int lightOffset, int lightCount, int roomNumber, bool isReflectable = true);
+                               LightMode lightMode, int lightOffset, int lightCount, int roomNumber, bool isReflectable = true, const Matrix* prevWorld = nullptr);
         void FlushMeshInstances();
         void CollectEffectMeshes(const RenderView& view, float interpolationFactor);
 
@@ -1104,6 +1141,17 @@ namespace TEN::Renderer::Backend
 
         // Sky reflections (SceneRendererSkyReflections.cpp).
         bool CreateSkyReflectionResources();
+
+        // Temporal antialiasing and motion vectors (SceneRendererTAA.cpp).
+        bool CreateTemporalResources();
+        bool EnsureTemporalTargets(int width, int height);
+        void PrepareTemporalFrame(const RenderView& view, const FrameEnvironment& environment, Matrix& projection);
+        Matrix GetPrevViewProjection() const;
+        void FinishTemporalFrame();
+        const PreviousItemTransforms* GetPreviousItemTransforms(int itemNumber) const;
+        void StoreItemTransforms(const Structures::RendererItem& item);
+        void SetInstanceMotion(int instance, const Matrix& prevWorld, int prevBoneOffset);
+        void RenderTemporalAntialiasing(RHI::ICommandBuffer& commandBuffer);
 
         // Water surfaces (SceneRendererWater.cpp).
         bool CreateWaterResources();

@@ -361,7 +361,7 @@ int main(int argc, char* argv[])
 		}
 		else if (ArgEquals(arg.c_str(), "antialiasing") && i + 1 < argc)
 		{
-			// Antialiasing mode for this run (0 none to 3 high), overriding the configuration, for benchmarks.
+			// Antialiasing mode for this run (0 none to 3 high, 4 temporal), overriding the configuration, for benchmarks.
 			antialiasingOverride = std::stoi(argv[++i]);
 		}
 		else if (ArgEquals(arg.c_str(), "resolution") && i + 2 < argc)
@@ -490,7 +490,7 @@ int main(int argc, char* argv[])
 		g_Configuration.EnableAmbientOcclusion = (ambientOcclusionOverride != 0);
 
 	if (antialiasingOverride >= 0)
-		g_Configuration.AntialiasingMode = (AntialiasingMode)std::clamp(antialiasingOverride, 0, (int)AntialiasingMode::High);
+		g_Configuration.AntialiasingMode = (AntialiasingMode)std::clamp(antialiasingOverride, 0, (int)AntialiasingMode::Temporal);
 
 	if (widthOverride > 0 && heightOverride > 0)
 	{
