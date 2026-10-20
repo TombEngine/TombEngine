@@ -98,67 +98,6 @@ namespace TEN::Renderer::Backend
         return size;
     }
 
-    // BC3 alpha block with alpha 255 for every texel. Equal endpoints select the six value mode, where only index 6 is
-    // transparent; other endpoints are left as not opaque, which keeps the check to a few bit operations.
-    static bool IsOpaqueAlphaBlock(const unsigned char* block)
-    {
-        constexpr unsigned long long INDEX_LOW_BITS = 0x249249249249ull;
-
-        if (block[0] != 255 || block[1] != 255)
-            return false;
-
-        unsigned long long indices = 0;
-        memcpy(&indices, block + 2, 6);
-        auto bit0 = indices & INDEX_LOW_BITS;
-        auto bit1 = (indices >> 1) & INDEX_LOW_BITS;
-        auto bit2 = (indices >> 2) & INDEX_LOW_BITS;
-        return ((bit2 & bit1 & ~bit0) == 0);
-    }
-
-    static bool IsOpaqueBC3(const unsigned char* data, int size)
-    {
-        for (int offset = 0; (offset + 16) <= size; offset += 16)
-        {
-            if (!IsOpaqueAlphaBlock(data + offset))
-                return false;
-        }
-
-        return true;
-    }
-
-    // The color half of a BC3 block is a BC1 block always decoded with four colors. BC1 uses four colors only when the
-    // first endpoint is greater, so reversed endpoints are swapped with their indices, and equal ones keep index 0,
-    // as the other indices would select the transparent color of BC1. The result decodes to the same colors.
-    static void ConvertOpaqueBC3ToBC1(const unsigned char* source, int size, std::vector<unsigned char>& destination)
-    {
-        destination.resize(size / 2);
-        for (int block = 0; (block * 16 + 16) <= size; block++)
-        {
-            const auto* color = source + (block * 16) + 8;
-            unsigned short color0 = 0;
-            unsigned short color1 = 0;
-            unsigned int indices = 0;
-            memcpy(&color0, color, 2);
-            memcpy(&color1, color + 2, 2);
-            memcpy(&indices, color + 4, 4);
-
-            if (color0 < color1)
-            {
-                std::swap(color0, color1);
-                indices ^= 0x55555555;
-            }
-            else if (color0 == color1)
-            {
-                indices = 0;
-            }
-
-            auto* output = destination.data() + (block * 8);
-            memcpy(output, &color0, 2);
-            memcpy(output + 2, &color1, 2);
-            memcpy(output + 4, &indices, 4);
-        }
-    }
-
     // Returns the offset of the pixel data, or NO_VALUE for unsupported files.
     static int ReadDDSHeader(const std::vector<unsigned char>& encodedData, ImageInfo& info)
     {
@@ -192,14 +131,6 @@ namespace TEN::Renderer::Backend
         return dataOffset;
     }
 
-    // Level textures were compiled as BC3 also without transparency; those are loaded as BC1.
-    static bool IsOpaqueBC3Image(const std::vector<unsigned char>& encodedData, int dataOffset, const ImageInfo& info)
-    {
-        int size = GetMipChainSize(info);
-        return (info.Format == PixelFormat::BC3Unorm && (int)encodedData.size() >= (dataOffset + size) &&
-                IsOpaqueBC3(encodedData.data() + dataOffset, size));
-    }
-
     static bool DecodeDDS(const std::vector<unsigned char>& encodedData, DecodedImage& image)
     {
         auto info = ImageInfo{};
@@ -215,13 +146,6 @@ namespace TEN::Renderer::Backend
         image.Height = info.Height;
         image.Format = info.Format;
         image.MipLevels = info.MipLevels;
-
-        if (IsOpaqueBC3Image(encodedData, dataOffset, info))
-        {
-            ConvertOpaqueBC3ToBC1(encodedData.data() + dataOffset, totalSize, image.Data);
-            image.Format = PixelFormat::BC1Unorm;
-            return true;
-        }
 
         image.Data.assign(encodedData.begin() + dataOffset, encodedData.begin() + dataOffset + totalSize);
         return true;
@@ -295,14 +219,7 @@ namespace TEN::Renderer::Backend
 
         if (IsDDS(encodedData))
         {
-            int dataOffset = ReadDDSHeader(encodedData, info);
-            if (dataOffset == NO_VALUE)
-                return false;
-
-            if (IsOpaqueBC3Image(encodedData, dataOffset, info))
-                info.Format = PixelFormat::BC1Unorm;
-
-            return true;
+            return (ReadDDSHeader(encodedData, info) != NO_VALUE);
         }
 
         if (IsJPEG(encodedData))

@@ -56,7 +56,6 @@ namespace TEN::Renderer::Backend
 
         _window = window;
         _shaderDirectory = gameDirectory + "Shaders/Bin";
-        _textureCacheDirectory = gameDirectory + "Cache/Textures";
 
         int width = 0;
         int height = 0;

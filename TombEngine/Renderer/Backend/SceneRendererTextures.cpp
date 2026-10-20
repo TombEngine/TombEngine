@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 
-#include "Renderer/Backend/TextureCompressor.h"
 #include "Renderer/Backend/TextureLoader.h"
 #include "Renderer/RHI/MemoryTracker.h"
 #include "Specific/level.h"
@@ -87,6 +86,27 @@ namespace TEN::Renderer::Backend
         }
 
         return key;
+    }
+
+    // With texture compression on, Tomb Editor writes level textures as DDS files with full mip chains: BC1 for opaque
+    // maps, BC3 for maps with alpha, BC5 for normal maps. Without it, maps are PNG files, loaded as RGBA8 with mips
+    // generated on the GPU, at four to eight times the video memory. The engine never compresses or converts them.
+    static void LogUncompressedPages(const std::vector<ArrayGroupKey>& pageKeys)
+    {
+        int count = 0;
+        for (const auto& key : pageKeys)
+        {
+            for (const auto& map : key.Maps)
+            {
+                if (map.Width > 0 && (map.Format == PixelFormat::RGBA8Unorm || map.Format == PixelFormat::BGRA8Unorm))
+                    count++;
+            }
+        }
+
+        if (count == 0)
+            return;
+
+        TENLog(std::to_string(count) + " level texture maps are not block compressed (texture compression is off in Tomb Editor).", LogLevel::Info);
     }
 
     static TextureDesc GetArrayMapDesc(const ArrayMapKey& key, int layerCount)
@@ -325,12 +345,10 @@ namespace TEN::Renderer::Backend
         auto pageKeys = std::vector<ArrayGroupKey>(pages.size());
         auto pageGroups = std::vector<int>(pages.size());
 
-        // Reading the keys scans BC3 data for transparency, so the pages are read in parallel.
-        g_Parallel.AddTasks((int)pages.size(), [&](int start, int end)
-        {
-            for (int i = start; i < end; i++)
-                pageKeys[i] = GetArrayGroupKey(*pages[i].Texture, pages[i].IsColorOnly);
-        }).wait();
+        for (int i = 0; i < (int)pages.size(); i++)
+            pageKeys[i] = GetArrayGroupKey(*pages[i].Texture, pages[i].IsColorOnly);
+
+        LogUncompressedPages(pageKeys);
 
         for (int i = 0; i < (int)pages.size(); i++)
         {
@@ -431,26 +449,10 @@ namespace TEN::Renderer::Backend
         _device->WaitIdle();
     }
 
-    // Every texture of the level, for the block compression of the PNG and JPEG maps.
-    static std::vector<::TEXTURE*> GetLevelTextureSources()
-    {
-        auto sources = std::vector<::TEXTURE*>{};
-        for (auto* textures : { &g_Level.RoomTextures, &g_Level.StaticsTextures, &g_Level.MoveablesTextures, &g_Level.AnimatedTextures, &g_Level.SpritesTextures })
-        {
-            for (auto& texture : *textures)
-                sources.push_back(&texture);
-        }
-
-        sources.push_back(&g_Level.SkyTexture);
-        return sources;
-    }
-
     // Animated texture pages and the sky use their color map only. Sprite pages stay
     // single textures: the 2D layer samples them too.
     void SceneRenderer::LoadLevelTextures()
     {
-        CompressLevelTextures(GetLevelTextureSources(), _textureCacheDirectory);
-
         auto pages = std::vector<ArrayPageSource>{};
         AddArrayPages(g_Level.RoomTextures, _roomTextures, false, pages);
         AddArrayPages(g_Level.StaticsTextures, _staticTextures, false, pages);
