@@ -4,26 +4,32 @@
 
 Faces with sorted blend modes (every mode except opaque, alpha test, additive, distortion and fast
 alpha blend, see `IsSortedBlendMode`) and faces of objects faded below `ALPHA_BLEND_THRESHOLD`
-cannot rely on the depth buffer, so the renderer draws them back to front in a dedicated pass after
-the opaque, additive and distortion passes. This document describes how that pass collects, groups, orders and
+cannot rely on the depth buffer, so the renderer draws them back to front at the end of the scene pass, after
+the opaque, alpha edge, water and additive draws. The frontend collects and sorts them on the CPU; the scene
+renderer turns the sorted order into draw runs. This document describes how that pass collects, groups, orders and
 draws those faces, and why it is built this way.
 
 ![Sorted pass pipeline](TransparentSorting/pipeline.svg)
 
 | Stage | Function | File |
 |-------|----------|------|
-| Collect | `CollectSortedBucket`, `CollectSortedSprite`, called from every `Draw*` function in the `CollectTransparentFaces` pass | `RendererSorted.cpp`, call sites in `RendererDraw.cpp`, `RendererDrawEffect.cpp`, `RendererSprites.cpp` |
+| Collect | `CollectSortedBucket`, `CollectSortedSprite`, called from `Renderer::CollectSortedFaces` and the `CollectSorted*Faces` functions | `RendererSorted.cpp`, call sites in `RendererDraw.cpp`, `RendererLara.cpp`, `RendererDrawEffect.cpp`, `RendererSprites.cpp` |
 | Group, cluster, sort | `SortTransparentFaces` | `RendererSorted.cpp` |
-| Draw | `DrawSortedFaces` and `Draw*Sorted` | `RendererSorted.cpp` |
+| Runs | `SceneRenderer::CollectSortedFaces`, `GetSortedObjectInstance`, `CanMergeSortedRoomRuns` | `Backend/SceneRenderer.cpp` |
+| Draw | `SceneRenderer::DrawSortedFaces` | `Backend/SceneRenderer.cpp` |
 | Data | `RendererSortableObject`, `RendererSortablePolygon`, `RendererSortKey` | `Structures/RendererSortableObject.h` |
 | Containers | `TransparentObjectsToDraw`, `TransparentPolygonsToDraw`, `TransparentSortKeys` | `RenderView.h` |
 
-Frame flow in `RenderScene`:
+Frame flow:
 
 ```cpp
-DoRenderPass(RendererPass::CollectTransparentFaces, view, false); // Collect.
-SortTransparentFaces(view);                                       // Group, cluster, sort.
-DoRenderPass(RendererPass::Transparent, view, true);              // Draw (also once per mirror).
+// Renderer::RenderScene (frontend).
+CollectSortedFaces(view);   // Collect.
+SortTransparentFaces(view); // Group, cluster, sort.
+
+// SceneRenderer::RenderFrame (backend).
+CollectSortedFaces(view, interpolationFactor); // Runs, sorted index buffer and instances.
+DrawSortedFaces(commandBuffer, renderPass);    // Draw, at the end of the scene pass (and once per mirror).
 ```
 
 ---
@@ -135,32 +141,35 @@ passes. The scratch buffer `_sortKeysScratch` is kept across frames.
 
 ## Drawing
 
-`DrawSortedFaces` walks the sorted keys and builds batches of consecutive polygons that share a
-`GroupIndex`. Mesh batches copy their indices into `_sortedPolygonsIndices`, sprite batches build
-vertices into `_sortedPolygonsVertices`. Both are uploaded with a single map per flush, and the
-recorded batches are then drawn by `DrawRoomSorted`, `DrawItemSorted`, `DrawStaticSorted`,
-`DrawMoveableAsStaticSorted`, `DrawEffectSorted`, `DrawHairSorted` and `DrawSpriteSorted`. When the
-shared buffers reach `MAX_TRANSPARENT_VERTICES`, the accumulated batches are flushed and collection
-continues into the emptied buffers.
+`SceneRenderer::CollectSortedFaces` walks the sorted keys and builds one `SortedDraw` run for each sequence of
+consecutive polygons that share a `GroupIndex`. The indices of the run's polygons are copied from the CPU copy of the
+level index buffer into `_sortedIndexData`, which is uploaded once per frame into the sorted index buffer, so a run
+costs one indexed draw. Sprite runs add their sprites to the frame sprite buffer and are drawn instanced like the
+other sprites.
 
-Each `Draw*Sorted` function rebinds shaders and vertex buffers only when the object type changes,
-and rebuilds the objects or room constant buffer only when the owning object changes. Swarm objects
-have no stable instance pointer to compare and upload on every batch. Interleaved clusters therefore
-pay one constant buffer upload per object switch.
+The state of an object comes from the frame instance buffer: `GetSortedObjectInstance` adds one instance (world
+matrix, color, ambient light, lights and bones) the first time an object appears and reuses it when interleaved
+clusters split the object into several runs. Hair faces reuse the hair instances built with the player. Room runs use
+instance 0 and the room lights, and consecutive room runs with the same draw state and portal rectangle are merged
+(`CanMergeSortedRoomRuns`).
 
-Rooms are skipped while drawing mirrored views.
+`DrawSortedFaces` records the runs in order. It changes pipeline, vertex streams and bucket bindings only when they
+differ from the previous run, and clips room runs to their portal rectangle with a scissor. Mirrors record their own
+list of runs, collected by `CollectMirroredSorted`, with the mirrored object shader.
 
 ---
 
 ## Debug Overlay
 
-The Renderer Stats debug page shows, under **SORTED draw calls**:
+The Statistics tab of the debug pages (F10, F11) shows the sorted faces in two places:
 
 | Line | Meaning |
 |------|---------|
-| `SORTED faces` | Number of sorted polygon entries (sprites count as one). |
-| `Interleaved groups` | Groups that ended up in a cluster of two or more. |
-| `Collect`, `Sort`, `Draw` | CPU time of the collect pass, `SortTransparentFaces` and the transparent pass, in ms. |
+| `Sorted faces` (frontend) | Number of sorted polygon entries (sprites count as one). |
+| `Interleaved sorted groups` (frontend) | Groups that ended up in a cluster of two or more. |
+| `Sorted collect`, `Sorted sort` (frontend) | CPU time of the collection and of `SortTransparentFaces`, in ms. |
+| `Sorted draws`, `Sorted indices` (scene renderer) | Draw runs and indices uploaded for the frame. |
+| `Collect and sort`, `Record` (scene renderer) | CPU time of building the runs and of recording them, in ms. |
 
 ---
 
@@ -191,6 +200,3 @@ Sort timings come from a standalone benchmark; collect and sort timings come fro
   small (around 0.2 ms in debug for 13,000 polygons), since the pass count stays the same.
 - **Sprites in clusters.** Interleaving sprites with meshes would fix particles seen through glass,
   but mixes the sprite and mesh batch paths. Not enabled yet.
-- **Cheaper object switches.** Uploading all sorted objects to one constant buffer and selecting the
-  object through an instance-rate index would make interleaved clusters almost free, and allow a
-  higher switch limit.

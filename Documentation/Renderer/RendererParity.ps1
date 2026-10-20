@@ -1,4 +1,5 @@
-# Visual regression test of the renderer against reference images saved from the retired legacy renderer.
+# Visual regression test of the renderer against saved reference images (the first set was taken from the retired legacy
+# renderer, so a passing run still matches the classic look).
 # Runs the benchmark scenario (Benchmark.lua) on every level and backend, compares the screenshot the renderer saves at a
 # fixed game frame (Logs/Benchmark.png) with the level reference, and checks the logs for Vulkan validation errors
 # and device loss. Exits with 1 when a run fails, otherwise 0.
@@ -117,13 +118,13 @@ foreach ($level in $Levels)
         }
 
         Copy-Item $referenceShot (Join-Path $OutputDir "$name.reference.png")
-        Copy-Item $shot (Join-Path $OutputDir "$name.next.png")
+        Copy-Item $shot (Join-Path $OutputDir "$name.result.png")
 
         $share = Get-DifferingShare $referenceShot $shot
         $isPassed = ($validationErrors -eq 0 -and $deviceLosses -eq 0 -and $share -le $Threshold)
         if (-not $isPassed) { $failed = $true }
 
-        $device = [regex]::Match($log, "Next renderer initialized on ([^`r`n]+)").Groups[1].Value
+        $device = [regex]::Match($log, "Scene renderer initialized on ([^`r`n]+)").Groups[1].Value
         $frameTime = [regex]::Match($log, "frame avg ([0-9.]+) ms").Groups[1].Value
         "{0} : {1}, differing {2:N1}%, validation errors {3}, device losses {4}, frame avg {5} ms, {6}" -f $name, ($(if ($isPassed) { "passed" } else { "FAILED" })), $share, $validationErrors, $deviceLosses, $frameTime, $device
     }

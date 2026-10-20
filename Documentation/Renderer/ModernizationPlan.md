@@ -1,6 +1,6 @@
 # TombEngine Renderer - Piano di modernizzazione (prestazioni, memoria, asset)
 
-Seguito di `RendererPlan.md`, che ha portato il renderer nuovo alla parita' e ha rimosso il legacy. Base: `develop_new_renderer` a `5ee1c4f93` (dopo l'annullamento di compressione al caricamento, qualita' delle texture, preset e filtro di upscale).
+Seguito del piano di migrazione, completato: il renderer nuovo ha raggiunto la parita' e il legacy e' stato rimosso. L'architettura attuale e i comandi di benchmark sono descritti in `RendererArchitecture.md`. Base: `develop_new_renderer` a `5ee1c4f93` (dopo l'annullamento di compressione al caricamento, qualita' delle texture, preset e filtro di upscale).
 
 ## Obiettivi
 
@@ -50,7 +50,7 @@ Senza un livello gigante da misurare, ogni priorita' sotto e' una stima.
 
 ## Fase 1 - Memoria (VRAM e RAM)
 
-- [ ] **Tutte le texture in BC.** I DDS di Tomb Editor si caricano come sono; per i PNG la compressione al caricamento (`stb_dxt`) resta come ripiego per i livelli vecchi, con una cache su disco per non ricomprimere a ogni avvio.
+- [x] **Texture in BC da Tomb Editor.** Con la compressione attiva in Tomb Editor (opzione facoltativa del livello) le texture arrivano in DDS con tutti i mip: BC1 per le mappe opache o con alpha a 1 bit, BC3 per le altre, BC5 per le normali, e si caricano come sono. Il motore non comprime e non converte piu' nulla al caricamento (compressione con `stb_dxt`, cache su disco e conversione da BC3 a BC1 rimosse il 2026-10-20). Senza compressione le mappe restano PNG, caricate in RGBA8 con i mip generati in GPU.
 - [ ] **Mappe di materiale solo dove servono.** Non allocare normal, ORSH ed emissive per le pagine dove sono assenti o costanti (una normale piatta, un ORSH uniforme): un valore nel materiale le sostituisce. Normali in BC5; valutare BC4 per le mappe a un canale e BC7 dove BC3 perde qualita'.
 - [ ] **Budget di memoria.** La qualita' delle texture (mip alti scartati) si sceglie dal budget di `IDXGIAdapter3::QueryVideoMemoryInfo` (valido anche per Vulkan sullo stesso adapter), con un'opzione manuale nel menu.
 - [ ] **Liberare la RAM.** I dati codificati delle texture si liberano dopo il caricamento in GPU, e cosi' le copie CPU della geometria che servono solo all'upload. Sulle integrate la RAM di sistema e' anche la VRAM.
@@ -122,7 +122,7 @@ Questa fase cambia il formato dei livelli: va coordinata con Tomb Editor. I live
 
 - [x] **Backend Vulkan:** resta SDL GPU, esteso con `SDL_GPUVulkanOptions`, draw indiretti e compute. *(deciso il 2026-10-14: portabilita' su Mac con Metal, meno codice, sincronizzazione e memoria gia' senza errori)*
 - [ ] **Dipendenza nuova:** meshoptimizer (MIT) per cluster, ottimizzazione dei vertici e LOD.
-- [ ] **Shader Model 6 per i compute di Vulkan.** Supera la decisione "SM 5.0 ovunque" di `RendererPlan.md` solo per culling, sort e FSR FP16; il resto e DX11 restano SM 5.0.
+- [ ] **Shader Model 6 per i compute di Vulkan.** Supera la decisione "SM 5.0 ovunque" del piano di migrazione solo per culling, sort e FSR FP16; il resto e DX11 restano SM 5.0.
 - [ ] **Cambio di formato dei livelli** (Fase 5) e calendario con Tomb Editor; percorso di conversione per i livelli vecchi.
 - [ ] **Soglia del livello moderno:** Vulkan 1.2, oppure 1.1 con estensioni per includere driver piu' vecchi.
 
