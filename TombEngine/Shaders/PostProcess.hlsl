@@ -3,7 +3,8 @@
 // TEN_SHADER: Pixel PSFXAA samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
 
 // Distortion, depth of field, glow, lens flares, color scheme (monochrome, negative, exclusion), screen fade,
-// cinematic bars, tint and gamma in a single pass.
+// cinematic bars, tint and gamma in a single pass (SceneRendererPostProcess.cpp). PS reads the scene, the
+// distortion payload, the depth copy and the glow and depth of field targets; PSFXAA antialiases its output.
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -66,6 +67,7 @@ TEN_PS_TEXTURE(Texture2D, FarBlurMap, 5);
 #define DISTORTION_DISTANCE_FADE_START              4096.0f
 #define DISTORTION_DISTANCE_FADE_END                10240.0f
 
+// Depth buffer value mapped back to view space distance in world units.
 float GetSceneViewDepth(float2 uv)
 {
     float depth = DepthMap.SampleLevel(DepthMapSampler, uv, 0.0f).x;
@@ -80,6 +82,8 @@ float2 GetDistortedUV(float2 uv)
     if (totalStrength <= DISTORTION_MIN_WEIGHT)
         return uv;
 
+    // Undo the premultiplication of EncodeDistortionPayload (Common.hlsli): strength weighted average emitter depth
+    // from its high and low bytes, and the dominant emitter type.
     float emitterDepth = (distortion.y / totalStrength) * 255.0f * 256.0f + (distortion.z / totalStrength) * 255.0f;
     float typeBlend = step(0.5f, distortion.w / totalStrength);
     if (GetSceneViewDepth(uv) - DISTORTION_DEPTH_REJECT_MIN < emitterDepth)
@@ -102,6 +106,7 @@ float2 GetDistortedUV(float2 uv)
     float2 shimmer = float2(SimplexNoise(float3(uv * shimmerScale * 1.7f, shimmerTime + 13.1f)), SimplexNoise(float3(uv * shimmerScale * 2.3f, shimmerTime + 31.7f))) * shimmerStrength;
     refraction += shimmer * (1.0f - smoothstep(DISTORTION_DISTANCE_FADE_START / 1.5f, DISTORTION_DISTANCE_FADE_END / 3.0f, emitterDepth));
 
+    // Offset in pixels, shrinking with the square root of the emitter distance beyond the reference depth.
     float2 texelSize = float2(1.0f / ViewportWidth, 1.0f / ViewportHeight);
     float perspectiveScale = rsqrt(max(emitterDepth, DISTORTION_REFERENCE_DEPTH) / DISTORTION_REFERENCE_DEPTH);
     float2 offset = refraction * (noiseStrength * DISTORTION_REFRACTION_PIXELS * weight * perspectiveScale) * texelSize;
@@ -228,6 +233,7 @@ float3 ApplyLensFlares(float3 color, float2 uv)
     return lerp(color, color + totalColor, saturate(dot(totalColor, 0.5f)));
 }
 
+// Steps: cinematic bars, distortion, depth of field, glow, lens flares, color scheme and fade, tint and gamma.
 float4 PS(FullscreenPixelInput input) : SV_Target
 {
     float y = input.Position.y / ViewportHeight;
@@ -264,8 +270,7 @@ float4 PS(FullscreenPixelInput input) : SV_Target
     return float4(color, 1.0f);
 }
 
-// Copies the depth buffer into a color texture that the scene pass can sample while the depth is its target.
-// FXAA of the frontend (Shaders/FXAA.hlsl), sampling the post-processed image with a linear sampler.
+// FXAA for the low antialiasing mode, sampling the post-processed image with a linear sampler.
 #define FXAA_SPAN_MAX   8.0f
 #define FXAA_REDUCE_MUL (1.0f / 4.0f)
 #define FXAA_REDUCE_MIN (1.0f / 64.0f)
@@ -275,6 +280,8 @@ float3 SampleScene(float2 uv)
     return SceneMap.SampleLevel(SceneMapSampler, uv, 0.0f).rgb;
 }
 
+// Blurs along the edge direction estimated from the luma gradient of the four diagonal neighbors; the wider
+// four tap result is rejected when its luma leaves the local range.
 float4 PSFXAA(FullscreenPixelInput input) : SV_Target
 {
     float width = 0.0f;

@@ -6,8 +6,9 @@ namespace TEN::Renderer::ConstantBuffers
 {
 	using namespace TEN::Math::Library;
 
+	// Atmospheric sky uniform block, filled by UpdateAtmosphericSkyBuffer and pushed by the scene renderer as pixel
+	// uniforms of the sky dome, aurora and sun/moon disc passes.
 	// Must match CBAtmosphericSky.hlsli layout exactly.
-	// Bound to register b14.
 	struct alignas(16) CAtmosphericSkyBuffer
 	{
 		// Row 0 - Sun direction and elevation
@@ -41,7 +42,7 @@ namespace TEN::Renderer::ConstantBuffers
 		float   NightBlendSpeed;     // How quickly night blends in as sun descends.
 		//--
 		// Row 6 - Viewport info
-		Vector2 ViewSize;            // Render target size.
+		Vector2 ViewSize;            // Screen size in pixels.
 		Vector2 InvViewSize;         // 1.0 / ViewSize.
 		//--
 		// Row 7 - Sun elevation color ramp + shader sun disk

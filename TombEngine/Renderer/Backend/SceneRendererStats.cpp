@@ -5,6 +5,9 @@
 
 using namespace TEN::Renderer::RHI;
 
+// Frame statistics, renderer info and GPU timings of the scene renderer, read by the graphics statistics debug page.
+// CountDraw is called by every draw; the other counts are taken once per frame after the passes are recorded.
+
 namespace TEN::Renderer::Backend
 {
     float GetMilliseconds(std::chrono::steady_clock::time_point start, std::chrono::steady_clock::time_point end)
@@ -69,6 +72,7 @@ namespace TEN::Renderer::Backend
         stats.DebugVertices = _debugLineVertexCount + _debugTriangleVertexCount;
     }
 
+    // Device, target size and level resource counts. Width and height are the render resolution of the scene.
     SceneRendererInfo SceneRenderer::GetInfo() const
     {
         auto info = SceneRendererInfo{};
@@ -92,7 +96,8 @@ namespace TEN::Renderer::Backend
         return info;
     }
 
-    // GPU pass timings averaged over a second; SDL GPU measures them only while requested.
+    // GPU pass timings averaged over 60 frames, about a second; SDL GPU measures them only while requested. Calling
+    // this every frame keeps the measurement on (see FinishFrame).
     const std::vector<GpuTiming>& SceneRenderer::SampleGpuTimings()
     {
         constexpr auto SAMPLE_INTERVAL = 60;

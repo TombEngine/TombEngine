@@ -1,3 +1,9 @@
+// Distortion and post-process passes, plus the shared fullscreen pipeline helpers. "Distortion" in FRAME_PASSES runs
+// before the sky pass and accumulates distortion surfaces into the half resolution distortion target. "Post-process"
+// runs after the glow pass: a single fullscreen pass at scene resolution that composes the scene target with
+// distortion, glow, the DOF layers and lens flares and applies color scheme, fade, cinematic bars, tint and gamma.
+// It writes the frame target directly, or through FXAA/SMAA (SceneRendererSMAA.cpp) and the FSR 1 upscale source.
+
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 
@@ -37,6 +43,7 @@ namespace TEN::Renderer::Backend
 
     static_assert(sizeof(PostProcessUniforms) == 336, "PostProcessUniforms must match PostProcess.hlsl.");
 
+    // Opaque fullscreen triangle with one color target and no depth, the base of every screen space pipeline.
     GraphicsPipelineDesc SceneRenderer::GetFullscreenPipelineDesc(IShader* vertexShader, IShader* pixelShader, PixelFormat format, const char* name)
     {
         auto desc = GraphicsPipelineDesc{};
@@ -56,6 +63,7 @@ namespace TEN::Renderer::Backend
         return _device->CreateGraphicsPipeline(GetFullscreenPipelineDesc(vertexShader, pixelShader, format, name));
     }
 
+    // Post-process and FXAA pipelines; both write the swapchain format.
     bool SceneRenderer::CreatePostProcessResources()
     {
         _postProcessVertexShader = LoadShader(*_device, _shaderDirectory, "PostProcess", "VS");
@@ -73,6 +81,8 @@ namespace TEN::Renderer::Backend
         return (_postProcessPipeline != nullptr && _fxaaPipeline != nullptr);
     }
 
+    // Enables the distortion pass: true when any collected sprite, object bucket or visible room bucket distorts.
+    // Must run after the sprites and objects of the frame are collected.
     bool SceneRenderer::HasDistortionDraws(const RenderView& view) const
     {
         for (const auto& draw : _spriteDraws)
@@ -118,8 +128,8 @@ namespace TEN::Renderer::Backend
         commandBuffer.EndRenderPass();
     }
 
-    // The scene pass keeps the prepass depth as its target, so effects reading the depth (soft particles) use a copy.
     // Single fullscreen pass from the scene target to the frame target, or to the upscale source below native scale.
+    // With antialiasing it writes the antialiasing source, which FXAA or SMAA then resolve into that output.
     void SceneRenderer::RenderPostProcess(ICommandBuffer& commandBuffer)
     {
         const auto& environment = *_frameEnvironment;
@@ -164,6 +174,7 @@ namespace TEN::Renderer::Backend
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
         renderPass->BindPipeline(_postProcessPipeline.get());
 
+        // The depth target is never sampled: occlusion tests of the distortion and lens flares read the prepass copy.
         TextureSamplerBinding bindings[6] =
         {
             { _sceneTarget.get(), _linearClampSampler.get() },

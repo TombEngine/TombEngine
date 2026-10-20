@@ -9,9 +9,14 @@
 using namespace TEN::Renderer::RHI;
 using namespace TEN::Utils;
 
+// Level texture load of the scene renderer: level pages grouped into texture arrays by size and format, their
+// decoding and upload in parallel chunks, mip reduction to fit the video memory, and the sprite atlases. Runs once
+// per level inside LoadLevel; the encoded level data is freed afterwards.
+
 namespace TEN::Renderer::Backend
 {
     // Textures decoded and uploaded together. Chunks bound the memory of decoded pixels and transfer buffers.
+    // Map indices follow SceneRenderer::MaterialMap: color, normal, ORSH and emissive.
     constexpr auto TEXTURE_CHUNK_SIZE = 8;
     constexpr auto MATERIAL_MAP_COUNT = 4;
 
@@ -49,6 +54,7 @@ namespace TEN::Renderer::Backend
         return true;
     }
 
+    // Encoded data of one map of a level page, by MaterialMap index; empty when the page has no such map.
     static const std::vector<unsigned char>& GetMapData(const ::TEXTURE& texture, int map)
     {
         switch (map)
@@ -67,6 +73,7 @@ namespace TEN::Renderer::Backend
         }
     }
 
+    // Group key of a page from its image headers only, without decoding. Color only pages leave the other maps absent.
     static ArrayGroupKey GetArrayGroupKey(const ::TEXTURE& texture, bool isColorOnly)
     {
         auto key = ArrayGroupKey{};
@@ -109,6 +116,7 @@ namespace TEN::Renderer::Backend
         TENLog(std::to_string(count) + " level texture maps are not block compressed (texture compression is off in Tomb Editor).", LogLevel::Info);
     }
 
+    // Array texture of one map of a group, without its skipped top mips. Generated mips need a color target.
     static TextureDesc GetArrayMapDesc(const ArrayMapKey& key, int layerCount)
     {
         auto desc = TextureDesc{};
@@ -186,6 +194,7 @@ namespace TEN::Renderer::Backend
         }
     }
 
+    // Queues a standalone texture; empty data adds no request and leaves the target null.
     void SceneRenderer::AddTextureRequest(std::vector<LevelTextureRequest>& requests, const std::vector<unsigned char>& encodedData,
                                          const std::string& name, std::unique_ptr<ITexture>& target)
     {
@@ -291,6 +300,7 @@ namespace TEN::Renderer::Backend
         }
     }
 
+    // Single standalone texture from an encoded image, as the overlay images; null when it cannot be decoded.
     std::unique_ptr<ITexture> SceneRenderer::CreateLevelTexture(const std::vector<unsigned char>& encodedData, const std::string& name, bool allowMips)
     {
         auto texture = std::unique_ptr<ITexture>{};
@@ -300,6 +310,7 @@ namespace TEN::Renderer::Backend
         return texture;
     }
 
+    // Sizes the page list of a category and queues its pages; group and layer are filled by LoadTextureArrays.
     void SceneRenderer::AddArrayPages(const std::vector<::TEXTURE>& source, std::vector<TexturePage>& destination, bool isColorOnly,
                                      std::vector<ArrayPageSource>& pages)
     {
@@ -308,6 +319,7 @@ namespace TEN::Renderer::Backend
             pages.push_back(ArrayPageSource{ &source[i], isColorOnly, &destination[i] });
     }
 
+    // Creates the empty array textures of a group, one per present map, and logs their size.
     std::unique_ptr<SceneRenderer::TextureArrayGroup> SceneRenderer::CreateTextureArrayGroup(const ArrayGroupKey& key, int layerCount, int groupIndex)
     {
         constexpr const char* MAP_NAMES[MATERIAL_MAP_COUNT] = { "Color", "Normal", "ORSH", "Emissive" };
@@ -350,6 +362,7 @@ namespace TEN::Renderer::Backend
 
         LogUncompressedPages(pageKeys);
 
+        // Assign each page to the first group with its key, as the next layer of that group.
         for (int i = 0; i < (int)pages.size(); i++)
         {
             int group = 0;
@@ -390,6 +403,7 @@ namespace TEN::Renderer::Backend
             int Map  = 0;
         };
 
+        // One upload per present map of every page.
         auto uploads = std::vector<LayerUpload>{};
         for (int i = 0; i < (int)pages.size(); i++)
         {
@@ -435,6 +449,7 @@ namespace TEN::Renderer::Backend
             _device->WaitIdle();
         }
 
+        // Generate the mips of single level (PNG) maps, whose array textures were created as color targets.
         auto* commandBuffer = _device->AcquireCommandBuffer();
         for (const auto& group : _textureArrayGroups)
         {
@@ -471,6 +486,7 @@ namespace TEN::Renderer::Backend
 
         LoadTextureArrays(pages);
 
+        // Sprite atlases, as standalone textures.
         auto requests = std::vector<LevelTextureRequest>{};
         _spriteTextures.clear();
         _spriteTextures.resize(g_Level.SpritesTextures.size());

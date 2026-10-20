@@ -142,7 +142,7 @@ float WorleyNoise2D(float2 p)
 //
 // The 3D/2D textures are tileable with a period of NoiseTilePeriod noise
 // cells.  UV = noiseCoord * NoiseUVScale maps noise-space coordinates into
-// [0,1] UV space, and D3D11_TEXTURE_ADDRESS_WRAP makes them tile seamlessly.
+// [0,1] UV space, and the wrap address mode of their sampler makes them tile seamlessly.
 // ===========================================================================
 
 static const float NoiseTilePeriod = 16.0f;
@@ -2356,7 +2356,7 @@ float4 PS(VSOutput input) : SV_TARGET
 // ===========================================================================
 // PSCloudComposite   Upscale half-res clouds and alpha-blend over scene.
 //
-// The cloud render target (RGBA: lit cloud color + opacity) is bound to t0.
+// The cloud render target (RGBA: lit cloud color + opacity) is bound to texture slot 0.
 // Hardware alpha blending (AlphaBlend) composites this over the existing
 // framebuffer content, which may contain:
 //   - Classic sky bitmap layer(s)
@@ -2724,7 +2724,7 @@ float4 PSCloudOcclusion(VSOutput input) : SV_TARGET
     // at the sun direction (common in procedural noise), all ray taps fall inside
     // the gap and report near-zero density even though the surrounding rendered
     // clouds look dense. The screen-space sampling below fixes this by measuring
-    // the actual cloud alpha in the cloud half-res render target (bound to t0)
+    // the actual cloud alpha in the cloud half-res render target (texture slot 0)
     // across a wider "corona" area around the sun's projected screen position.
     //
     // CORONA_RADIUS: sample ring offset in half-res cloud RT pixels.

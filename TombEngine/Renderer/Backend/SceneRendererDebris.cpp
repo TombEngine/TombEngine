@@ -1,3 +1,7 @@
+// Debris of shattered meshes (not a frame pass of its own). Fragments are collected with the objects of the frame,
+// uploaded as a frame vertex buffer and drawn inside the scene pass (RenderScenePass) in three groups: opaque, additive
+// and the remaining blended modes, at full scene resolution.
+
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 
@@ -12,7 +16,7 @@ using TEN::Renderer::Structures::Vertex;
 
 namespace TEN::Renderer::Backend
 {
-    // Same packing::PackVector3: signed normalized bytes in RGBA order.
+    // Same packing as Renderer::PackVector3 used for level vertices: signed normalized bytes in RGBA order.
     static unsigned int PackNormal(Vector3 normal)
     {
         if (normal.Length() > EPSILON)
@@ -31,6 +35,7 @@ namespace TEN::Renderer::Backend
         _debrisInstanceData.clear();
         _debrisDraws.clear();
 
+        // Active fragments sorted by texture and blend mode, so equal states end up adjacent and merge into one draw.
         auto fragments = std::vector<const DebrisFragment*>{};
         for (const auto& fragment : DebrisFragments)
         {
@@ -70,6 +75,7 @@ namespace TEN::Renderer::Backend
                 _debrisInstanceData.insert(_debrisInstanceData.end(), indexBytes, indexBytes + sizeof(instance));
             }
 
+            // Extend the current draw or start a new one when the texture page or blend mode changes.
             const auto* pages = fragment->mesh.Animated ? &_animatedTextures : (fragment->isStatic ? &_staticTextures : &_moveableTextures);
             if (_debrisDraws.empty() || _debrisDraws.back().Pages != pages || _debrisDraws.back().Page != fragment->mesh.tex ||
                 _debrisDraws.back().BlendMode != fragment->mesh.blendMode)

@@ -1,3 +1,7 @@
+// Debug primitives (not a frame pass of its own): the lines and triangles queued by the frontend in the
+// FrameEnvironment are written into a frame vertex buffer and drawn additively at the end of the scene pass, depth
+// tested against the scene depth.
+
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 
@@ -76,6 +80,7 @@ namespace TEN::Renderer::Backend
         }
     }
 
+    // Two draws from the shared vertex buffer: the line list, then the triangle list starting after the line vertices.
     void SceneRenderer::DrawDebugPrimitives(ICommandBuffer& commandBuffer, IRenderPass& renderPass)
     {
         if (_debugLineVertexCount == 0 && _debugTriangleVertexCount == 0)

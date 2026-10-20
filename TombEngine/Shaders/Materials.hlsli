@@ -1,7 +1,7 @@
 #ifndef TEN_MATERIALS
 #define TEN_MATERIALS
 
-// Surface sampling of the material system (Shaders/Materials.hlsli): color, normal, ORSH and emissive
+// Surface sampling of the material system: color, normal, ORSH (occlusion, roughness, specular, height) and emissive
 // maps of an atlas page, parallax occlusion mapping and per-material properties from a frame storage buffer.
 // Pixel textures use slots 0-3, slot 4 is the screen space ambient occlusion, slot 5 the shadow map
 // (Shadows.hlsli), slot 6 the caustics, slot 7 the previous frame reflections and slot 8 the sky reflections;
@@ -92,6 +92,7 @@ void ApplyAlphaTest(float alpha, float alphaThreshold)
 #endif
 }
 
+// Tangent space normal from the map; z is rebuilt from x and y.
 float3 UnpackNormalMap(float4 n)
 {
     n = n * 2.0f - 1.0f;
@@ -99,6 +100,7 @@ float3 UnpackNormalMap(float4 n)
     return n.xyz;
 }
 
+// Normalized normal, falling back to the direction toward the camera when it is NaN or degenerate.
 float3 EnsureNormal(float3 normal, float3 position, float3 cameraPosition)
 {
     normal = any(isnan(normal)) ? float3(0.0f, 0.0f, 0.0f) : normal;
@@ -109,6 +111,7 @@ float3 EnsureNormal(float3 normal, float3 position, float3 cameraPosition)
     return (dot(view, view) >= 0.001f) ? normalize(view) : float3(0.0f, 0.0f, 1.0f);
 }
 
+// Default materials store the emissive intensity in Properties[0].x; reflective materials use it for the tint.
 float GetEmissiveIntensity(GpuMaterial material)
 {
     return ((material.TypeAndFlags & MATERIAL_TYPE_MASK) == MATERIAL_DEFAULT) ? material.Properties[0].x : 1.0f;
@@ -119,6 +122,8 @@ float SampleHeight(float2 uv)
     return 1.0f - SampleORSHMap(frac(uv)).w;
 }
 
+// Steps along the tangent space view ray through the height field until it falls below the surface, then
+// interpolates between the last two steps. Fewer steps at steep view angles; faded out with distance.
 float2 ParallaxOcclusionMapping(GpuMaterial material, float3 tangent, float3 binormal, float3 faceNormal, float3 position, float3 cameraPosition, float2 baseUV)
 {
 #ifdef NO_ORSH_MAP
@@ -246,6 +251,8 @@ float3 SampleScreenReflection(float3 position, float3 cameraPosition, float3 nor
     return ReflectionMap.Sample(ReflectionMapSampler, uv).rgb;
 }
 
+// Reflective materials blend toward the screen or sky reflection, tinted by Properties[0].rgb, with strength
+// Properties[0].a scaled by the specular intensity.
 float3 ApplyReflections(GpuMaterial material, float3 color, float3 position, float3 cameraPosition, float3 normal, float specular,
                         float4x4 view, float aspectRatio)
 {
@@ -288,6 +295,7 @@ PrepassOutput GetPrepassOutput(float3 viewNormal, float3 emissive, float fog, bo
     return output;
 }
 
+// View space normal remapped from [-1, 1] to [0, 1] for storage in a color target.
 float3 EncodeViewNormal(float3 normal, float4x4 view)
 {
     return normalize(mul(normal, (float3x3)view)) * 0.5f + 0.5f;

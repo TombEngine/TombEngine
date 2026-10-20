@@ -4,8 +4,9 @@
 // TEN_SHADER: Pixel PSSunMoonDisc samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=4
 // TEN_SHADER: Pixel PSCopy samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=0
 
-// Atmospheric sky dome, aurora and sun and moon discs of the frontend (Shaders/AtmosphericSkyCore.hlsli):
-// fullscreen triangles with the CBAtmosphericSky uniform block in slot 2 and the camera inverses in slot 3.
+// Atmospheric sky dome, aurora and sun and moon discs (SceneRendererAtmosphere.cpp), implemented in
+// AtmosphericSkyCore.hlsli: fullscreen triangles with the CBAtmosphericSky uniform block in slot 2 and the camera
+// inverses in slot 3. PSCopy upscales the half resolution aurora into the scene.
 
 #include "./ShaderInterop.hlsli"
 #include "./Fullscreen.hlsli"

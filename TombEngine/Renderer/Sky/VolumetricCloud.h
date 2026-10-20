@@ -112,7 +112,7 @@ namespace TEN::Renderer::VolumetricCloud
 		float HorizonMeshBleed = 0.0f;  // [0,1] re-composite alpha after horizon mesh (0=no bleed, 1=full bleed).
 
 		// Internal renderer field - not part of saved state.
-		// Set by doBleedOverlay to pass bleedStrength into the composite shader.
+		// Set by PrepareCloudBleed to pass the bleed strength into the composite shader.
 		// 0.0 = normal pass (HorizonAtmosphericFade applied).
 		// >0  = bleed pass  (inverse-fade mask, value carries blendStrength).
 		float BleedPassStrength = 0.0f;

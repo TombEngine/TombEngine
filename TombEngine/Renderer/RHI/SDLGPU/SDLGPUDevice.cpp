@@ -8,9 +8,15 @@
 #include <SDL3/SDL_gpu.h>
 #include <thread>
 
+// SDL3 GPU backend for Vulkan (SPIR-V) and Direct3D 12 (DXIL). The RHI mirrors SDL GPU, so most calls map one to one:
+// bindings are per stage and slot, uniforms are pushed with SDL_Push*UniformData and read-write compute resources are
+// declared when the pass begins. Command buffers come from a pool and may be recorded on several threads, but the
+// swapchain must be acquired on the window thread. Fences are SDL GPU fences; there are no timestamp queries, so GPU
+// timings come from fences of split command buffers (SDLGPUProfiler).
+
 namespace TEN::Renderer::RHI::SDLGPU
 {
-    constexpr auto COMMAND_BUFFER_POOL_SIZE   = 8;
+    constexpr auto COMMAND_BUFFER_POOL_SIZE   = 8; // Command buffers recorded at the same time, across threads.
     constexpr auto SWAPCHAIN_FRAMES_IN_FLIGHT = 3;
 
     static SDL_GPUTextureFormat ToSDL(PixelFormat format)
@@ -45,6 +51,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         }
     }
 
+    // Swapchain formats only.
     static PixelFormat FromSDL(SDL_GPUTextureFormat format)
     {
         switch (format)
@@ -247,7 +254,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         SDL_GPUDevice*  Device  = nullptr;
         SDL_GPUTexture* Handle  = nullptr;
         TextureDesc     Desc    = {};
-        bool            IsOwned = true;
+        bool            IsOwned = true; // False for the swapchain texture, which SDL owns.
         MemoryAllocation Allocation = {};
 
         ~SDLGPUTexture() override
@@ -293,7 +300,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         SDL_GPUGraphicsPipeline* Handle = nullptr;
         PrimitiveType            Primitive = PrimitiveType::TriangleList;
         bool                     IsStencilTested  = false;
-        unsigned char            StencilReference = 0;
+        unsigned char            StencilReference = 0; // Dynamic state in SDL GPU, set when the pipeline is bound.
 
         ~SDLGPUGraphicsPipeline() override { SDL_ReleaseGPUGraphicsPipeline(Device, Handle); }
     };
@@ -403,6 +410,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         return first == second;
     }
 
+    // Last bindings of a range of slots in the current render pass, to skip redundant SDL calls.
     template<class T, int Capacity>
     struct BindingCache
     {
@@ -440,6 +448,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         bool _hasScissor = false;
 
     public:
+        // SDL GPU forgets bindings at the end of a pass, so the caches start empty in every pass.
         void ResetBindings()
         {
             _pipeline = nullptr;
@@ -706,6 +715,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             total.Samples++;
         }
 
+        // Waiting thread: takes parts in submission order, waits for each fence and adds up the elapsed times.
         void Run()
         {
             auto previousEndTime = std::chrono::steady_clock::time_point{};
@@ -827,6 +837,8 @@ namespace TEN::Renderer::RHI::SDLGPU
         }
     };
 
+    // Pooled wrapper of an SDL GPU command buffer. It keeps the uniforms and debug groups of the recording, so a
+    // split for GPU timing can continue on a new SDL command buffer with the same state.
     class SDLGPUCommandBuffer : public ICommandBuffer
     {
     private:
@@ -916,6 +928,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         SDLGPUCopyPass        CopyPass         = {};
         SDLGPUComputePass     ComputePass      = {};
 
+        // Waits for a free swapchain image; must run on the window thread. The wrapper is valid until submission.
         ITexture* AcquireSwapchainTexture() override
         {
             SDL_GPUTexture* texture = nullptr;
@@ -964,6 +977,7 @@ namespace TEN::Renderer::RHI::SDLGPU
                 sdlDepthTarget.clear_depth = depthTarget->ClearDepth;
                 sdlDepthTarget.load_op = ToSDL(depthTarget->Load);
                 sdlDepthTarget.store_op = ToSDL(depthTarget->Store);
+                // Stencil follows the depth load and store operations.
                 sdlDepthTarget.stencil_load_op = ToSDL(depthTarget->Load);
                 sdlDepthTarget.stencil_store_op = ToSDL(depthTarget->Store);
                 sdlDepthTarget.clear_stencil = depthTarget->ClearStencil;
@@ -1022,6 +1036,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             ComputePass.Handle = nullptr;
         }
 
+        // SDL GPU copies the data into its own per command buffer uniform storage; a copy is kept for RestoreUniforms.
         void PushUniforms(ShaderStage stage, int slot, const void* data, int size) override
         {
             Counters.UniformPushes++;
@@ -1052,6 +1067,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             RestoreUniforms();
         }
 
+        // Clears the state of the previous recording; profiler is null unless GPU timing is enabled.
         void BeginRecording(SDLGPUProfiler* profiler)
         {
             Profiler = profiler;
@@ -1068,6 +1084,8 @@ namespace TEN::Renderer::RHI::SDLGPU
             ResetCounters();
         }
 
+        // While timing, the outermost group and the groups directly inside it start a new part. The outermost one
+        // names the frame; its part (the work before the first inner group) has no name of its own.
         void PushDebugGroup(const char* name) override
         {
             int depth = (int)_debugGroups.size();
@@ -1082,6 +1100,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             _debugGroups.push_back(name);
         }
 
+        // Ending a timed group submits its part; ending the outermost one also closes the frame.
         void PopDebugGroup() override
         {
             SDL_PopGPUDebugGroup(Handle);
@@ -1131,6 +1150,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         }
     };
 
+    // Properties carrying the debug name of a new resource; zero when there is no name.
     static SDL_PropertiesID CreateNameProperties(const char* property, const std::string& name)
     {
         if (name.empty())
@@ -1147,6 +1167,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             SDL_DestroyProperties(props);
     }
 
+    // Owns the SDL GPU device, the claim on the window, the command buffer pool and the timing thread.
     class SDLGPUDevice : public IDevice
     {
     private:
@@ -1288,6 +1309,8 @@ namespace TEN::Renderer::RHI::SDLGPU
             return sampler;
         }
 
+        // Graphics shaders are created now with their resource counts; compute shaders only keep the code until
+        // CreateComputePipeline.
         std::unique_ptr<IShader> CreateShader(const ShaderDesc& desc) override
         {
             auto shader = std::make_unique<SDLGPUShader>();
@@ -1320,6 +1343,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             return shader;
         }
 
+        // Translates the description field by field: vertex input, color targets, rasterizer, then depth and stencil.
         std::unique_ptr<IGraphicsPipeline> CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) override
         {
             SDL_GPUVertexBufferDescription buffers[MAX_VERTEX_BUFFERS] = {};
@@ -1462,6 +1486,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             return buffer;
         }
 
+        // With cycle, SDL maps a fresh internal buffer if the GPU still reads the current one.
         void* MapTransferBuffer(ITransferBuffer* buffer, bool cycle) override
         {
             return SDL_MapGPUTransferBuffer(_device, GetHandle(buffer), cycle);
@@ -1589,6 +1614,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         }
     };
 
+    // Checks that the driver accepts the shader format, creates the device and claims the window for its swapchain.
     std::unique_ptr<IDevice> CreateSDLGPUDevice(SDL_Window* window, const char* driverName, bool debugMode, bool preferLowPower)
     {
         bool isDirect3D12 = (std::string(driverName) == "direct3d12");

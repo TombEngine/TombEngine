@@ -26,6 +26,7 @@
 #define LIGHT_MODE_DYNAMIC 0
 #define LIGHT_MODE_STATIC  1
 
+// Depth buffer value to linear depth as a fraction of the far plane distance (1 at the far plane).
 float LinearizeDepth(float depth, float nearPlane, float farPlane)
 {
     return (nearPlane * 2.0f) / (farPlane + nearPlane - depth * (farPlane - nearPlane));
@@ -48,6 +49,8 @@ float Luma(float3 color)
     return (color.x * 0.2126f) + (color.y * 0.7152f) + (color.z * 0.0722f);
 }
 
+// Packed vertex fields. Effects: glow in bits 0-7, move in bits 8-15, sheen in bits 16-23, weight in bit 24 and the
+// corner index in the polygon in bits 25-26. Animation data: hash in bits 0-7, animation frame offset in bits 24-31.
 uint DecodeIndexInPoly(uint effects)
 {
     return (effects >> 25) & 0x3;
@@ -87,6 +90,8 @@ uint DecodeHash(uint animationData)
     return animationData & 0xFF;
 }
 
+// Sine wave in [-1, 1] with a period of WIBBLE_FRAME_PERIOD frames, phase shifted by the vertex hash.
+// Zero for vertices without glow or move.
 float Wibble(uint effects, uint hash, float interpolatedFrame)
 {
     float enabled = ((DecodeGlow(effects) + DecodeMove(effects)) > 0.0f) ? 1.0f : 0.0f;
@@ -100,12 +105,14 @@ float3 Glow(float3 color, uint effects, float wibble)
     return color + intensity;
 }
 
+// Vertical vertex movement of up to 128 world units, applied only to weighted vertices.
 float3 Move(float3 position, uint effects, float wibble)
 {
     float offset = wibble * DecodeMove(effects) * DecodeWeight(effects) * 128.0f;
     return position + float3(0.0f, offset, 0.0f);
 }
 
+// Frame of an animated set at the given game frame (30 per second), looping over the set's frames.
 uint GetAnimatedFrameIndex(GpuAnimatedSet set, uint frame, uint frameOffset)
 {
     float speed = (float)set.Fps / 30.0f;
@@ -158,6 +165,7 @@ float2 ApplyUVScroll(float2 uv, float3 scroll)
     return clamp(frac(uv + scroll.xy), EPSILON, 1.0f - EPSILON);
 }
 
+// Linear fog factor between the minimum and maximum distances, given in sectors (1024 world units).
 float GetDistanceFog(float3 position, float3 cameraPosition, float fogMinDistance, float fogMaxDistance)
 {
     if (fogMaxDistance <= 0.0f)
@@ -167,6 +175,8 @@ float GetDistanceFog(float3 position, float3 cameraPosition, float fogMinDistanc
     return saturate((distance - fogMinDistance * 1024.0f) / (fogMaxDistance * 1024.0f - fogMinDistance * 1024.0f));
 }
 
+// Blends toward the fog color. Additive-like modes scale the fog color by the pixel luma and subtractive-like
+// modes by its inverse, so transparent texels do not turn into a flat fog colored quad.
 float4 ApplyDistanceFog(float4 color, float4 fogColor, float fog, uint blendMode)
 {
     switch (blendMode)

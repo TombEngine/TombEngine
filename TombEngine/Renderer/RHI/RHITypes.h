@@ -1,5 +1,9 @@
 #pragma once
 
+// Plain descriptions, enums and binding structures of the RHI, shared by the renderer and every backend.
+// Values mirror SDL GPU; each backend translates them to its API. Sizes and offsets are in bytes and texel
+// coordinates in texels unless stated otherwise.
+
 namespace TEN::Renderer::RHI
 {
     class IBuffer;
@@ -10,13 +14,15 @@ namespace TEN::Renderer::RHI
     class IComputePipeline;
     class ITransferBuffer;
 
+    // Limits per pipeline or per shader stage.
     constexpr auto MAX_COLOR_TARGETS      = 4;
     constexpr auto MAX_VERTEX_BUFFERS     = 4;
     constexpr auto MAX_VERTEX_ATTRIBUTES  = 16;
-    constexpr auto MAX_UNIFORM_SLOTS      = 4;
-    constexpr auto MAX_SAMPLER_SLOTS      = 16;
-    constexpr auto MAX_STORAGE_SLOTS      = 8;
+    constexpr auto MAX_UNIFORM_SLOTS      = 4;  // Uniform blocks per stage, as in SDL GPU.
+    constexpr auto MAX_SAMPLER_SLOTS      = 16; // Texture and sampler pairs per stage.
+    constexpr auto MAX_STORAGE_SLOTS      = 8;  // Storage buffers per stage, and read-write resources per compute pass.
 
+    // Vulkan and Direct3D12 run through SDL GPU.
     enum class GraphicsApi
     {
         None,
@@ -26,6 +32,8 @@ namespace TEN::Renderer::RHI
         OpenGL
     };
 
+    // Shader binary formats written by CompileShaders.ps1: DXBC (FXC) for DX11, SPIR-V for Vulkan,
+    // DXIL for Direct3D 12 and GLSL (SPIRV-Cross) for OpenGL.
     enum class ShaderFormat
     {
         None,
@@ -35,6 +43,7 @@ namespace TEN::Renderer::RHI
         Glsl
     };
 
+    // Pixel is the fragment stage of SDL GPU and OpenGL.
     enum class ShaderStage
     {
         Vertex,
@@ -42,6 +51,8 @@ namespace TEN::Renderer::RHI
         Compute
     };
 
+    // BC formats store 4x4 texel blocks (see GetFormatBlockSize and GetFormatBlockDimension). D formats are depth
+    // formats; the S8 variants also have stencil.
     enum class PixelFormat
     {
         Unknown,
@@ -74,6 +85,7 @@ namespace TEN::Renderer::RHI
         D32FloatS8Uint
     };
 
+    // Norm formats reach the shader as floats in [0, 1] or [-1, 1]; UByte4 and UInt as integers.
     enum class VertexElementFormat
     {
         Float,
@@ -143,6 +155,7 @@ namespace TEN::Renderer::RHI
         Always
     };
 
+    // Applied to pixels that pass both the stencil and the depth test; failing pixels keep their stencil value.
     enum class StencilOp
     {
         Keep,
@@ -199,6 +212,8 @@ namespace TEN::Renderer::RHI
         DontCare
     };
 
+    // Arrays and cube maps select their layer or face through the Layer of targets and regions; 3D textures
+    // use Z and Depth.
     enum class TextureType
     {
         Texture2D,
@@ -207,12 +222,15 @@ namespace TEN::Renderer::RHI
         Texture3D
     };
 
+    // Upload buffers are written by the CPU and read by copy passes; download buffers the opposite.
     enum class TransferBufferUsage
     {
         Upload,
         Download
     };
 
+    // Vsync waits for vertical blank. Immediate presents at once and may tear. Mailbox replaces the queued image
+    // without tearing; only SDL GPU supports it (see IDevice::SupportsPresentMode).
     enum class PresentMode
     {
         Vsync,
@@ -220,6 +238,8 @@ namespace TEN::Renderer::RHI
         Mailbox
     };
 
+    // Flags of BufferDesc::Usage. GraphicsStorageRead allows binding as a read-only storage buffer in vertex and
+    // pixel shaders; the compute flags allow read-only and read-write binding in compute passes.
     namespace BufferUsage
     {
         constexpr auto Vertex              = 1 << 0;
@@ -230,6 +250,7 @@ namespace TEN::Renderer::RHI
         constexpr auto ComputeStorageWrite = 1 << 5;
     }
 
+    // Flags of TextureDesc::Usage.
     namespace TextureUsage
     {
         constexpr auto Sampler             = 1 << 0;
@@ -248,12 +269,13 @@ namespace TEN::Renderer::RHI
         constexpr auto All   = Red | Green | Blue | Alpha;
     }
 
+    // GPU buffers are not CPU visible: fill them through a transfer buffer and a copy pass (see UploadRing).
     struct BufferDesc
     {
         int          Size   = 0;
         int          Stride = 0; // Element size of storage buffers, required by DX11 structured buffers.
-        unsigned int Usage  = 0;
-        std::string  Name   = {};
+        unsigned int Usage  = 0; // BufferUsage flags.
+        std::string  Name   = {}; // Debug name shown by graphics debuggers.
     };
 
     struct TextureDesc
@@ -262,10 +284,10 @@ namespace TEN::Renderer::RHI
         PixelFormat       Format        = PixelFormat::RGBA8Unorm;
         int          Width         = 1;
         int          Height        = 1;
-        int          DepthOrLayers = 1;
+        int          DepthOrLayers = 1; // Depth of 3D textures, layer count of arrays; 6 for cube maps.
         int          MipLevels     = 1;
-        int          SampleCount   = 1;
-        unsigned int Usage         = TextureUsage::Sampler;
+        int          SampleCount   = 1; // Multisampling: 1, 2, 4 or 8.
+        unsigned int Usage         = TextureUsage::Sampler; // TextureUsage flags.
         std::string  Name          = {};
     };
 
@@ -277,12 +299,12 @@ namespace TEN::Renderer::RHI
         AddressMode AddressU      = AddressMode::Repeat;
         AddressMode AddressV      = AddressMode::Repeat;
         AddressMode AddressW      = AddressMode::Repeat;
-        int         MaxAnisotropy = 1;
-        bool        EnableCompare = false;
+        int         MaxAnisotropy = 1;     // Above 1, anisotropic filtering replaces the filters on DX11 and OpenGL.
+        bool        EnableCompare = false; // Comparison sampler for shadow maps (TEN_PS_COMPARISON_TEXTURE).
         CompareOp   Compare       = CompareOp::LessOrEqual;
         float       MipLodBias    = 0.0f;
         float       MinLod        = 0.0f;
-        float       MaxLod        = 1000.0f;
+        float       MaxLod        = 1000.0f; // Default covers every mip.
         std::string Name          = {};
     };
 
@@ -291,7 +313,7 @@ namespace TEN::Renderer::RHI
     struct ShaderDesc
     {
         ShaderStage                Stage               = ShaderStage::Vertex;
-        const unsigned char*       Code                = nullptr;
+        const unsigned char*       Code                = nullptr; // Not owned; GLSL source text on OpenGL.
         int                        CodeSize            = 0;
         std::string                EntryPoint          = "main";
         int                        NumSamplers         = 0;
@@ -308,8 +330,8 @@ namespace TEN::Renderer::RHI
 
     struct VertexBufferLayout
     {
-        int             Slot   = 0;
-        int             Stride = 0;
+        int             Slot   = 0; // Slot given to IRenderPass::BindVertexBuffers.
+        int             Stride = 0; // Bytes between consecutive vertices or instances.
         VertexInputRate Rate   = VertexInputRate::Vertex;
     };
 
@@ -317,10 +339,10 @@ namespace TEN::Renderer::RHI
     // for every attribute so both backends resolve the same layout.
     struct VertexAttribute
     {
-        int                 Location   = 0;
+        int                 Location   = 0; // TEN_LOCATION(N) and semantic TEXCOORD<N> in the shader.
         int                 BufferSlot = 0;
         VertexElementFormat Format     = VertexElementFormat::Float3;
-        int                 Offset     = 0;
+        int                 Offset     = 0; // Bytes from the start of the vertex.
     };
 
     struct VertexLayout
@@ -335,12 +357,12 @@ namespace TEN::Renderer::RHI
     {
         FillMode  Fill                 = FillMode::Solid;
         CullMode  Cull                 = CullMode::Back;
-        FrontFace Front                = FrontFace::Clockwise;
-        float     DepthBiasConstant    = 0.0f;
+        FrontFace Front                = FrontFace::Clockwise; // Winding in Direct3D conventions, shared by every backend.
+        float     DepthBiasConstant    = 0.0f; // In units of the smallest depth difference; truncated to an integer on DX11.
         float     DepthBiasSlope       = 0.0f;
-        float     DepthBiasClamp       = 0.0f;
+        float     DepthBiasClamp       = 0.0f; // Ignored on OpenGL.
         bool      EnableDepthBias      = false;
-        bool      EnableDepthClip      = true;
+        bool      EnableDepthClip      = true; // When off, depth is clamped to the viewport range instead of clipped.
     };
 
     struct DepthStencilState
@@ -365,7 +387,7 @@ namespace TEN::Renderer::RHI
         BlendFactor  SrcAlpha       = BlendFactor::One;
         BlendFactor  DstAlpha       = BlendFactor::Zero;
         BlendOp      AlphaOp        = BlendOp::Add;
-        unsigned int WriteMask      = ColorWriteMask::All;
+        unsigned int WriteMask      = ColorWriteMask::All; // ColorWriteMask flags.
     };
 
     struct ColorTargetDesc
@@ -374,6 +396,7 @@ namespace TEN::Renderer::RHI
         BlendState Blend  = {};
     };
 
+    // Formats and sample count must match the targets of the render passes the pipeline is used in.
     struct GraphicsPipelineDesc
     {
         IShader*          VertexShader                    = nullptr;
@@ -384,7 +407,7 @@ namespace TEN::Renderer::RHI
         DepthStencilState DepthStencil                    = {};
         ColorTargetDesc   ColorTargets[MAX_COLOR_TARGETS] = {};
         int               NumColorTargets                 = 0;
-        PixelFormat            DepthFormat                     = PixelFormat::Unknown;
+        PixelFormat            DepthFormat                     = PixelFormat::Unknown; // Unknown for passes without a depth target.
         int               SampleCount                     = 1;
         std::string       Name                            = {};
     };
@@ -395,16 +418,19 @@ namespace TEN::Renderer::RHI
         std::string Name   = {};
     };
 
+    // Target of a render pass. Load and Store tell whether previous contents are kept and whether the result is
+    // written back; DontCare lets tiled GPUs skip the memory traffic.
     struct ColorTargetInfo
     {
         ITexture* Texture    = nullptr;
         int       MipLevel   = 0;
-        int       Layer      = 0;
+        int       Layer      = 0; // Array layer, cube face or 3D depth slice.
         LoadOp    Load       = LoadOp::Clear;
         StoreOp   Store      = StoreOp::Store;
-        float     ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+        float     ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f }; // Used with LoadOp::Clear.
     };
 
+    // Load and Store also apply to stencil. Mip level 0 only.
     struct DepthTargetInfo
     {
         ITexture*     Texture      = nullptr;
@@ -468,17 +494,18 @@ namespace TEN::Renderer::RHI
         }
     };
 
+    // Result of IDevice::ConsumeGpuTimings for one debug group.
     struct GpuTiming
     {
-        std::string Name         = {};
-        float       Milliseconds = 0.0f;
-        int         Samples      = 0;
+        std::string Name         = {};   // Debug group name.
+        float       Milliseconds = 0.0f; // Average over the samples.
+        int         Samples      = 0;    // Measurements since the previous call.
     };
 
     struct BufferBinding
     {
         IBuffer* Buffer = nullptr;
-        int      Offset = 0;
+        int      Offset = 0; // Bytes.
     };
 
     struct TextureSamplerBinding
@@ -487,6 +514,7 @@ namespace TEN::Renderer::RHI
         ISampler* Sampler = nullptr;
     };
 
+    // In pixels from the upper left corner of the target; depth range from 0 to 1.
     struct Viewport
     {
         float X        = 0.0f;
@@ -505,11 +533,12 @@ namespace TEN::Renderer::RHI
         int Height = 0;
     };
 
+    // Box of texels in one mip level and layer. Z and Depth are used by 3D textures only.
     struct TextureRegion
     {
         ITexture* Texture  = nullptr;
         int       MipLevel = 0;
-        int       Layer    = 0;
+        int       Layer    = 0; // Array layer or cube face.
         int       X        = 0;
         int       Y        = 0;
         int       Z        = 0;
@@ -522,14 +551,14 @@ namespace TEN::Renderer::RHI
     struct TextureTransferInfo
     {
         ITransferBuffer* TransferBuffer = nullptr;
-        int              Offset         = 0;
-        int              PixelsPerRow   = 0;
-        int              RowsPerLayer   = 0;
+        int              Offset         = 0; // Bytes.
+        int              PixelsPerRow   = 0; // Row pitch in texels.
+        int              RowsPerLayer   = 0; // Rows between layers or depth slices.
     };
 
-    int  GetFormatBlockSize(PixelFormat format);
-    int  GetFormatBlockDimension(PixelFormat format);
+    int  GetFormatBlockSize(PixelFormat format);      // Bytes per texel, or per 4x4 block of BC formats.
+    int  GetFormatBlockDimension(PixelFormat format); // 4 for BC formats, otherwise 1.
     bool IsDepthFormat(PixelFormat format);
     bool HasStencil(PixelFormat format);
-    int  GetTextureDataSize(PixelFormat format, int width, int height, int depth);
+    int  GetTextureDataSize(PixelFormat format, int width, int height, int depth); // Bytes of one tightly packed mip.
 }

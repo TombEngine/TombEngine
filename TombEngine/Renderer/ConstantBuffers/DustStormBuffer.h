@@ -3,11 +3,10 @@
 #include "Math/SimpleMath.h"
 
 // ============================================================================
-// DustStormBuffer.h - GPU constant buffer for the volumetric dust storm pass.
+// DustStormBuffer.h - Uniform block for the volumetric dust storm pass.
 //
-// Bound to register b10. The dust pass runs after all geometry / gun flashes
-// and before HUD / glow, so reusing the Hud slot is safe at this stage of the
-// frame (same convention as the god ray pass).
+// Filled by UpdateDustStormBuffer, copied into Backend::DustStormDraw and
+// pushed by the scene renderer as pixel uniforms of the dust storm pass.
 // Must match CBDustStorm.hlsli layout exactly.
 // ============================================================================
 

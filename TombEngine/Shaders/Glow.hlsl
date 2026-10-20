@@ -3,7 +3,7 @@
 // TEN_SHADER: Pixel PSBlur samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
 // TEN_SHADER: Pixel PSCombine samplers=2 storage_textures=0 storage_buffers=0 uniform_buffers=3
 
-// Glow of the frontend (Renderer::ApplyGlow): the prepass emissive target is downscaled and blurred
+// Glow (SceneRendererGlow.cpp): the prepass emissive target is downscaled and blurred
 // with a separable gaussian, then the post-process adds it with a soft add.
 
 #include "./ShaderInterop.hlsli"
@@ -31,7 +31,7 @@ float3 SampleSource(float2 uv)
     return SourceMap.SampleLevel(SourceMapSampler, uv, 0.0f).rgb;
 }
 
-// Same 9 tap filter.
+// 9 tap filter at half destination texel offsets: weight 1/2 for the center, 1/8 for the sides, 1/32 for the corners.
 float4 PSDownscale(FullscreenPixelInput input) : SV_Target
 {
     float2 dx = float2(TexelSize.x * 0.5f, 0.0f);

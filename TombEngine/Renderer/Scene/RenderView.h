@@ -21,6 +21,7 @@ namespace TEN::Renderer
 {
 	using namespace TEN::Renderer::Structures;
 
+	// Camera of a render view: matrices, frustum and viewport size.
 	struct RenderViewCamera
 	{
 		Matrix ViewProjection;
@@ -40,6 +41,9 @@ namespace TEN::Renderer
 		RenderViewCamera(const Vector3& pos, const Vector3& dir, const Vector3& up, int room, int width, int height, float fov, float n, float f);
 	};
 
+	// Everything collected by the frontend for one frame of a camera: visible rooms (in portal traversal order),
+	// lights, fog bulbs, sprites, statics grouped by ID, transparent objects with their polygons and sort keys,
+	// lens flares and mirrors. The scene renderer draws the frame from it.
 	struct RenderView
 	{
 		RenderViewCamera Camera;

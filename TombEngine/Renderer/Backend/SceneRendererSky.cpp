@@ -1,3 +1,9 @@
+// Sky pass ("Sky" in FRAME_PASSES, after the distortion pass and before the scene pass): clears the full resolution
+// scene target to the fog color and, when a sky room is visible, draws the sky background, the volumetric cloud
+// layers, the sun and moon discs, the aurora, the horizon meshes and the god rays. The scene pass then loads the
+// result. Clouds raymarch at the resolution chosen by the frontend, god rays at half resolution. The dust storm,
+// drawn later inside the scene pass, also lives here.
+
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 
@@ -16,6 +22,7 @@ namespace TEN::Renderer::Backend
         Vector4 CameraPosition    = Vector4::Zero;
     };
 
+    // Raymarch, composite and sun occlusion pipelines, plus the 1x1 occlusion targets read back for the lens flares.
     bool SceneRenderer::CreateCloudResources()
     {
         _cloudVertexShader = LoadShader(*_device, _shaderDirectory, "VolumetricClouds", "VS");
@@ -130,6 +137,7 @@ namespace TEN::Renderer::Backend
         return true;
     }
 
+    // Clears a color target with an empty render pass.
     void SceneRenderer::ClearColorTarget(ICommandBuffer& commandBuffer, ITexture* texture)
     {
         auto colorTarget = ColorTargetInfo{};
@@ -139,6 +147,7 @@ namespace TEN::Renderer::Backend
         commandBuffer.EndRenderPass();
     }
 
+    // True when the frontend queued a cloud draw for the given side of the horizon meshes and the noise is uploaded.
     bool SceneRenderer::HasCloudDraws(bool isAfterHorizons) const
     {
         const auto* draws = _frameEnvironment->CloudDraws;
@@ -300,6 +309,7 @@ namespace TEN::Renderer::Backend
         _targetPool.Release(sceneCopy);
     }
 
+    // Half resolution radial blur pipeline and the additive composite pipeline of the god rays.
     bool SceneRenderer::CreateGodRayResources()
     {
         _godRayVertexShader = LoadShader(*_device, _shaderDirectory, "GodRay", "VS");
@@ -356,12 +366,14 @@ namespace TEN::Renderer::Backend
             commandBuffer.PushDebugGroup("God rays");
             commandBuffer.BlitTexture(_sceneTarget.get(), sceneCopy);
 
+            // Horizon silhouette.
             auto colorTarget = ColorTargetInfo{};
             colorTarget.Texture = maskTarget;
             auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
             DrawHorizonMeshes(commandBuffer, *renderPass, *_frameView, _frameEnvironment->InterpolationFactor, 0, true);
             commandBuffer.EndRenderPass();
 
+            // Radial blur.
             commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &godRays.Uniforms, sizeof(godRays.Uniforms));
             colorTarget.Texture = rayTarget;
             renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
@@ -379,6 +391,7 @@ namespace TEN::Renderer::Backend
             renderPass->Draw(3, 1, 0, 0);
             commandBuffer.EndRenderPass();
 
+            // Additive composite.
             colorTarget.Texture = _sceneTarget.get();
             colorTarget.Load = LoadOp::Load;
             renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
@@ -441,7 +454,8 @@ namespace TEN::Renderer::Backend
         commandBuffer.PopDebugGroup();
     }
 
-    // Scene target with the depth of the prepass, which the sky pipelines neither test nor write.
+    // Scene target with the depth of the prepass, which the sky pipelines test but never write, so the sky covers only
+    // the texels left empty by the scene geometry.
     IRenderPass* SceneRenderer::BeginSkyRenderPass(ICommandBuffer& commandBuffer, LoadOp load)
     {
         const auto& fogColor = _frameEnvironment->FogColor;

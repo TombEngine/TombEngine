@@ -3,6 +3,9 @@
 
 #include "Specific/trutils.h"
 
+// Loader of DirectXTK .spritefont files: glyphs, line spacing and the font texture, normalized to a format the
+// scene renderer uploads. Text is measured here and drawn by the scene renderer.
+
 namespace TEN::Renderer
 {
 	// Texture formats MakeSpriteFont writes, besides the ones the renderer loads directly.
@@ -89,6 +92,7 @@ namespace TEN::Renderer
 		return true;
 	}
 
+	// Reads the "DXTKfont" header, the glyph table, the font metrics and the texture data.
 	bool Font::Load(const std::string& path)
 	{
 		auto file = std::ifstream(path, std::ios::binary);
@@ -145,6 +149,7 @@ namespace TEN::Renderer
 		return true;
 	}
 
+	// Glyph of a character, or of the default character when the font lacks it.
 	const FontGlyph* Font::FindGlyph(unsigned int character) const
 	{
 		auto it = Glyphs.find(character);

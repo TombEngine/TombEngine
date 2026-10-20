@@ -1,3 +1,8 @@
+// Shadow map ("Shadow map" in FRAME_PASSES, the first pass of the frame): the shadow casting objects are drawn into
+// the six faces of an omnidirectional cube map around the shadow light (point or spot), stored as an R32 float array
+// of the configured size. The scene pass samples it through the shadow uniforms, which also carry the frontend shadow
+// spheres. Skipped when shadows are disabled or no caster was collected.
+
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 
@@ -17,6 +22,7 @@ namespace TEN::Renderer::Backend
 {
     constexpr auto SHADOW_NEAR_PLANE = 16.0f;
 
+    // Shadow pixel shader of objects, the dummy shadow map and the shadow map of the default size.
     bool SceneRenderer::CreateShadowResources()
     {
         _objectsShadowPixelShader = LoadShader(*_device, _shaderDirectory, "Objects", "PSShadow");
@@ -85,6 +91,8 @@ namespace TEN::Renderer::Backend
         return (object.has_value() && object->ShadowType == ShadowMode::None) ? SHADOWABLE_MASK : 0;
     }
 
+    // Copies the object draws collected since firstDraw into the shadow draw list, tagged with the caster bounds used to
+    // cull them per cube face.
     void SceneRenderer::MarkShadowCasterDraws(int firstDraw, const Vector4& bounds)
     {
         int firstShadowDraw = (int)_shadowDraws.size();
@@ -112,6 +120,7 @@ namespace TEN::Renderer::Backend
     }
 
     // Cube face view projections as in the frontend, and the uniforms read by the scene shaders.
+    // Runs after the object collection, which fills the shadow draws, and before the frame passes.
     void SceneRenderer::PrepareShadows(const FrameEnvironment& environment, float interpolationFactor)
     {
         static constexpr Vector3 FORWARD_VECTORS[6] =
@@ -150,7 +159,8 @@ namespace TEN::Renderer::Backend
         }
     }
 
-    // Six depth only passes, one per cube face, with the instanced draws of the shadow casters.
+    // Six passes, one per cube face, with the instanced draws of the opaque and alpha tested shadow caster buckets.
+    // Each face writes its projected depth to its color layer; the depth buffer is shared and discarded.
     void SceneRenderer::RenderShadowMap(ICommandBuffer& commandBuffer)
     {
         if (!_shadowUniforms.CastShadows)
@@ -202,6 +212,7 @@ namespace TEN::Renderer::Backend
             commandBuffer.EndRenderPass();
         }
 
+        // Restore the camera view projection for the following passes.
         commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 0, &cameraUniforms, sizeof(cameraUniforms));
         _isRenderingShadowMap = false;
     }

@@ -1,7 +1,8 @@
 #ifndef TEN_NOISE
 #define TEN_NOISE
 
-// Noise functions of the frontend (Shaders/Math.hlsli), copied unchanged for the RHI shaders.
+// Procedural noise functions shared by the decals, sprite effects and post-process: 3D simplex noise,
+// gradient and value noise, and fractal sums.
 
 #define OCTAVES 6
 
@@ -25,6 +26,7 @@ float4 TaylorInvSqrt(float4 r)
     return (1.79284291400159f - 0.85373472095314f * r);
 }
 
+// 3D simplex noise in about [-1, 1] (Ashima Arts / Stefan Gustavson formulation).
 float SimplexNoise(float3 v)
 { 
     const float2 C = float2(1 / 6.0f, 1 / 3.0f) ;
@@ -102,12 +104,15 @@ float SimplexNoise(float3 v)
     return 105.0 * dot(m*m, float4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
 }
 
+// Pseudo-random unit gradient of a lattice point, from the common sin-hash.
 float2 Gradient2D(float2 p)
 {
     float angle = 2 * 3.14159265359f * frac(sin(dot(p, float2(12.9898f, 78.233f))) * 43758.5453f);
     return normalize(float2(cos(angle), sin(angle)));
 }
 
+// Single octave of 2D gradient noise at uv * frequency; amplitude and persistence only affect later octaves,
+// which are not evaluated.
 float NebularNoise(float2 uv, float frequency, float amplitude, float persistence)
 {
     float noiseValue = 0.0f;
@@ -154,6 +159,7 @@ float Noise(float2 p)
     return frac(sin(dot(p, float2(12.9898f, 78.233f))) * 43758.5453f);
 }
 
+// Value noise in [0, 1]: smoothly interpolated random lattice values.
 float PerlinNoise(float2 p)
 {
     float2 i = floor(p);
@@ -217,6 +223,7 @@ float Noise2D(float2 input)
         (d - b) * u.x * u.y;
 }
 
+// Sum of OCTAVES octaves of value noise, each at double frequency and half amplitude.
 float FractalNoise(float2 input)
 {
     float value = 0.0;

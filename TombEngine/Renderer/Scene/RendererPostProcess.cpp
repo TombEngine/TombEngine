@@ -6,8 +6,12 @@
 
 using namespace TEN::Sky;
 
+// Post-process state set by the game code (color scheme, strength, tint, depth of field) and lens flare colors,
+// passed to the scene renderer with the frame environment.
+
 namespace TEN::Renderer
 {
+	// Combined transmittance of the active volumetric cloud layers, used to dim the sun and its lens flare.
 	float Renderer::GetLensFlareCloudOcclusion() const
 	{
 		// The cloud layer transmittances are read back by PrepareCloudLayers.
@@ -75,6 +79,7 @@ namespace TEN::Renderer
 		return _lastDOF;
 	}
 
+	// Sets the depth of field of the next frames; saved states are restored by RestoreDOF after temporary overrides.
 	void Renderer::SetDOF(const DOFState& state, bool save)
 	{
 		_currentDOF.Mode     = state.Mode;

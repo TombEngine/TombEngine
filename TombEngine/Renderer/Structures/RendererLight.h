@@ -30,6 +30,7 @@ namespace TEN::Renderer::Structures
 		int Hash = 0;
 	};
 
+	// Light candidate during light collection; dynamic lights rank first, then by local intensity.
 	struct RendererLightNode
 	{
 		RendererLight* Light;

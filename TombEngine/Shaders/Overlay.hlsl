@@ -2,7 +2,8 @@
 // TEN_SHADER: Pixel PS samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=0
 // TEN_SHADER: Pixel PSBar samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=1
 
-// Screen space quads of the HUD and 2D layer (text, bars, display sprites), with premultiplied colors.
+// Screen space quads of the HUD and 2D layer (text, bars, display sprites), with premultiplied colors
+// (SceneRendererOverlay.cpp). PS draws textured quads, PSBar the status bars.
 
 #include "./GpuShared.hlsli"
 #include "./ShaderInterop.hlsli"
@@ -38,6 +39,7 @@ struct PixelInput
     float4 Color    : TEXCOORD1;
 };
 
+// Pixel position to clip space, with y pointing down.
 PixelInput VS(VertexInput input)
 {
     PixelInput output;

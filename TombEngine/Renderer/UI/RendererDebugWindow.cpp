@@ -22,8 +22,13 @@ using namespace TEN::Collision::Point;
 using namespace TEN::Input;
 using namespace TEN::Renderer::Backend;
 
+// ImGui debug overlay shown in debug mode: performance panel with frame, backend, sky and frontend statistics,
+// video memory, debug pages (renderer, dimensions, player, input, collision, portals, pathfinding, wireframe, sky)
+// and debug messages. The scene renderer draws the recorded ImGui data over the frame.
+
 namespace TEN::Renderer
 {
+	// Adds a name and formatted value row to the current stat table.
 	static void AddStatRow(const char* name, const char* format, ...)
 	{
 		char buffer[128];
@@ -285,7 +290,7 @@ namespace TEN::Renderer
 		}
 	}
 
-	// Sky passes of the frame, as recorded by the frontend for both renderers.
+	// Sky passes of the frame, as recorded by the frontend for the scene renderer.
 	void Renderer::DrawGraphicsStatsSky()
 	{
 		if (!BeginStatTable("##Sky"))
@@ -315,7 +320,6 @@ namespace TEN::Renderer
 		ImGui::EndTable();
 	}
 
-	// Draw calls, triangles and memory of the frontend, which still runs behind the scene renderer.
 	// Scene collection of the renderer frontend: visible rooms, lights and sorted faces.
 	void Renderer::DrawGraphicsStatsFrontend()
 	{
@@ -805,6 +809,7 @@ namespace TEN::Renderer
 		_isPerformanceOverlayVisible = !_isPerformanceOverlayVisible;
 	}
 
+	// The overlay is shown in debug mode with the performance panel enabled or a debug page selected.
 	bool Renderer::IsDebugOverlayVisible() const
 	{
 		// Benchmark screenshots show the scene alone.

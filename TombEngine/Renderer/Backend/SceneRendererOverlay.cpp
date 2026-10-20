@@ -1,3 +1,9 @@
+// 2D overlay composition, run by FinishFrame after the frame passes (or alone when no scene was rendered). The UiFrame
+// of the frontend becomes runs of textured quads (faded scene background, texts, HUD bars, sprites, images, screen
+// overlays) and ranges of 3D objects (inventory and display items), drawn in the frontend order into the window
+// resolution final target. Menus then get their own glow and antialiasing. The scene background is sharpened by
+// FSR 1 RCAS when it was upscaled.
+
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 
@@ -24,6 +30,7 @@ namespace TEN::Renderer::Backend
         return blendMode;
     }
 
+    // RGBA8 vertex color, red in the low byte.
     static unsigned int PackOverlayColor(const Vector4& color)
     {
         auto toByte = [](float value) { return (unsigned int)std::lround(std::clamp(value, 0.0f, 1.0f) * 255.0f); };
@@ -73,6 +80,8 @@ namespace TEN::Renderer::Backend
         return true;
     }
 
+    // Text, bar and RCAS pipelines over the overlay vertex layout, and the game font.
+    // Must run after CreateUpscaleResources, which loads the RCAS shader.
     bool SceneRenderer::CreateOverlayResources(const std::string& fontPath)
     {
         _overlayVertexShader = LoadShader(*_device, _shaderDirectory, "Overlay", "VS");
@@ -161,6 +170,7 @@ namespace TEN::Renderer::Backend
         _overlayDraws.back().VertexCount += 6;
     }
 
+    // Axis aligned quad from a top left position and a size in target pixels.
     void SceneRenderer::AddOverlayQuad(ITexture* texture, const Vector2& position, const Vector2& size, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color,
                                       BlendMode blendMode)
     {
@@ -370,6 +380,7 @@ namespace TEN::Renderer::Backend
         }
     }
 
+    // Failed loads are cached as null textures, so a missing file is reported only once.
     void SceneRenderer::LoadOverlayImage(const std::string& path)
     {
         if (path.empty() || path == OVERLAY_VIDEO_PATH || _overlayImages.find(path) != _overlayImages.end())
@@ -385,6 +396,7 @@ namespace TEN::Renderer::Backend
         _overlayImages[path] = std::move(texture);
     }
 
+    // The reserved video path maps to the background video frame while a video plays.
     ITexture* SceneRenderer::GetOverlayImageTexture(const std::string& path) const
     {
         if (path == OVERLAY_VIDEO_PATH)
@@ -404,6 +416,7 @@ namespace TEN::Renderer::Backend
         _overlayInstanceData.clear();
         _overlayBoneData.clear();
 
+        // Scene background, sharpened by RCAS when the color target holds an upscaled scene.
         const auto& desc = _finalTarget->GetDesc();
         auto targetSize = Vector2((float)desc.Width, (float)desc.Height);
         if (_hasScene && ui.BackgroundFade > 0.0f)
@@ -416,6 +429,7 @@ namespace TEN::Renderer::Backend
         if (ui.ScreenWidth <= 0 || ui.ScreenHeight <= 0)
             return;
 
+        // Layers in the frontend draw order.
         auto textScale = Vector2(targetSize.x / ui.ScreenWidth, targetSize.y / ui.ScreenHeight);
         for (const auto& layer : ui.Layers)
         {
@@ -481,6 +495,7 @@ namespace TEN::Renderer::Backend
                 if (mesh.Mesh == nullptr)
                     continue;
 
+                // Bones and instance of the mesh, then one draw per bucket.
                 int boneOffset = (int)(_overlayBoneData.size() / sizeof(Matrix));
                 int boneCount = std::clamp((int)ui.ObjectBones.size() - mesh.FirstBone, 0, mesh.BoneCount);
                 if (boneCount > 0)
@@ -517,6 +532,7 @@ namespace TEN::Renderer::Backend
         if (drawCount == 0)
             return;
 
+        // The overlay draw of an object range stores the range of object draws in its vertex fields.
         auto draw = OverlayDraw{};
         draw.FirstVertex = firstDraw;
         draw.VertexCount = drawCount;
@@ -599,8 +615,9 @@ namespace TEN::Renderer::Backend
         return drawIndex;
     }
 
-    // Object range in its own pass over the final target, with the scene depth target reused as a cleared depth buffer.
-    // The emissive output goes to the prepass emissive target, already consumed by the scene glow, for the menu glow.
+    // Object range in its own pass over the final target, with the overlay depth target as a cleared depth buffer.
+    // The emissive output goes to the overlay emissive target, for the menu glow. At native scale both are the scene
+    // depth and prepass emissive targets, whose scene contents were already consumed; below it, window sized copies.
     void SceneRenderer::DrawOverlayObjects(ICommandBuffer& commandBuffer, const UiFrame& ui, const OverlayDraw& draw, bool isFirstPass, bool isFirstObjectPass)
     {
         const auto& desc = _finalTarget->GetDesc();
@@ -621,6 +638,7 @@ namespace TEN::Renderer::Backend
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 1, &drawPixelUniforms, sizeof(drawPixelUniforms));
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
 
+        // Final target and emissive target; the emissive one is cleared only by the first object range of the frame.
         ColorTargetInfo colorTargets[2] = {};
         colorTargets[0].Texture = _finalTarget.get();
         colorTargets[0].Load = isFirstPass ? LoadOp::Clear : LoadOp::Load;
@@ -662,6 +680,7 @@ namespace TEN::Renderer::Backend
                 state = BucketBindState{};
             }
 
+            // Each object has its own camera and animation frame.
             if (objectDraw.Object != lastObject)
             {
                 auto frameVertexUniforms = FrameVertexUniforms{};
@@ -727,6 +746,8 @@ namespace TEN::Renderer::Backend
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 1, &drawPixelUniforms, sizeof(drawPixelUniforms));
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
 
+        // The final target, combined with the glow or copied as is, goes to the antialiasing source, which is then
+        // antialiased or copied back into the final target.
         if (isGlowActive)
         {
             commandBuffer.PushDebugGroup("Glow");

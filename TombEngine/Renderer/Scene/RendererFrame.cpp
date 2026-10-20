@@ -26,10 +26,16 @@ using namespace TEN::Math;
 using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 
+// Per-frame scene collection: portal culling of rooms starting from the camera room, and collection of the
+// items, effects, statics, lights, decals, fog bulbs, lens flares and mirrors visible in the RenderView.
+// Also keeps the previous-frame state used for high framerate interpolation.
+
 namespace TEN::Renderer
 {
 	using TEN::Memory::LinearArrayBuffer;
 
+	// Resets the per-frame room state, traverses the visible rooms through portals and collects the fog bulbs and
+	// lens flares of the view.
 	void Renderer::CollectRooms(RenderView& renderView, bool onlyRooms)
 	{
 		constexpr auto VIEW_PORT = Vector4(-1.0f, -1.0f, 1.0f, 1.0f);
@@ -40,6 +46,7 @@ namespace TEN::Renderer
 
 		_visitedRoomsStack.clear();
 
+		// Reset per-frame room and portal state.
 		for (int i = 0; i < g_Level.Rooms.size(); i++)
 		{
 			auto& room = _rooms[i];
@@ -59,6 +66,7 @@ namespace TEN::Renderer
 			}
 		}
 
+		// Traverse portals from the camera room with the full screen as the initial clip rectangle.
 		GetVisibleRooms(NO_VALUE, renderView.Camera.RoomNumber, VIEW_PORT, false, 0, onlyRooms, renderView);
 
 		_invalidateCache = false;
@@ -80,7 +88,7 @@ namespace TEN::Renderer
 			CollectItems(LaraItem->RoomNumber, renderView);
 		}
 
-		// Collect fog bulbs.
+		// Collect fog bulbs from dynamic and room lights; the nearest MAX_FOG_BULBS_DRAW are kept.
 		std::vector<RendererFogBulb> tempFogBulbs;
 		tempFogBulbs.reserve(MAX_FOG_BULBS_DRAW);
 
@@ -142,7 +150,7 @@ namespace TEN::Renderer
 		for (int i = 0; i < std::min(MAX_FOG_BULBS_DRAW, (int)tempFogBulbs.size()); i++)
 			renderView.FogBulbsToDraw.push_back(tempFogBulbs[i]);
 
-		// Collect lens flares.
+		// Collect lens flares in front of the camera; global ones first, then by distance.
 		auto tempLensFlares = std::vector<RendererLensFlare>{};
 		tempLensFlares.reserve(MAX_LENS_FLARES_DRAW);
 
@@ -190,6 +198,9 @@ namespace TEN::Renderer
 			renderView.LensFlaresToDraw.push_back(tempLensFlares[i]);
 	}
 
+	// Projects a portal to normalized device coordinates and returns its screen rectangle clipped to the parent
+	// view port in clipPort. Returns false if the portal is fully behind the camera or outside the view port.
+	// Portals crossing the near plane are conservatively widened to the screen edges.
 	bool Renderer::CheckPortal(short parentRoomNumber, RendererDoor* door, Vector4 viewPort, Vector4* clipPort, RenderView& renderView)
 	{
 		_numCheckPortalCalls++;
@@ -201,6 +212,7 @@ namespace TEN::Renderer
 
 		*clipPort = Vector4(FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX);
 
+		// Transform the portal corners once per frame and accumulate the bounds of those in front of the camera.
 		for (int i = 0; i < 4; i++)
 		{
 			if (!door->Visited)
@@ -237,6 +249,7 @@ namespace TEN::Renderer
 		if (zClip == 4)
 			return false;
 
+		// Edges crossing the camera plane extend the rectangle to the screen borders they head towards.
 		if (zClip > 0)
 		{
 			for (int i = 0; i < 4; i++) 
@@ -300,6 +313,8 @@ namespace TEN::Renderer
 		return true;
 	}
 
+	// Recursive portal traversal: adds room 'to' to the view on its first visit (with its lights, decals, items and
+	// statics), grows its view port, then recurses through each portal facing the camera that passes CheckPortal.
 	void Renderer::GetVisibleRooms(short from, short to, Vector4 viewPort, bool water, int count, bool onlyRooms, RenderView& renderView)
 	{
 		// FIXME: This is an urgent hack to fix stack overflow crashes.
@@ -419,6 +434,8 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Collects the moveables of a room: updates their world and interpolated transforms, then adds those in the
+	// frustum (or casting shadows, or in a reflected room) to the room draw list with their lights.
 	void Renderer::CollectItems(short roomNumber, RenderView& renderView)
 	{
 		if (_rooms.size() <= roomNumber)
@@ -536,6 +553,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Collects an item carrying FX data as a single-mesh effect of the room.
 	void Renderer::CollectEffect(int itemNumber, RendererRoom& room)
 	{
 		const auto& item = g_Level.Items[itemNumber];
@@ -570,6 +588,8 @@ namespace TEN::Renderer
 		room.EffectsToDraw.push_back(&effect);
 	}
 
+	// Collects the visible statics of a room, grouped by static ID in the view.
+	// Room lights are cached per static and only dynamic lights are gathered again each frame.
 	void Renderer::CollectStatics(short roomNumber, RenderView& renderView)
 	{
 		if (_rooms.size() <= roomNumber)
@@ -644,6 +664,8 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Gathers the lights affecting a sphere: dynamic lights first, then lights of the room and its neighbours (or the
+	// cached room lights). Outputs at most MAX_LIGHTS_PER_ITEM lights, with the brightest shadow caster first if requested.
 	void Renderer::CollectLights(const Vector3& pos, float radius, int roomNumber, int prevRoomNumber, bool prioritizeShadowLight, bool useCachedRoomLights, std::vector<RendererLightNode>* roomsLights, std::vector<RendererLight*>* outputLights)
 	{
 		if (_rooms.size() <= roomNumber)
@@ -807,6 +829,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Picks the shadow casting light of the frame: the brightest shadow light near the camera, if shadows are enabled.
 	void Renderer::CollectLightsForCamera()
 	{
 		std::vector<RendererLight*> lightsToDraw;
@@ -832,6 +855,7 @@ namespace TEN::Renderer
 		CollectLights(item->Position, ITEM_LIGHT_COLLECTION_RADIUS, item->RoomNumber, item->PrevRoomNumber, false, false, nullptr, &item->LightsToDraw);
 	}
 
+	// Blends the ambient light of an item from its previous room to the current one after a room change.
 	void Renderer::CalculateLightFades(RendererItem *item)
 	{
 		ItemInfo* nativeItem = &g_Level.Items[item->ItemNumber];
@@ -868,6 +892,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Collects the decals in the frustum belonging to a room or touching it from a neighbour room.
 	void Renderer::CollectDecalsForRoom(short roomNumber, RenderView& renderView)
 	{
 		if (_rooms.size() <= roomNumber)
@@ -913,6 +938,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Adds the dynamic lights intersecting the room bounds to the room and to the view light list.
 	void Renderer::CollectLightsForRoom(short roomNumber, RenderView &renderView)
 	{
 		if (_rooms.size() <= roomNumber)
@@ -932,7 +958,7 @@ namespace TEN::Renderer
 				continue;
 			}
 
-			// Light buffer is full
+			// View light list is full.
 			if (renderView.LightsToDraw.size() >= NUM_LIGHTS_PER_BUFFER)
 			{
 				break;
@@ -961,6 +987,7 @@ namespace TEN::Renderer
 			item.DoneAnimations = false;
 	}
 
+	// Stores the current transforms of items, effects and statics as the previous state for interpolation.
 	void Renderer::SaveOldState()
 	{
 		for (auto& item : _items)

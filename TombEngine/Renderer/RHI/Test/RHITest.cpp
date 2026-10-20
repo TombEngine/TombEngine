@@ -5,6 +5,10 @@
 #include "Renderer/RHI/ShaderLibrary.h"
 #include "Renderer/RHI/TextureCapture.h"
 
+// Backend validation scene: an 8x8 grid of instanced, textured, alpha blended quads with per-instance tints from a
+// storage buffer, uniforms in both stages and a depth target. It covers uploads, vertex layouts with an instance
+// stream, storage buffers, samplers and readback, so the PNG files of all backends can be compared.
+
 namespace TEN::Renderer::RHI
 {
     constexpr auto TEST_INSTANCE_COUNT = 64;
@@ -136,6 +140,7 @@ namespace TEN::Renderer::RHI
                resources.Texture && resources.ColorTarget && resources.DepthTarget && resources.Sampler;
     }
 
+    // Packs every buffer and the checker texture into one transfer buffer and uploads them in a single copy pass.
     static void UploadTestData(IDevice& device, TestResources& resources)
     {
         TestVertex vertices[4] =
@@ -279,6 +284,7 @@ namespace TEN::Renderer::RHI
             auto* commandBuffer = device->AcquireCommandBuffer();
             commandBuffer->PushDebugGroup("RHITest frame");
 
+            // The last frame is also drawn into an offscreen target for the screenshot.
             if (frame == (frameCount - 1))
                 DrawTestScene(*commandBuffer, resources, resources.ColorTarget.get(), time, aspect);
 

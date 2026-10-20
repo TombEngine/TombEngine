@@ -11,6 +11,7 @@
 // hidden by the Fresnel term and a per pixel jitter. Water seen from above absorbs light with its depth; from below,
 // total internal reflection mirrors the water beyond the critical angle, and the underwater fog (PSUnderwaterFog)
 // absorbs the light between the camera and the scene. Room lights add specular highlights through the light clusters.
+// Drawn by SceneRendererWater.cpp: VS with PSReflection, then with PS; VSFullscreen with PSUnderwaterFog.
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -108,6 +109,7 @@ float GetSwellHeight(float2 position, float time, out float2 slope)
     {
         float4 swell = WATER_SWELLS[i];
         float number = WATER_TWO_PI / swell.z;
+        // Deep water dispersion: phase speed sqrt(g / k), with k the wave number.
         float speed = sqrt(WATER_GRAVITY / number) * WATER_SWELL_SPEED;
         float phase = number * (dot(swell.xy, position) - speed * time) + (float)i * 1.9f;
         float group = 0.55f + 0.45f * sin(dot(float2(-swell.y, swell.x), position) * 0.0003f * (float)(i + 1) + time * 0.2f + (float)i * 2.3f);
@@ -120,6 +122,7 @@ float GetSwellHeight(float2 position, float time, out float2 slope)
     return height;
 }
 
+// Displaces the surface grid by the swells (subtracted, as world Y points down).
 PixelInput VS(VertexInput input)
 {
     float2 slope;
@@ -479,6 +482,7 @@ float4 PSReflection(PixelInput input) : SV_TARGET
     return float4(traced.rgb * traced.a, traced.a);
 }
 
+// Steps: refraction with absorption, reflection (traced, completed by the environment), Fresnel blend, specular, fog.
 float4 PS(PixelInput input) : SV_TARGET
 {
     float2 uv = input.Position.xy * InverseViewportSize;
@@ -516,6 +520,7 @@ float4 PSUnderwaterFog(FullscreenPixelInput input) : SV_TARGET
     float4 world = mul(float4(input.UV.x * 2.0f - 1.0f, 1.0f - input.UV.y * 2.0f, depth, 1.0f), UnderwaterInverseViewProjection);
     float3 toScene = world.xyz / world.w - PixelCameraPosition;
 
+    // Rays rising above the surface are shortened to the part below it (similar triangles on the height).
     float pathLength = length(toScene);
     float cameraDepth = max(PixelCameraPosition.y - UnderwaterSurfaceHeight, 0.0f);
     if (-toScene.y > cameraDepth)

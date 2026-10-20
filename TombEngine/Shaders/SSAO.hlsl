@@ -3,7 +3,7 @@
 // TEN_SHADER: Pixel PSBlurHorizontal samplers=3 storage_textures=0 storage_buffers=0 uniform_buffers=3
 // TEN_SHADER: Pixel PSBlurVertical samplers=3 storage_textures=0 storage_buffers=0 uniform_buffers=3
 
-// Screen space ambient occlusion of the frontend (Shaders/SSAO.hlsl), computed at half resolution
+// Screen space ambient occlusion (SceneRendererSSAO.cpp), computed at half resolution
 // from the depth and view space normals of the prepass, then blurred with a separable bilateral filter.
 
 #include "./ShaderInterop.hlsli"
@@ -81,6 +81,7 @@ float PS(PixelInput input) : SV_Target
     float3 normal = encodedNormal * 2.0f - 1.0f;
     float3 randomVector = NoiseMap.SampleLevel(NoiseMapSampler, input.UV * TargetSize / 4.0f, 0.0f).xyz;
 
+    // Hemisphere kernel oriented around the normal, rotated by the tiled noise vector (Gram-Schmidt).
     float3 tangent = normalize(randomVector - normal * dot(randomVector, normal));
     float3 bitangent = cross(normal, tangent);
     bitangent *= rsqrt(max(dot(bitangent, bitangent), 1e-8f));
@@ -98,6 +99,7 @@ float PS(PixelInput input) : SV_Target
         offset = offset * 0.5f + 0.5f;
         offset.y = 1.0f - offset.y;
 
+        // Occluded when the stored surface lies in front of the sample; the range check fades distant occluders.
         float sampleDepth = ReconstructViewDepth(offset);
         float rangeCheck = smoothstep(0.0f, 1.0f, Radius / abs(position.z - sampleDepth));
         occlusion += rangeCheck * step(0.0f, sampleDepth - samplePosition.z - Bias);
@@ -111,7 +113,8 @@ float GetGaussian(float x, float sigma)
     return 0.39894f * exp(-0.5f * x * x / (sigma * sigma)) / sigma;
 }
 
-// Bilateral blur along one axis; two passes approximate the 2D filter.
+// Bilateral blur along one axis; two passes approximate the 2D filter. The range weight on the occlusion difference
+// keeps edges sharp.
 float Blur(float2 uv, float2 direction)
 {
     const int halfSize = (BLUR_SIZE - 1) / 2;

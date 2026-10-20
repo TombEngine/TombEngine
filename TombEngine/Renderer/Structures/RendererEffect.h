@@ -5,6 +5,7 @@
 
 namespace TEN::Renderer::Structures
 {
+	// Item with FX data drawn as a single mesh, with interpolated world transform and lights.
 	struct RendererEffect
 	{
 		int ObjectID   = 0;

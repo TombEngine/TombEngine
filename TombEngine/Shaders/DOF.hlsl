@@ -4,7 +4,7 @@
 // TEN_SHADER: Pixel PSNearDilate samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
 // TEN_SHADER: Pixel PSNearBlur samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
 
-// Depth of field of the frontend (Shaders/DOF.hlsli): half resolution downsample with the signed circle
+// Depth of field (SceneRendererDOF.cpp): half resolution downsample with the signed circle
 // of confusion packed in alpha, far blur, near circle of confusion dilation and near blur. The post-process
 // composites the two blurred images over the sharp scene.
 
@@ -90,6 +90,8 @@ float GetBokehRadius(float coc)
     return coc * saturate(Strength) * DOF_MAX_BOKEH_RADIUS;
 }
 
+// Averages four scene texels and their view depths (the depth buffer value mapped back to view space distance),
+// then packs the signed circle of confusion from [-1, 1] into the alpha in [0, 1].
 float4 PSDownsample(FullscreenPixelInput input) : SV_Target
 {
     const float2 OFFSETS[4] = { float2(-0.5f, -0.5f), float2(0.5f, -0.5f), float2(-0.5f, 0.5f), float2(0.5f, 0.5f) };
@@ -138,6 +140,7 @@ float4 BlurDisc(float2 uv, float side)
     return float4(color / max(weightSum, DOF_COC_EPSILON), centerCoC);
 }
 
+// Outputs the blurred color with the far circle of confusion in alpha, used as the composite weight.
 float4 PSFarBlur(FullscreenPixelInput input) : SV_Target
 {
     return BlurDisc(input.UV, 1.0f);

@@ -15,6 +15,9 @@ extern GameConfiguration g_Configuration;
 using namespace TEN::Renderer::Utils;
 using namespace TEN::Video;
 
+// Startup of the frontend: screen size and window mode, font and common images, preallocated per-frame lists,
+// HUD bars, volumetric cloud noise, video player and ImGui. The GPU device is created by the scene renderer.
+
 namespace TEN::Renderer
 {
 	void Renderer::Initialize(const std::string& gameDir, int w, int h, bool windowed)
@@ -64,6 +67,7 @@ namespace TEN::Renderer
 			SetFullScreen();
 	}
 
+	// Loads the game font and the logo and loading bar images, and sets up the white sprite.
 	void Renderer::InitializeCommonTextures()
 	{
 		auto fontPath = GetAssetPath("Textures/Font.spritefont");
@@ -84,6 +88,7 @@ namespace TEN::Renderer
 		SetFullScreen();
 	}
 
+	// Applies the current window mode to the SDL window.
 	void Renderer::SetFullScreen()
 	{
 		auto window = g_Platform->GetSDL3Window();

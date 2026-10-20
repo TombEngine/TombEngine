@@ -4,6 +4,7 @@
 
 // Classic sky layers and horizon meshes: texture tinted by the layer color, no lighting or depth. The paraboloid
 // mode draws them into one hemisphere of the dual paraboloid map of skybox reflective materials.
+// PSHorizonMask writes the horizon silhouette for the god rays.
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -58,6 +59,8 @@ PixelInput VS(VertexInput input)
 
     if (IsParaboloid)
     {
+        // Paraboloid projection: the normalized direction maps to xy / (1 + z); depth is linear between the
+        // paraboloid near and far distances. Vertices of the other hemisphere get a negative ClipDepth.
         float4 position = mul(float4(worldPosition, 1.0f), ParaboloidView);
         position.z *= Hemisphere;
 
@@ -114,6 +117,7 @@ float GetHorizonGradientAlpha(float relativeY)
     return alpha;
 }
 
+// Fog bulbs darken the layer color and add their own color.
 float4 PS(PixelInput input) : SV_TARGET
 {
     clip(input.ClipDepth);

@@ -16,6 +16,7 @@ namespace TEN::Renderer::Backend
 
     #include "Shaders/GpuShared.hlsli"
 
+    // INSTANCE_INDEX_COUNT is the length of the instance index stream, so no draw can reach a higher instance.
     constexpr auto ALPHA_TEST_THRESHOLD       = 0.5f;
     constexpr auto INSTANCE_INDEX_COUNT       = 65536;
     constexpr auto SSAO_KERNEL_SIZE           = 16; // Matches SSAO.hlsl; the bilateral blur hides the noise of fewer samples.
@@ -60,6 +61,8 @@ namespace TEN::Renderer::Backend
     static_assert(sizeof(GpuRoomVertex) == 40, "GpuRoomVertex size.");
     static_assert(sizeof(GpuObjectVertex) == 48, "GpuObjectVertex size.");
 
+    // Uniform blocks pushed with ICommandBuffer::PushUniforms into numbered slots per shader stage. Scene shaders use
+    // slot 0 for the frame block and slot 1 for the draw block; slots 2 and 3 hold pass specific blocks.
     struct FrameVertexUniforms { TEN_FRAME_VERTEX_UNIFORMS };
     struct DrawVertexUniforms  { TEN_DRAW_VERTEX_UNIFORMS };
     struct SkyVertexUniforms   { TEN_SKY_VERTEX_UNIFORMS };

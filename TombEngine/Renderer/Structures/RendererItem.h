@@ -6,6 +6,8 @@
 
 namespace TEN::Renderer::Structures
 {
+	// Renderer state of an item: world and bone transforms of the current and previous game frame and their
+	// interpolated values, mesh swaps and lights.
 	struct RendererItem
 	{
 		int ItemNumber = NO_VALUE;

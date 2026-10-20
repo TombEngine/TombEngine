@@ -4,7 +4,7 @@
 // AtmosphericSkySettings.h - Runtime settings for the atmospheric sky dome.
 //
 // These parameters control the visual appearance of the atmospheric scattering
-// sky dome. They are used to fill the CAtmosphericSkyBuffer constant buffer
+// sky dome. They are used to fill the CAtmosphericSkyBuffer uniform block
 // each frame. All values have sensible defaults matching the reference shader.
 // ============================================================================
 

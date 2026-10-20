@@ -2,6 +2,9 @@
 
 #include "Renderer/RHI/RHITypes.h"
 
+// Estimated GPU memory of the live RHI resources, counted by backend resource objects through MemoryAllocation,
+// plus the adapter memory the operating system reports, for the debug statistics.
+
 namespace TEN::Renderer::RHI
 {
     enum class MemoryCategory
@@ -50,7 +53,7 @@ namespace TEN::Renderer::RHI
     };
 
     unsigned long long GetTextureMemorySize(const TextureDesc& desc);
-    MemoryCategory     GetTextureMemoryCategory(const TextureDesc& desc);
+    MemoryCategory     GetTextureMemoryCategory(const TextureDesc& desc); // RenderTarget for color or depth targets.
 
     // Totals of the live resources of every device, and the adapter memory of the named device.
     MemoryStats GetMemoryStats(const std::string& deviceName);

@@ -1,3 +1,8 @@
+// Mirrors (not a frame pass of their own): during the per frame collection, the instances, sprites and sorted faces
+// reflected by each mirror of the view are copied with the mirror reflection matrix into separate draw lists
+// (_mirrorDraws, _mirrorSpriteDraws, _mirrorSortedDraws). The scene pass draws them through the mirrored variants of
+// DrawObjects, DrawSprites and DrawSortedFaces.
+
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 
@@ -9,6 +14,7 @@ using namespace TEN::Renderer::Structures;
 
 namespace TEN::Renderer::Backend
 {
+    // True when an instance belongs to the mirror room and the mirror reflects its category.
     bool SceneRenderer::IsMirrored(const InstanceOrigin& origin, const RendererMirror& mirror)
     {
         if (origin.RoomNumber != mirror.RoomNumber)
@@ -82,6 +88,7 @@ namespace TEN::Renderer::Backend
 
         for (const auto& mirror : view.Mirrors)
         {
+            // Unsorted sprite runs.
             if (mirror.ReflectSprites)
             {
                 for (const auto& draw : _spriteDraws)
@@ -96,6 +103,7 @@ namespace TEN::Renderer::Backend
                 }
             }
 
+            // Sorted faces; each object instance is reflected once and shared by all its faces.
             auto reflectedInstances = std::unordered_map<int, int>{};
             for (const auto& draw : _sortedDraws)
             {

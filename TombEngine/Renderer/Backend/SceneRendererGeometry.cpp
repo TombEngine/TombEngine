@@ -8,8 +8,12 @@ using namespace TEN::Renderer::RHI;
 using namespace TEN::Renderer::Structures;
 using TEN::Renderer::Structures::Vertex;
 
+// Level geometry of the scene renderer: packing of the frontend vertices into the shared level vertex and index
+// buffers at load, their binding and indexed bucket draws, and the frustum and portal culling of room buckets.
+
 namespace TEN::Renderer::Backend
 {
+    // Byte alignment of the object vertex region, which is bound at an offset of the level vertex buffer.
     constexpr auto GEOMETRY_REGION_ALIGNMENT = 256;
 
     // Atlas coordinates lie in the unit square; values outside it are clamped and counted.
@@ -21,6 +25,7 @@ namespace TEN::Renderer::Backend
         return (unsigned short)std::lround(std::clamp(value, 0.0f, 1.0f) * USHRT_MAX);
     }
 
+    // Fields shared by room and object vertices; normals, tangents and colors are already packed by the frontend.
     template <typename TVertex>
     static TVertex PackVertex(const Vertex& vertex, int& clampCount)
     {
@@ -88,6 +93,7 @@ namespace TEN::Renderer::Backend
         AppendVertexBytes(data, roomVertices);
         SetGeometrySection(MeshSource::Rooms, 0, 0, (int)roomVertices.size(), *geometry.RoomIndices);
 
+        // Statics and moveables share the object region; moveable indices are relative to the first moveable vertex.
         int objectRegionOffset = ((int)data.size() + GEOMETRY_REGION_ALIGNMENT - 1) & ~(GEOMETRY_REGION_ALIGNMENT - 1);
         data.resize(objectRegionOffset);
 
@@ -100,6 +106,7 @@ namespace TEN::Renderer::Backend
         if (clampCount > 0)
             TENLog("Scene renderer: " + std::to_string(clampCount) + " texture coordinates outside the atlas were clamped.", LogLevel::Warning);
 
+        // Index buffer: statics, moveables and rooms, in MeshSource order.
         auto indices = std::vector<int>{};
         for (auto& section : _geometrySections)
         {
@@ -199,6 +206,7 @@ namespace TEN::Renderer::Backend
         return ScissorRect{ x, y, std::max(width, 0), std::max(height, 0) };
     }
 
+    // Indexed draw of a bucket from the level buffers bound by BindLevelGeometry, counted in the frame statistics.
     void SceneRenderer::DrawBucket(IRenderPass& renderPass, MeshSource source, const RendererBucket& bucket, int instanceCount, int firstInstance)
     {
         const auto& section = _geometrySections[(int)source];

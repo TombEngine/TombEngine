@@ -1,3 +1,8 @@
+// Depth of field. "DOF" in FRAME_PASSES runs after the scene pass when the frontend sets a DOF mode and strength. The
+// scene target is downscaled to half resolution, then blurred into a far layer and, after a dilation, a near layer,
+// using the prepass depth copy to measure the distance from the focus. The post-process blends both layers with the
+// full resolution scene.
+
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 
@@ -23,6 +28,7 @@ namespace TEN::Renderer::Backend
 
     static_assert(sizeof(DofUniforms) == 48, "DofUniforms must match DOF.hlsl.");
 
+    // One fullscreen pipeline per DOF step, all writing half resolution RGBA8 targets.
     bool SceneRenderer::CreateDOFResources()
     {
         const char* entryPoints[DOF_PASS_COUNT] = { "PSDownsample", "PSFarBlur", "PSNearDilate", "PSNearBlur" };
@@ -45,6 +51,7 @@ namespace TEN::Renderer::Backend
         return true;
     }
 
+    // Persistent half resolution targets of the scene resolution; the post-process samples both of them.
     bool SceneRenderer::EnsureDOFTargets(int width, int height)
     {
         auto desc = TextureDesc{};
@@ -69,6 +76,7 @@ namespace TEN::Renderer::Backend
         return (environment.DofMode != 0 && environment.DofStrength > EPSILON);
     }
 
+    // Bit 0 is the far blur layer, bit 1 the near blur layer, as read by the post-process shader.
     // The front mode blurs only the near side, the back mode only the far side.
     int SceneRenderer::GetDOFLayers(const FrameEnvironment& environment)
     {
@@ -81,7 +89,8 @@ namespace TEN::Renderer::Backend
         return ((environment.DofMode != DOF_MODE_FRONT) ? 1 : 0) | ((environment.DofMode != DOF_MODE_BACK) ? 2 : 0);
     }
 
-    // Same passes. The near blur ends in _dofTargets[0], the far blur in _dofTargets[1].
+    // Downsample, far blur, near dilate and near blur, all at half resolution. The near blur ends in _dofTargets[0]
+    // (overwriting the downsampled scene after the far blur has read it), the far blur in _dofTargets[1].
     void SceneRenderer::RenderDOF(ICommandBuffer& commandBuffer)
     {
         const auto& environment = *_frameEnvironment;
@@ -99,6 +108,7 @@ namespace TEN::Renderer::Backend
         uniforms.FarPlane = _farPlane;
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &uniforms, sizeof(uniforms));
 
+        // Every step samples its source; only the downsample also reads the depth copy.
         auto drawPass = [&](int pass, ITexture* target, ITexture* source, const char* name)
         {
             TextureSamplerBinding bindings[2] =

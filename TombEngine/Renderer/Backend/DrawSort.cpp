@@ -1,6 +1,8 @@
 #include "framework.h"
 #include "Renderer/Backend/DrawSort.h"
 
+// Radix sort of DrawSortKey lists. Linear in the draw count, with no allocation once the scratch vector has grown.
+
 namespace TEN::Renderer::Backend
 {
     constexpr auto DIGIT_BITS  = 8;
@@ -22,9 +24,11 @@ namespace TEN::Renderer::Backend
             for (const auto& key : *source)
                 counts[(key.Key >> shift) & (DIGIT_COUNT - 1)]++;
 
+            // All keys share this digit: the pass would not change the order.
             if (counts[((*source)[0].Key >> shift) & (DIGIT_COUNT - 1)] == (int)source->size())
                 continue;
 
+            // Counts become the first output position of each digit.
             int offset = 0;
             for (int& count : counts)
             {
@@ -39,6 +43,7 @@ namespace TEN::Renderer::Backend
             std::swap(source, destination);
         }
 
+        // An odd number of passes left the result in the scratch vector.
         if (source != &keys)
             keys.swap(scratch);
     }

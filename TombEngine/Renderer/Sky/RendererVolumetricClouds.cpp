@@ -1,12 +1,13 @@
-// RendererVolumetricClouds.cpp - Volumetric cloud rendering integration.
+// RendererVolumetricClouds.cpp - Volumetric cloud CPU preparation.
 //
-// This file implements the renderer-side logic for the volumetric cloud system:
-//   - Initialization: render targets, constant buffers, shader loading
-//   - Per-frame update: fill constant buffer from settings
-//   - Draw calls: cloud pass, composite pass, occlusion query
-//   - Lens flare occlusion integration
+// This file implements the frontend side of the volumetric cloud system:
+//   - Initialization: generation of the tileable cloud noise data
+//   - Per-frame update: fill the cloud uniform block (CVolumetricCloudBuffer) of a layer
+//     from its settings and runtime state, including temporal reprojection parameters
+//   - Lightning thunder scheduling matching the bolts of the cloud shader
 //
-// Called from the main render pipeline in RendererDraw.cpp.
+// Called from PrepareCloudLayer() in RendererSkyEffects.cpp; the uniforms are copied
+// into the Backend::CloudLayerDraw records replayed by the scene renderer.
 
 #include "framework.h"
 #include "Renderer/Renderer.h"
@@ -42,7 +43,7 @@ namespace TEN::Renderer
 	}
 
 	// ========================================================================
-	// Per-frame constant buffer update
+	// Per-frame uniform block update
 	// ========================================================================
 
 	void Renderer::UpdateVolumetricCloudBuffer(const CloudRenderSettings& settings,
@@ -71,7 +72,7 @@ namespace TEN::Renderer
 
 		_stVolumetricCloud.PhaseForward      = settings.PhaseForward;
 		_stVolumetricCloud.PhaseBackward     = settings.PhaseBackward;
-		// WindSpeed CB slot carries the pre-integrated wind offset (not speed).
+		// WindSpeed uniform carries the pre-integrated wind offset (not speed).
 		// This avoids the backwards-motion artifact: when WindSpeed transitions to a
 		// lower value, CloudTime*WindSpeed_new < CloudTime*WindSpeed_old causing
 		// clouds to jump backwards. With accumulation the offset only grows or slows.
@@ -180,7 +181,7 @@ namespace TEN::Renderer
 
 		// TemporalEnabled encoding:
 		//   0 = temporal off (always raymarch every pixel)
-		//   1 = temporal on, warmup active (copy prev-frame RT but no skip yet)
+		//   1 = temporal on, warmup active (copy prev-frame history but no skip yet)
 		//   2 = temporal on, warmup done (checkerboard skip active)
 		// Use runtimeState (not _cloudState) so each layer tracks its own frame counter.
 		// Previously hardcoded to _cloudState caused CloudB to always read FrameCounter=0
@@ -200,7 +201,7 @@ namespace TEN::Renderer
 		_stVolumetricCloud.DistanceFade  = settings.DistanceFade;
 		_stVolumetricCloud.CloudType     = settings.CloudType;
 		// Normal composite pass: full opacity.
-		// BleedPassStrength is 0 for normal draws; doBleedOverlay sets it to bleedStrength.
+		// BleedPassStrength is 0 for normal draws; PrepareCloudBleed sets it to the bleed strength.
 		_stVolumetricCloud.CloudCompositeScale = 1.0f;
 		_stVolumetricCloud.CloudIsBleedPass    = settings.BleedPassStrength;
 
@@ -266,7 +267,7 @@ namespace TEN::Renderer
 		_stVolumetricCloud.CloudForwardScatterStrength = _atmosphericSkySettings.CloudForwardScatterStrength;
 		_stVolumetricCloud.CloudLightAbsorption        = _atmosphericSkySettings.CloudLightAbsorption;
 		_stVolumetricCloud.CloudSunWarmthInfluence     = _atmosphericSkySettings.CloudSunWarmthInfluence;
-		// CloudIsBleedPass is set to 0.0f directly above (normal pass).
+		// CloudIsBleedPass is set above from BleedPassStrength.
 		_stVolumetricCloud.DriftOutProgress             = settings.DriftOutProgress;
 
 		// Compositor hybrid-blend thresholds (global, adjustable via debug slider).
@@ -516,7 +517,7 @@ namespace TEN::Renderer
 	}
 
 	// ========================================================================
-	// Main cloud drawing
+	// Lightning thunder
 	// ========================================================================
 
 	// Reproduces the HLSL hash: frac(sin(x) * 43758.5453).

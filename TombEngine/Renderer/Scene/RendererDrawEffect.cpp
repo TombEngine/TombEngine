@@ -60,6 +60,10 @@ extern SMOKE_SPARKS SmokeSparks[MAX_SPARKS_SMOKE];
 extern SHOCKWAVE_STRUCT ShockWaves[MAX_SHOCKWAVE];
 extern std::array<DebrisFragment, MAX_DEBRIS> DebrisFragments;
 
+// Effect preparation: converts the game effect state (fires, smoke, particles, sparks, blood, splashes, ripples,
+// shockwaves, weather, electricity, lasers, streamers, footprints, particle groups) into interpolated sprite and
+// quad records of the view, and collects the sorted faces of mesh effects.
+
 namespace TEN::Renderer 
 {
 	constexpr auto ELECTRICITY_RANGE_MAX = BLOCK(24);
@@ -77,6 +81,7 @@ namespace TEN::Renderer
 		}
 	}
 		
+	// One additive colored quad per laser barrier beam.
 	void Renderer::PrepareLaserBarriers(RenderView& view)
 	{
 		for (const auto& [itemNumber, barrier] : LaserBarriers)
@@ -93,6 +98,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Laser beams are tubes of SUBDIVISION_COUNT colored quads between the two vertex rings of the beam.
 	void Renderer::PrepareSingleLaserBeam(RenderView& view)
 	{
 		for (const auto& [itemNumber, beam] : LaserBeams)
@@ -109,7 +115,7 @@ namespace TEN::Renderer
 				auto& v4 = beam.Vertices[LaserBeamEffect::SUBDIVISION_COUNT + i];
 				auto& beamColor = beam.Color;
 
-				// Make lerp only if beam is moving !
+				// Interpolate only if the beam is moving.
 				if (beam.IsDirty)
 				{
 					auto color = Color::Lerp(beam.OldColor, beamColor, GetInterpolationFactor());
@@ -142,6 +148,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Each streamer segment is a colored quad joined to the previous segment; feather modes fade one or both edges.
 	void Renderer::PrepareStreamers(RenderView& view)
 	{
 		for (const auto& [itemNumber, group] : StreamerEffect.GetGroups())
@@ -217,6 +224,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Helical lasers and electricity arcs: the spline is sampled into segments drawn as constrained lightning billboards.
 	void Renderer::PrepareHelicalLasers(RenderView& view)
 	{
 		if (HelicalLasers.empty())
@@ -269,6 +277,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Each arc segment gets a thin white core and a wider colored glow, faded out over the last 16 frames of life.
 	void Renderer::PrepareElectricity(RenderView& view)
 	{
 		if (ElectricityArcs.empty())
@@ -423,6 +432,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Fire sparks of every fire, tinted by the fire color, with an optional heat haze distortion billboard.
 	void Renderer::PrepareFires(RenderView& view) 
 	{
 		for (const auto& fire : Fires)
@@ -487,6 +497,8 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Classic particles. Sprite particles (SP_DEF) may follow an effect item (SP_FX), an item or one of its nodes
+	// (SP_ITEM, SP_NODEATTACH) until they detach; other particles are drawn as velocity aligned sparks.
 	void Renderer::PrepareParticles(RenderView& view)
 	{
 		for (int i = 0; i < ParticleNodeOffsetIDs::NodeMax; i++)
@@ -551,10 +563,7 @@ namespace TEN::Renderer
 				}
 				else if (!(particle.flags & SP_ITEM))
 				{
-					// NOTE: pos already set previously.
-					//pos.x = particle.x;
-					//pos.y = particle.y;
-					//pos.z = particle.z;
+					// Free particle: pos is already its interpolated world position.
 				}
 				else
 				{
@@ -681,6 +690,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Splashes are rings of POINT_COUNT quads between an inner and an outer radius, faded by life and falling height.
 	void Renderer::PrepareSplashes(RenderView& view) 
 	{
 		constexpr auto POINT_COUNT = 9;
@@ -817,6 +827,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Ripples are billboards oriented along the surface normal.
 	void Renderer::PrepareRipples(RenderView& view) 
 	{
 		if (Ripples.empty() || _sprites.empty())
@@ -875,6 +886,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Shockwaves are rotated rings of quads; the style selects the sprite, the segment count and the facing.
 	void Renderer::PrepareShockwaves(RenderView& view)
 	{
 		unsigned char r = 0;
@@ -908,7 +920,7 @@ namespace TEN::Renderer
 			float innerRadius = Lerp(shockwave->PrevInnerRad, shockwave->innerRad, GetInterpolationFactor());
 			float outerRadius = Lerp(shockwave->PrevOuterRad, shockwave->outerRad, GetInterpolationFactor());
 
-			// Inner circle
+			// First edge of the ring.
 			if (shockwave->style == (int)ShockwaveStyle::Normal)
 			{
 				angle = PI / 32.0f;
@@ -1089,6 +1101,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Weather particles: underwater dust, and snow and rain drawn as deterministic clusters around each particle.
 	void Renderer::PrepareWeatherParticles(RenderView& view) 
 	{
 		constexpr auto SNOW_CLUSTER_SPREAD = BLOCK(1.0f);
@@ -1196,7 +1209,7 @@ namespace TEN::Renderer
 						if (Objects[ID_SNOW_SPRITES].loaded)
 							spriteIndex = Objects[ID_SNOW_SPRITES].meshIndex + (uniqueSeed % Objects[ID_SNOW_SPRITES].nmeshes);
 
-						/// Get a deterministic particle rotation from the cluster index.
+						// Get a deterministic particle rotation from the cluster index.
 						float rot = ((float)i / (float)clusterSize) * PI_MUL_2;
 
 						AddSpriteBillboard(
@@ -1221,17 +1234,16 @@ namespace TEN::Renderer
 						Vector3 v;
 						part.Velocity.Normalize(v);
 
-						// Distance to camera
+						// Distance to camera.
 						const Vector3 camPos = view.Camera.WorldPosition;
 						float dist = (finalPos - camPos).Length();
 
-						// Define interpolation range:
-						// near = ~1 block (no widening), far = expanded rain render range
+						// Width interpolation range: no widening up to half a block, full width at the expanded rain render range.
 						float nearD = BLOCK(0.5f);
 						float farD = COLLISION_CHECK_DISTANCE * RAIN_RENDER_RANGE_MULT;
 						float t = std::clamp((dist - nearD) / std::max(1.0f, (farD - nearD)), 0.0f, 1.0f);
 
-						// Blend rain width based on distance
+						// Blend rain width based on distance.
 						float width = Lerp(RAIN_WIDTH_NEAR, RAIN_WIDTH_FAR, t);
 
 						AddSpriteBillboardConstrained(
@@ -1249,6 +1261,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Footprints are subtractive quads projected on the floor.
 	void Renderer::PrepareFootprints(RenderView& view) 
 	{
 		for (const auto& footprint : Footprints)
@@ -1286,6 +1299,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Spark particles are velocity aligned billboards shrinking and changing color over their life.
 	void Renderer::PrepareSparkParticles(RenderView& view)
 	{
 		for (int i = 0; i < SparkParticles.size(); i++) 
@@ -1369,6 +1383,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Sprite particle groups; particles with an orientation are drawn as oriented quads, the others as billboards.
 	void Renderer::PrepareParticleGroups(RenderView& view)
 	{
 		using namespace TEN::Effects::ParticleGroups;
@@ -1435,6 +1450,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Collects the sorted buckets of the single-mesh effects of the visible rooms.
 	void Renderer::CollectSortedEffectFaces(RenderView& view)
 	{
 		for (auto* roomPtr : view.RoomsToDraw)

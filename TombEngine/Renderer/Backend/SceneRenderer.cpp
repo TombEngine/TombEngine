@@ -35,6 +35,11 @@ using namespace TEN::Renderer::RHI;
 using namespace TEN::Renderer::Structures;
 using TEN::Renderer::Structures::Vertex;
 
+// Core of the scene renderer backend: device setup and shutdown, scene pipelines, level load, per-frame collection of
+// materials, lights, instances and sorted faces, and the frame entry points. RenderFrame records the FRAME_PASSES list
+// for the RenderView and FrameEnvironment of the frontend; FinishFrame adds the UiFrame 2D layer and submits.
+// Feature passes (sky, water, shadows, post-process, overlay...) live in the other SceneRenderer*.cpp files.
+
 namespace TEN::Renderer::Backend
 {
     constexpr auto INITIAL_INSTANCE_CAPACITY = 4096;
@@ -48,6 +53,8 @@ namespace TEN::Renderer::Backend
         return (materialIndex >= 0 && materialIndex < (int)g_Level.Materials.size() && g_Level.Materials[materialIndex].HasEmissiveMap);
     }
 
+    // Creates the RHI device of the requested backend on the window and every level independent resource. Level data
+    // arrives later through LoadLevel. Returns false, with everything released, when the device or a shader fails.
     bool SceneRenderer::Initialize(SDL_Window* window, GraphicsApi backend, const std::string& gameDirectory, bool preferLowPowerGpu)
     {
         _device = CreateDevice(backend, window, DEBUG_BUILD, preferLowPowerGpu);
@@ -77,6 +84,8 @@ namespace TEN::Renderer::Backend
         return true;
     }
 
+    // Waits for the GPU and releases every device resource before the device itself. Memory usage is logged while
+    // the level resources still exist.
     void SceneRenderer::Shutdown()
     {
         if (_device == nullptr)
@@ -446,6 +455,8 @@ namespace TEN::Renderer::Backend
         return true;
     }
 
+    // Loads the shaders and creates the fixed resources of every feature, at initialization and on shader reload.
+    // Scene pipelines are created lazily by GetScenePipeline; only the two base ones are checked here.
     bool SceneRenderer::CreatePipelines()
     {
         _roomsVertexShader = LoadShader(*_device, _shaderDirectory, "Rooms", "VS");
@@ -496,7 +507,7 @@ namespace TEN::Renderer::Backend
 
         CreateMaterialSampler();
 
-        // Defaults of the frontend for atlas pages without material maps.
+        // Default material maps for pages without them: white color, flat normal, default ORSH and black emissive.
         constexpr unsigned char WHITE_PIXEL[4]       = { 255, 255, 255, 255 };
         constexpr unsigned char FLAT_NORMAL_PIXEL[4] = { 128, 128, 255, 255 };
         constexpr unsigned char ORSH_PIXEL[4]        = { 255, 255, 0, 255 };
@@ -520,6 +531,7 @@ namespace TEN::Renderer::Backend
                 _defaultORSHTexture != nullptr && _blackTexture != nullptr);
     }
 
+    // 1x1 texture (or one layer array) of a single RGBA8 color, uploaded synchronously.
     std::unique_ptr<ITexture> SceneRenderer::CreateSolidTexture(const unsigned char color[4], const std::string& name, TextureType type)
     {
         auto desc = TextureDesc{};
@@ -694,6 +706,7 @@ namespace TEN::Renderer::Backend
             "Rooms", "Objects", "Sky", "Sprites", "RoomsPrepass", "ObjectsPrepass", "ObjectsShadow", "ObjectsDebris", "ObjectsMirrored", "SkyParaboloid", "Inventory", "SkyHorizonMask", "SkySprites"
         };
 
+        // Vertex streams: stream 0 holds the vertices, stream 1 the instance indices of objects and sprites.
         auto desc = GraphicsPipelineDesc{};
         desc.VertexShader = vertexShaders[(int)shader];
         desc.PixelShader = (variant == 0) ? pixelShaders[(int)shader] : _pixelShaderVariants[(int)shader][variant].get();
@@ -851,6 +864,8 @@ namespace TEN::Renderer::Backend
         _targetPool.Reserve(_glowTarget->GetDesc());
     }
 
+    // Window resolution targets: the scene frame after post-process (_colorTarget) and the frame with the 2D layer
+    // (_finalTarget), which is blitted to the swapchain.
     bool SceneRenderer::CreateFrameTargets(int width, int height)
     {
         auto colorDesc = TextureDesc{};
@@ -867,6 +882,8 @@ namespace TEN::Renderer::Backend
         return (_colorTarget != nullptr && _finalTarget != nullptr);
     }
 
+    // Render resolution targets of the scene and its screen space passes. The window width decides whether the FSR
+    // upscale is active and the mip bias of the material sampler.
     bool SceneRenderer::CreateSceneTargets(int width, int height, int windowWidth)
     {
         auto colorDesc = TextureDesc{};
@@ -923,6 +940,8 @@ namespace TEN::Renderer::Backend
         return CreateMaterialSampler();
     }
 
+    // Synchronous buffer upload with its own command buffer and a full device wait: load time only. Per-frame data
+    // goes through the upload ring instead.
     void SceneRenderer::UploadBuffer(IBuffer* buffer, const void* data, int size, int offset)
     {
         auto transferBuffer = _device->CreateTransferBuffer(TransferBufferUsage::Upload, size);
@@ -937,6 +956,9 @@ namespace TEN::Renderer::Backend
         _device->WaitIdle();
     }
 
+    // Uploads the level prepared by the frontend (RendererCompatibility.cpp): geometry into the shared vertex and index
+    // buffers, water surfaces, texture arrays and animated texture sets, then precompiles the pipelines the level uses.
+    // The geometry vectors are referenced, not copied, and must outlive the level.
     void SceneRenderer::LoadLevel(const LevelGeometry& geometry)
     {
         if (_device == nullptr)
@@ -945,6 +967,7 @@ namespace TEN::Renderer::Backend
         auto lock = std::lock_guard<std::mutex>(_frameMutex);
         auto startTime = std::chrono::steady_clock::now();
 
+        // Release the previous level once the GPU no longer uses it.
         _device->WaitIdle();
         _isLevelLoaded = false;
         _roomTextures.clear();
@@ -970,6 +993,7 @@ namespace TEN::Renderer::Backend
 
         _isLevelLoaded = true;
 
+        // Log the room bucket count of each blend mode, static and animated.
         int bucketCounts[2][16] = {};
         for (const auto& room : *geometry.Rooms)
         {
@@ -1113,12 +1137,14 @@ namespace TEN::Renderer::Backend
         _uploadedMaterialData = _materialData;
     }
 
+    // Frame storage buffers read by the room and object pixel shaders, in their slot order.
     void SceneRenderer::BindScenePixelStorage(IRenderPass& renderPass)
     {
         IBuffer* buffers[4] = { _lightBuffer.Buffer.get(), _materialBuffer.Buffer.get(), _decalBuffer.Buffer.get(), _lightClusterBuffer.Buffer.get() };
         renderPass.BindPixelStorageBuffers(0, buffers, 4);
     }
 
+    // Room state of the buckets of a room: water, caustics and outdoor flags, and its decal slice when decals are drawn.
     SceneRenderer::BucketDrawInfo SceneRenderer::GetBucketDrawInfo(int roomNumber, bool hasDecals)
     {
         auto info = BucketDrawInfo{};
@@ -1222,6 +1248,8 @@ namespace TEN::Renderer::Backend
         return (bucket.BlendMode == BlendMode::AlphaTest) ? ALPHA_TEST_THRESHOLD : 0.0f;
     }
 
+    // Sets the per draw state of a bucket: pixel and vertex draw uniforms and the texture arrays of its page. The pipeline
+    // is bound by the caller. State equal to the previous draw, tracked in state, is not pushed again.
     void SceneRenderer::BindBucket(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RendererBucket& bucket, const std::vector<TexturePage>& pages,
                                   BlendMode blendMode, unsigned int lightCount, const BucketDrawInfo& room, BucketBindState& state)
     {
@@ -1330,6 +1358,7 @@ namespace TEN::Renderer::Backend
         }
     }
 
+    // Buckets of the other blend modes belong to no scene pass: the frontend sorts their faces for DrawSortedFaces.
     bool SceneRenderer::IsBucketInPass(const RendererBucket& bucket, ScenePass pass)
     {
         switch (pass)
@@ -1390,6 +1419,7 @@ namespace TEN::Renderer::Backend
         return (isAlphaTested << 60) | ((group & 0xFFF) << 44) | ((layer & 0xFFF) << 32) | (material << 16) | (unsigned long long)source;
     }
 
+    // Fills _objectDrawOrder; _objectDraws itself keeps its collection order for the order dependent passes.
     void SceneRenderer::SortObjectDraws()
     {
         _objectDrawOrder.clear();
@@ -1451,6 +1481,8 @@ namespace TEN::Renderer::Backend
         commandBuffer.PopDebugGroup();
     }
 
+    // Draws the visible room buckets of one pass and alpha test variant, with one draw call per bucket. Room state and
+    // the portal scissor change only between rooms.
     void SceneRenderer::DrawRoomBuckets(ICommandBuffer& commandBuffer, IRenderPass& renderPass, ScenePass pass, bool isAlphaTested)
     {
         auto shader = (pass == ScenePass::Prepass) ? SceneShader::RoomsPrepass : SceneShader::Rooms;
@@ -1497,7 +1529,8 @@ namespace TEN::Renderer::Backend
         renderPass.SetScissor(ScissorRect{ 0, 0, targetDesc.Width, targetDesc.Height });
     }
 
-    // Same conversion: interpolated positions and spot ranges as cosines.
+    // Frontend light to its GPU layout: intensity scaled by the fade, spot cone angles (degrees) stored as cosines, and
+    // position and direction interpolated for moving lights, which have a hash.
     GpuLight SceneRenderer::ToGpuLight(const RendererLight& light, float interpolationFactor, float fade)
     {
         auto gpuLight = GpuLight{};
@@ -1580,6 +1613,7 @@ namespace TEN::Renderer::Backend
 
         _boneData.clear();
 
+        // Statics: one instance per static, one draw per bucket of the object type.
         for (const auto& [objectNumber, statics] : view.SortedStaticsToDraw)
         {
             if (statics.empty())
@@ -1620,6 +1654,7 @@ namespace TEN::Renderer::Backend
             }
         }
 
+        // Moveables of the visible rooms.
         for (const auto* room : view.RoomsToDraw)
         {
             for (const auto* item : room->ItemsToDraw)
@@ -1666,6 +1701,7 @@ namespace TEN::Renderer::Backend
                     AddMeshDraws(*skinMesh, skinInstance);
                 }
 
+                // Rigid meshes, one instance each unless grouped.
                 for (int meshIndex = 0; meshIndex < (int)item->MeshIndex.size(); meshIndex++)
                 {
                     if (!nativeItem.MeshBits.Test(meshIndex))
@@ -1686,6 +1722,7 @@ namespace TEN::Renderer::Backend
                     AddMeshDraws(*mesh, instance);
                 }
 
+                // Per item adjustments of the draws just added.
                 if (waterfallSet != _waterfallSets.end())
                 {
                     for (int i = firstDraw; i < (int)_objectDraws.size(); i++)
@@ -1699,6 +1736,8 @@ namespace TEN::Renderer::Backend
             }
         }
 
+        // Player, then effect meshes, which also flush the grouped item meshes queued above. Mirrors then reflect the
+        // object draws collected so far, so debris and gun flashes are not reflected.
         if (LaraItem != nullptr)
             _currentOrigin = InstanceOrigin{ LaraItem->RoomNumber, InstanceCategory::Player };
 
@@ -1711,6 +1750,8 @@ namespace TEN::Renderer::Backend
         CollectGunFlashes(view);
     }
 
+    // Appends an instance with the current origin and returns its index. Skinning packs the bone offset in the low
+    // 24 bits and the skinning mode in the high 8 bits.
     int SceneRenderer::AddInstance(const Matrix& world, const Vector4& color, const Vector4& ambientLight, LightMode lightMode, int lightOffset, int lightCount, int boneOffset, int skinningMode)
     {
         auto instance = GpuObjectInstance{};
@@ -1739,6 +1780,7 @@ namespace TEN::Renderer::Backend
         _instanceOrigins.push_back(origin);
     }
 
+    // Appends bone matrices to the frame bone buffer and returns the offset of the first one, in matrices.
     int SceneRenderer::AddBones(const Matrix* bones, int count)
     {
         int offset = (int)(_boneData.size() / sizeof(Matrix));
@@ -1763,6 +1805,7 @@ namespace TEN::Renderer::Backend
         _objectDraws.erase(std::remove_if(_objectDraws.begin() + firstDraw, _objectDraws.end(), isFaded), _objectDraws.end());
     }
 
+    // One moveable object draw per non-empty bucket of the mesh, over a contiguous instance range.
     void SceneRenderer::AddMeshDraws(const RendererMesh& mesh, int firstInstance, int instanceCount)
     {
         for (const auto& bucket : mesh.Buckets)
@@ -1796,6 +1839,7 @@ namespace TEN::Renderer::Backend
         lightCount |= GetShadowReceiverMask(ID_LARA);
         int firstDraw = (int)_objectDraws.size();
 
+        // One instance with the animation bones serves every rigid mesh, joint and holster; the full skin has its own.
         int boneCount = (int)laraObject->AnimationTransforms.size();
         int animationBones = AddBones(item->InterpolatedAnimationTransforms, boneCount);
         auto lightMode = (*_levelGeometry.Meshes)[item->MeshIndex[0]]->LightMode;
@@ -1825,6 +1869,7 @@ namespace TEN::Renderer::Backend
             AddMeshDraws(*(*_levelGeometry.Meshes)[item->MeshIndex[meshIndex]], instance);
         }
 
+        // Classic joint meshes fill the gaps between rigid meshes when there is no full skin.
         if (!isFullSkin)
         {
             const auto& joints = (*_levelGeometry.MoveableObjects)[Lara.Skin.SkinJoints];
@@ -1916,6 +1961,8 @@ namespace TEN::Renderer::Backend
         }
     }
 
+    // Copies CPU frame data into its GPU buffer through the upload ring, so it must run between _uploadRing.Begin and
+    // End. A buffer too small is recreated with twice the needed size, so growth reallocates rarely.
     void SceneRenderer::UploadFrameStorage(FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, unsigned int usage, const char* name)
     {
         // Storage buffers cannot be empty, so the smallest buffer holds one element.
@@ -1954,6 +2001,8 @@ namespace TEN::Renderer::Backend
         commandBuffer.PopDebugGroup();
     }
 
+    // Instanced object draws of one pass, or their mirror reflections. Buckets without alpha test are drawn first,
+    // with the pixel shader without clip.
     void SceneRenderer::DrawObjects(ICommandBuffer& commandBuffer, IRenderPass& renderPass, ScenePass pass, bool isMirrored)
     {
         constexpr const char* GROUP_NAMES[] = { "Objects prepass", "Objects opaque", "Objects alpha edges", "Objects additive", "Objects distortion" };
@@ -1973,6 +2022,8 @@ namespace TEN::Renderer::Backend
         commandBuffer.PopDebugGroup();
     }
 
+    // One instanced draw call per object draw. Statics and moveables share the object vertex region, so the geometry is
+    // bound once; mirror draws keep their collection order.
     void SceneRenderer::DrawObjectBuckets(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const std::vector<ObjectDraw>& draws, ScenePass pass,
                                          bool isMirrored, bool isAlphaTested)
     {
@@ -2077,7 +2128,8 @@ namespace TEN::Renderer::Backend
 
     // Walks the transparent polygons in the order computed by the frontend SortTransparentFaces and turns each
     // group run into one draw. All indices go into a single frame index buffer, so a run costs one draw call
-    // and object state comes from the instance buffer instead of per-run constant buffer uploads.
+    // and object state comes from the instance buffer instead of per-run uniforms. Must run after CollectObjects,
+    // whose hair instances it reuses, and after CollectSprites, whose sprite buffer it appends to.
     void SceneRenderer::CollectSortedFaces(const RenderView& view, float interpolationFactor)
     {
         _sortedIndexData.clear();
@@ -2094,6 +2146,7 @@ namespace TEN::Renderer::Backend
         {
             const auto& object = objects[polygons[sortKeys[i].Index].ObjectIndex];
 
+            // Sprite run: consecutive sprites of one group become one instanced sprite draw.
             if (object.ObjectType == RendererObjectType::Sprite)
             {
                 auto draw = SortedDraw{};
@@ -2118,6 +2171,7 @@ namespace TEN::Renderer::Backend
                 continue;
             }
 
+            // Mesh run: find the CPU index list the polygons of the group point into.
             const std::vector<int>* sourceIndices = nullptr;
             auto source = MeshSource::Moveables;
             int hairInstance = NO_VALUE;
@@ -2164,6 +2218,7 @@ namespace TEN::Renderer::Backend
                 continue;
             }
 
+            // Copy the indices of the run in sorted order: 6 for a quad, 3 for a triangle.
             int firstIndex = (int)(_sortedIndexData.size() / sizeof(int));
             while (i < sortedCount)
             {
@@ -2177,6 +2232,7 @@ namespace TEN::Renderer::Backend
                 i++;
             }
 
+            // Build the draw, merged into the previous one when the state and scissor match.
             auto draw = SortedDraw{};
             draw.Source = source;
             draw.IsRoom = (object.ObjectType == RendererObjectType::Room);
@@ -2226,6 +2282,9 @@ namespace TEN::Renderer::Backend
                 previousScissor.Width == nextScissor.Width && previousScissor.Height == nextScissor.Height);
     }
 
+    // Draws the sorted runs in the frontend sort order from the frame sorted index buffer, interleaving room, object
+    // and sprite runs.
+    // Pipeline, vertex streams and scissor are rebound only when they change between runs.
     void SceneRenderer::DrawSortedFaces(ICommandBuffer& commandBuffer, IRenderPass& renderPass, bool isMirrored)
     {
         const auto& draws = isMirrored ? _mirrorSortedDraws : _sortedDraws;
@@ -2318,7 +2377,8 @@ namespace TEN::Renderer::Backend
         commandBuffer.PopDebugGroup();
     }
 
-    // Same grid: 20x20 tiles of 512 units in the XZ plane.
+    // Classic sky layer mesh: a grid of SKY_TILES_COUNT x SKY_TILES_COUNT tiles of 512 units in the XZ plane, with UVs
+    // spanning the whole sky page. Created once at initialization.
     bool SceneRenderer::CreateSkyGeometry()
     {
         auto vertices = std::vector<GpuObjectVertex>{};
@@ -2378,6 +2438,7 @@ namespace TEN::Renderer::Backend
         commandBuffer.PopDebugGroup();
     }
 
+    // The sky is visible when a drawn room is an outside (skybox) room.
     bool SceneRenderer::IsSkyVisible(const RenderView& view) const
     {
         for (const auto* room : view.RoomsToDraw)
@@ -2389,6 +2450,7 @@ namespace TEN::Renderer::Backend
         return false;
     }
 
+    // Sky draw uniforms. A nonzero hemisphere projects into the dual paraboloid map, seen from the camera looking down.
     SkyVertexUniforms SceneRenderer::GetSkyVertexUniforms(const Matrix& world, bool isFogBulbsEnabled, const RenderView& view, int hemisphere) const
     {
         constexpr auto PARABOLOID_NEAR = 32.0f;
@@ -2572,6 +2634,7 @@ namespace TEN::Renderer::Backend
         }
     }
 
+    // Logs the average GPU time per pass that the device measured, at shutdown.
     void SceneRenderer::LogGpuTimings()
     {
         if (_device == nullptr)
@@ -2589,6 +2652,7 @@ namespace TEN::Renderer::Backend
         TENLog(message + fmt::format(" ({} frames)", timings.front().Samples), LogLevel::Info);
     }
 
+    // Blocks until the GPU finished the frame submitted FRAMES_IN_FLIGHT_MAX frames ago, whose slot is reused next.
     void SceneRenderer::WaitForFrameInFlight()
     {
         auto& fence = _frameFences[_frameFenceIndex];
@@ -2622,7 +2686,8 @@ namespace TEN::Renderer::Backend
         return (g_Configuration.EnableCaustics && (flags & ENV_FLAG_WATER) && !(flags & ENV_FLAG_NOCAUSTICS));
     }
 
-    // Current frame of the caustics sprite sequence.
+    // Current frame of the caustics sprite sequence: its sprite page is bound as the caustics texture and its atlas
+    // rectangle written to the frame pixel uniforms.
     void SceneRenderer::PrepareCaustics(FramePixelUniforms& uniforms)
     {
         _causticsTexture = nullptr;
@@ -2645,7 +2710,7 @@ namespace TEN::Renderer::Backend
         uniforms.CausticsSize = Vector2((float)sprite.Width / pageDesc.Width, (float)sprite.Height / pageDesc.Height);
     }
 
-    // Same values.
+    // Fog bulbs of the view in the shader layout, capped at FOG_BULBS_MAX; density is normalized by the bulb radius.
     FogBulbUniforms SceneRenderer::GetFogBulbUniforms(const RenderView& view)
     {
         auto uniforms = FogBulbUniforms{};
@@ -2749,6 +2814,9 @@ namespace TEN::Renderer::Backend
         commandBuffer.EndRenderPass();
     }
 
+    // Records and submits the scene of one frame into _colorTarget: frame uniforms, collection of the frame data from
+    // the view, one upload copy pass, then FRAME_PASSES. Called by the game thread; the 2D layer and the present follow
+    // in FinishFrame. The view and environment are only referenced during the call.
     void SceneRenderer::RenderFrame(const RenderView& view, const FrameEnvironment& environment)
     {
         if (_device == nullptr || !_isLevelLoaded)
@@ -2830,6 +2898,8 @@ namespace TEN::Renderer::Backend
         commandBuffer->PushUniforms(RHI::ShaderStage::Vertex, 2, &defaultSkyVertexUniforms, sizeof(defaultSkyVertexUniforms));
         commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 1, &defaultDrawPixelUniforms, sizeof(defaultDrawPixelUniforms));
 
+        // Collect the frame data on the CPU. Order matters: lights and instances before the sorted faces, which reuse
+        // them, and sprites before the sorted sprite runs that append to the same buffer.
         auto collectStartTime = std::chrono::steady_clock::now();
         CollectMaterials(environment.InterpolationFactor);
         CollectDecals(view);
@@ -2851,6 +2921,7 @@ namespace TEN::Renderer::Backend
         UploadFrameData(*commandBuffer, environment);
         _frameStats.UploadTime = GetMilliseconds(uploadStartTime, std::chrono::steady_clock::now());
 
+        // Decide which optional passes of FRAME_PASSES run this frame.
         PrepareShadows(environment, environment.InterpolationFactor);
         _hasDistortion = HasDistortionDraws(view);
         _isWaterSkyReflected = !_waterDraws.empty() && IsSkyVisible(view);
@@ -2861,6 +2932,7 @@ namespace TEN::Renderer::Backend
         // The shadow uniforms are the largest block of pixel slot 2, so they also cover the passes before the scene.
         commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
 
+        // Record the passes. They read the view and environment through these members, valid until the end of the call.
         _frameView = &view;
         _frameEnvironment = &environment;
         _frameVertexUniforms = frameVertexUniforms;
@@ -2889,6 +2961,7 @@ namespace TEN::Renderer::Backend
         _hasScene = true;
         _isFramePending = true;
 
+        // Screenshots also save the ambient occlusion and the shadow map faces as debug images.
         if (!_screenshotPath.empty())
         {
             TENLog(fmt::format("Scene renderer environment: fog color ({:.2f}, {:.2f}, {:.2f}), fog {:.1f}-{:.1f}, frame {}.",
@@ -2943,6 +3016,7 @@ namespace TEN::Renderer::Backend
         if (commandBuffer == nullptr)
             return;
 
+        // Without a scene rendered since the last call, the statistics of the previous scene no longer apply.
         bool hasScene = _isFramePending;
         if (!hasScene)
             _frameStats = SceneFrameStats{};
@@ -2962,12 +3036,14 @@ namespace TEN::Renderer::Backend
         _uploadRing.End();
         commandBuffer->EndCopyPass();
 
+        // Draw the 2D layer over the scene into _finalTarget, then the menu post-process and the ImGui debug overlay.
         AcquireOverlayTargets();
         RenderOverlay(*commandBuffer, ui);
         RenderMenuPostProcess(*commandBuffer, ui);
         ReleaseOverlayTargets();
         DrawImGui(*commandBuffer, ui);
 
+        // Present from this thread, unless the device presents on the window thread (PresentOnWindowThread).
         if (!_device->RequiresWindowThreadPresent())
         {
             auto* swapchainTexture = commandBuffer->AcquireSwapchainTexture();
@@ -2995,11 +3071,14 @@ namespace TEN::Renderer::Backend
             _isFrameReady = true;
     }
 
+    // The next FinishFrame records a readback of _finalTarget; the file is written once the GPU has rendered it.
     void SceneRenderer::RequestScreenshot(const std::string& path)
     {
         _screenshotPath = path;
     }
 
+    // Called by the window thread every loop: tracks the window size and, on devices that must present on that thread
+    // (SDL GPU), blits the last finished frame to the swapchain.
     void SceneRenderer::PresentOnWindowThread()
     {
         if (_device == nullptr)

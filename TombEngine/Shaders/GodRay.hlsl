@@ -2,8 +2,8 @@
 // TEN_SHADER: Pixel PSGodRay samplers=4 storage_textures=0 storage_buffers=0 uniform_buffers=4
 // TEN_SHADER: Pixel PSGodRayComposite samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=4
 
-// God rays of the frontend (Shaders/GodRayCore.hlsli): radial blur at half resolution and additive composite,
-// with the CBGodRay uniform block in slot 2.
+// God rays (SceneRendererSky.cpp), implemented in GodRayCore.hlsli: radial blur at half resolution and additive
+// composite, with the CBGodRay uniform block in slot 2.
 
 #include "./ShaderInterop.hlsli"
 #include "./Fullscreen.hlsli"
@@ -26,6 +26,7 @@ struct VSOutput
     float4 PositionCopy : TEXCOORD1;
 };
 
+// Fullscreen triangle on the far plane; PositionCopy passes the clip position to the pixel shaders.
 VSOutput VS(uint vertexId : SV_VertexID)
 {
     FullscreenPixelInput fullscreen = FullscreenVS(vertexId);

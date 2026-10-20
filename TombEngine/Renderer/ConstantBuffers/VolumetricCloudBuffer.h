@@ -6,8 +6,9 @@ namespace TEN::Renderer::ConstantBuffers
 {
 	using namespace TEN::Math::Library;
 
+	// Volumetric cloud uniform block of one layer, filled by UpdateVolumetricCloudBuffer, copied into its
+	// Backend::CloudLayerDraw and pushed by the scene renderer as pixel uniforms of the cloud passes.
 	// Must match CBVolumetricCloud.hlsli layout exactly.
-	// Bound to register b9.
 	struct alignas(16) CVolumetricCloudBuffer
 	{
 		// Row 0

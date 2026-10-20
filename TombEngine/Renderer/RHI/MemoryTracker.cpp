@@ -11,6 +11,7 @@
 
 namespace TEN::Renderer::RHI
 {
+    // Atomic, as resources are created and released on several threads.
     static std::array<std::atomic<unsigned long long>, (int)MemoryCategory::Count> TrackedBytes  = {};
     static std::array<std::atomic<int>, (int)MemoryCategory::Count>                TrackedCounts = {};
 
@@ -31,6 +32,7 @@ namespace TEN::Renderer::RHI
         TrackedCounts[(int)_category]++;
     }
 
+    // Uncounts the current size and takes over the size of the other allocation, which stops counting it.
     MemoryAllocation& MemoryAllocation::operator=(MemoryAllocation&& other) noexcept
     {
         if (this == &other)

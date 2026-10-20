@@ -12,6 +12,9 @@
 #include "Specific/clock.h"
 #include "Specific/trutils.h"
 
+// Global renderer instance and its lifetime: construction, release of level data, video sprite state, frame
+// synchronization and small state accessors. GPU resources are owned by Backend::g_SceneRenderer.
+
 namespace TEN::Renderer
 {
 	using namespace TEN::Renderer::Structures;
@@ -32,6 +35,7 @@ namespace TEN::Renderer
 		FreeRendererData();
 	}
 
+	// Releases the renderer data of the current level, including the meshes allocated by PrepareDataForTheRenderer.
 	void Renderer::FreeRendererData()
 	{
 		_items.resize(0);
@@ -54,6 +58,7 @@ namespace TEN::Renderer
 		_videoSprite = {};
 	}
 
+	// Blocks further debug primitives, debug messages and dynamic lights until the next PrepareScene.
 	void Renderer::Lock()
 	{
 		_isLocked = true;
@@ -85,9 +90,9 @@ namespace TEN::Renderer
 		Backend::g_SceneRenderer.ReloadShaders();
 	}
 
+	// Waits until at least two game ticks have elapsed and returns the number of elapsed ticks.
 	int Renderer::Synchronize()
 	{
-		// Sync the renderer
 		int nf = TimeSync();
 		if (nf < 2)
 		{
@@ -109,6 +114,7 @@ namespace TEN::Renderer
 		RenderLoadingScreen(value);
 	}
 
+	// Frame rate averaged over 10 rendered frames.
 	float Renderer::CalculateFrameRate()
 	{
 		static int last_time = clock();

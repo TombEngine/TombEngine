@@ -3,6 +3,7 @@
 
 namespace TEN::Renderer::RHI
 {
+    // Compares every field except the name.
     static bool IsSameTarget(const TextureDesc& first, const TextureDesc& second)
     {
         return (first.Type == second.Type && first.Format == second.Format && first.Width == second.Width && first.Height == second.Height &&
@@ -51,6 +52,7 @@ namespace TEN::Renderer::RHI
             Release(texture);
     }
 
+    // Called once per frame: destroys targets left unused for MAX_UNUSED_FRAMES frames.
     void RenderTargetPool::CollectUnused()
     {
         constexpr auto MAX_UNUSED_FRAMES = 300;

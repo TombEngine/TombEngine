@@ -5,9 +5,11 @@
 // TEN_SHADER: Vertex VSInventory samplers=0 storage_textures=0 storage_buffers=4 uniform_buffers=4
 // TEN_SHADER: Pixel PSInventory samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3
 
-// Static meshes and rigid moveable meshes. Every draw is instanced: the instance index stream
-// selects the per-instance world matrix, colors and light mode from a storage buffer.
+// Static meshes and moveable meshes, rigid or skinned from the frame bone buffer. Every draw is instanced: the
+// instance index stream selects the per-instance world matrix, colors and light mode from a storage buffer.
 // Lighting combines ambient, dynamic and static vertex light with material maps and specular.
+// Entry points: VS and PS for the scene, PSDepthNormal for the depth and normal prepass, PSShadow for the shadow map,
+// VSInventory and PSInventory for the 2D layer. The NO_* options are described in Materials.hlsli.
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -60,6 +62,8 @@ struct PixelInput
     float4 FogBulbs                     : TEXCOORD13;
 };
 
+// Dynamic light mode: ambient minus shadow lights, plus diffuse and specular of the instance's light slice,
+// all modulated by the vertex color. Fog bulb density darkens the result before fog bulb color is added.
 float3 CombineLights(float3 ambient, float3 vertexLight, float3 position, Surface surface, float sheen, uint2 lightSlice, float fogDensity)
 {
     float3 diffuse = 0.0f;
@@ -103,6 +107,7 @@ PixelInput VS(VertexInput input)
 {
     GpuObjectInstance instance = TEN_LOAD_RAW(GpuObjectInstance, Instances, input.InstanceIndex);
 
+    // Skinned meshes apply the blended bone matrix in object space before the instance world matrix.
     float4x4 world = instance.World;
     uint skinningMode = instance.Skinning >> 24;
     if (skinningMode != SKINNING_NONE)
@@ -116,6 +121,7 @@ PixelInput VS(VertexInput input)
     output.UV = input.UV;
     output.UVScroll = float3(0.0f, 0.0f, 0.0f);
 
+    // Animated textures: waterfall scroll, UV rotation, or frame sequences that replace the vertex UV.
     if (AnimatedSetIndex >= 0)
     {
         GpuAnimatedSet set = TEN_LOAD_RAW(GpuAnimatedSet, AnimatedSets, AnimatedSetIndex);
@@ -163,6 +169,7 @@ float4 PS(PixelInput input) : SV_TARGET
     surface.Color.rgb = ApplyReflections(material, surface.Color.rgb, input.WorldPosition, PixelCameraPosition, surface.Normal,
                                          surface.Specular, View, InverseViewportSize.y / InverseViewportSize.x);
 
+    // Static light mode uses the baked vertex light only.
     float3 vertexLight = input.Color.rgb * COLOR_MODULATION_SCALE;
     float3 color = ((input.LightMode & INSTANCE_LIGHT_MODE_MASK) == LIGHT_MODE_DYNAMIC) ?
         CombineLights(input.AmbientLight * COLOR_MODULATION_SCALE, vertexLight, input.WorldPosition, surface, input.Sheen, input.LightSlice, input.FogBulbs.w) :
@@ -185,6 +192,7 @@ float4 PS(PixelInput input) : SV_TARGET
     return result;
 }
 
+// Depth and normal prepass: view space normal with the outdoor mask, emissive and a depth copy (see GetPrepassOutput).
 PrepassOutput PSDepthNormal(PixelInput input)
 {
     float3 emissive;

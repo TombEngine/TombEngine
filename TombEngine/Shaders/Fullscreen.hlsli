@@ -9,6 +9,8 @@ struct FullscreenPixelInput
     float2 UV       : TEXCOORD0;
 };
 
+// Vertices 0, 1 and 2 get UVs (0, 0), (2, 0) and (0, 2): one triangle covering the whole screen, with UV
+// (0, 0) at the top left.
 FullscreenPixelInput FullscreenVS(uint vertexId)
 {
     float2 uv = float2((vertexId << 1) & 2, vertexId & 2);

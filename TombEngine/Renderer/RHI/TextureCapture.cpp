@@ -3,6 +3,7 @@
 
 namespace TEN::Renderer::RHI
 {
+    // Records the download of mip 0 of a layer into a new tightly packed transfer buffer.
     static std::unique_ptr<ITransferBuffer> RecordDownload(IDevice& device, ICopyPass& copyPass, ITexture* texture, int layer)
     {
         const auto& desc = texture->GetDesc();
@@ -93,6 +94,7 @@ namespace TEN::Renderer::RHI
             _requests.push_back(std::move(request));
     }
 
+    // Takes a fence only when downloads were recorded since the last submission.
     void TextureReadback::Submit(ICommandBuffer& commandBuffer)
     {
         if (!HasUnsubmittedRequests())

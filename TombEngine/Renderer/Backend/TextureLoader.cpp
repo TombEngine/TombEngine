@@ -1,6 +1,9 @@
 #include "framework.h"
 #include "Renderer/Backend/TextureLoader.h"
 
+// Image header parsing and decoding of DDS, PNG and JPEG files into DecodedImage, used by the level texture upload
+// (SceneRendererTextures.cpp) and the overlay images. DDS data is copied as stored, with no format conversion.
+
 // JPEG decoding only: PNG goes through SDL and DDS is read directly.
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_JPEG
@@ -28,6 +31,7 @@ namespace TEN::Renderer::Backend
         return value;
     }
 
+    // Maps the DXGI_FORMAT value of a DX10 extended header; values are the DXGI enum numbers.
     static PixelFormat GetDXGIPixelFormat(unsigned int dxgiFormat)
     {
         switch (dxgiFormat)
@@ -44,6 +48,8 @@ namespace TEN::Renderer::Backend
         }
     }
 
+    // Reads the legacy DDS_PIXELFORMAT block. A DX10 FourCC returns Unknown and sets hasDX10Header: the format is then
+    // read from the extended header that follows.
     static PixelFormat GetDDSPixelFormat(const unsigned char* header, bool& hasDX10Header)
     {
         constexpr auto PIXEL_FORMAT_OFFSET = 72;
@@ -89,6 +95,7 @@ namespace TEN::Renderer::Backend
         return PixelFormat::Unknown;
     }
 
+    // Byte size of all stored mip levels.
     static int GetMipChainSize(const ImageInfo& info)
     {
         int size = 0;
@@ -151,6 +158,7 @@ namespace TEN::Renderer::Backend
         return true;
     }
 
+    // Decodes through SDL and converts to RGBA8, removing the row padding of the surface.
     static bool DecodePNG(const std::vector<unsigned char>& encodedData, DecodedImage& image)
     {
         auto* stream = SDL_IOFromConstMem(encodedData.data(), encodedData.size());

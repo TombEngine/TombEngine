@@ -6,8 +6,10 @@ namespace TEN::Renderer::Backend
     // Light clusters split the view frustum into screen tiles and logarithmic depth slices. Each cluster holds a mask
     // of the room lights whose sphere reaches it, so room pixels evaluate only the lights near them instead of every
     // light of the view. The grid is placed in world space, so every view can read it; points outside it evaluate
-    // every light.
+    // every light. Built on the CPU each frame by CollectObjects, read by LightClusters.hlsli.
 
+    // View depths in world units: slices are logarithmic from the near to the far depth; the first one starts at the
+    // minimum depth.
     constexpr auto LIGHT_CLUSTER_NEAR_DEPTH = 256.0f;
     constexpr auto LIGHT_CLUSTER_FAR_DEPTH  = 65536.0f;
     constexpr auto LIGHT_CLUSTER_MIN_DEPTH  = 1.0f;
@@ -28,6 +30,7 @@ namespace TEN::Renderer::Backend
         return std::clamp((int)std::floor(std::log2(depth / LIGHT_CLUSTER_NEAR_DEPTH) * GetClusterSliceScale()), 0, LIGHT_CLUSTER_SLICES - 1);
     }
 
+    // View depth range of a slice, the inverse of GetClusterSlice.
     static float GetClusterSliceStart(int slice)
     {
         if (slice == 0)
@@ -44,11 +47,13 @@ namespace TEN::Renderer::Backend
         return GetClusterSliceStart(slice + 1);
     }
 
+    // Tile of a normalized device coordinate along one screen axis, clamped to the grid.
     static int GetClusterTile(float ndc, int tileCount)
     {
         return std::clamp((int)std::floor((ndc * 0.5f + 0.5f) * tileCount), 0, tileCount - 1);
     }
 
+    // Grid placement read by the shaders: the frame view projection and the slice parameters.
     void SceneRenderer::SetLightClusterUniforms(FramePixelUniforms& uniforms) const
     {
         uniforms.ClusterNearDepth = LIGHT_CLUSTER_NEAR_DEPTH;
@@ -57,7 +62,8 @@ namespace TEN::Renderer::Backend
     }
 
     // Lights are the room light slice of the frame light buffer; mask bit N selects its light N. Without a perspective
-    // projection every cluster holds every light.
+    // projection every cluster holds every light. More lights than LIGHT_CLUSTER_LIGHTS_MAX leave the masks empty: the
+    // shaders then loop over every room light. Needs _view and _projection of the frame.
     void SceneRenderer::BuildLightClusters(int lightOffset, int lightCount)
     {
         _lightClusterData.assign(LIGHT_CLUSTER_COUNT * LIGHT_CLUSTER_MASK_WORDS * sizeof(unsigned int), 0);

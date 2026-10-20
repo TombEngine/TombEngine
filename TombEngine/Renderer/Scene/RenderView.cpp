@@ -26,6 +26,7 @@ namespace TEN::Renderer
 		Mirrors.clear();
 	}
 
+	// Camera looking from the game camera position to its target, rolled around the view direction.
 	RenderViewCamera::RenderViewCamera(CAMERA_INFO* cam, float roll, float fov, float n, float f, int w, int h)
 	{
 		RoomNumber = cam->pos.RoomNumber;

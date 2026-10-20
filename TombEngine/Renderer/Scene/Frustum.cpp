@@ -1,8 +1,11 @@
 #include "framework.h"
 #include "Renderer/Scene/Frustum.h"
 
+// View frustum used by the frontend for CPU culling of items, statics, decals, fog bulbs and weather particles.
+
 namespace TEN::Renderer
 {
+	// Extracts the six normalized frustum planes from the combined view-projection matrix.
 	void Frustum::Update(const Matrix& view, const Matrix& projection)
 	{
 		std::array<float, 16> clip;
@@ -26,14 +29,14 @@ namespace TEN::Renderer
 		clip[14] = view._41 * projection._13 + view._42 * projection._23 + view._43 * projection._33 + view._44 * projection._43;
 		clip[15] = view._41 * projection._14 + view._42 * projection._24 + view._43 * projection._34 + view._44 * projection._44;
 
-		// This will extract the LEFT side of the frustum.
+		// This will extract the RIGHT side of the frustum.
 		frustum[1][0] = clip[3] - clip[0];
 		frustum[1][1] = clip[7] - clip[4];
 		frustum[1][2] = clip[11] - clip[8];
 		frustum[1][3] = clip[15] - clip[12];
 		NormalizePlane(1);
 
-		// This will extract the RIGHT side of the frustum.
+		// This will extract the LEFT side of the frustum.
 		frustum[0][0] = clip[3] + clip[0];
 		frustum[0][1] = clip[7] + clip[4];
 		frustum[0][2] = clip[11] + clip[8];
@@ -80,6 +83,7 @@ namespace TEN::Renderer
 		return true;
 	}
 
+	// A box is outside when all of its corners are behind one of the planes.
 	bool Frustum::AABBInFrustum(const Vector3& min, const Vector3& max) const
 	{
 		for (unsigned int i = 0; i < 6; i++)

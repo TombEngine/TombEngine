@@ -16,6 +16,7 @@ namespace TEN::Renderer::RHI
         return file.good();
     }
 
+    // The .meta file is whitespace separated key=value pairs (stage, samplers, storage_buffers, threads and so on).
     static std::unordered_map<std::string, std::string> ReadMetadata(const std::filesystem::path& path)
     {
         auto result = std::unordered_map<std::string, std::string>{};
@@ -52,6 +53,8 @@ namespace TEN::Renderer::RHI
     std::unique_ptr<IShader> LoadShader(IDevice& device, const std::string& binaryDirectory, const std::string& name, const std::string& entryPoint,
                                         const std::string& permutation)
     {
+        // Files are <binaryDirectory>/<format>/<name>.<entry>[.<permutation>].<extension>, with the .meta file of the
+        // same base name in binaryDirectory itself.
         auto baseName = name + "." + entryPoint + (permutation.empty() ? "" : "." + permutation);
         auto directory = std::filesystem::path(binaryDirectory);
 

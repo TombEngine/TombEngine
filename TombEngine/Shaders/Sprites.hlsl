@@ -3,7 +3,8 @@
 // TEN_SHADER: Pixel PSSky samplers=4 storage_textures=0 storage_buffers=0 uniform_buffers=4
 
 // Billboards and 3D quads share one path: corners are expanded to world space on the CPU, each sprite
-// is one instance of six vertices, and the corner index comes from a static vertex stream.
+// is one instance of six vertices, and the corner index comes from a static vertex stream (SceneRendererSprites.cpp).
+// PS draws scene sprites (soft particles, laser effects, distortion); PSSky draws stars and meteors.
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -57,6 +58,7 @@ struct PixelInput
     float3 WorldDirection : TEXCOORD5; // From the camera, for the moon disc of the sky sprites.
 };
 
+// Packed RGBA8, red in the low byte.
 float4 UnpackColor(uint packedColor)
 {
     return float4(packedColor & 0xFF, (packedColor >> 8) & 0xFF, (packedColor >> 16) & 0xFF, packedColor >> 24) / 255.0f;
@@ -78,6 +80,8 @@ PixelInput VS(VertexInput input)
     return output;
 }
 
+// Shared sprite shading: alpha test, soft particle fade, laser effects, fog bulbs and distance fog, or the
+// distortion payload for distortion sprites. Fog fades sprites to black, so additive sprites vanish in it.
 float4 ShadeSprite(PixelInput input, float alphaScale)
 {
     float4 texel = ColorMap.Sample(ColorMapSampler, input.UV) * input.Color;

@@ -8,8 +8,12 @@
 using namespace TEN::Renderer::RHI;
 using namespace TEN::Renderer::Structures;
 
+// Pipeline precompilation at level load. Scene pipelines are created lazily by GetScenePipeline; creating the ones a
+// level can bind during LoadLevel avoids stalls at the first draw of a blend mode or pixel shader variant.
+
 namespace TEN::Renderer::Backend
 {
+    // Blend modes precompiled for each shader of BLEND_MODE_SHADERS in PrecompileLevelPipelines.
     constexpr BlendMode PRECOMPILED_BLEND_MODES[] =
     {
         BlendMode::Opaque, BlendMode::Additive, BlendMode::NoDepthTest, BlendMode::Subtractive, BlendMode::Exclude, BlendMode::Screen,
@@ -27,6 +31,7 @@ namespace TEN::Renderer::Backend
         case BlendMode::AlphaTest:
             for (int isAlphaTested = 0; isAlphaTested < 2; isAlphaTested++)
             {
+                // Bit 0 of the missing maps is the normal map (NO_NORMAL_MAP).
                 GetScenePipeline(prepassShader, BlendMode::Opaque, isAlphaTested != 0, missingMaps);
                 GetScenePipeline(prepassShader, BlendMode::Opaque, isAlphaTested != 0, missingMaps | 1);
                 GetScenePipeline(shader, BlendMode::Opaque, isAlphaTested != 0, missingMaps);
@@ -47,6 +52,7 @@ namespace TEN::Renderer::Backend
         }
     }
 
+    // Base pipelines (all maps present) of every scene pass of a shader: prepass, opaque, alpha edges, additive, distortion.
     void SceneRenderer::PrecompilePassPipelines(SceneShader shader, SceneShader prepassShader)
     {
         for (int isAlphaTested = 0; isAlphaTested < 2; isAlphaTested++)
@@ -60,6 +66,7 @@ namespace TEN::Renderer::Backend
         GetScenePipeline(shader, BlendMode::Distortion, false);
     }
 
+    // Bucket variants of every mesh of the objects, for the normal and the mirrored object shaders.
     void SceneRenderer::PrecompileObjectPipelines(const std::vector<std::optional<RendererObject>>& objects, const std::vector<TexturePage>& pages)
     {
         for (const auto& object : objects)
@@ -123,6 +130,7 @@ namespace TEN::Renderer::Backend
         TENLog(fmt::format("Scene renderer: {} pipelines created at load in {:.1f} ms.", GetScenePipelineCount() - previousCount, elapsed), LogLevel::Info);
     }
 
+    // Scene pipelines created so far, for the load log and the renderer info.
     int SceneRenderer::GetScenePipelineCount() const
     {
         int count = 0;

@@ -1,3 +1,8 @@
+// Sprites (not a frame pass of their own): the unsorted sprites of the view and the classic sky sprites are expanded
+// into GpuSprite records (four world space corners, colors and UVs) in a frame storage buffer, and drawn as instanced
+// quads in runs sharing texture and state. Unsorted sprites draw in the distortion and scene passes, sky sprites in the
+// sky pass; sorted sprites are drawn with the sorted faces.
+
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 
@@ -33,13 +38,14 @@ namespace TEN::Renderer::Backend
     // Corner order of the sprite quads: top left, top right, bottom right, bottom left.
     constexpr unsigned int SPRITE_CORNER_INDICES[6] = { 0, 1, 3, 2, 3, 1 };
 
+    // RGBA8 color, red in the low byte.
     static unsigned int PackSpriteColor(const Vector4& color)
     {
         auto toByte = [](float value) { return (unsigned int)(std::clamp(value, 0.0f, 1.0f) * 255.0f + 0.5f); };
         return toByte(color.x) | (toByte(color.y) << 8) | (toByte(color.z) << 16) | (toByte(color.w) << 24);
     }
 
-    // Mirrors pass the reflected sprite position.
+    // Unit quad to world transform of a billboard type sprite. Mirrors pass the reflected sprite position.
     static Matrix GetSpriteWorldMatrix(const RendererSpriteToDraw& sprite, const Vector3& position, const RenderView& view)
     {
         auto scaleMatrix = Matrix::CreateScale(sprite.Width * sprite.Scale, sprite.Height * sprite.Scale, sprite.Scale);
@@ -69,6 +75,7 @@ namespace TEN::Renderer::Backend
         }
     }
 
+    // Sprite shaders, the static corner index buffer of the quads and the linear clamp sampler.
     bool SceneRenderer::CreateSpriteResources()
     {
         _spritesVertexShader = LoadShader(*_device, _shaderDirectory, "Sprites", "VS");
@@ -115,7 +122,7 @@ namespace TEN::Renderer::Backend
     }
 
     // As in the frontend, a mirror reflects the corners of 3D sprites, and the position of billboards,
-    // which still face the camera.
+    // which still face the camera. Returns false when the frame sprite capacity is exhausted.
     bool SceneRenderer::AddSprite(const RendererSpriteToDraw& sprite, const RenderView& view, const RendererMirror* mirror)
     {
         if ((int)(_spriteData.size() / sizeof(GpuSprite)) >= INSTANCE_INDEX_COUNT)
@@ -160,7 +167,7 @@ namespace TEN::Renderer::Backend
         return true;
     }
 
-    // Sprites the frontend does not sort (opaque, alpha test, additive). The frontend SortAndPrepareSprites
+    // Sprites the frontend does not sort (opaque, alpha test, additive, distortion). The frontend SortAndPrepareSprites
     // already ordered them by sprite and blend mode, so consecutive sprites merge into few instanced draws.
     void SceneRenderer::CollectSprites(const RenderView& view)
     {
@@ -247,6 +254,8 @@ namespace TEN::Renderer::Backend
         diskCosRadius = sky.MoonDiskCosRadius;
     }
 
+    // One instanced draw of six corner indices per sprite. Pipeline, buffers and textures are rebound only when they
+    // change from the previous run.
     void SceneRenderer::DrawSpriteRun(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const SpriteDraw& draw,
                                      const IGraphicsPipeline*& lastPipeline, const ITexture*& lastTexture, bool isSky, DrawCategory category)
     {
@@ -297,7 +306,8 @@ namespace TEN::Renderer::Backend
         renderPass.Draw(6, draw.SpriteCount, 0, draw.FirstSprite);
     }
 
-    // Opaque and alpha test sprites belong to the opaque pass, where they also write depth.
+    // Opaque and alpha test sprites belong to the opaque pass, where they also write depth; the other runs draw in the
+    // pass matching their blend mode.
     void SceneRenderer::DrawSprites(ICommandBuffer& commandBuffer, IRenderPass& renderPass, ScenePass pass, bool isMirrored)
     {
         constexpr const char* GROUP_NAMES[] = { "Sprites prepass", "Opaque sprites", "Sprites alpha edges", "Additive sprites", "Distortion sprites" };

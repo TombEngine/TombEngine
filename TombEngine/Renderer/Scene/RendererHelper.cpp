@@ -38,9 +38,15 @@ using namespace TEN::Math;
 extern GameConfiguration g_Configuration;
 extern ScriptInterfaceFlowHandler *g_GameFlow;
 
+// Animation and query helpers: bone matrices of items (with vehicle and creature extra rotations), skeleton bind
+// poses, camera matrices, room flips, mesh spheres and bone queries for the game code, frame rate and pacing,
+// screen projection and display item bounds.
+
 namespace TEN::Renderer
 {
 
+	// Walks the bone tree and computes the transforms of the bones selected by mask from an animation frame,
+	// optionally blended with the previous animation, then applies the item mesh mutators.
 	void Renderer::UpdateAnimation(RendererItem* rendererItem, RendererObject& rendererObject, const FrameData& frame, int mask, bool useObjectWorldRotation,
 								   const MoveableAnimBlendData* blend, const RootMotionData* rootMotionOffset)
 	{
@@ -157,15 +163,17 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Computes the bone transforms of a non-player item once per frame (or when forced), including the extra
+	// rotations of vehicle parts and creature joints.
 	void Renderer::UpdateItemAnimations(int itemNumber, bool force)
 	{
 		auto* itemToDraw = &_items[itemNumber];
 		auto* nativeItem = &g_Level.Items[itemNumber];
 
-		// TODO: hack for fixing a bug, check again if needed
+		// TODO: Hack for fixing a bug, check again if needed.
 		itemToDraw->ItemNumber = itemNumber;
 
-		// Lara has her own routine
+		// Lara has her own routine.
 		if (nativeItem->ObjectNumber == ID_LARA)
 			return;
 
@@ -185,7 +193,7 @@ namespace TEN::Renderer
 
 		auto& moveableObj = *_moveableObjects[nativeItem->ObjectNumber];
 
-		// Copy meshswaps and apply eventually effects.
+		// Copy mesh swaps and skin index.
 		itemToDraw->MeshIndex = nativeItem->Model.MeshIndex;
 		itemToDraw->SkinIndex = nativeItem->Model.GetSkinGlobalIndex();
 
@@ -200,7 +208,7 @@ namespace TEN::Renderer
 			return;
 		}
 
-		// Apply extra rotations
+		// Apply extra rotations.
 		int lastJoint = 0;
 		for (int j = 0; j < moveableObj.LinearizedBones.size(); j++)
 		{
@@ -351,6 +359,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Computes the global bind pose of every bone and its inverse, used for skinning.
 	void Renderer::BuildHierarchyRecursive(RendererObject *obj, RendererBone *node, RendererBone *parentNode)
 	{
 		node->GlobalTransform = node->Transform * parentNode->GlobalTransform;
@@ -377,6 +386,7 @@ namespace TEN::Renderer
 		return (!_isWindowed);
 	}
 
+	// Rebuilds the current game camera from the game camera state; a too short far view falls back to the default.
 	void Renderer::UpdateCameraMatrices(CAMERA_INFO *cam, float farView)
 	{
 		if (farView < MIN_FAR_VIEW)
@@ -386,6 +396,7 @@ namespace TEN::Renderer
 		_gameCamera        = RenderView(cam, cam->Roll, cam->Fov, 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
 	}
 
+	// Swaps the renderer data of two rooms for a flip map and invalidates cached static data.
 	void Renderer::FlipRooms(short roomNumber1, short roomNumber2)
 	{
 		std::swap(_rooms[roomNumber1], _rooms[roomNumber2]);
@@ -396,6 +407,7 @@ namespace TEN::Renderer
 		_invalidateCache = true;
 	}
 
+	// The player object resolves to the player skin when present.
 	RendererObject& Renderer::GetRendererObject(GAME_OBJECT_ID id)
 	{
 		if (id == GAME_OBJECT_ID::ID_LARA || id == GAME_OBJECT_ID::ID_LARA_SKIN)
@@ -411,6 +423,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// World matrix of an item (scale, rotation, translation) corrected by the root motion of its animation.
 	Matrix Renderer::GetWorldMatrixForMoveable(const ItemInfo& item, Matrix* rotationMatrix, Matrix* translationMatrix) const
 	{
 		auto orient = item.Pose.Orientation;
@@ -494,6 +507,7 @@ namespace TEN::Renderer
 		return meshCount;
 	}
 
+	// World matrix of an item joint, animating the item first if needed.
 	void Renderer::GetBoneMatrix(short itemNumber, int jointIndex, Matrix* outMatrix)
 	{
 		if (jointIndex >= BONE_COUNT_MAX)
@@ -512,6 +526,8 @@ namespace TEN::Renderer
 			*outMatrix = object.AnimationTransforms[jointIndex] * rendererItem->World;
 	}
 
+	// Full skinning when enabled and a skin mesh exists; otherwise classic skinning for the player and rigid meshes
+	// for other moveables.
 	SkinningMode Renderer::GetSkinningMode(const RendererObject& obj, int skinIndex)
 	{
 		if (g_GameFlow->GetSettings()->Graphics.Skinning && skinIndex != NO_VALUE)
@@ -539,6 +555,7 @@ namespace TEN::Renderer
 		return std::clamp(_frameRate, (float)FPS, (float)GetScreenRefreshRate());
 	}
 
+	// Smoothed rate of presented frames, measured between consecutive presents.
 	void Renderer::UpdateFrameRate()
 	{
 		constexpr auto SMOOTHING		= 0.1f;
@@ -578,6 +595,7 @@ namespace TEN::Renderer
 		_framePaceTime = deadline;
 	}
 
+	// Interpolation between the previous and current game frame; zero while the game is frozen unless forced.
 	float Renderer::GetInterpolationFactor(bool forceRawValue) const
 	{
 		return (forceRawValue || g_GameFlow->CurrentFreezeMode == FreezeMode::None) ? _interpolationFactor : 0.0f;
@@ -600,6 +618,7 @@ namespace TEN::Renderer
 		return ((mode != nullptr && mode->refresh_rate > 0.0f) ? (int)std::round(mode->refresh_rate) : REFRESH_RATE_DEFAULT);
 	}
 
+	// Projects a world position to 2D display space; returns nullopt for points behind the camera.
 	std::optional<Vector2> Renderer::Get2DPosition(const Vector3& pos) const
 	{
 		auto point = Vector4(pos.x, pos.y, pos.z, 1.0f);
@@ -632,6 +651,7 @@ namespace TEN::Renderer
 		return TEN::Utils::ConvertNDCTo2DPosition(Vector2(point));
 	}
 
+	// World space ray through a screen pixel, from the near plane to the far plane.
 	std::pair<Vector3, Vector3> Renderer::GetRay(const Vector2& pos) const
 	{
 		auto viewport = TEN::Math::Library::Viewport(0.0f, 0.0f, (float)_screenWidth, (float)_screenHeight);
@@ -676,6 +696,7 @@ namespace TEN::Renderer
 		return rendererItem->BoneOrientations[boneID];
 	}
 
+	// A room is reflected when it holds a mirror of the view and the camera or the player is in it.
 	bool Renderer::IsRoomReflected(RenderView& renderView, int roomNumber)
 	{
 		for (const auto& mirror : renderView.Mirrors)
@@ -688,6 +709,7 @@ namespace TEN::Renderer
 		return false;
 	}
 
+	// Requests a timestamped screenshot in the Screenshots folder of the game directory and returns its file name.
 	std::string Renderer::SaveScreenshot()
 	{
 		char buffer[64];
@@ -711,6 +733,8 @@ namespace TEN::Renderer
 		return std::string(buffer);
 	}
 
+	// Approximate screen centre and size of a display item, from its largest visible mesh sphere projected with the
+	// display item camera.
 	std::optional<std::pair<Vector2, Vector2>> Renderer::GetDisplayItemBounds(const DisplayItem& item) const
 	{
 		float alpha = GetInterpolationFactor(true);

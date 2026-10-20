@@ -6,8 +6,12 @@
 
 using namespace TEN::Renderer::Structures;
 
+// Sprite records of the view: billboards, constrained billboards and 3D quads added by the effect preparation,
+// and the final split between batched sprites and sprites drawn with the sorted faces.
+
 namespace TEN::Renderer
 {
+	// Camera facing billboard.
 	void Renderer::AddSpriteBillboard(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D, float scale,
 									  Vector2 size, BlendMode blendMode, bool isSoftParticle, RenderView& view, SpriteRenderType renderType)
 	{
@@ -34,6 +38,7 @@ namespace TEN::Renderer
 		view.SpritesToDraw.push_back(spr);
 	}
 
+	// Billboard rotating only around the constrain axis.
 	void Renderer::AddSpriteBillboardConstrained(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D,
 												 float scale, Vector2 size, BlendMode blendMode, const Vector3& constrainAxis,
 												 bool isSoftParticle, RenderView& view, SpriteRenderType renderType)
@@ -62,6 +67,7 @@ namespace TEN::Renderer
 		view.SpritesToDraw.push_back(spr);
 	}
 
+	// Billboard oriented along the look-at axis.
 	void Renderer::AddSpriteBillboardConstrainedLookAt(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D,
 		float scale, Vector2 size, BlendMode blendMode, const Vector3& lookAtAxis,
 		bool isSoftParticle, RenderView& view, SpriteRenderType renderType)
@@ -101,6 +107,7 @@ namespace TEN::Renderer
 		const Vector4& color0, const Vector4& color1, const Vector4& color2, const Vector4& color3, float orient2D,
 		float scale, Vector2 size, BlendMode blendMode, bool isSoftParticle, RenderView& view, SpriteRenderType renderType)
 	{
+		// Textured quad with explicit world space corners and per-corner colors.
 		if (scale <= 0.0f)
 			scale = 1.0f;
 
@@ -131,6 +138,7 @@ namespace TEN::Renderer
 		view.SpritesToDraw.push_back(spr);
 	}
 
+	// Square quad centred at pos and rotated by the yaw, pitch and roll angles stored in constraintAxis.
 	void Renderer::AddQuad(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D, float scale, float size, BlendMode blendMode, const Vector3& constraintAxis, bool isSoftParticle, RenderView& view, SpriteRenderType renderType)
 	{
 		auto rot = Matrix::CreateFromYawPitchRoll(constraintAxis.y, constraintAxis.x, constraintAxis.z);
@@ -151,6 +159,7 @@ namespace TEN::Renderer
 		const Vector4& color0, const Vector4& color1, const Vector4& color2, const Vector4& color3,
 		BlendMode blendMode, RenderView& view, SpriteRenderType renderType)
 	{
+		// Untextured quad drawn with the white sprite.
 		auto sprite = RendererSpriteToDraw{};
 
 		sprite.Type = SpriteType::ThreeD;
@@ -171,6 +180,7 @@ namespace TEN::Renderer
 		view.SpritesToDraw.push_back(sprite);
 	}
 
+	// Sorts the view sprites for batching and adds those with sorted blend modes to the sorted faces.
 	void Renderer::SortAndPrepareSprites(RenderView& view)
 	{
 		if (view.SpritesToDraw.empty())

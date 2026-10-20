@@ -35,6 +35,7 @@ namespace TEN::Renderer::RHI
         _mapped = nullptr;
     }
 
+    // Halves the capacity, down to the initial one, after TRIM_DELAY passes that used a quarter of it or less.
     void UploadRing::Trim()
     {
         constexpr auto TRIM_DELAY = 120;
@@ -51,6 +52,7 @@ namespace TEN::Renderer::RHI
         _capacity = capacity;
     }
 
+    // Returns the aligned offset of size bytes, mapping the buffer with cycle on the first allocation of the pass.
     int UploadRing::Allocate(int size)
     {
         int offset = (_offset + UPLOAD_ALIGNMENT - 1) & ~(UPLOAD_ALIGNMENT - 1);

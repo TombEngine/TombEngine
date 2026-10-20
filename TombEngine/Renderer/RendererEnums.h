@@ -2,6 +2,8 @@
 
 #include "Math/Math.h"
 
+// Constants and enums shared by the renderer frontend, the scene renderer backend and the game code.
+
 #define SHAPE_RECTANGLE 0
 
 #define PRINTSTRING_COLOR_ORANGE ARGB_TO_UINT(255, 216, 117, 49)
@@ -12,6 +14,7 @@ constexpr auto MAX_TRIANGLES_3D = 16384;
 
 constexpr auto FADE_FACTOR = 0.0625f;
 
+// Light limits: dynamic lights in the view light list, and lights per item.
 constexpr auto NUM_LIGHTS_PER_BUFFER = 48;
 constexpr auto MAX_LIGHTS_PER_ITEM = 8;
 constexpr auto AMBIENT_LIGHT_INTERPOLATION_STEP = 1.0f / 10.0f;
@@ -30,7 +33,7 @@ constexpr auto REFERENCE_FONT_SIZE = 35.0f;
 
 // Near/far planes for the display item virtual camera. These are intentionally tight to maximise
 // depth buffer precision and prevent z-fighting. Display items are typically rendered ~BLOCK(1)
-// from the camera; the far plane of BLOCK(5) is generous but avoids the catastrophic near/far
+// from the camera; the far plane of BLOCK(10) is generous but avoids the catastrophic near/far
 // ratio (previously 1 000 000 : 1) that caused z-fighting between mesh faces.
 constexpr float DISPLAY_ITEM_NEAR_PLANE = 0.01f;
 constexpr float DISPLAY_ITEM_FAR_PLANE  = BLOCK(10);
@@ -38,6 +41,7 @@ constexpr float DISPLAY_ITEM_FAR_PLANE  = BLOCK(10);
 constexpr auto MIN_FAR_VIEW = 3200.0f;
 constexpr auto DEFAULT_FAR_VIEW = 102400.0f;
 
+// Classic sky layer plane: a grid of SKY_TILES_COUNT x SKY_TILES_COUNT tiles, SKY_SIZE wide.
 constexpr auto SKY_TILES_COUNT = 20;
 constexpr auto SKY_SIZE = 10240.0f;
 constexpr auto SKY_VERTICES_COUNT = 4 * SKY_TILES_COUNT * SKY_TILES_COUNT;
@@ -48,6 +52,7 @@ constexpr auto MAX_LIGHTS_DRAW = 48;
 constexpr auto MAX_FOG_BULBS_DRAW = 32;
 constexpr auto MAX_LENS_FLARES_DRAW = 8;
 
+// Bit offsets of the packed Vertex::Effects field (see Renderer::PackEffectsAndIndexInPoly).
 constexpr auto GLOW_VERTEX_SHIFT = 0;
 constexpr auto MOVE_VERTEX_SHIFT = 8;
 constexpr auto SHININESS_VERTEX_SHIFT = 16;

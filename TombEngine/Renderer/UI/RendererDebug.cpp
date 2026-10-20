@@ -3,8 +3,11 @@
 
 #include "Renderer/Backend/SceneRenderer.h"
 
+// Frontend statistics for the debug window and the benchmark, and debug messages of the game code.
+
 namespace TEN::Renderer
 {
+	// Clears the per-frame frontend counters and timings.
 	void Renderer::ResetDebugVariables()
 	{
 		_timeUpdate = 0;
@@ -19,6 +22,7 @@ namespace TEN::Renderer
 		_numInterleavedSortedGroups = 0;
 	}
 
+	// Keeps the view counts for the debug window and, during a benchmark, the frontend statistics of the frame.
 	void Renderer::CollectFrameStats(const RenderView& view)
 	{
 		_debugViewCounts = DebugViewCounts{ (int)view.RoomsToDraw.size(), (int)view.SpritesToDraw.size(), (int)view.LightsToDraw.size(), (int)view.FogBulbsToDraw.size(), (int)view.TransparentSortKeys.size() };
@@ -32,6 +36,7 @@ namespace TEN::Renderer
 		_frameStats.SortedFaces = (int)view.TransparentSortKeys.size();
 	}
 
+	// Records the CPU, present and scene renderer timings and counters of the frame in the benchmark.
 	void Renderer::RecordBenchmarkFrame(std::chrono::steady_clock::time_point renderStartTime, std::chrono::steady_clock::time_point presentStartTime)
 	{
 		if (!TEN::Benchmark::IsBenchmarkActive())

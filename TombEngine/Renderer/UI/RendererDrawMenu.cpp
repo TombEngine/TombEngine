@@ -35,6 +35,10 @@ using namespace TEN::Math;
 extern TEN::Renderer::RendererHudBar* g_SFXVolumeBar;
 extern TEN::Renderer::RendererHudBar* g_MusicVolumeBar;
 
+// Menu and non-game frames: title, pause, options, load/save, statistics, inventory and examine screens, display
+// pickups and display items, title image, loading screen and freeze mode. Menus record the 2D layer over the last
+// rendered scene and present it with PresentFrame.
+
 namespace TEN::Renderer
 {
 	// Horizontal alignment constants
@@ -99,6 +103,7 @@ namespace TEN::Renderer
 		return (userKeyID != KEY_UNASSIGNED) ? userKeyID : defaultKeyID;
 	}
 
+	// Marks the actions of a range whose effective key is bound to another action of the same range.
 	std::vector<bool> GetBindingConflictMask(ActionID baseActionID, int actionCount)
 	{
 		std::vector<bool> conflicts(actionCount, false);
@@ -136,6 +141,7 @@ namespace TEN::Renderer
 		g_SFXVolumeBar = new RendererHudBar(Vector2(MenuRightSideEntry, y + shift), RendererHudBar::SIZE_DEFAULT);
 	}
 
+	// Options menus (options, display, other settings and control bindings) recorded in the 2D layer.
 	void Renderer::RenderOptionsMenu(Menu menu, int initialY)
 	{
 		constexpr auto	  RIGHT_ARROW_X_OFFSET			  = DISPLAY_SPACE_RES.x - MenuLeftSideEntry;
@@ -941,6 +947,7 @@ namespace TEN::Renderer
 		DrawAllStrings();
 	}
 
+	// Interpolated pickup object in 2D space with its count string.
 	void Renderer::DrawDisplayPickup(const DisplayPickup& pickup)
 	{
 		constexpr auto COUNT_STRING_INF	   = "Inf";
@@ -969,7 +976,9 @@ namespace TEN::Renderer
 		}
 	}
 
-	// TODO: Handle opacity
+	// Records an object of the 2D layer at a display space position, with an orthographic projection; inventory
+	// objects use their inventory offset and orientation.
+	// TODO: Handle opacity.
 	void Renderer::DrawObjectIn2DSpace(int objectNumber, Vector2 pos2D, EulerAngles orient, float scale, float opacity, int meshBits)
 	{
 		auto screenRes = GetScreenResolution();
@@ -1037,6 +1046,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Records a scripted display item of the 2D layer with the perspective camera of the display items.
 	void Renderer::DrawObjectIn3DSpace(const DisplayItem& item)
 	{
 		if (!item.GetVisible())
@@ -1110,6 +1120,7 @@ namespace TEN::Renderer
 		AddUiObjectMesh(skinMesh, world, bones.data(), boneCount);
 	}
 
+	// Intro image shown before the title: fades in, holds for a while and fades out, presenting each frame.
 	void Renderer::RenderTitleImage()
 	{
 		auto image = LoadImage(g_GameFlow->GetGameDir() + g_GameFlow->IntroImagePath);
@@ -1151,6 +1162,7 @@ namespace TEN::Renderer
 			g_DrawItems.Draw();
 	}
 
+	// Examine screen: the selected inventory object, rotated and scaled by input, with its optional description.
 	void Renderer::DrawExamines()
 	{
 		auto screenPos = Vector2(DISPLAY_SPACE_RES.x / 2, DISPLAY_SPACE_RES.y / 2);
@@ -1281,6 +1293,8 @@ namespace TEN::Renderer
 		_loadingScreenTexture = LoadImage(fileName);
 	}
 
+	// Freeze mode frame: the last scene as static background or a live scene without HUD, with display sprites,
+	// display items and strings on top.
 	void Renderer::RenderFreezeMode(float interpFactor, bool staticBackground)
 	{
 		_interpolationFactor = interpFactor;
@@ -1309,6 +1323,7 @@ namespace TEN::Renderer
 		PresentFrame();
 	}
 
+	// Presents loading screen frames until the screen fade completes.
 	void Renderer::RenderLoadingScreen(float percentage)
 	{
 		do
@@ -1329,6 +1344,7 @@ namespace TEN::Renderer
 		} while (ScreenFading || !ScreenFadedOut);
 	}
 
+	// In-game menu frame over the half faded last scene.
 	void Renderer::RenderInventory()
 	{
 		bool isCaptured = TEN::Benchmark::ConsumeMenuScreenshotRequest();
@@ -1343,6 +1359,7 @@ namespace TEN::Renderer
 		PresentFrame();
 	}
 
+	// Title frame: the live title level scene with the title menu on top.
 	void Renderer::RenderTitle(float interpFactor)
 	{
 		// The captured frame is not interpolated, as at 30 frames per second.

@@ -1,3 +1,8 @@
+// Mesh effects and gun flashes (not a frame pass of their own). During CollectObjects, effect meshes, gun shells,
+// creature swarms and particle group meshes are queued and merged into instanced object draws, which the regular
+// object passes then draw; muzzle flashes are collected separately and drawn additively near the end of the scene pass,
+// after the sorted faces.
+
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 
@@ -53,6 +58,7 @@ namespace TEN::Renderer::Backend
         lightCount = slice.second;
     }
 
+    // Defers one mesh instance until FlushMeshInstances, so instances of the same mesh can share a draw.
     void SceneRenderer::QueueMeshInstance(const RendererMesh& mesh, const Matrix& world, const Vector4& color, const Vector4& ambientLight,
                                          LightMode lightMode, int lightOffset, int lightCount, int roomNumber, bool isReflectable)
     {
@@ -103,6 +109,7 @@ namespace TEN::Renderer::Backend
     // sorted list of the frontend.
     void SceneRenderer::CollectEffectMeshes(const RenderView& view, float interpolationFactor)
     {
+        // Invalidate the room light slices of the previous frame.
         for (int roomNumber : _roomLightSliceList)
             _roomLightSlices[roomNumber].first = NO_VALUE;
 
@@ -262,7 +269,7 @@ namespace TEN::Renderer::Backend
         }
     }
 
-    // Player and creature muzzle flashes.
+    // Player and creature muzzle flashes. Player flashes are hidden while aiming through optics.
     void SceneRenderer::CollectGunFlashes(const RenderView& view)
     {
         _gunFlashDraws.clear();
@@ -303,6 +310,7 @@ namespace TEN::Renderer::Backend
             addArmFlash(Lara.RightArm, false);
         }
 
+        // Creature muzzle flashes, attached to the bite bone of each visible creature.
         for (const auto* room : view.RoomsToDraw)
         {
             for (const auto* item : room->ItemsToDraw)
@@ -333,6 +341,7 @@ namespace TEN::Renderer::Backend
         }
     }
 
+    // Called by the scene pass after the sorted faces: additive object pipeline with alpha test forced on.
     void SceneRenderer::DrawGunFlashes(ICommandBuffer& commandBuffer, IRenderPass& renderPass)
     {
         if (_gunFlashDraws.empty())

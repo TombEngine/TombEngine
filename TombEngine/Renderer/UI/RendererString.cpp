@@ -8,8 +8,12 @@
 
 using namespace TEN::Utils;
 
+// Text of the 2D layer: strings are laid out in display space (wrapped, aligned, scaled to the screen) when added,
+// and resolved into Backend::OverlayText entries for the scene renderer when the layer is recorded.
+
 namespace TEN::Renderer
 {
+	// Debug string, shown only in debug mode on its debug page.
 	void Renderer::AddDebugString(const std::string& string, const Vector2& pos, const Color& color, float scale, RendererDebugPage page)
 	{
 		constexpr auto FLAGS = (int)PrintStringFlags::Outline | (int)PrintStringFlags::Center;
@@ -38,6 +42,8 @@ namespace TEN::Renderer
 		AddString(string, pos, pos, area, color, scale, flags);
 	}
 
+	// Splits a string into lines (wrapped to the area width when given) and queues them with their screen position,
+	// previous position for interpolation, scale and alignment flags.
 	void Renderer::AddString(const std::string& string, const Vector2& pos, const Vector2& prevPos, const Vector2& area, const Color& color, float scale, int flags)
 	{
 		if (_isLocked)
@@ -212,6 +218,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Adds the queued strings to the 2D layer as text entries.
 	void Renderer::DrawAllStrings()
 	{
 		if (_stringsToDraw.empty())

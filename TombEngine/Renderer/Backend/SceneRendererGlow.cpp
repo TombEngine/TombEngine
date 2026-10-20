@@ -1,3 +1,9 @@
+// Glow and reflection source passes. "Glow" in FRAME_PASSES (only when an emissive material is visible) downscales the
+// emissive target written by the depth and normals prepass to quarter resolution and blurs it into _glowTarget, which
+// the post-process adds to the scene. "Reflections" in FRAME_PASSES (only with reflective materials) downscales the
+// scene target into the half resolution _reflectionTarget, sampled by reflective materials on the next frame.
+// The overlay reuses the same blur for its own emissive target.
+
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 
@@ -16,6 +22,7 @@ namespace TEN::Renderer::Backend
         Vector2 Direction = Vector2::Zero;
     };
 
+    // Downscale and blur write RGBA8 targets; the combine pipeline writes the swapchain format for the overlay.
     bool SceneRenderer::CreateGlowResources()
     {
         _glowVertexShader = LoadShader(*_device, _shaderDirectory, "Glow", "VS");
@@ -31,6 +38,7 @@ namespace TEN::Renderer::Backend
         return (_glowDownscalePipeline != nullptr && _glowBlurPipeline != nullptr && _glowCombinePipeline != nullptr);
     }
 
+    // Quarter resolution of the given size; also used for the glow target of the overlay.
     TextureDesc SceneRenderer::GetGlowTargetDesc(int width, int height) const
     {
         auto desc = TextureDesc{};
@@ -42,6 +50,7 @@ namespace TEN::Renderer::Backend
         return desc;
     }
 
+    // Creates the quarter resolution glow target and the half resolution reflection target for the scene resolution.
     bool SceneRenderer::EnsureGlowTargets(int width, int height)
     {
         auto desc = GetGlowTargetDesc(width, height);
@@ -75,6 +84,8 @@ namespace TEN::Renderer::Backend
         BlurEmissive(commandBuffer, _emissiveTarget.get(), _glowTarget.get());
     }
 
+    // Downscales the emissive texture into the glow target, then applies a separable blur (horizontal into a pooled
+    // target, vertical back into the glow target). Three fullscreen passes at the glow resolution.
     void SceneRenderer::BlurEmissive(ICommandBuffer& commandBuffer, ITexture* emissive, ITexture* glow)
     {
         const auto& targetDesc = glow->GetDesc();

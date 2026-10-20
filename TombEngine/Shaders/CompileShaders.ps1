@@ -126,6 +126,7 @@ function Convert-NanMinMax([string]$source, [string]$destination)
     [IO.File]::WriteAllBytes($destination, $bytes)
 }
 
+# Shader models per stage: FXC targets Shader Model 5.0, DXC targets 6.0 for SPIR-V and DXIL.
 function Get-StageInfo([string]$stage)
 {
     switch ($stage)
@@ -137,6 +138,7 @@ function Get-StageInfo([string]$stage)
     }
 }
 
+# True when the output exists and is not older than the newest input.
 function Test-UpToDate([string]$output, [datetime]$newestInput)
 {
     return (Test-Path $output) -and ((Get-Item $output).LastWriteTime -ge $newestInput)
@@ -166,6 +168,7 @@ function Get-NewestDependencyTime([string]$path, [hashtable]$visited)
     return $newest
 }
 
+# Locate the compilers; each missing one only disables its backend.
 $fxc = Find-Fxc
 $dxc = Find-Dxc
 if (-not $fxc -and -not $dxc)
@@ -205,6 +208,7 @@ $dxilDir = Join-Path $OutputDir "dxil"
 $glslDir = Join-Path $OutputDir "glsl"
 New-Item -ItemType Directory -Force -Path $dxbcDir, $spirvDir, $dxilDir, $glslDir | Out-Null
 
+# Editing this script recompiles every shader.
 $scriptTime = (Get-Item $PSCommandPath).LastWriteTime
 
 $failed = $false
@@ -214,6 +218,7 @@ foreach ($file in Get-ChildItem -Path $sourceDir -Filter *.hlsl)
     $newestInput = @((Get-NewestDependencyTime $file.FullName @{}), $scriptTime) | Sort-Object -Descending | Select-Object -First 1
     $name = [IO.Path]::GetFileNameWithoutExtension($file.Name)
 
+    # One compile job per TEN_SHADER line; other lines are skipped.
     foreach ($line in Get-Content $file.FullName)
     {
         if ($line -notmatch '^//\s*TEN_SHADER:\s*(\w+)\s+(\w+)\s*(.*)$')
@@ -226,6 +231,7 @@ foreach ($file in Get-ChildItem -Path $sourceDir -Filter *.hlsl)
         $settings = $Matches[3]
         $info = Get-StageInfo $stage
 
+        # Settings override these defaults. The meta file stores the stage, entry, resource counts and thread group size.
         $meta = @{ samplers = 0; storage_textures = 0; storage_buffers = 0; uniform_buffers = 0; rw_storage_textures = 0; rw_storage_buffers = 0; threads = "1,1,1"; permutations = ""; options = "" }
         foreach ($pair in ($settings -split '\s+' | Where-Object { $_ -match '=' }))
         {
@@ -239,6 +245,7 @@ foreach ($file in Get-ChildItem -Path $sourceDir -Filter *.hlsl)
             $metaText += " $key=$($meta[$key])"
         }
 
+        # Variants: the base shader, one per permutation, then one per non-empty subset of the options (bit mask).
         $variants = @("") + @($meta["permutations"] -split ',' | Where-Object { $_ -ne "" })
         $options = @($meta["options"] -split ',' | Where-Object { $_ -ne "" })
         for ($mask = 1; $mask -lt (1 -shl $options.Count); $mask++)
@@ -266,6 +273,7 @@ foreach ($file in Get-ChildItem -Path $sourceDir -Filter *.hlsl)
 
             Write-Host "Compiling $base ($stage)"
 
+            # /Zpr and -Zpr pack matrices row-major in every format.
             if ($fxc)
             {
                 $fxcArgs = @("/nologo", "/T", $info.Fxc, "/E", $entry, "/Zpr", "/Fo", $dxbcFile)
@@ -281,6 +289,7 @@ foreach ($file in Get-ChildItem -Path $sourceDir -Filter *.hlsl)
                 }
             }
 
+            # -fvk-use-dx-layout applies the Direct3D packing rules to SPIR-V buffers, so one C++ layout fits every backend.
             if ($dxc)
             {
                 $dxcArgs = @("-spirv", "-T", $info.Dxc, "-E", $entry, "-Zpr", "-fvk-use-dx-layout", "-fspv-target-env=vulkan1.0", "-Fo", $spirvFile)
@@ -296,6 +305,7 @@ foreach ($file in Get-ChildItem -Path $sourceDir -Filter *.hlsl)
                 }
             }
 
+            # TEN_DXIL selects the Direct3D 12 register spaces in ShaderInterop.hlsli.
             if ($dxilCompiler)
             {
                 $dxilArgs = @("-T", $info.Dxc, "-E", $entry, "-Zpr", "-D", "TEN_DXIL=1", "-Fo", $dxilFile)
@@ -327,6 +337,7 @@ foreach ($file in Get-ChildItem -Path $sourceDir -Filter *.hlsl)
                 }
             }
 
+            # The meta file is written last, so a failed variant is compiled again on the next run.
             Set-Content -Path $metaFile -Value $metaText -Encoding ascii
         }
     }

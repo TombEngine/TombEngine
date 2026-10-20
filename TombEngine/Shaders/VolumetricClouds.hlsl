@@ -3,8 +3,8 @@
 // TEN_SHADER: Pixel PSCloudComposite samplers=2 storage_textures=0 storage_buffers=0 uniform_buffers=4
 // TEN_SHADER: Pixel PSCloudOcclusion samplers=3 storage_textures=0 storage_buffers=0 uniform_buffers=4
 
-// Volumetric clouds of the frontend (Shaders/VolumetricCloudsCore.hlsli): raymarch, composite and sun occlusion passes,
-// with the CBVolumetricCloud uniform block in slot 2 and the camera values it reads in slot 3.
+// Volumetric clouds (SceneRendererSky.cpp), implemented in VolumetricCloudsCore.hlsli: raymarch, composite and sun
+// occlusion passes, with the CBVolumetricCloud uniform block in slot 2 and the camera values it reads in slot 3.
 
 #include "./ShaderInterop.hlsli"
 #include "./Fullscreen.hlsli"
@@ -43,6 +43,7 @@ struct VSOutput
     float4 PositionCopy : TEXCOORD1;
 };
 
+// Fullscreen triangle on the far plane; PositionCopy passes the clip position to the pixel shaders.
 VSOutput VS(uint vertexId : SV_VertexID)
 {
     FullscreenPixelInput fullscreen = FullscreenVS(vertexId);

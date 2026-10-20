@@ -14,6 +14,10 @@
 using namespace TEN::Effects::Hair;
 using namespace TEN::Renderer::Structures;
 
+// Transparent face ordering: CollectSortedBucket and CollectSortedSprite add sortable objects and per-polygon
+// entries to the view, and SortTransparentFaces builds compact sort keys (draw group cluster rank, then distance)
+// that the scene renderer replays to draw the sorted faces back to front.
+
 namespace TEN::Renderer
 {
 	// Depth step below which two object groups count as equally distant and fall back
@@ -184,6 +188,7 @@ namespace TEN::Renderer
 			std::memcpy(keys.data(), source, sizeof(RendererSortKey) * count);
 	}
 
+	// Rooms and sprites keep their group order and never interleave with other groups.
 	static bool CanInterleaveObject(const RendererSortableObject& object)
 	{
 		return (object.ObjectType != RendererObjectType::Room && object.ObjectType != RendererObjectType::Sprite);
@@ -199,6 +204,7 @@ namespace TEN::Renderer
 		group.ScreenBounds.w = std::max(group.ScreenBounds.w, object.ScreenBounds.w);
 	}
 
+	// Union-find root lookup with path halving.
 	static int FindSortedCluster(std::vector<int>& parents, int index)
 	{
 		while (parents[index] != index)
@@ -415,6 +421,8 @@ namespace TEN::Renderer
 		return isSplit;
 	}
 
+	// Orders the collected transparent polygons: polygons are grouped by draw group, overlapping object groups are
+	// clustered, clusters are ranked, and the resulting keys are radix sorted into view.TransparentSortKeys.
 	void Renderer::SortTransparentFaces(RenderView& view)
 	{
 		view.TransparentSortKeys.clear();
@@ -498,6 +506,7 @@ namespace TEN::Renderer
 			RadixSortKeys(view.TransparentSortKeys, _sortKeysScratch);
 		}
 
+		// Debug statistics: groups that share their cluster with other groups.
 		auto clusterSizes = std::vector<int>(groups.size(), 0);
 		for (const auto& group : groups)
 			clusterSizes[group.Cluster]++;
@@ -509,6 +518,8 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Adds a bucket as a sortable object with one entry per polygon, storing each polygon's camera distance and the
+	// depth range and screen bounds of the object for clustering. A null world matrix means room geometry.
 	void Renderer::CollectSortedBucket(RenderView& view, const RendererSortableObject& object, const Matrix* world, const Vector3& cameraPosition)
 	{
 		if (object.Bucket->Polygons.empty())
@@ -569,6 +580,7 @@ namespace TEN::Renderer
 		storedObject.ScreenBounds = screenBounds;
 	}
 
+	// Adds a sprite as a sortable object with a single entry at the given distance.
 	void Renderer::CollectSortedSprite(RenderView& view, const RendererSortableObject& object, int distance)
 	{
 		int objectIndex = (int)view.TransparentObjectsToDraw.size();

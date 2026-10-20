@@ -1,7 +1,7 @@
 #ifndef TEN_SHADOWS
 #define TEN_SHADOWS
 
-// Shadows of the frontend (Shaders/Shadows.hlsli): a cube shadow map for the shadow casting light, stored as
+// Shadows of the room and object shaders: a cube shadow map for the shadow casting light, stored as
 // six R32 float layers (SDL GPU has no depth array targets), compared in the shader with 5x5 PCF, and blob shadows
 // from up to 16 spheres around the player and creatures.
 
@@ -22,6 +22,7 @@ TEN_PS_UNIFORMS(ShadowUniforms, 2)
 
 TEN_PS_TEXTURE(Texture2DArray, ShadowMap, 5);
 
+// Each sphere darkens linearly toward its center; overlapping spheres combine multiplicatively.
 float3 DoBlobShadows(float3 position, float3 lighting)
 {
     float shadowFactor = 1.0f;
@@ -37,6 +38,8 @@ float3 DoBlobShadows(float3 position, float3 lighting)
     return lighting * saturate(1.0f - (1.0f - saturate(shadowFactor)) * (SHADOW_INTENSITY * 0.5f));
 }
 
+// Projects the position into each of the six cube faces and filters the face that contains it. Surfaces facing
+// away from the light fade out of the shadow by the bias, and the darkening scales with the light's own contribution.
 float3 DoShadow(float3 position, float3 normal, float3 lighting, float bias, uint blendMode)
 {
     if (!CastShadows)

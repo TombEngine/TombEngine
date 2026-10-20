@@ -1,7 +1,7 @@
 #ifndef TEN_DECALS
 #define TEN_DECALS
 
-// Room decals of the frontend (Shaders/Rooms.hlsl): noisy blood stains darkening the lighting around
+// Room decals, used by Rooms.hlsl: noisy blood stains darkening the lighting around
 // each decal center. Decals of the visible rooms live in a frame storage buffer; rooms draw a slice of it.
 
 #include "./GpuShared.hlsli"
@@ -12,6 +12,8 @@ TEN_PS_RAW_BUFFER(GpuDecal, Decals, 11);
 
 #define DECALS_PER_DRAW_MAX 64
 
+// Strongest decal coverage in [0, 1] at a surface point: a noise-perturbed disc in the surface tangent plane,
+// plus a solid core for pattern 0.
 float GetDecalMask(float3 position, float3 tangent, float3 binormal, uint decalOffset, uint decalCount)
 {
     float mask = 0.0f;

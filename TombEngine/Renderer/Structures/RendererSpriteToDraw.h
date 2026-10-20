@@ -7,6 +7,7 @@ namespace TEN::Renderer::Structures
 {
 	using namespace TEN::Math::Library;
 
+	// Sprite record of the view: a billboard (pos, size, rotation and axes) or a 3D quad (vtx1-vtx4, colors c1-c4).
 	struct RendererSpriteToDraw
 	{
 		SpriteType Type;

@@ -2,7 +2,8 @@
 
 #include "Renderer/RendererEnums.h"
 
-// 2D layer data that the frontend resolves and the scene renderer draws.
+// 2D layer data that the frontend resolves and the scene renderer draws. The frontend records one UiFrame per
+// presented frame; SceneRenderer::FinishFrame draws it over the scene (SceneRendererOverlay.cpp).
 
 struct ImDrawData;
 
@@ -84,6 +85,7 @@ namespace TEN::Renderer::Backend
         int          MeshCount         = 0;
     };
 
+    // Element list of UiFrame a layer indexes; Objects index UiFrame::Objects.
     enum class OverlayLayerType
     {
         Texts,

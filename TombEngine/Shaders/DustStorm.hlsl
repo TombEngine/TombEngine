@@ -1,8 +1,8 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=0
 // TEN_SHADER: Pixel PSDustStorm samplers=2 storage_textures=0 storage_buffers=0 uniform_buffers=4
 
-// Dust storm of the frontend (Shaders/DustStormCore.hlsli): a fullscreen raymarch clamped by the scene depth,
-// with the CBDustStorm uniform block in slot 2. The outdoor mask is the alpha of the prepass normals.
+// Dust storm (SceneRendererSky.cpp), implemented in DustStormCore.hlsli: a fullscreen raymarch clamped by the scene
+// depth, with the CBDustStorm uniform block in slot 2. The outdoor mask is the alpha of the prepass normals.
 
 #include "./ShaderInterop.hlsli"
 #include "./Fullscreen.hlsli"
@@ -23,6 +23,7 @@ struct VSOutput
     float4 PositionCopy : TEXCOORD1;
 };
 
+// Fullscreen triangle on the far plane; PositionCopy passes the clip position to the raymarch.
 VSOutput VS(uint vertexId : SV_VertexID)
 {
     FullscreenPixelInput fullscreen = FullscreenVS(vertexId);

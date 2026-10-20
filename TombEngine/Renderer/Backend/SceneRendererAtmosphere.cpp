@@ -1,3 +1,8 @@
+// Atmospheric sky: the procedural sky dome, the sun and moon discs and the aurora. All are fullscreen triangles drawn
+// by the "Sky" entry of FRAME_PASSES (RenderSkyPass in SceneRendererSky.cpp) into the full resolution scene target.
+// Inputs are the atmospheric uniform block computed by the frontend (FrameEnvironment::AtmosphericSkyUniforms) and the
+// inverse camera matrices; the aurora can optionally render at half resolution.
+
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 
@@ -14,6 +19,7 @@ namespace TEN::Renderer::Backend
         Matrix InverseView       = Matrix::Identity;
     };
 
+    // Loads the atmospheric sky shaders and creates the dome, disc, aurora and aurora upscale pipelines.
     bool SceneRenderer::CreateAtmosphereResources()
     {
         _atmosphericSkyVertexShader = LoadShader(*_device, _shaderDirectory, "AtmosphericSky", "VS");
@@ -65,6 +71,8 @@ namespace TEN::Renderer::Backend
                 _auroraUpscalePipeline != nullptr && _auroraHalfPipeline != nullptr);
     }
 
+    // Pixel slot 2 receives the frontend atmospheric block, slot 3 the inverse projection and view matrices used to
+    // rebuild the view ray of each pixel.
     void SceneRenderer::PushSkyUniforms(ICommandBuffer& commandBuffer)
     {
         auto cameraUniforms = SkyCameraUniforms{ _projection.Invert(), _view.Invert() };
@@ -95,7 +103,7 @@ namespace TEN::Renderer::Backend
     }
 
     // Sun and moon discs and aurora: additive fullscreen passes after the clouds, which read the cloud coverage from
-    // the alpha channel of a copy of the sky.
+    // the alpha channel of a copy of the sky. Called by the sky pass between its own render passes.
     void SceneRenderer::DrawSkyDiscsAndAurora(ICommandBuffer& commandBuffer)
     {
         if (!HasSkyDiscsOrAurora())
@@ -106,6 +114,7 @@ namespace TEN::Renderer::Backend
         if (skyCopy == nullptr)
             return;
 
+        // The copy is sampled for coverage while the scene target is written.
         commandBuffer.PushDebugGroup("Sun and moon discs and aurora");
         commandBuffer.BlitTexture(_sceneTarget.get(), skyCopy);
         PushSkyUniforms(commandBuffer);
@@ -164,6 +173,7 @@ namespace TEN::Renderer::Backend
         return target;
     }
 
+    // Draws a fullscreen triangle with one texture in pixel slot 0, inside an already open render pass.
     void SceneRenderer::DrawFullscreen(IRenderPass& renderPass, IGraphicsPipeline* pipeline, const TextureSamplerBinding& binding)
     {
         renderPass.BindPipeline(pipeline);

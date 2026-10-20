@@ -5,7 +5,8 @@
 // Room geometry: baked vertex lighting plus the room's dynamic lights with specular, material maps (normal,
 // ORSH, emissive, parallax), animated textures, vertex effects, water refraction and distance fog.
 // Screen space ambient occlusion comes from the prepass (PSDepthNormal); shadows from the cube shadow map and
-// blob spheres; fog bulbs per vertex; caustics in water rooms; decals. Reflections are ported later.
+// blob spheres; fog bulbs per vertex; caustics in water rooms; decals; screen and sky reflections of reflective
+// materials. Room lights are culled per pixel by the light clusters. PSDepthNormal writes the prepass targets.
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -59,6 +60,7 @@ PixelInput VS(VertexInput input)
     float3 position = Move(input.Position, (weight > 0.0f) ? input.Effects : 0, wibble);
 
     float4 clipPosition = mul(float4(position, 1.0f), ViewProjection);
+    // Water refraction: rooms on the other side of the water surface wobble in clip space, more with distance.
     if (CameraUnderwater != IsWaterRoom)
     {
         float factor = (InterpolatedFrame + (position.x + position.z) * 0.2f) * 3.14159265359f / 20.0f;
@@ -112,7 +114,7 @@ float3 GetCaustics(float3 position, float3 normal)
     return (xAxis * blending.x + yAxis * blending.y + zAxis * blending.z) * attenuation * 2.0f;
 }
 
-// Kept from the original renderer: with mixed light types, point lights get the spot specular term.
+// Classic room light model: with mixed light types, point lights get the spot specular term.
 // Room lights have no sheen, so without an ORSH map the specular intensity is zero and the terms are left out.
 float3 GetRoomLight(GpuLight light, bool onlyPointLights, float3 position, Surface surface)
 {
@@ -152,6 +154,8 @@ float3 GetMaskedRoomLights(uint bits, uint firstLight, bool onlyPointLights, flo
     return lighting;
 }
 
+// Baked vertex light darkened by shadows, plus the dynamic room lights; decals darken and caustics brighten the
+// result, and the emissive is added last.
 float3 GetRoomLighting(float3 vertexColor, float3 position, Surface surface, float3 tangent, float3 binormal)
 {
     float3 lighting = vertexColor * COLOR_MODULATION_SCALE;

@@ -77,13 +77,19 @@ namespace TEN::Renderer
 	using namespace TEN::Renderer::Utils;
 	using namespace TEN::Math::Library;
 
+	// CPU frontend of the renderer used by the game code (g_Renderer). Each frame it culls rooms through portals,
+	// collects items, statics, lights, effects, sprites and sorted faces into a RenderView, prepares sky effects
+	// and records the 2D layer; SubmitFrame then hands everything to Backend::g_SceneRenderer, which owns all GPU work.
 	class Renderer
 	{
 	private:
+		// Cameras: current game camera, previous one for interpolation and the interpolated one rendered this frame.
 		RenderView _gameCamera;
 		RenderView _oldGameCamera;
 		RenderView _currentGameCamera;
 		std::vector<BoundingSphere> _blobShadowSpheres = {}; // Nearest blob shadow casters of the frame.
+
+		// Sky effects state. The C*Buffer members are uniform blocks filled on the CPU and pushed by the scene renderer.
 
 		// Volumetric clouds
 		ConstantBuffers::CVolumetricCloudBuffer _stVolumetricCloud;
@@ -134,6 +140,7 @@ namespace TEN::Renderer
 		RendererImage _loadingBarInner = {};
 		RendererImage _loadingScreenTexture = {};
 
+		// Level geometry built by PrepareDataForTheRenderer and passed to the scene renderer as Backend::LevelGeometry.
 		std::vector<Vertex> _roomsVertices;
 		std::vector<int> _roomsIndices;
 		std::vector<Vertex> _moveablesVertices;
@@ -145,6 +152,8 @@ namespace TEN::Renderer
 		// Rooms and collector
 
 		std::vector<RendererRoom> _rooms;
+		// Cache invalidation forces statics to refresh their cached data on the next collection; the visited rooms
+		// stack holds the rooms on the current portal traversal path, to detect cycles.
 		bool _invalidateCache;
 		std::vector<short> _visitedRoomsStack;
 
@@ -212,6 +221,7 @@ namespace TEN::Renderer
 		float _fps;
 
 		// ImGui debug window (RendererDebugWindow.cpp). Debug messages of the game code are kept for the window.
+
 		// View counts of the last scene, kept for the debug window: the view is cleared before the window is drawn.
 		struct DebugViewCounts
 		{
@@ -270,7 +280,7 @@ namespace TEN::Renderer
 		int _screenHeight = 0;
 		bool _isWindowed;
 
-		// A flag to prevent extra renderer object additions
+		// Set by Lock() to block debug primitives, debug messages and dynamic lights until the next PrepareScene.
 
 		bool _isLocked = false;
 
@@ -290,6 +300,7 @@ namespace TEN::Renderer
 		float _interpolationFactor = 0.0f;
 		bool  _graphicsSettingsChanged = false;
 
+		// Frame collection, lights and 2D layer helpers (RendererFrame.cpp, RendererHelper.cpp, RendererDraw.cpp, UI/).
 		void BuildHierarchy(RendererObject* obj);
 		void BuildHierarchyRecursive(RendererObject* obj, RendererBone* node, RendererBone* parentNode);
 		void UpdateAnimation(RendererItem* rendererItem, RendererObject& rendererObject, const FrameData& frame, int mask, bool useObjectWorldRotation = false, const MoveableAnimBlendData* blend = nullptr, const RootMotionData* rootMotionOffset = nullptr);
@@ -377,12 +388,10 @@ namespace TEN::Renderer
 		float GetLensFlareCloudOcclusion() const;
 		Vector3 GetLensFlareColor(const RendererLensFlare& lensFlare, float cloudOcclusion) const;
 
-		// Diagnostic getters - used by the ImGui debug overlay to display live CB values.
+		// Diagnostic getters, used by the ImGui debug overlay to display the current cloud uniform values.
 		const ConstantBuffers::CVolumetricCloudBuffer& GetVolumetricCloudCB() const { return _stVolumetricCloud; }
 		int GetCloudFrameCounterA() const { return _cloudState.FrameCounter; }
 		int GetCloudFrameCounterB() const { return _cloudStateB.FrameCounter; }
-
-		// Dual volumetric cloud layers (new layered system).
 
 		// Sky effect state and draw records, prepared once per frame (RendererSkyEffects.cpp).
 		void PrepareSkyEffects(RenderView& view);
@@ -400,6 +409,9 @@ namespace TEN::Renderer
 		bool IsSkyboxVisible(const RenderView& view) const;
 		bool IsHorizonLayerDrawn(int layer);
 		Matrix GetHorizonWorldMatrix(int layer, const RenderView& view);
+
+		// Sorted face collection (RendererDraw.cpp, RendererLara.cpp, RendererDrawEffect.cpp, RendererSorted.cpp),
+		// effect sprite preparation (RendererDrawEffect.cpp) and 2D layer recording (UI/).
 		void CollectSortedRoomFaces(RenderView& view);
 		void CollectSortedItemFaces(RenderView& view);
 		void CollectSortedMoveableFaces(RendererItem* item, RenderView& view);
@@ -468,9 +480,11 @@ namespace TEN::Renderer
 		float CalculateFrameRate();
 		void InterpolateCamera(float interpFactor);
 
+		// Level load helpers (RendererCompatibility.cpp).
 		void ProcessSkinJoints(RendererObject& jointsMoveable, RendererObject& skinMoveable, ObjectInfo& jointsObj);
 		void ProcessHair(GAME_OBJECT_ID hairID, RendererObject& skinMoveable, bool isSecond);
 
+		// Sprite and quad records added to the view (RendererSprites.cpp).
 		void AddSpriteBillboard(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D, float scale,
 			Vector2 size, BlendMode blendMode, bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
 		void AddSpriteBillboardConstrained(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D,
@@ -494,6 +508,7 @@ namespace TEN::Renderer
 			const Vector4& color0, const Vector4& color1, const Vector4& color2, const Vector4& color3,
 			BlendMode blendMode, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
 
+		// Object, mesh and blend mode helpers.
 		Matrix GetWorldMatrixForMoveable(const ItemInfo& item, Matrix* rotationMatrix = nullptr, Matrix* translationMatrix = nullptr) const;
 		RendererObject& GetRendererObject(GAME_OBJECT_ID id);
 		RendererMesh* GetMesh(int meshIndex);
@@ -501,6 +516,7 @@ namespace TEN::Renderer
 		void RestoreObjectVertices(GAME_OBJECT_ID objectID);
 		bool IsRoomReflected(RenderView& renderView, int roomNumber);
 
+		// Blend modes whose faces are depth sorted with the transparent faces instead of drawn in batches.
 		static inline bool IsSortedBlendMode(BlendMode blendMode)
 		{
 			return !(blendMode == BlendMode::Opaque ||
@@ -510,6 +526,7 @@ namespace TEN::Renderer
 				blendMode == BlendMode::FastAlphaBlend);
 		}
 
+		// Opaque, alpha tested and fast alpha blended faces of a translucent object become alpha blended.
 		static inline BlendMode GetBlendModeFromAlpha(BlendMode blendMode, float alpha)
 		{
 			if (alpha < ALPHA_BLEND_THRESHOLD &&
@@ -540,6 +557,7 @@ namespace TEN::Renderer
 			return packed;
 		}
 
+		// Vertex packing helpers used when building level geometry.
 		static inline unsigned int PackVector3(Vector3 n)
 		{
 			if (n.Length() > EPSILON)
@@ -556,7 +574,7 @@ namespace TEN::Renderer
 			const unsigned char Z = (unsigned char)(ToS8(n.z));
 			const unsigned char W = (unsigned char)(ToS8(0.0f));
 
-			// Little-endian: memoria [R][G][B][A], come DXGI_FORMAT_R8G8B8A8_SNORM
+			// Little-endian byte order X, Y, Z, W, read by the GPU as an RGBA8 signed normalized attribute.
 			return (unsigned int)X | ((unsigned int)Y << 8) | ((unsigned int)Z << 16) | ((unsigned int)W << 24);
 		}
 
@@ -575,6 +593,7 @@ namespace TEN::Renderer
 		}
 
 	public:
+		// Public API used by the game code.
 		Renderer();
 		~Renderer();
 
@@ -582,6 +601,7 @@ namespace TEN::Renderer
 		void DrawBar(float percent, const RendererHudBar& bar, GAME_OBJECT_ID textureSlot, int frame, bool poison);
 		void Initialize(const std::string& gameDir, int w, int h, bool windowed);
 
+		// Frame and scene flow.
 		void ReloadShaders();
 		bool IsVideoSpriteActive() const;
 		void Render(float interpFactor);
@@ -621,6 +641,7 @@ namespace TEN::Renderer
 		bool IsFullScreen();
 		void RenderTitleImage();
 
+		// Debug primitives and messages, shown in debug mode.
 		void AddDebugLine(const Vector3& origin, const Vector3& target, const Color& color, RendererDebugPage page = RendererDebugPage::None);
 		void AddDebugTriangle(const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Color& color, RendererDebugPage page = RendererDebugPage::None);
 		void AddDebugTarget(const Vector3& center, const Quaternion& orient, float radius, const Color& color, RendererDebugPage page = RendererDebugPage::None);
@@ -638,6 +659,7 @@ namespace TEN::Renderer
 		void DrawDebugInfo(RenderView& view);
 		void SwitchDebugPage(bool goBack);
 
+		// Screen, animation, bone and display item queries.
 		void ChangeScreenResolution(int width, int height, bool windowed, bool resyncWindow = true);
 		void FlipRooms(short roomNumber1, short roomNumber2);
 		void UpdateLaraAnimations(bool force);
@@ -668,6 +690,7 @@ namespace TEN::Renderer
 			int priority, BlendMode blendMode, const Vector2& aspectCorrection, RenderView& renderView);
 		void CollectDisplaySprites(RenderView& renderView);
 
+		// Post-process and depth of field settings.
 		PostProcessMode	GetPostProcessMode();
 		void			SetPostProcessMode(PostProcessMode mode);
 		float			GetPostProcessStrength();

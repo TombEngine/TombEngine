@@ -1,3 +1,8 @@
+// Depth and normals prepass and SSAO. "Depth and normals prepass" in FRAME_PASSES always runs after the shadow map: opaque
+// rooms and objects write the scene depth, view space normals, emissive color and a sampled R32 depth copy, all at scene
+// resolution. "SSAO" (when enabled) reads the depth copy and normals and writes a blurred half resolution occlusion
+// target sampled by the scene pass. Also hosts the shared RenderFullscreenPass helpers.
+
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 
@@ -26,11 +31,13 @@ namespace TEN::Renderer::Backend
         Vector4 Kernel[SSAO_KERNEL_SIZE];
     };
 
+    // Exponent applied to the occlusion by the scene shaders; zero disables it when SSAO is off.
     float SceneRenderer::GetAmbientOcclusionExponent() const
     {
         return _isAmbientOcclusionActive ? SSAO_EXPONENT : 0.0f;
     }
 
+    // SSAO and blur pipelines, the prepass pixel shaders of rooms and objects, and the point samplers.
     // Kernel and rotation noise are generated from a fixed seed.
     bool SceneRenderer::CreateSSAOResources()
     {
@@ -52,6 +59,7 @@ namespace TEN::Renderer::Backend
         if (_ssaoPipeline == nullptr || _ssaoBlurHorizontalPipeline == nullptr || _ssaoBlurVerticalPipeline == nullptr)
             return false;
 
+        // Hemisphere kernel, with samples concentrated near the origin.
         auto generator = std::default_random_engine{};
         auto randomFloats = std::uniform_real_distribution<float>(0.0f, 1.0f);
         for (int i = 0; i < SSAO_KERNEL_SIZE; i++)
@@ -66,6 +74,7 @@ namespace TEN::Renderer::Backend
             _ssaoKernel[i] = sample;
         }
 
+        // 4x4 tiled rotation noise.
         Vector4 noise[16];
         for (auto& rotation : noise)
             rotation = Vector4(randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator) * 2.0f - 1.0f, 0.0f, 1.0f);
@@ -94,6 +103,7 @@ namespace TEN::Renderer::Backend
         return (_pointClampSampler != nullptr && _pointWrapSampler != nullptr);
     }
 
+    // Prepass normal and emissive targets at scene resolution and the half resolution occlusion target.
     bool SceneRenderer::EnsureSSAOTargets(int width, int height)
     {
         auto normalDesc = TextureDesc{};
@@ -140,6 +150,7 @@ namespace TEN::Renderer::Backend
         commandBuffer.EndRenderPass();
     }
 
+    // SSAO variant: binds the source, the prepass normals and the rotation noise in slots 0 to 2.
     void SceneRenderer::RenderFullscreenPass(ICommandBuffer& commandBuffer, IGraphicsPipeline* pipeline, ITexture* target, ITexture* source, ISampler* sourceSampler, const char* name)
     {
         TextureSamplerBinding bindings[3] =
@@ -151,6 +162,7 @@ namespace TEN::Renderer::Backend
         RenderFullscreenPass(commandBuffer, pipeline, target, bindings, 3, name);
     }
 
+    // Draws a fullscreen triangle in its own render pass on one color target, with an optional depth or stencil target.
     void SceneRenderer::RenderFullscreenPass(ICommandBuffer& commandBuffer, IGraphicsPipeline* pipeline, ITexture* target, const TextureSamplerBinding* bindings, int bindingCount,
                                             const char* name, LoadOp load, const DepthTargetInfo* depthTarget)
     {

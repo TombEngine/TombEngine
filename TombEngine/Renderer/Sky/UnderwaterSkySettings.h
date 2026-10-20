@@ -10,7 +10,7 @@
 // Cloud Layer A in the SkyCloudSystem).
 //
 // All values are updated live via the debug menu and sent to the GPU via
-// the atmospheric sky constant buffer.
+// the atmospheric sky uniform block.
 // ============================================================================
 
 namespace TEN::Renderer::UnderwaterSky

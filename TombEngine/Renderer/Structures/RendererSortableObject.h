@@ -27,8 +27,9 @@ namespace TEN::Renderer::Structures
 		// sharing the group draw as a single batch.
 		int GroupIndex = 0;
 
-		// Depth range and normalized screen rectangle (min x, min y, max x, max y) of the polygon
-		// centres, used to find overlapping objects whose polygons must be interleaved.
+		// Depth range of the polygon centres and normalized screen rectangle (min x, min y, max x, max y) of
+		// the bucket box (or of the polygon centres), used to find overlapping objects whose polygons must
+		// be interleaved.
 		int		MinDistance	 = INT_MAX;
 		int		MaxDistance	 = 0;
 		Vector4 ScreenBounds = Vector4(FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX);
@@ -55,7 +56,7 @@ namespace TEN::Renderer::Structures
 		int				 ObjectIndex = 0;
 	};
 
-	// Compact sort entry for the transparent pass. Key packs group rank (high 32 bits) and
+	// Compact sort entry for the transparent pass. Key packs cluster rank (high 32 bits) and
 	// inverted distance (low 32 bits); Index points into RenderView::TransparentPolygonsToDraw.
 	struct RendererSortKey
 	{

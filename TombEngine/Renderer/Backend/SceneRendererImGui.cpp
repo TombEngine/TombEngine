@@ -1,3 +1,7 @@
+// ImGui debug overlay (not a frame pass): drawn last by FinishFrame, after the 2D overlay and the menu post-process,
+// directly into the window resolution final target with the overlay alpha blend pipeline. The ImGui draw lists come
+// from the UiFrame built by the frontend and are uploaded with the other overlay data.
+
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 
@@ -91,6 +95,8 @@ namespace TEN::Renderer::Backend
         auto binding = TextureSamplerBinding{ _imGuiFontTexture.get(), _linearClampSampler.get() };
         renderPass->BindPixelSamplers(0, &binding, 1);
 
+        // One indexed draw per command, clipped by its scissor rectangle in target pixels. Offsets advance per draw list
+        // through the concatenated buffers.
         int vertexOffset = 0;
         int indexOffset = 0;
         for (int i = 0; i < drawData->CmdListsCount; i++)

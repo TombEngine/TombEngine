@@ -1,8 +1,8 @@
 #ifndef TEN_FOG_BULBS
 #define TEN_FOG_BULBS
 
-// Fog bulbs of the frontend (Shaders/ShaderLight.hlsli): fog spheres evaluated per vertex from the length
-// of the camera ray inside each sphere. xyz is the accumulated fog color, w the accumulated density.
+// Fog bulbs: fog spheres evaluated per vertex from the length of the camera ray inside each sphere, with the
+// bulb list in vertex uniform slot 3. xyz is the accumulated fog color, w the accumulated density.
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -20,6 +20,8 @@ float GetFogBulbDensity(float3 position, float3 cameraPosition, GpuFogBulb bulb,
     bool isVertexInside = !isSky && (dot(bulbToVertex, bulbToVertex) < bulb.SquaredRadius);
     bool isCameraInside = (bulb.SquaredCameraToFogBulbDistance < bulb.SquaredRadius);
 
+    // Ray-sphere intersection: tca is the distance along the ray to the point closest to the bulb center,
+    // d2 the squared distance of the center from the ray, and thc half the chord length.
     float tca = dot(bulb.FogBulbToCameraVector, direction);
     float d2 = bulb.SquaredCameraToFogBulbDistance - tca * tca;
 
@@ -50,6 +52,7 @@ float GetFogBulbDensity(float3 position, float3 cameraPosition, GpuFogBulb bulb,
     return length(p1 - p0) * bulb.Density / 255.0f;
 }
 
+// Sum of the bulb colors weighted by their density; w saturates at 1.
 float4 GetFogBulbs(float3 position, float3 cameraPosition, bool isSky)
 {
     float4 fog = float4(0.0f, 0.0f, 0.0f, 0.0f);

@@ -1,3 +1,8 @@
+// Antialiasing resolve: FXAA or SMAA 1x (medium or ultra preset), called at the end of the post-process pass (and by
+// the overlay composition) when an antialiasing mode is set. Reads an antialiasing source and writes the given target
+// at its resolution: the frame target or the upscale source after the post-process, the final target for the overlay.
+// SMAA uses pooled edge, weight and stencil targets and the precomputed area and search textures in SMAA/.
+
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 
@@ -33,6 +38,8 @@ namespace TEN::Renderer::Backend
         return _device->CreateGraphicsPipeline(desc);
     }
 
+    // Picks a stencil format for the edge mask (none if unsupported, then weights run on every pixel), builds the
+    // three pipelines of both presets and uploads the area and search lookup textures.
     bool SceneRenderer::CreateSMAAResources()
     {
         const char* shaderNames[SMAA_PRESET_COUNT] = { "SMAAMedium", "SMAAUltra" };
@@ -88,6 +95,7 @@ namespace TEN::Renderer::Backend
         return true;
     }
 
+    // Descriptions of the intermediate SMAA targets for an output target, also used to reserve them in the pool.
     void SceneRenderer::GetSMAATargetDescs(const TextureDesc& targetDesc, TextureDesc& edgesDesc, TextureDesc& weightsDesc, TextureDesc& stencilDesc) const
     {
         edgesDesc = TextureDesc{};
@@ -115,6 +123,7 @@ namespace TEN::Renderer::Backend
             return;
         }
 
+        // SMAA: edge detection, blending weights, neighborhood blending.
         const auto& resources = _smaaPresets[(antialiasingMode == ANTIALIASING_MODE_MEDIUM) ? 0 : 1];
         const auto& desc = target->GetDesc();
         auto metrics = Vector4(1.0f / desc.Width, 1.0f / desc.Height, (float)desc.Width, (float)desc.Height);

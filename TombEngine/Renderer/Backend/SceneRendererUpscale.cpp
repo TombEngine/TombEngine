@@ -7,6 +7,8 @@ using namespace TEN::Renderer::RHI;
 
 // AMD FidelityFX Super Resolution 1. Below native scale, the scene renders at a lower resolution, then EASU upscales
 // the post-processed and antialiased scene to the window resolution and RCAS sharpens it. The 2D layer stays native.
+// EASU is the last entry of FRAME_PASSES ("Upscale"), from the upscale source into the window sized color target;
+// RCAS runs later, when the overlay composition (FinishFrame) draws the color target.
 
 namespace TEN::Renderer::Backend
 {
@@ -20,6 +22,7 @@ namespace TEN::Renderer::Backend
         unsigned int RcasConstants[4]    = {};
     };
 
+    // FSR constants are passed as raw float bits in unsigned integers.
     static unsigned int GetFloatBits(float value)
     {
         unsigned int bits = 0;
@@ -63,6 +66,7 @@ namespace TEN::Renderer::Backend
         return GetFsrUniforms(sourceDesc.Width, sourceDesc.Height, targetDesc.Width, targetDesc.Height);
     }
 
+    // Reuses the post-process vertex shader, so it must run after CreatePostProcessResources.
     bool SceneRenderer::CreateUpscaleResources()
     {
         _easuPixelShader = LoadShader(*_device, _shaderDirectory, "FSR", "PSEasu");
@@ -75,12 +79,14 @@ namespace TEN::Renderer::Backend
         return (_easuPipeline != nullptr);
     }
 
+    // Scene resolution along one axis for the frontend render scale, clamped to 25-100% of the window size.
     int SceneRenderer::GetRenderSize(int windowSize) const
     {
         float scale = std::clamp(_renderScale, 0.25f, 1.0f);
         return std::max((int)std::round(windowSize * scale), 1);
     }
 
+    // EASU pass from the scene resolution upscale source to the window resolution color target.
     void SceneRenderer::RenderUpscale(ICommandBuffer& commandBuffer)
     {
         auto uniforms = GetFsrUniforms(*_upscaleSource, *_colorTarget);
@@ -124,6 +130,7 @@ namespace TEN::Renderer::Backend
         _overlayTargets.AntialiasingSource = _targetPool.Acquire(getWindowDesc(_antialiasingSource.get()));
     }
 
+    // Returns the window sized overlay targets to the pool; at native scale they were the scene targets themselves.
     void SceneRenderer::ReleaseOverlayTargets()
     {
         if (_isUpscaleActive)

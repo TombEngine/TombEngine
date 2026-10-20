@@ -21,6 +21,10 @@
 using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::Hair;
 
+// Level load: converts the level data of g_Level (rooms, moveables, statics, sprites, animated textures, lights)
+// into renderer structures and packed vertex/index arrays, then hands them to the scene renderer as a
+// Backend::LevelGeometry. Also fixes up player skin joints and hair vertices so they weld to the skin mesh.
+
 namespace TEN::Renderer
 {
 	// Splits the polygons of a room bucket into compact chunks by recursive median splits along the longest axis of
@@ -85,10 +89,12 @@ namespace TEN::Renderer
 		return chunks;
 	}
 
+	// Builds all renderer data of the loaded level and uploads it through Backend::g_SceneRenderer.LoadLevel().
 	bool Renderer::PrepareDataForTheRenderer()
 	{
 		TENLog("Preparing renderer...", LogLevel::Info);
 
+		// Reset per-level state and allocate item and effect pools.
 		_skinVertexBackups.clear();
 
 		_moveableObjects.resize(ID_NUMBER_OBJECTS);
@@ -108,6 +114,7 @@ namespace TEN::Renderer
 
 		TENLog("Allocated renderer object memory.", LogLevel::Info);
 
+		// Animated texture sets; NormalizedUV maps each frame corner to 0 or 1 within the frame bounds.
 		std::transform(g_Level.AnimatedTexturesSequences.begin(), g_Level.AnimatedTexturesSequences.end(), std::back_inserter(_animatedTextureSets), [](ANIMATED_TEXTURES_SEQUENCE& sequence)
 		{  
 			RendererAnimatedTextureSet set{};
@@ -150,6 +157,7 @@ namespace TEN::Renderer
 		if (_animatedTextureSets.size() > 0)
 			TENLog("Generated " + std::to_string(_animatedTextureSets.size()) + " animated texture sets.", LogLevel::Info);
 
+		// Rooms: count geometry first so the room vertex and index arrays are allocated once.
 		int totalVertices = 0;
 		int totalIndices = 0;
 		for (auto& room : g_Level.Rooms)
@@ -182,6 +190,7 @@ namespace TEN::Renderer
 			rendererRoom.ItemsToDraw.reserve(MAX_ITEMS_DRAW);
 			rendererRoom.Decals.reserve(Decal::COUNT_MAX);
 
+			// Bounds exclude the outer wall sectors and are padded by one click vertically.
 			auto boxMin = Vector3(room.Position.x + BLOCK(1), room.TopHeight - CLICK(1), room.Position.z + BLOCK(1));
 			auto boxMax = Vector3(room.Position.x + (room.XSize - 1) * BLOCK(1), room.BottomHeight + CLICK(1), room.Position.z + (room.ZSize - 1) * BLOCK(1));
 			auto center = (boxMin + boxMax) / 2.0f;
@@ -195,6 +204,7 @@ namespace TEN::Renderer
 					rendererRoom.Neighbors.push_back(j);
 			}
 
+			// Portals in world space, used by CheckPortal during room culling.
 			if (!room.Portals.empty())
 			{
 				rendererRoom.Doors.resize((int)room.Portals.size());
@@ -244,6 +254,7 @@ namespace TEN::Renderer
 			if (room.positions.empty())
 				continue;
 
+			// Room geometry: vertices are stored in world space, quads are split into two triangles.
 			for (auto& levelBucket : room.buckets)
 			{
 				for (const auto& chunk : GetPolygonChunks(room, levelBucket))
@@ -338,6 +349,7 @@ namespace TEN::Renderer
 				}
 			}
 
+			// Room lights; level light types are 0 = sun, 1 = point, 2 = spot, 3 = shadow, 4 = fog bulb.
 			if (room.lights.size() != 0)
 			{
 				rendererRoom.Lights.resize(room.lights.size());
@@ -411,6 +423,7 @@ namespace TEN::Renderer
 			}
 		}
 
+		// Sort room buckets by blend mode, then texture.
 		std::for_each(std::execution::par_unseq,
 			_rooms.begin(),
 			_rooms.end(),
@@ -434,6 +447,7 @@ namespace TEN::Renderer
 
 		bool isSkinPresent = false;
 
+		// Moveables: count geometry of all meshes, including skin meshes.
 		totalVertices = 0;
 		totalIndices = 0;
 		for (int i = 0; i < MoveablesIds.size(); i++)
@@ -456,6 +470,7 @@ namespace TEN::Renderer
 		_moveablesVertices.resize(totalVertices);
 		_moveablesIndices.resize(totalIndices);
 
+		// Convert moveable meshes and build their skeletons.
 		lastVertex = 0;
 		lastIndex = 0;
 		for (int i = 0; i < MoveablesIds.size(); i++)
@@ -499,6 +514,9 @@ namespace TEN::Renderer
 					moveable.BindPoseTransforms.push_back(Matrix::Identity);
 				}
 
+				// Build the bone tree from the level bone list: each entry holds an opcode and a link offset.
+				// Opcode bits 0-1: 0 = link to the previous bone, 1 = pop parent, 2 = push parent, 3 = read parent from the
+				// stack without popping it. Bits 2-4 are the extra rotation flags.
 				if (obj->nmeshes > 1)
 				{
 					int* bone = &g_Level.Bones[obj->boneIndex];
@@ -620,6 +638,7 @@ namespace TEN::Renderer
 
 		TENLog("Preparing static mesh data...", LogLevel::Info);
 
+		// Statics: one renderer object with a single mesh per static slot.
 		totalVertices = 0;
 		totalIndices = 0;
 		for (const auto& staticObj : Statics)
@@ -654,7 +673,7 @@ namespace TEN::Renderer
 
 		TENLog("Preparing sprite data...", LogLevel::Info);
 
-		// Step 5: prepare sprites
+		// Sprites: UVs and pixel size within their sprite page.
 		_sprites.resize(g_Level.Sprites.size());
 
 		for (int i = 0; i < g_Level.Sprites.size(); i++)
@@ -672,6 +691,7 @@ namespace TEN::Renderer
 			sprite.Height = round((oldSprite->y3 - oldSprite->y2) * (float)page.height + 1.0f);
 		}
 
+		// Hand the converted data to the scene renderer, which creates the GPU resources of the level.
 		auto geometry = Backend::LevelGeometry{};
 		geometry.RoomVertices = &_roomsVertices;
 		geometry.RoomIndices = &_roomsIndices;
@@ -691,6 +711,8 @@ namespace TEN::Renderer
 		return true;
 	}
 
+	// Converts a level mesh into a RendererMesh, appending its vertices and indices to the moveable arrays
+	// (obj->Type == 0) or the static arrays, and advancing lastVertex and lastIndex.
 	RendererMesh* Renderer::GetRendererMeshFromTrMesh(RendererObject* obj, MESH* meshPtr, short boneIndex, int isJoints, int isHairs, int* lastVertex, int* lastIndex)
 	{
 		RendererMesh* mesh = new RendererMesh();
@@ -827,6 +849,8 @@ namespace TEN::Renderer
 		return mesh;
 	}
 
+	// Welds the player skin joint vertices to the skin: a joint vertex matching a skin vertex of its bone or parent bone
+	// takes its position, normal and bone; unmatched vertices are skinned half to the bone and half to its parent.
 	void Renderer::ProcessSkinJoints(RendererObject& jointsMoveable, RendererObject& skinMoveable, ObjectInfo& jointsObj)
 	{
 		for (int j = 1; j < jointsObj.nmeshes; j++)
@@ -894,6 +918,8 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Welds hair unit vertices: the first segment attaches to the vertices of the skin root mesh listed in the hair
+	// settings, the other segments to coincident vertices of the previous segment.
 	void Renderer::ProcessHair(GAME_OBJECT_ID hairID, RendererObject& skinMoveable,	bool isSecond)
 	{
 		if (!_moveableObjects[hairID].has_value())
@@ -1048,6 +1074,7 @@ namespace TEN::Renderer
 		Backend::g_SceneRenderer.UpdateMoveableVertices(_moveablesVertices);
 	}
 
+	// Saves the original moveable vertices of an object once, so the skin and hair welding can be redone.
 	void Renderer::BackupObjectVertices(GAME_OBJECT_ID objectID)
 	{
 		if (_skinVertexBackups.count((int)objectID))
@@ -1080,6 +1107,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Restores the vertices saved by BackupObjectVertices.
 	void Renderer::RestoreObjectVertices(GAME_OBJECT_ID objectID)
 	{
 		auto it = _skinVertexBackups.find((int)objectID);

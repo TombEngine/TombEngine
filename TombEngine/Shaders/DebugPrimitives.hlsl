@@ -1,7 +1,8 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=1
 // TEN_SHADER: Pixel PS samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=0
 
-// Debug lines and triangles in world space, with vertex colors.
+// Debug lines and triangles in world space, with vertex colors (SceneRendererDebug.cpp). Only the frame vertex
+// uniforms in slot 0 are used.
 
 #include "./GpuShared.hlsli"
 #include "./ShaderInterop.hlsli"

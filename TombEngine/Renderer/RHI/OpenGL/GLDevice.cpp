@@ -9,6 +9,10 @@
 // OpenGL 4.5 core backend. Shaders are GLSL generated from the SPIR-V by SPIRV-Cross, loaded as separate programs,
 // and the clip control of Direct3D (upper left origin, depth from 0 to 1) keeps the conventions of the other backends:
 // row 0 of every texture is the top of the image, so only the presentation to the window is flipped.
+// Commands execute on the context as they are recorded, by one command buffer reused every frame. The context is
+// current on one thread at a time: device calls and resource destructors make it current, and ReleaseThread hands it
+// over (AcquireCommandBuffer takes it for the thread recording the frame). Uniforms go to
+// a persistently mapped ring, fences are sync objects and GPU timings come from timestamp queries.
 
 namespace TEN::Renderer::RHI::OpenGL
 {
@@ -63,6 +67,7 @@ namespace TEN::Renderer::RHI::OpenGL
 
     static GLFunctions g_GL = {};
 
+    // Loads every entry point of TEN_GL_FUNCTIONS from the current context; false if any is missing.
     static bool LoadFunctions()
     {
         bool isComplete = true;
@@ -81,6 +86,7 @@ namespace TEN::Renderer::RHI::OpenGL
         return isComplete;
     }
 
+    // Internal format for storage, with the pixel format and type of client data; the last two are unused when compressed.
     struct GLFormat
     {
         GLenum Internal     = 0;
@@ -237,6 +243,7 @@ namespace TEN::Renderer::RHI::OpenGL
         }
     }
 
+    // OpenGL combines minification and mip filtering in one value; anisotropic filtering needs trilinear filtering.
     static GLenum ToGLMinFilter(const SamplerDesc& desc)
     {
         if (desc.MaxAnisotropy > 1)
@@ -248,6 +255,7 @@ namespace TEN::Renderer::RHI::OpenGL
         return (desc.MipFilter == Filter::Linear) ? GL_NEAREST_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST;
     }
 
+    // Uniform types that use a texture unit, for OffsetTextureUnits.
     static bool IsSamplerType(GLenum type)
     {
         switch (type)
@@ -279,6 +287,7 @@ namespace TEN::Renderer::RHI::OpenGL
             g_GL.ObjectLabel(identifier, name, -1, label.c_str());
     }
 
+    // Debug output callback of debug contexts; logs each message ID once, without notifications.
     static void APIENTRY OnDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
     {
         static auto loggedMessages = std::unordered_set<GLuint>{};
@@ -332,6 +341,7 @@ namespace TEN::Renderer::RHI::OpenGL
 
         std::unordered_map<FramebufferKey, GLuint, FramebufferKeyHash> Framebuffers = {};
 
+        // Takes the context to the calling thread if another thread does not hold it; false once the device is gone.
         bool MakeCurrent()
         {
             if (!IsAlive)
@@ -347,6 +357,7 @@ namespace TEN::Renderer::RHI::OpenGL
             return false;
         }
 
+        // Deletes the cached framebuffers that attach a texture about to be deleted.
         void ReleaseFramebuffers(GLuint texture)
         {
             for (auto it = Framebuffers.begin(); it != Framebuffers.end();)
@@ -468,6 +479,7 @@ namespace TEN::Renderer::RHI::OpenGL
         int           StencilReference         = 0;
     };
 
+    // A program pipeline of the separate vertex and pixel programs, with a vertex array holding the attribute layout.
     class GLGraphicsPipeline : public IGraphicsPipeline
     {
     public:
@@ -895,6 +907,7 @@ namespace TEN::Renderer::RHI::OpenGL
             BindStorageBuffers(base + firstSlot, buffers, count);
         }
 
+        // Pixel texture units and storage bindings follow the vertex ones (see OffsetBindings).
         void BindPixelSamplers(int firstSlot, const TextureSamplerBinding* bindings, int count) override
         {
             BindSamplers(PIXEL_TEXTURE_UNIT_BASE + firstSlot, bindings, count);
@@ -916,6 +929,7 @@ namespace TEN::Renderer::RHI::OpenGL
         void DrawIndexed(int indexCount, int instanceCount, int firstIndex, int vertexOffset, int firstInstance) override
         {
             auto mode = (Pipeline != nullptr) ? Pipeline->Mode : GL_TRIANGLES;
+            // With an element buffer bound, the index pointer is a byte offset into it.
             auto* indices = (const void*)(GLintptr)(IndexOffset + (firstIndex * IndexSizeBytes));
             g_GL.DrawElementsInstancedBaseVertexBaseInstance(mode, indexCount, IndexType, indices, instanceCount, vertexOffset, firstInstance);
             Counters->AddDraw((Pipeline != nullptr) ? Pipeline->Primitive : PrimitiveType::TriangleList, indexCount, instanceCount, true);
@@ -948,6 +962,7 @@ namespace TEN::Renderer::RHI::OpenGL
                 g_GL.VertexArrayVertexBuffer(Pipeline->VertexArray, i, VertexBuffers[i], VertexBufferOffsets[i], Pipeline->VertexStrides[i]);
         }
 
+        // Sets the blend state of one draw buffer where it differs from the cache, or always when forced.
         void ApplyBlendState(const GLBlendTarget& target, GLBlendTarget& current, int index, bool isForced)
         {
             if (isForced || target.IsEnabled != current.IsEnabled)
@@ -981,6 +996,7 @@ namespace TEN::Renderer::RHI::OpenGL
                 g_GL.Disable(capability);
         }
 
+        // Applies the fixed function state of a pipeline, skipping values the context already has.
         void ApplyState(const GLRenderState& state)
         {
             auto& current = Cache->State;
@@ -1040,6 +1056,7 @@ namespace TEN::Renderer::RHI::OpenGL
     public:
         CommandCounters* Counters = nullptr;
 
+        // Data is copied at call time and the driver keeps resources in use intact, so cycle is not needed.
         void UploadToBuffer(ITransferBuffer* source, int sourceOffset, IBuffer* destination, int destinationOffset, int size, bool cycle) override
         {
             const auto& data = ((GLTransferBuffer*)source)->Data;
@@ -1067,6 +1084,7 @@ namespace TEN::Renderer::RHI::OpenGL
             }
             else
             {
+                // Zero row length and image height mean tightly packed rows.
                 g_GL.PixelStorei(GL_UNPACK_ROW_LENGTH, (pixelsPerRow != destination.Width) ? pixelsPerRow : 0);
                 g_GL.PixelStorei(GL_UNPACK_IMAGE_HEIGHT, (rowsPerLayer != destination.Height) ? rowsPerLayer : 0);
 
@@ -1264,6 +1282,8 @@ namespace TEN::Renderer::RHI::OpenGL
 
         void EndCopyPass() override {}
 
+        // Read-write textures are image units 0 onwards. Read-write buffer N is storage binding COMPUTE_RW_STORAGE_BASE
+        // plus the read-write texture count plus N, as OffsetBindings moves it.
         IComputePass* BeginComputePass(const ComputePassDesc& desc) override
         {
             if (IsRenderPassOpen)
@@ -1284,11 +1304,13 @@ namespace TEN::Renderer::RHI::OpenGL
             return &ComputePass;
         }
 
+        // Makes the writes of the pass visible to every later use, as SDL GPU does between passes.
         void EndComputePass() override
         {
             g_GL.MemoryBarrier(GL_ALL_BARRIER_BITS);
         }
 
+        // Writes the data to the ring and binds that range to the uniform binding of the stage and slot.
         void PushUniforms(ShaderStage stage, int slot, const void* data, int size) override
         {
             Counters.UniformPushes++;
@@ -1349,6 +1371,7 @@ namespace TEN::Renderer::RHI::OpenGL
             Cache.IsSrgbWrite = isEnabled;
         }
 
+        // Returns the cached framebuffer of this combination of attachments, creating it on first use.
         GLuint GetFramebuffer(const ColorTargetInfo* colorTargets, int colorTargetCount, const DepthTargetInfo* depthTarget)
         {
             auto key = FramebufferKey{};
@@ -1457,6 +1480,7 @@ namespace TEN::Renderer::RHI::OpenGL
         }
     };
 
+    // Owns the context, shared with the resources, and the single command buffer.
     class GLDevice : public IDevice
     {
     private:
@@ -1512,6 +1536,7 @@ namespace TEN::Renderer::RHI::OpenGL
             _context->IsAlive = false;
         }
 
+        // The window framebuffer has no texture; the swapchain texture only carries its size.
         void UpdateSwapchainTexture()
         {
             SDL_GetWindowSizeInPixels(_context->Window, &_swapchainTexture.Desc.Width, &_swapchainTexture.Desc.Height);
@@ -1553,6 +1578,7 @@ namespace TEN::Renderer::RHI::OpenGL
             if (!_context->MakeCurrent())
                 return nullptr;
 
+            // Immutable storage updated with glNamedBufferSubData; usage flags need no equivalent.
             auto buffer = std::make_unique<GLBuffer>();
             buffer->Context = _context;
             g_GL.CreateBuffers(1, &buffer->Id);
@@ -1628,6 +1654,7 @@ namespace TEN::Renderer::RHI::OpenGL
             return sampler;
         }
 
+        // Compiles and links the GLSL source as a separable program, then moves its bindings to the range of its stage.
         std::unique_ptr<IShader> CreateShader(const ShaderDesc& desc) override
         {
             if (!_context->MakeCurrent())
@@ -1709,6 +1736,7 @@ namespace TEN::Renderer::RHI::OpenGL
             return buffer;
         }
 
+        // Transfer buffers are system memory, so cycle is not needed.
         void* MapTransferBuffer(ITransferBuffer* buffer, bool cycle) override
         {
             return ((GLTransferBuffer*)buffer)->Data.data();
@@ -1803,6 +1831,7 @@ namespace TEN::Renderer::RHI::OpenGL
             return false;
         }
 
+        // Flushes the work of this thread and makes the context current on no thread, so another can take it.
         void ReleaseThread() override
         {
             if (SDL_GL_GetCurrentContext() != _context->Handle)
@@ -1847,6 +1876,7 @@ namespace TEN::Renderer::RHI::OpenGL
             }
         }
 
+        // Binding point of a uniform or storage block, as set by the layout qualifier of SPIRV-Cross.
         static int GetResourceBinding(GLuint program, GLenum interfaceType, int index)
         {
             GLenum property = GL_BUFFER_BINDING;
@@ -1855,6 +1885,7 @@ namespace TEN::Renderer::RHI::OpenGL
             return binding;
         }
 
+        // Adds the base to the unit of every sampler uniform outside of uniform blocks.
         static void OffsetTextureUnits(GLuint program, int base)
         {
             GLint count = 0;
@@ -1873,6 +1904,8 @@ namespace TEN::Renderer::RHI::OpenGL
             }
         }
 
+        // Records the attribute formats and buffer divisors; the buffers themselves are bound per pass. Returns the
+        // strides of each slot, given when vertex buffers are bound.
         static GLuint CreateVertexArray(const VertexLayout& layout, int* strides)
         {
             GLuint vertexArray = 0;
@@ -1902,6 +1935,7 @@ namespace TEN::Renderer::RHI::OpenGL
             return vertexArray;
         }
 
+        // Translates the blend, rasterizer, depth and stencil state of the description.
         static GLRenderState GetRenderState(const GraphicsPipelineDesc& desc)
         {
             auto state = GLRenderState{};
@@ -1947,6 +1981,7 @@ namespace TEN::Renderer::RHI::OpenGL
         return Owner->GetSwapchainTexture();
     }
 
+    // Commands already went to the context: submission swaps the window buffers, or flushes when nothing is presented.
     void GLCommandBuffer::Submit()
     {
         if (HasSwapchainTexture)
@@ -1996,6 +2031,7 @@ namespace TEN::Renderer::RHI::OpenGL
         Counters.Blits++;
     }
 
+    // Attributes of a 4.5 core context. The window framebuffer needs no depth or stencil buffer: depth targets are textures.
     unsigned int PrepareGLWindow()
     {
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, REQUIRED_MAJOR_VERSION);
@@ -2008,6 +2044,7 @@ namespace TEN::Renderer::RHI::OpenGL
         return SDL_WINDOW_OPENGL;
     }
 
+    // Creates the context, current on the calling thread, and loads the entry points it needs.
     std::unique_ptr<IDevice> CreateGLDevice(SDL_Window* window, bool debugMode)
     {
         if ((SDL_GetWindowFlags(window) & SDL_WINDOW_OPENGL) == 0)

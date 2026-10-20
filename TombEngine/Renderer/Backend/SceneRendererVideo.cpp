@@ -1,3 +1,7 @@
+// Background video support (not a frame pass): at level load, video animated texture sets get a frame set covering
+// the whole video frame; each frame the decoded video image is uploaded to a texture (for sprites) and a one layer
+// array (for animated room and object buckets), which replace the regular texture pages while a video plays.
+
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 

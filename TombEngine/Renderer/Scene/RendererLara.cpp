@@ -24,6 +24,10 @@ using namespace TEN::Renderer;
 
 extern ScriptInterfaceFlowHandler *g_GameFlow;
 
+// Player rendering: per-frame bone matrices of the player (body, arms with weapon animations, extra head and torso
+// rotations) and collection of the sorted faces of the player, skin joints, holsters and hair.
+
+// Two-handed weapons animate the torso and head with the arms while idle or turning (HK also while shoulder firing).
 bool ShouldAnimateUpperBody(const LaraWeaponType& weapon)
 {
 	const auto& nativeItem = *LaraItem;
@@ -105,6 +109,8 @@ static int GetNormalizedArmAnimFrame(GAME_OBJECT_ID animObjectID, int frameNumbe
 	return 0;
 }
 
+// Builds the player bone matrices once per frame (or when forced): legs, hips, torso and head from the body
+// animation, then the arms from the body or the weapon arm animations depending on the hand status.
 void Renderer::UpdateLaraAnimations(bool force)
 {
 	auto& rItem = _items[LaraItem->Index];
@@ -134,10 +140,8 @@ void Renderer::UpdateLaraAnimations(bool force)
 
 	auto scaleMatrix = Matrix::CreateScale(nativeItem.Pose.Scale);
 
-	// TODO: Should do this instead.
-	//_playerWorldMatrix = LaraItem->Pose.ToMatrix();
-
 	// Set player world matrix.
+	// TODO: Use LaraItem->Pose.ToMatrix() instead.
 	_playerWorldMatrix = scaleMatrix * rotMatrix * translationMatrix;
 	rItem.World = _playerWorldMatrix;
 
@@ -311,6 +315,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 	rItem.DoneAnimations = true;
 }
 
+// Collects the sorted faces of the player: skin, meshes, skin joints, holsters and hair.
 void Renderer::CollectSortedPlayerFaces(RenderView& view)
 {
 	// TODO: Avoid Lara global.
@@ -350,6 +355,7 @@ void Renderer::CollectSortedPlayerFaces(RenderView& view)
 	CollectSortedPlayerHairFaces(item, room, view);
 }
 
+// Updates the interpolated segment transforms of each hair unit and collects its sorted faces.
 void Renderer::CollectSortedPlayerHairFaces(RendererItem* itemToDraw, RendererRoom* room, RenderView& view)
 {
 	bool forceValue = g_GameFlow->CurrentFreezeMode == FreezeMode::Player;
@@ -418,6 +424,7 @@ void Renderer::CollectSortedPlayerJointFaces(RendererItem* itemToDraw, RendererR
 	}
 }
 
+// Holster meshes are taken from the holster objects at the thigh and torso bones.
 void Renderer::CollectSortedPlayerHolsterFaces(RendererItem* itemToDraw, RendererRoom* room, RenderView& view)
 {
 	auto leftHolsterID  = Lara.Control.Weapon.HolsterInfo.LeftHolster;

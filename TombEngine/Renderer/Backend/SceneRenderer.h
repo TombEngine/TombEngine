@@ -15,6 +15,12 @@
 #include "Renderer/RHI/TextureCapture.h"
 #include "Renderer/RHI/UploadRing.h"
 
+// Backend of the renderer (g_SceneRenderer). At level load it uploads the geometry prepared by the frontend into shared
+// vertex and index buffers and the level pages into texture arrays. Each frame it receives a RenderView and a
+// FrameEnvironment (RenderFrame) and a UiFrame (FinishFrame), collects instances, lights and materials into storage
+// buffers through an upload ring, and records the fixed FRAME_PASSES list through the RHI device (DX11, SDL GPU for
+// Vulkan and Direct3D 12, or OpenGL 4.5). The implementation is split over the SceneRenderer*.cpp files.
+
 struct TEXTURE;
 
 namespace TEN::Renderer
@@ -46,6 +52,7 @@ namespace TEN::Renderer::Backend
     struct ArrayGroupKey;
 
     // Level data prepared by the frontend (RendererCompatibility.cpp): vertex and index arrays, rooms, objects and sprites.
+    // Pointers to frontend vectors, which must stay alive while the level is loaded.
     struct LevelGeometry
     {
         const std::vector<Structures::Vertex>*                        RoomVertices        = nullptr;
@@ -64,13 +71,15 @@ namespace TEN::Renderer::Backend
         const std::vector<Structures::RendererSprite>*                Sprites          = nullptr;
     };
 
-    // Per-frame values owned by the game and the frontend.
+    // Per-frame values owned by the game and the frontend, passed to RenderFrame with the RenderView. Pointers are only
+    // read during that call.
     struct FrameEnvironment
     {
         Vector3      CameraPosition    = Vector3::Zero;
         Vector4      FogColor          = Vector4::Zero;
         float        FogMinDistance    = 0.0f;
         float        FogMaxDistance    = 0.0f;
+        // Game frame counter, and the blend factor between the previous and current game state at high frame rates.
         unsigned int Frame               = 0;
         float        InterpolatedFrame   = 0.0f;
         float        InterpolationFactor = 0.0f;
@@ -233,7 +242,8 @@ namespace TEN::Renderer::Backend
     class SceneRenderer
     {
     private:
-        // Atlas page with the maps of the material system; missing maps use the default textures.
+        // Standalone texture page with its material maps. Only sprite atlases use it, with the color map alone; level
+        // pages live in texture array groups.
         struct RoomTexture
         {
             std::unique_ptr<RHI::ITexture> ColorMap    = nullptr;
@@ -293,6 +303,8 @@ namespace TEN::Renderer::Backend
             bool                            IsReflectable = true; // Mirrors skip items with cleared bodies.
         };
 
+        // Debris draws of the scene pass: opaque with the opaque draws, additive with the additive draws, and blended
+        // after the sorted faces.
         enum class DebrisPass
         {
             Opaque,
@@ -333,6 +345,7 @@ namespace TEN::Renderer::Backend
             bool                     IsGroupBound   = false;
         };
 
+        // Section of the level geometry buffers a mesh comes from; also the order of the sections in the index buffer.
         enum class MeshSource
         {
             Statics,
@@ -342,7 +355,6 @@ namespace TEN::Renderer::Backend
             Count
         };
 
-        // Instanced draw of one mesh bucket; instances are contiguous in the frame instance buffer.
         // Source of an instance, for mirrors that reflect only some categories of the mirror room.
         enum class InstanceCategory
         {
@@ -352,12 +364,14 @@ namespace TEN::Renderer::Backend
             Static
         };
 
+        // Room and category of a frame instance, kept beside the instance data for mirrors and the outdoor flag.
         struct InstanceOrigin
         {
             int              RoomNumber = NO_VALUE;
             InstanceCategory Category   = InstanceCategory::None;
         };
 
+        // Instanced draw of one mesh bucket; instances are contiguous in the frame instance buffer.
         struct ObjectDraw
         {
             MeshSource                        Source        = MeshSource::Statics;
@@ -375,6 +389,7 @@ namespace TEN::Renderer::Backend
             int                           Capacity = 0;
         };
 
+        // Vertex and pixel shader pair of a scene pipeline, the first index of _scenePipelines.
         enum class SceneShader
         {
             Rooms,
@@ -394,6 +409,7 @@ namespace TEN::Renderer::Backend
             Count
         };
 
+        // Pass of the room and object bucket draws: selects the buckets drawn (IsBucketInPass) and the pipeline blend mode.
         enum class ScenePass
         {
             Prepass,
@@ -453,6 +469,7 @@ namespace TEN::Renderer::Backend
             int     Frame       = NO_VALUE; // Last frame that collected the surface.
         };
 
+        // Shared level vertex and index buffers, created by LoadLevel.
         struct GeometryBuffers
         {
             std::unique_ptr<RHI::IBuffer> Vertices = nullptr;
@@ -469,10 +486,12 @@ namespace TEN::Renderer::Backend
             const std::vector<int>* Indices      = nullptr;
         };
 
+        // RHI device of the selected backend, its window and the compiled shader directory.
         std::unique_ptr<RHI::IDevice> _device = nullptr;
         SDL_Window*                   _window = nullptr;
         std::string                   _shaderDirectory = {};
 
+        // Scene shaders and pipelines, the classic sky geometry and the sprite resources.
         std::unique_ptr<RHI::IShader>           _roomsVertexShader   = nullptr;
         std::unique_ptr<RHI::IShader>           _roomsPixelShader    = nullptr;
         // Pixel shader variants of rooms and objects: bit 0 leaves out the alpha test, the next bits the normal, ORSH and
@@ -481,6 +500,7 @@ namespace TEN::Renderer::Backend
         static constexpr auto PIXEL_VARIANT_MAP_SHIFT     = 1;
         static constexpr auto PIXEL_VARIANT_COUNT         = 16;
 
+        // Created on first use by GetScenePipeline, indexed by shader, blend mode slot and pixel variant.
         std::unique_ptr<RHI::IGraphicsPipeline> _scenePipelines[(int)SceneShader::Count][16][PIXEL_VARIANT_COUNT] = {};
         std::unique_ptr<RHI::IShader>           _pixelShaderVariants[(int)SceneShader::Count][PIXEL_VARIANT_COUNT] = {};
         std::unique_ptr<RHI::IShader>           _objectsVertexShader = nullptr;
@@ -569,6 +589,7 @@ namespace TEN::Renderer::Backend
         float                                   _underwaterSurfaceHeight = 0.0f; // Where the fog of the rays rising out of the water ends.
         Vector3                                 _underwaterAmbient       = Vector3::One;
 
+        // Depth of field (SceneRendererDOF.cpp).
         static constexpr int DOF_PASS_COUNT   = 4;
         static constexpr int DOF_TARGET_COUNT = 2;
 
@@ -578,6 +599,7 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::ITexture>          _dofTargets[DOF_TARGET_COUNT]      = {}; // Near blur and far blur.
         bool                                    _isDofActive                       = false;
 
+        // SMAA antialiasing (SceneRendererSMAA.cpp).
         static constexpr int SMAA_PRESET_COUNT = 2; // Medium and ultra.
         static constexpr int SMAA_PASS_COUNT   = 3;
 
@@ -592,6 +614,8 @@ namespace TEN::Renderer::Backend
         RHI::PixelFormat                        _smaaStencilFormat              = RHI::PixelFormat::Unknown; // Unknown without stencil support.
         std::unique_ptr<RHI::ITexture>          _smaaAreaTexture                = nullptr;
         std::unique_ptr<RHI::ITexture>          _smaaSearchTexture              = nullptr;
+
+        // The frame has distortion draws: enables the distortion pass.
         bool                                    _hasDistortion           = false;
 
         // Fixed pass order of a scene frame. Each pass runs in its own debug group; a pass with a flag is skipped while the flag is false.
@@ -604,11 +628,14 @@ namespace TEN::Renderer::Backend
 
         static const FramePass FRAME_PASSES[];
 
+        // Target pool and the inputs of the frame being recorded; view and environment are set only while RenderFrame
+        // runs the passes.
         RHI::RenderTargetPool   _targetPool          = {}; // Intermediate targets of the screen space passes.
         const RenderView*       _frameView           = nullptr;
         const FrameEnvironment* _frameEnvironment    = nullptr;
         FrameVertexUniforms     _frameVertexUniforms = {};
 
+        // Camera of the frame, with the projection rebuilt for the aspect ratio of the window.
         float                                   _nearPlane               = 1.0f;
         float                                   _farPlane                = 1.0f;
         float                                   _time                    = 0.0f;
@@ -617,6 +644,8 @@ namespace TEN::Renderer::Backend
         Matrix                                  _projection              = Matrix::Identity;
         Frustum                                 _frustum                 = {}; // Of the target projection, which may differ in aspect from the frontend one.
         float                                   _roomClipScaleX          = 1.0f; // Frontend to target horizontal NDC scale of the room portal rectangles.
+
+        // Atmospheric sky dome, sun and moon discs and aurora (SceneRendererAtmosphere.cpp).
         std::unique_ptr<RHI::IShader>           _atmosphericSkyVertexShader = nullptr;
         std::unique_ptr<RHI::IShader>           _atmosphericSkyPixelShader  = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _atmosphericSkyPipeline     = nullptr;
@@ -684,6 +713,7 @@ namespace TEN::Renderer::Backend
             bool                              IsAlphaTested = false;
         };
 
+        // 2D layer resources and the per-frame data collected from the UiFrame (SceneRendererOverlay.cpp).
         FontData                                _font                       = {};
         std::unique_ptr<RHI::IShader>           _overlayVertexShader        = nullptr;
         std::unique_ptr<RHI::IShader>           _overlayPixelShader         = nullptr;
@@ -700,6 +730,8 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::IShader>           _inventoryVertexShader      = nullptr;
         std::unique_ptr<RHI::IShader>           _inventoryPixelShader       = nullptr;
         std::unordered_map<std::string, std::unique_ptr<RHI::ITexture>> _overlayImages = {}; // By file path, null when not decodable.
+
+        // Size of the frontend atmospheric sky uniform block, beside _atmosphericSkyUniforms.
         int                                     _atmosphericSkyUniformsSize = 0;
 
         // Shadow map (SceneRendererShadows.cpp).
@@ -733,12 +765,15 @@ namespace TEN::Renderer::Backend
         Vector4                                 _ssaoKernel[SSAO_KERNEL_SIZE] = {};
         bool                                    _isAmbientOcclusionActive   = false;
 
+        // Material sampler and the 1x1 defaults bound in place of missing maps and inactive effect textures.
         std::unique_ptr<RHI::ISampler>          _anisotropicSampler  = nullptr;
         std::unique_ptr<RHI::ITexture>          _whiteTexture        = nullptr;
         std::unique_ptr<RHI::ITexture>          _flatNormalTexture   = nullptr;
         std::unique_ptr<RHI::ITexture>          _defaultORSHTexture  = nullptr;
         std::unique_ptr<RHI::ITexture>          _blackTexture        = nullptr;
 
+        // Level resources created by LoadLevel (geometry, room and animated pages, animated texture sets), then the
+        // background video state, the upload ring and the screenshot readback.
         GeometryBuffers               _geometry         = {}; // Rooms, statics and moveables.
         GeometrySection               _geometrySections[(int)MeshSource::Count] = {};
         std::vector<TexturePage>      _roomTextures     = {};
@@ -763,6 +798,8 @@ namespace TEN::Renderer::Backend
         std::array<std::shared_ptr<RHI::IFence>, FRAMES_IN_FLIGHT_MAX> _frameFences     = {};
         int                                                           _frameFenceIndex = 0;
 
+        // More level resources: object pages, sprite atlases, the texture array groups holding every page, and the
+        // level data the frame collection reads.
         std::vector<TexturePage>      _staticTextures   = {};
         std::vector<TexturePage>      _moveableTextures = {};
         std::vector<RoomTexture>      _spriteTextures   = {};
@@ -789,6 +826,8 @@ namespace TEN::Renderer::Backend
         std::vector<DrawSortKey>      _roomDrawOrder       = {};
         std::vector<DrawSortKey>      _drawSortScratch     = {};
         std::vector<QueuedMeshInstance> _queuedMeshInstances = {};
+
+        // Further per-frame buffers and their CPU data: decals, debris, 2D layer, ImGui and debug primitives.
         FrameStorageBuffer            _decalBuffer         = {};
         FrameStorageBuffer            _debrisVertexBuffer   = {};
         FrameStorageBuffer            _overlayVertexBuffer  = {};
@@ -797,6 +836,8 @@ namespace TEN::Renderer::Backend
         std::vector<unsigned char>    _imGuiVertexData      = {};
         std::vector<unsigned char>    _imGuiIndexData       = {};
         std::unique_ptr<RHI::ITexture> _imGuiFontTexture    = nullptr;
+
+        // ImGui font atlas version of _imGuiFontTexture; a new version recreates it.
         int                            _imGuiFontGeneration = -1;
         FrameStorageBuffer            _overlayInstanceBuffer = {};
         FrameStorageBuffer            _overlayBoneBuffer    = {};
@@ -812,19 +853,30 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::IShader>           _debugPixelShader      = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _debugLinePipeline     = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _debugTrianglePipeline = nullptr;
+
+        // Gun flash draws, and the object draws reflected by mirrors over mirrored instances.
         std::vector<ObjectDraw>       _gunFlashDraws        = {};
         std::vector<ObjectDraw>       _mirrorDraws          = {};
         std::vector<InstanceOrigin>   _instanceOrigins      = {}; // One per instance.
         InstanceOrigin                _currentOrigin        = {}; // Assigned to the instances being added.
         std::vector<unsigned char>    _decalData           = {};
+
+        // Offset and count of the decals of each visible room, by room number.
         std::unordered_map<int, std::pair<int, int>> _roomDecalSlices = {};
+
+        // Light offset and count of the room lights used by effect meshes, by room number, filled on demand; the list
+        // holds the rooms filled this frame, for the reset.
         std::vector<std::pair<int, int>> _roomLightSlices    = {};
         std::vector<int>              _roomLightSliceList  = {};
+
+        // Sorted transparent faces: frame index buffer of the runs, and the draws of the view and of mirrors.
         FrameStorageBuffer            _sortedIndexBuffer   = {};
         std::vector<unsigned char>    _sortedIndexData     = {};
         std::vector<SortedDraw>       _sortedDraws         = {};
         std::vector<SortedDraw>       _mirrorSortedDraws   = {};
         std::vector<SpriteDraw>       _mirrorSpriteDraws   = {};
+
+        // Stars and meteors, and the classic sun sprite.
         std::vector<SpriteDraw>       _skySpriteDraws      = {};
         std::vector<SpriteDraw>       _skySunDraws         = {};
 
@@ -846,6 +898,8 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::ITexture>          _cloudOcclusionTargets[CLOUD_LAYER_COUNT] = {}; // Sun transmittance, 1x1.
         float                                   _cloudTransmittances[CLOUD_LAYER_COUNT]   = {};
         bool                                    _isCloudTransmittanceRead[CLOUD_LAYER_COUNT] = {};
+
+        // God rays and dust storm.
         std::unique_ptr<RHI::IShader>           _godRayVertexShader                    = nullptr;
         std::unique_ptr<RHI::IShader>           _godRayPixelShader                     = nullptr;
         std::unique_ptr<RHI::IShader>           _godRayCompositePixelShader            = nullptr;
@@ -854,6 +908,8 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::IShader>           _dustStormVertexShader                 = nullptr;
         std::unique_ptr<RHI::IShader>           _dustStormPixelShader                  = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _dustStormPipeline                     = nullptr;
+
+        // Per-frame sprites, sorted object instances (keyed by their static, effect or item) and materials.
         std::vector<const Structures::RendererSpriteToDraw*> _spriteSources = {}; // One per frame sprite.
         std::unordered_map<const void*, int> _sortedInstances = {};
         std::array<int, 2>            _hairInstances       = { NO_VALUE, NO_VALUE }; // Primary and secondary hair unit instances.
@@ -863,7 +919,11 @@ namespace TEN::Renderer::Backend
         FrameStorageBuffer            _spriteBuffer        = {};
         std::vector<unsigned char>    _spriteData          = {};
         std::vector<SpriteDraw>       _spriteDraws         = {};
+
+        // Count of the view lights shared by every room, with the light type mask in the high bits (LIGHT_COUNT_MASK).
         int                           _roomLightCount      = 0;
+
+        // Statistics, GPU timings and presentation settings.
         SceneFrameStats                _frameStats          = {};
         std::vector<RHI::GpuTiming> _gpuTimings                  = {};
         int                         _gpuTimingFrames             = 0;
@@ -884,17 +944,22 @@ namespace TEN::Renderer::Backend
         std::atomic<int>               _windowHeight = 0;
         std::string                    _screenshotPath = {};
 
+        // Initialization and render targets (SceneRenderer.cpp).
         bool CreatePipelines();
         bool EnsureRenderTargets(int width, int height);
         void ReserveTransientTargets();
         bool CreateFrameTargets(int width, int height);
         bool CreateSceneTargets(int width, int height, int windowWidth);
+
+        // Standalone textures and overlay images (SceneRendererTextures.cpp, SceneRendererOverlay.cpp, SceneRenderer.cpp).
         std::unique_ptr<RHI::ITexture> CreateLevelTexture(const std::vector<unsigned char>& encodedData, const std::string& name, bool allowMips = true);
         void LoadOverlayImages(const UiFrame& ui);
         void LoadOverlayImage(const std::string& path);
         RHI::ITexture* GetOverlayImageTexture(const std::string& path) const;
         std::unique_ptr<RHI::ITexture> CreateSolidTexture(const unsigned char color[4], const std::string& name, RHI::TextureType type = RHI::TextureType::Texture2D);
         void UploadTexture(RHI::ITexture* texture, const void* data, int size);
+
+        // Materials, decals, bucket draw state, animated textures and scene pipelines (SceneRenderer.cpp).
         void CollectMaterials(float interpolationFactor);
         void BindPageColorMap(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const TexturePage* page);
         void BindTexturePage(RHI::IRenderPass& renderPass, const TexturePage* page, RHI::ITexture* colorOverride = nullptr, RHI::ITexture* emissiveOverride = nullptr);
@@ -915,11 +980,14 @@ namespace TEN::Renderer::Backend
         int GetMissingMaps(const Structures::RendererBucket& bucket, const std::vector<TexturePage>& pages) const;
         void BindPixelVariant(RHI::IRenderPass& renderPass, SceneShader shader, ScenePass pass, bool isAlphaTested, int missingMaps, int& boundMissingMaps);
         void ClearPipelineCaches();
+
+        // Pipeline precompilation at load (SceneRendererPipelines.cpp).
         int  GetScenePipelineCount() const;
         void PrecompileLevelPipelines(const LevelGeometry& geometry);
         void PrecompilePassPipelines(SceneShader shader, SceneShader prepassShader);
         void PrecompileObjectPipelines(const std::vector<std::optional<Structures::RendererObject>>& objects, const std::vector<TexturePage>& pages);
         void PrecompileBucketPipelines(const Structures::RendererBucket& bucket, const std::vector<TexturePage>& pages, SceneShader shader, SceneShader prepassShader);
+
         // Level textures (SceneRendererTextures.cpp).
         static void AddTextureRequest(std::vector<LevelTextureRequest>& requests, const std::vector<unsigned char>& encodedData, const std::string& name,
                                       std::unique_ptr<RHI::ITexture>& target);
@@ -934,6 +1002,7 @@ namespace TEN::Renderer::Backend
         void UploadTextureArrayLayers(const std::vector<ArrayPageSource>& pages, const std::vector<ArrayGroupKey>& pageKeys);
         void FreeEncodedLevelTextures();
         void LoadLevelTextures();
+
         // Level geometry (SceneRendererGeometry.cpp).
         void SetGeometrySection(MeshSource source, int regionOffset, int baseVertex, int vertexCount, const std::vector<int>& indices);
         bool CreateLevelGeometry(const LevelGeometry& geometry);
@@ -942,6 +1011,8 @@ namespace TEN::Renderer::Backend
         bool IsRoomBucketVisible(const Structures::RendererBucket& bucket) const;
         bool IsRoomBucketInPortals(const Structures::RendererBucket& bucket, const Structures::RendererRoom& room, const Matrix& viewProjection) const;
         RHI::ScissorRect GetRoomScissor(const Structures::RendererRoom& room, int targetWidth, int targetHeight) const;
+
+        // Object collection (SceneRenderer.cpp).
         void CollectObjects(const RenderView& view, float interpolationFactor);
         void CollectPlayer(float interpolationFactor);
         void CollectPlayerHair(const Structures::RendererItem& item, const Vector4& ambientLight, int lightOffset, int lightCount, float interpolationFactor);
@@ -956,6 +1027,8 @@ namespace TEN::Renderer::Backend
                                LightMode lightMode, int lightOffset, int lightCount, int roomNumber, bool isReflectable = true);
         void FlushMeshInstances();
         void CollectEffectMeshes(const RenderView& view, float interpolationFactor);
+
+        // Mirrors (SceneRendererMirrors.cpp), sky sprites (SceneRendererSprites.cpp) and gun flashes (SceneRendererEffects.cpp).
         static bool IsMirrored(const InstanceOrigin& origin, const Structures::RendererMirror& mirror);
         int  AddMirroredInstance(int instanceIndex, const Structures::RendererMirror& mirror);
         void CollectMirrors(const RenderView& view);
@@ -975,11 +1048,15 @@ namespace TEN::Renderer::Backend
         // Debris (SceneRendererDebris.cpp).
         void CollectDebris(float interpolationFactor);
         void DrawDebris(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, DebrisPass pass);
+
+        // Lights (SceneRenderer.cpp) and light clusters (SceneRendererLightClusters.cpp).
         int  AddLights(const std::vector<Structures::RendererLight*>& lights, float interpolationFactor, int roomNumber, int prevRoomNumber, float fade, int& lightOffset);
         void SetLightClusterUniforms(FramePixelUniforms& uniforms) const;
         void BuildLightClusters(int lightOffset, int lightCount);
         void AddClusterLight(const GpuLight& light, int lightIndex);
         static GpuLight ToGpuLight(const Structures::RendererLight& light, float interpolationFactor, float fade);
+
+        // Frame uploads, sorted faces and frame pacing (SceneRenderer.cpp).
         void UploadMaterials();
         void UploadFrameStorage(FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, unsigned int usage, const char* name);
         void UploadFrameData(RHI::ICommandBuffer& commandBuffer, const FrameEnvironment& environment);
@@ -990,9 +1067,13 @@ namespace TEN::Renderer::Backend
         void LogGpuTimings();
         void LogMemoryUsage();
         void WaitForFrameInFlight();
+
+        // Statistics (SceneRendererStats.cpp).
         void CollectFrameStats(const RenderView& view, const FrameEnvironment& environment);
         void ResetFrameStats();
         void CountDraw(DrawCategory category, int triangles);
+
+        // Fog bulbs and classic sky layers and horizons (SceneRenderer.cpp).
         static FogBulbUniforms GetFogBulbUniforms(const RenderView& view);
         bool CreateSkyGeometry();
         void DrawSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere = 0);
@@ -1020,6 +1101,8 @@ namespace TEN::Renderer::Backend
         void DrawDustStorm(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
         RHI::IRenderPass* BeginSkyRenderPass(RHI::ICommandBuffer& commandBuffer, RHI::LoadOp load);
         void RenderSkyPass(RHI::ICommandBuffer& commandBuffer);
+
+        // Sky reflections (SceneRendererSkyReflections.cpp).
         bool CreateSkyReflectionResources();
 
         // Water surfaces (SceneRendererWater.cpp).
@@ -1042,7 +1125,11 @@ namespace TEN::Renderer::Backend
         void PrepareUnderwaterFog(const RenderView& view);
         RHI::IRenderPass* DrawUnderwaterFog(RHI::ICommandBuffer& commandBuffer);
         RHI::IRenderPass* DrawWaterSurfaces(RHI::ICommandBuffer& commandBuffer);
+
+        // Atmospheric sky (SceneRendererAtmosphere.cpp).
         bool CreateAtmosphereResources();
+
+        // 2D layer (SceneRendererOverlay.cpp).
         bool LoadFont(const std::string& path);
         bool CreateOverlayResources(const std::string& fontPath);
         void AddOverlayQuad(RHI::ITexture* texture, const Vector2& position, const Vector2& size, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color,
@@ -1066,13 +1153,18 @@ namespace TEN::Renderer::Backend
         void UploadImGuiData(const UiFrame& ui);
         void DrawImGui(RHI::ICommandBuffer& commandBuffer, const UiFrame& ui);
 
+        // Atmospheric sky discs and aurora (SceneRendererAtmosphere.cpp).
         void DrawAtmosphericSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
         void PushSkyUniforms(RHI::ICommandBuffer& commandBuffer);
         bool HasSkyDiscsOrAurora() const;
         void DrawSkyDiscsAndAurora(RHI::ICommandBuffer& commandBuffer);
         RHI::ITexture* DrawHalfResolutionAurora(RHI::ICommandBuffer& commandBuffer, const RHI::TextureSamplerBinding& coverageBinding);
         void DrawFullscreen(RHI::IRenderPass& renderPass, RHI::IGraphicsPipeline* pipeline, const RHI::TextureSamplerBinding& binding);
+
+        // Sky reflections (SceneRendererSkyReflections.cpp).
         void RenderSkyReflections(RHI::ICommandBuffer& commandBuffer);
+
+        // Object draws and pass filters (SceneRenderer.cpp).
         void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
         void DrawObjectBuckets(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const std::vector<ObjectDraw>& draws, ScenePass pass,
                                bool isMirrored, bool isAlphaTested);
@@ -1101,14 +1193,20 @@ namespace TEN::Renderer::Backend
         // Prepass and ambient occlusion (SceneRendererSSAO.cpp).
         bool  CreateSSAOResources();
         bool  EnsureSSAOTargets(int width, int height);
+
+        // Depth of field (SceneRendererDOF.cpp).
         bool  CreateDOFResources();
         bool  EnsureDOFTargets(int width, int height);
         static bool IsDOFActive(const FrameEnvironment& environment);
         static int  GetDOFLayers(const FrameEnvironment& environment); // Bit 0 far blur, bit 1 near blur.
         void  RenderDOF(RHI::ICommandBuffer& commandBuffer);
+
+        // Background video (SceneRendererVideo.cpp).
         void  AddVideoSets(const LevelGeometry& geometry, std::vector<GpuAnimatedFrame>& frames, std::vector<GpuAnimatedSet>& sets);
         void  UploadVideoFrame(const unsigned char* frame, int width, int height);
         int   GetVideoSet(const Structures::RendererBucket& bucket) const;
+
+        // Glow and reflection source (SceneRendererGlow.cpp); ClearSampledTargets is in SceneRenderer.cpp.
         bool  CreateGlowResources();
         bool  EnsureGlowTargets(int width, int height);
         void  RenderGlow(RHI::ICommandBuffer& commandBuffer);
@@ -1117,6 +1215,8 @@ namespace TEN::Renderer::Backend
         void  CopyReflectionSource(RHI::ICommandBuffer& commandBuffer);
         void  ClearSampledTargets(bool includeFrameTargets);
         void  DownscaleTexture(RHI::ICommandBuffer& commandBuffer, RHI::ITexture* source, RHI::ITexture* target, const char* name);
+
+        // Prepass, ambient occlusion and fullscreen pass helpers (SceneRendererSSAO.cpp).
         float GetAmbientOcclusionExponent() const;
         void  RenderDepthPrepass(RHI::ICommandBuffer& commandBuffer);
         void  RenderSSAO(RHI::ICommandBuffer& commandBuffer);
@@ -1125,10 +1225,14 @@ namespace TEN::Renderer::Backend
         void  RenderFullscreenPass(RHI::ICommandBuffer& commandBuffer, RHI::IGraphicsPipeline* pipeline, RHI::ITexture* target,
                                    const RHI::TextureSamplerBinding* bindings, int bindingCount, const char* name, RHI::LoadOp load = RHI::LoadOp::DontCare,
                                    const RHI::DepthTargetInfo* depthTarget = nullptr);
+
+        // FXAA and SMAA antialiasing (SceneRendererSMAA.cpp).
         bool  CreateSMAAResources();
         void  RenderAntialiasing(RHI::ICommandBuffer& commandBuffer, int antialiasingMode, RHI::ITexture* source, RHI::ITexture* target);
         void  GetSMAATargetDescs(const RHI::TextureDesc& targetDesc, RHI::TextureDesc& edgesDesc, RHI::TextureDesc& weightsDesc, RHI::TextureDesc& stencilDesc) const;
         std::unique_ptr<RHI::IGraphicsPipeline> CreateSMAAPipeline(const SmaaPreset& preset, int pass, const char* name);
+
+        // FSR 1 upscaling and overlay targets (SceneRendererUpscale.cpp); CreateMaterialSampler is in SceneRenderer.cpp.
         bool  CreateUpscaleResources();
         void  PushRcasUniforms(RHI::ICommandBuffer& commandBuffer);
         bool  CreateMaterialSampler();
@@ -1145,6 +1249,8 @@ namespace TEN::Renderer::Backend
         void           DrawSpriteRun(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const SpriteDraw& draw, const RHI::IGraphicsPipeline*& lastPipeline, const RHI::ITexture*& lastTexture, bool isSky = false, DrawCategory category = DrawCategory::Sprites);
         void           SetSkySpriteMoon(Vector3& direction, float& diskCosRadius) const;
         void           DrawSprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
+
+        // Room draws, draw state sorting and the scene pass (SceneRenderer.cpp).
         void CollectRoomDraws(const RenderView& view);
         void DrawRooms(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass);
         void DrawRoomBuckets(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isAlphaTested);
@@ -1155,6 +1261,7 @@ namespace TEN::Renderer::Backend
         void RenderScenePass(RHI::ICommandBuffer& commandBuffer);
 
     public:
+        // Device lifetime and presentation settings.
         bool Initialize(SDL_Window* window, RHI::GraphicsApi backend, const std::string& gameDirectory, bool preferLowPowerGpu);
         void Shutdown();
         bool IsActive() const;
@@ -1164,6 +1271,8 @@ namespace TEN::Renderer::Backend
         bool IsPresentedOnWindowThread() const;
         void ReleaseThread();
 
+        // Level load and frame entry points. The game thread calls RenderFrame (scene) and FinishFrame (2D layer and
+        // submit) every frame; PresentOnWindowThread runs on the window thread. A frame mutex serializes them.
         void LoadLevel(const LevelGeometry& geometry);
         void RenderFrame(const RenderView& view, const FrameEnvironment& environment);
         void FinishFrame(const UiFrame& ui);
@@ -1173,6 +1282,7 @@ namespace TEN::Renderer::Backend
         void ReloadShaders();
         void UpdateMoveableVertices(const std::vector<Structures::Vertex>& vertices);
 
+        // Debug statistics.
         const SceneFrameStats& GetFrameStats() const;
         SceneRendererInfo      GetInfo() const;
         const std::vector<RHI::GpuTiming>& SampleGpuTimings();

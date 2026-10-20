@@ -3,7 +3,7 @@
 
 // Backend validation scene: instanced textured quads. Exercises per-vertex and per-instance
 // vertex streams, a vertex storage buffer indexed by an instance-stream index, uniforms in
-// both stages, a combined texture sampler, blending and a depth target.
+// both stages, a combined texture sampler, blending and a depth target. Drawn by Renderer/RHI/Test/RHITest.cpp.
 
 #include "./ShaderInterop.hlsli"
 

@@ -1,7 +1,7 @@
 #ifndef TEN_SKINNING
 #define TEN_SKINNING
 
-// Bone blending of the frontend (Shaders/Math.hlsli), reading bones from a palette slice of the
+// Bone blending of skinned moveables, reading bones from a palette slice of the
 // frame bone buffer. Classic mode blends rotations as quaternions and keeps the first bone translation.
 
 #define SKINNING_NONE    0 // Instance world matrix only.
@@ -11,6 +11,8 @@
 
 #define BONE_WEIGHTS_MAX 4
 
+// Branchless form of the standard conversion: all four candidates are computed and the one with the largest
+// divisor (trace, or the largest diagonal element) is selected for numerical stability.
 float4 RotationMatrixToQuaternion(float3x3 m)
 {
     float trace = m[0].x + m[1].y + m[2].z;
@@ -76,6 +78,7 @@ float4x4 BlendBones(TEN_RAW_BUFFER_TYPE(BoneTransform) bones, uint boneOffset, u
         for (int i = 0; i < BONE_WEIGHTS_MAX; i++)
         {
             float4 q = RotationMatrixToQuaternion((float3x3)TEN_LOAD_RAW(BoneTransform, bones, boneOffset + boneIndices[i]).Transform);
+            // Flip into the same hemisphere as the running sum, so blending takes the short path.
             q *= sign(dot(blendedQuaternion, q) + 1e-5f);
             blendedQuaternion += q * boneWeights[i];
         }

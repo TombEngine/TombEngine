@@ -51,8 +51,15 @@ using namespace TEN::Sky;
 
 extern GUNSHELL_STRUCT Gunshells[MAX_GUNSHELL];
 
+// Frame flow of the frontend: PrepareScene, RenderScene (collection, sprites, sky effects, sorted faces, HUD),
+// SubmitFrame (fills Backend::FrameEnvironment and calls the scene renderer) and PresentFrame (2D layer composition).
+// Also holds sorted face collection of rooms, items, statics and swarms, debug primitives, dynamic lights and
+// recording of 2D layer objects.
+
 namespace TEN::Renderer
 {
+	// Gathers the blob shadow spheres of the frame (player body parts and shadow-casting items), keeping the
+	// ShadowBlobsMax ones nearest to the player.
 	void Renderer::RenderBlobShadows(RenderView& renderView)
 	{
 		auto& nearestSpheres = _blobShadowSpheres;
@@ -118,6 +125,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Ropes are drawn as one constrained billboard per segment between interpolated joint positions.
 	void Renderer::PrepareRopes(RenderView& view)
 	{
 		for (const auto& rope : Ropes)
@@ -161,6 +169,8 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Swarm and particle group collectors below: only buckets with sorted blend modes are collected here; the
+	// opaque parts of these meshes are drawn by the scene renderer.
 	void Renderer::CollectSortedRatFaces(RenderView& view)
 	{
 		if (!Objects[ID_RATS_EMITTER].loaded)
@@ -388,6 +398,8 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Debug primitives: lines and triangles are queued only in debug mode for the current debug page, and passed to the
+	// scene renderer with the frame environment. Shapes are built from lines or triangles.
 	void Renderer::AddDebugLine(const Vector3& origin, const Vector3& target, const Color& color, RendererDebugPage page)
 	{
 		if (_isLocked)
@@ -783,6 +795,8 @@ namespace TEN::Renderer
 		AddDebugSphere(sphere.Center, sphere.Radius, color, page, isWireframe);
 	}
 
+	// Dynamic lights added by the game code for the current frame. Ignored while the renderer is locked or the game
+	// is fully frozen, since the light lists are not swapped then.
 	void Renderer::AddDynamicSpotLight(const Vector3& pos, const Vector3& dir, float radius, float falloff, float distance, const Color& color, bool castShadows, int hash)
 	{
 		if (_isLocked || g_GameFlow->LastFreezeMode == FreezeMode::Full)
@@ -871,6 +885,8 @@ namespace TEN::Renderer
 		PrepareDynamicLight(dynamicLight);
 	}
 
+	// Queues a dynamic light, taking its previous position and direction from the light with the same hash of the
+	// previous frame (for interpolation), and adds its reflection for mirrors that reflect lights.
 	void Renderer::PrepareDynamicLight(RendererLight& light)
 	{
 		// If hash is provided, search for same light in previous buffer.
@@ -919,6 +935,8 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Called at the start of a game frame: swaps the double-buffered dynamic light lists, clears per-frame debug
+	// primitives and strings, updates the blink color and unlocks the renderer for new additions.
 	void Renderer::PrepareScene()
 	{
 		if (g_GameFlow->CurrentFreezeMode != FreezeMode::Full &&
@@ -970,6 +988,7 @@ namespace TEN::Renderer
 
 		ResetDebugVariables();
 
+		// Cull rooms through portals and collect their contents.
 		auto time1 = std::chrono::high_resolution_clock::now();
 		CollectMirrors(view);
 		CollectRooms(view, false);
@@ -977,6 +996,7 @@ namespace TEN::Renderer
 		_timeRoomsCollector = (std::chrono::duration_cast<ns>(time - time1)).count() / 1000000;
 		time1 = time;
 
+		// Animations, shadow light, blob shadows and sprites.
 		UpdateLaraAnimations(false);
 		UpdateItemAnimations(view);
 		CollectLightsForCamera();
@@ -989,6 +1009,7 @@ namespace TEN::Renderer
 
 		PrepareSkyEffects(view);
 
+		// Transparent faces, collected and sorted back to front.
 		auto sortedTime0 = std::chrono::high_resolution_clock::now();
 		CollectSortedFaces(view);
 		auto sortedTime1 = std::chrono::high_resolution_clock::now();
@@ -1002,6 +1023,7 @@ namespace TEN::Renderer
 		time2 = std::chrono::high_resolution_clock::now();
 		_timeFrame = (std::chrono::duration_cast<ns>(time2 - time1)).count() / 1000000;
 
+		// Hand the view to the scene renderer; the 2D layer is composed later by PresentFrame.
 		CollectFrameStats(view);
 		SubmitFrame(view);
 
@@ -1009,7 +1031,8 @@ namespace TEN::Renderer
 		CalculateFrameRate();
 	}
 
-	// Sprites are grouped in buckets; non-commutative sprites are collected later with the sorted faces.
+	// Collects the sprites of all effects into the view. SortAndPrepareSprites then moves sprites with sorted blend
+	// modes to the sorted faces; the others stay in the view list and are batched by the scene renderer.
 	void Renderer::PrepareSceneSprites(RenderView& view)
 	{
 		PrepareFires(view);
@@ -1082,11 +1105,14 @@ namespace TEN::Renderer
 		environment.FogMaxDistance = level.GetFogMaxDistance();
 	}
 
+	// Fills the Backend::FrameEnvironment of the frame (camera, fog, post-process, video, sky draws and uniforms,
+	// depth of field, lens flares, debug primitives and shadows) and renders the 3D scene with the scene renderer.
 	void Renderer::SubmitFrame(RenderView& view)
 	{
 		if (!Backend::g_SceneRenderer.IsActive())
 			return;
 
+		// Camera, fog, timing and post-process settings.
 		auto environment = Backend::FrameEnvironment{};
 		environment.CameraPosition = view.Camera.WorldPosition;
 		SetFrameFog(environment);
@@ -1133,6 +1159,7 @@ namespace TEN::Renderer
 		if (GetSunSprite(view, _sunSprite))
 			environment.SkySunSprite = &_sunSprite;
 
+		// Sky draw records and uniforms prepared by PrepareSkyEffects.
 		environment.SkySprites = &_skySprites;
 		environment.CloudDraws = &_cloudDraws;
 		environment.CloudNoise = Backend::CloudNoiseData{ _cloudNoiseTextures.Noise3DData.data(), _cloudNoiseTextures.Noise3DResolution, _cloudNoiseTextures.Worley2DData.data(), _cloudNoiseTextures.Worley2DResolution };
@@ -1147,6 +1174,7 @@ namespace TEN::Renderer
 			environment.AtmosphericSkyUniformsSize = (int)sizeof(_stAtmosphericSky);
 		}
 
+		// Depth of field, lens flares, debug primitives and shadows.
 		environment.DofMode = (int)_currentDOF.Mode;
 		environment.DofDistance = _currentDOF.Distance;
 		environment.DofRange = _currentDOF.Range;
@@ -1184,6 +1212,7 @@ namespace TEN::Renderer
 		PresentFrame();
 	}
 
+	// Renders the game scene without presenting it (e.g. behind menus), optionally blurred with full-screen depth of field.
 	void Renderer::DumpGameScene(SceneRenderMode renderMode, float blur)
 	{
 		if (blur > EPSILON)
@@ -1195,7 +1224,8 @@ namespace TEN::Renderer
 			RestoreDOF();
 	}
 
-	// Sorted faces of rooms, moveables, effects, swarms and statics; sprites were collected with the other sprites.
+	// Collects the faces with sorted blend modes of rooms, moveables, effects, swarms, particle groups and statics.
+	// Sprites with sorted blend modes were already added by SortAndPrepareSprites.
 	void Renderer::CollectSortedFaces(RenderView& view)
 	{
 		CollectSortedRoomFaces(view);
@@ -1254,7 +1284,7 @@ namespace TEN::Renderer
 		if (view.SortedStaticsToDraw.empty())
 			return;
 
-		// Collect sorted blend modes faces ordered by room if doing transparent pass.
+		// Statics are grouped by static ID; buckets become sorted when their blend mode or the static alpha requires it.
 		for (auto it = view.SortedStaticsToDraw.begin(); it != view.SortedStaticsToDraw.end(); it++)
 		{
 			const auto& statics = it->second;
@@ -1415,6 +1445,8 @@ namespace TEN::Renderer
 		return true;
 	}
 
+	// Entry point of a game frame: interpolates the camera, renders the scene, records the ImGui debug overlay and
+	// presents the frame.
 	void Renderer::Render(float interpFactor)
 	{
 		auto renderStartTime = std::chrono::steady_clock::now();
@@ -1459,7 +1491,7 @@ namespace TEN::Renderer
 		layers.push_back(Backend::OverlayLayer{ type, first, 1 });
 	}
 
-	// Image files drawn by the 2D layer; other textures (render targets, generated ones) have no file and are skipped.
+	// Adds an image file to the 2D layer; images without a file path are skipped.
 	void Renderer::AddUiImage(const std::string& path, const Vector2& min, const Vector2& max, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color, BlendMode blendMode)
 	{
 		if (path.empty())
@@ -1469,7 +1501,7 @@ namespace TEN::Renderer
 		AddUiLayer(Backend::OverlayLayerType::Images, (int)_uiFrame.Images.size() - 1);
 	}
 
-	// Moveable drawn with the Inventory shader; its meshes follow with AddUiObjectMesh.
+	// Starts a 3D object of the 2D layer (inventory and HUD objects); its meshes follow with AddUiObjectMesh.
 	void Renderer::BeginUiObject(const Matrix& viewProjection, const Vector4& color, const Vector4& ambientLight, unsigned int frame, float interpolatedFrame, bool isAlphaTested)
 	{
 		if (!Backend::g_SceneRenderer.IsActive())
@@ -1480,6 +1512,7 @@ namespace TEN::Renderer
 		AddUiLayer(Backend::OverlayLayerType::Objects, (int)_uiFrame.Objects.size() - 1);
 	}
 
+	// Adds a mesh to the last 2D layer object, with optional bone matrices for skinned meshes.
 	void Renderer::AddUiObjectMesh(const RendererMesh* mesh, const Matrix& world, const Matrix* bones, int boneCount)
 	{
 		if (!Backend::g_SceneRenderer.IsActive() || _uiFrame.Objects.empty())
@@ -1536,6 +1569,7 @@ namespace TEN::Renderer
 		PaceFrame();
 	}
 
+	// Collects the buckets of an item mesh that are sorted, either by blend mode or because of the item alpha.
 	void Renderer::CollectSortedMeshFaces(RendererItem* itemToDraw, RendererMesh* mesh, RendererObjectType type, int boneIndex, bool skinned, RenderView& view)
 	{
 		auto world = itemToDraw->InterpolatedAnimationTransforms[boneIndex] * itemToDraw->InterpolatedWorld;
@@ -1562,6 +1596,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Blends the rendered camera between the previous and current game camera for high framerate.
 	void Renderer::InterpolateCamera(float interpFactor)
 	{
 		_interpolationFactor = interpFactor;

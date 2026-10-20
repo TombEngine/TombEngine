@@ -45,6 +45,7 @@ namespace TEN::Renderer::RHI
         void Initialize(IDevice& device, int capacity);
         void Release();
 
+        // Uploads are recorded into the copy pass given to Begin, which must stay open until End.
         void Begin(ICopyPass& copyPass);
         void UploadToBuffer(IBuffer* destination, int destinationOffset, const void* data, int size);
         void UploadToTexture(const TextureRegion& destination, const void* data, int size);

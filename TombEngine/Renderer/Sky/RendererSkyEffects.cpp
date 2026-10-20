@@ -18,6 +18,7 @@ using namespace TEN::Sky;
 
 namespace TEN::Renderer
 {
+	// The sky is visible when any room of the view has the skybox flag.
 	bool Renderer::IsSkyboxVisible(const RenderView& view) const
 	{
 		for (const auto* room : view.RoomsToDraw)
@@ -36,6 +37,7 @@ namespace TEN::Renderer
 				_moveableObjects[level->GetHorizonObjectID(layer)].has_value());
 	}
 
+	// Horizon meshes follow the camera, with their interpolated scripted offset and orientation.
 	Matrix Renderer::GetHorizonWorldMatrix(int layer, const RenderView& view)
 	{
 		auto* level = g_GameFlow->GetLevel(CurrentLevel);
@@ -44,6 +46,7 @@ namespace TEN::Renderer
 		return (orient.ToRotationMatrix() * Matrix::CreateTranslation(pos) * Matrix::CreateTranslation(view.Camera.WorldPosition));
 	}
 
+	// Resets the sky records of the frame and prepares them; dome, clouds and horizons only when the sky is visible.
 	void Renderer::PrepareSkyEffects(RenderView& view)
 	{
 		_cloudDraws.clear();
@@ -67,6 +70,7 @@ namespace TEN::Renderer
 		PrepareDustStorm(view);
 	}
 
+	// Fills the atmospheric sky uniforms and selects the dome, sun and moon disc and aurora passes.
 	void Renderer::PrepareAtmosphericSky(RenderView& view)
 	{
 		// The dome follows the settings before the update, which may enable it for the next frame.
@@ -79,6 +83,7 @@ namespace TEN::Renderer
 		_skyEffects.IsAuroraHalfResolution = _skyEffects.IsAuroraDrawn && _stAtmosphericSky.SkyQualityLevel < 0.5f;
 	}
 
+	// Records the draws of both volumetric cloud layers and updates their sun transmittance for the lens flares.
 	void Renderer::PrepareCloudLayers(RenderView& view)
 	{
 		if (!g_SkyCloudSystem.IsCloudAActive() && !g_SkyCloudSystem.IsCloudBActive())
@@ -207,6 +212,7 @@ namespace TEN::Renderer
 		draw.IsOcclusionQueried = true;
 	}
 
+	// Records the visible horizon layers with their opacity and the cloud gradient parameters.
 	void Renderer::PrepareHorizonLayers(RenderView& view)
 	{
 		auto* level = g_GameFlow->GetLevel(CurrentLevel);
@@ -295,6 +301,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Fills the god ray uniforms and records the draw when the ray source is not behind the camera.
 	void Renderer::PrepareGodRays(RenderView& view)
 	{
 		if (!AreGodRaysEnabled())
@@ -337,6 +344,7 @@ namespace TEN::Renderer
 		return (hasCloudsA || hasCloudsB);
 	}
 
+	// Fills the dust storm uniforms and records the draw.
 	void Renderer::PrepareDustStorm(RenderView& view)
 	{
 		if (!_dustStormSettings.Enabled)

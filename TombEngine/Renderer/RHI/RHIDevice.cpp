@@ -5,6 +5,8 @@
 #include "Renderer/RHI/OpenGL/GLDevice.h"
 #include "Renderer/RHI/SDLGPU/SDLGPUDevice.h"
 
+// Backend independent format helpers and the device factory, which picks the first backend that initializes.
+
 namespace TEN::Renderer::RHI
 {
     int GetFormatBlockSize(PixelFormat format)
@@ -124,6 +126,7 @@ namespace TEN::Renderer::RHI
         return nullptr;
     }
 
+    // Only OpenGL needs a flag and context attributes before the window exists; the other backends attach later.
     unsigned int GetWindowFlags(GraphicsApi backend)
     {
         return (backend == GraphicsApi::OpenGL) ? OpenGL::PrepareGLWindow() : 0;

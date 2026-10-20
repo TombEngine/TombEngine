@@ -1,10 +1,10 @@
 // ============================================================================
-// RendererDustStorm.cpp - Volumetric dust storm rendering integration.
+// RendererDustStorm.cpp - Volumetric dust storm CPU preparation.
 //
-// Single-pass screen-space raymarched dust storm. Runs after all opaque +
-// transparent geometry (so the depth buffer is final) and before HUD / glow.
-// Coupled to the engine wind system for direction / speed and gated by the
-// camera-room outdoor flag the same way rain and snow are.
+// Fills the dust storm uniform block (CDustStormBuffer) for the single-pass
+// screen-space raymarched dust storm drawn by the scene renderer after the
+// scene geometry. Coupled to the engine wind system for direction / speed and
+// gated by the camera-room outdoor flag the same way rain and snow are.
 // ============================================================================
 
 #include "framework.h"
@@ -55,6 +55,8 @@ namespace TEN::Renderer
 		return IsRoomOutdoor(cam.RoomNumber);
 	}
 
+	// Builds the box through which dust blows from an outdoor room into an indoor room through a portal, when the
+	// wind points inwards. Outputs the portal centre with the inflow strength and the inverse box basis.
 	static bool BuildDustBleedVolume(short indoorRoomNumber, const Structures::RendererDoor& door,
 		const Vector3& cameraPos, const Vector2& windXZ, float windFactor,
 		Vector4& centerAndStrength, Vector4& invBasis0, Vector4& invBasis1, Vector4& invBasis2)
@@ -147,6 +149,7 @@ namespace TEN::Renderer
 		return true;
 	}
 
+	// Fills the dust storm uniforms from the settings, the wind, the camera and the portal bleed volumes.
 	void Renderer::UpdateDustStormBuffer(RenderView& view)
 	{
 		const auto& settings = _dustStormSettings;
@@ -224,7 +227,7 @@ namespace TEN::Renderer
 		_stDustStorm.BaseStepDist = DUST_STORM_BASE_STEP;
 		_stDustStorm.StepGrowth   = DUST_STORM_STEP_GROWTH;
 
-		// Engine fog blending (reuses the camera CB fog setup).
+		// Fog blend of the dust volume, from DUST_STORM_FOG_BLEND_START to the far reach.
 		_stDustStorm.FogColor          = Vector3(settings.ColorR, settings.ColorG, settings.ColorB) * 0.6f;
 		_stDustStorm.FogStartDistance  = DUST_STORM_FOG_BLEND_START;
 		_stDustStorm.FogEndDistance    = std::min(DUST_STORM_FAR_REACH, view.Camera.FarPlane);
@@ -264,6 +267,7 @@ namespace TEN::Renderer
 			_stDustStorm.BleedVolumeInvBasis2[i] = Vector4::Zero;
 		}
 
+		// Indoors, dust bleeds in through the portals of the camera room that lead outdoors.
 		if (!_stDustStorm.CameraIsOutdoor)
 		{
 			int roomNumber = view.Camera.RoomNumber;

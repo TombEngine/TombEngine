@@ -6,6 +6,8 @@
 #include "Renderer/Backend/TextureLoader.h"
 #include "Specific/EngineMain.h"
 
+// Screen resolution changes and image file metadata loading.
+
 namespace TEN::Renderer 
 {
 	void Renderer::ChangeScreenResolution(int width, int height, bool windowed, bool resyncWindow)

@@ -1,3 +1,9 @@
+// Water surfaces and underwater fog, drawn inside the scene pass (RenderScenePass), which they split after the opaque
+// draws: the surfaces refract and reflect a copy of the opaque scene (reflections traced at half resolution), then
+// the fullscreen underwater fog absorbs the light of the scene when the camera is underwater.
+// At level load, surface grids are generated over the horizontal portals between water rooms and the dry rooms above.
+// This computation lives in the engine temporarily and will move to Tomb Editor in the future.
+
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 
@@ -33,6 +39,7 @@ namespace TEN::Renderer::Backend
     constexpr auto SURFACE_CELL_SIZE      = 256.0f;
     constexpr auto SURFACE_CELL_COUNT_MAX = 128;    // Per side: larger surfaces get larger cells.
 
+    // Surface, reflection trace and underwater fog pipelines, and the wave normal map.
     bool SceneRenderer::CreateWaterResources()
     {
         _waterVertexShader = LoadShader(*_device, _shaderDirectory, "Water", "VS");
@@ -88,6 +95,7 @@ namespace TEN::Renderer::Backend
             float Phase      = 0.0f;
         };
 
+        // Random wave set from a fixed seed; the lowest frequencies are skipped.
         auto generator = std::default_random_engine{};
         auto frequencies = std::uniform_int_distribution<int>(-WAVE_FREQUENCY_MAX, WAVE_FREQUENCY_MAX);
         auto phases = std::uniform_real_distribution<float>(0.0f, PI_MUL_2);
@@ -104,6 +112,7 @@ namespace TEN::Renderer::Backend
             waves.push_back(Wave{ (float)frequencyX, (float)frequencyY, 1.0f / pow(frequency, 1.8f), phases(generator) });
         }
 
+        // Analytic slopes of the summed waves at each texel.
         auto slopes = std::vector<Vector2>(WAVE_NORMAL_MAP_SIZE * WAVE_NORMAL_MAP_SIZE);
         float slopeMax = 0.0f;
         for (int y = 0; y < WAVE_NORMAL_MAP_SIZE; y++)
@@ -125,6 +134,7 @@ namespace TEN::Renderer::Backend
             }
         }
 
+        // Encode to RGBA8, then upload and build the mip chain, waiting for the device (load time only).
         auto pixels = std::vector<unsigned char>(slopes.size() * 4);
         for (int i = 0; i < (int)slopes.size(); i++)
         {
@@ -155,7 +165,7 @@ namespace TEN::Renderer::Backend
     }
 
     // Classic levels have no water surface geometry: the surfaces are the horizontal portals of water rooms leading
-    // to the dry room above. Quicksand stays opaque.
+    // to the dry room above. Quicksand stays opaque. Builds one static vertex buffer for all surfaces at level load.
     void SceneRenderer::LoadWaterSurfaces(const LevelGeometry& geometry)
     {
         _waterSurfaces.clear();
@@ -189,6 +199,7 @@ namespace TEN::Renderer::Backend
         if (_waterSurfaces.empty())
             return;
 
+        // Grids are built after all surfaces exist, since the swell weights look for neighboring surfaces.
         auto vertices = std::vector<Vector4>{};
         for (auto& surface : _waterSurfaces)
             AddWaterSurfaceGrid(surface, vertices);
@@ -222,6 +233,7 @@ namespace TEN::Renderer::Backend
         }
     }
 
+    // A non opaque, flat bucket at the surface height whose bounds overlap the surface.
     bool SceneRenderer::IsWaterSurfaceBucket(const RendererBucket& bucket, const WaterSurface& surface)
     {
         if (bucket.BlendMode == BlendMode::Opaque || bucket.BlendMode == BlendMode::AlphaTest)
@@ -234,7 +246,8 @@ namespace TEN::Renderer::Backend
                 bucket.BoundsMin.z < surface.BoundsMax.z && bucket.BoundsMax.z > surface.BoundsMin.z);
     }
 
-    // Portals leading up are flat: their corners share the height of the water room ceiling.
+    // Portals leading up are flat: their corners share the height of the water room ceiling. Sloped portals are
+    // skipped. The surface is registered with both of its rooms.
     void SceneRenderer::AddWaterSurface(const RendererDoor& portal, int waterRoom)
     {
         Vector3 corners[4];
@@ -259,7 +272,8 @@ namespace TEN::Renderer::Backend
         _roomWaterSurfaces[portal.RoomNumber].push_back(index);
     }
 
-    // The swells displace a grid over the portal; W of each vertex weighs them.
+    // The swells displace a grid over the portal; W of each vertex weighs them. Cells are SURFACE_CELL_SIZE wide, up to
+    // SURFACE_CELL_COUNT_MAX per side; the grid is emitted as a non indexed triangle list.
     void SceneRenderer::AddWaterSurfaceGrid(WaterSurface& surface, std::vector<Vector4>& vertices) const
     {
         constexpr int TRIANGLE_CORNERS[6][2] = { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 0 }, { 1, 1 }, { 0, 1 } };
@@ -317,6 +331,7 @@ namespace TEN::Renderer::Backend
         return (weight * weight * (3.0f - 2.0f * weight));
     }
 
+    // True when a surface at the given height covers the XZ point.
     bool SceneRenderer::IsWaterSurfaceAt(const Vector2& point, float height) const
     {
         for (const auto& surface : _waterSurfaces)
@@ -344,6 +359,7 @@ namespace TEN::Renderer::Backend
     }
 
     // Surfaces of the visible rooms, on either side of the water, between active rooms and inside the view frustum.
+    // The frame counter keeps a surface shared by two visible rooms from being collected twice.
     void SceneRenderer::CollectWaterSurfaces(const RenderView& view)
     {
         _waterDraws.clear();
@@ -375,6 +391,7 @@ namespace TEN::Renderer::Backend
         }
     }
 
+    // Uniforms shared by the surfaces and the underwater fog; the ambient light is set per draw.
     WaterPixelUniforms SceneRenderer::GetWaterUniforms() const
     {
         constexpr auto FRAMES_PER_SECOND = 30.0f;
@@ -430,6 +447,7 @@ namespace TEN::Renderer::Backend
         traceDesc.Height = std::max(sceneDesc.Height / 2, 1);
         auto* reflectionTrace = _targetPool.Acquire(traceDesc);
 
+        // The dummy shadow map array stands in for the sky reflection map when the sky is not reflected.
         TextureSamplerBinding bindings[5] =
         {
             { sceneCopy, _linearClampSampler.get() },
@@ -441,6 +459,7 @@ namespace TEN::Renderer::Backend
 
         auto uniforms = GetWaterUniforms();
 
+        // Reflection trace into the half resolution target; it reads only the first four bindings.
         auto traceTarget = ColorTargetInfo{};
         traceTarget.Texture = reflectionTrace;
         auto* renderPass = commandBuffer.BeginRenderPass(&traceTarget, 1, nullptr);
@@ -449,6 +468,7 @@ namespace TEN::Renderer::Backend
         DrawWaterSurfaceList(commandBuffer, *renderPass, uniforms);
         commandBuffer.EndRenderPass();
 
+        // Shading, back in the scene pass, with the trace result and the clustered lights.
         renderPass = BeginScenePass(commandBuffer, true);
         renderPass->BindPipeline(_waterPipeline.get());
         renderPass->BindPixelSamplers(0, bindings, 5);
@@ -465,6 +485,7 @@ namespace TEN::Renderer::Backend
         return renderPass;
     }
 
+    // Pooled copy of the scene target; the caller releases it. Must run outside of a render pass.
     ITexture* SceneRenderer::CopySceneTarget(ICommandBuffer& commandBuffer)
     {
         const auto& sceneDesc = _sceneTarget->GetDesc();
@@ -528,7 +549,7 @@ namespace TEN::Renderer::Backend
     }
 
     // The fog absorbs the light of the opaque scene and of the water surfaces, before the transparent draws. It reads
-    // a copy of the scene target and writes the target back.
+    // a copy of the scene target and writes the target back, then resumes the scene pass for the transparent draws.
     IRenderPass* SceneRenderer::DrawUnderwaterFog(ICommandBuffer& commandBuffer)
     {
         auto* sceneCopy = CopySceneTarget(commandBuffer);

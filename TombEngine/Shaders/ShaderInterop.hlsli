@@ -1,7 +1,8 @@
 #ifndef TEN_SHADER_INTEROP
 #define TEN_SHADER_INTEROP
 
-// Binding macros shared by FXC (DXBC for DX11) and DXC (SPIR-V and DXIL for SDL GPU).
+// Binding macros shared by FXC (DXBC for DX11) and DXC (SPIR-V and DXIL for SDL GPU). OpenGL uses GLSL translated
+// from the SPIR-V by SPIRV-Cross, so it inherits the SPIR-V bindings and the GL backend remaps them per stage.
 // Shader Model 5.0 features only. Slot rules follow SDL GPU:
 // - Textures: slot N gets texture tN and sampler sN (combined image sampler on SPIR-V).
 // - Storage textures and storage buffers continue the t range after the sampled textures,
@@ -14,6 +15,9 @@
 
 #ifdef __spirv__
 
+// SPIR-V (SDL GPU on Vulkan, and the source of the OpenGL GLSL). Descriptor sets follow SDL GPU: vertex set 0 holds
+// textures and storage buffers, set 1 uniforms; pixel sets 2 and 3 likewise; compute set 0 holds read-only resources,
+// set 1 read-write resources and set 2 uniforms.
 #define TEN_LOCATION(n) [[vk::location(n)]]
 
 #define TEN_VS_UNIFORMS(name, slot) [[vk::binding(slot, 1)]] cbuffer name
@@ -85,6 +89,7 @@
 
 #else
 
+// DXBC for DX11: one flat register range per stage, with uniform slot N bound as constant buffer register bN.
 #define TEN_LOCATION(n)
 
 #define TEN_VS_UNIFORMS(name, slot) cbuffer name : register(b##slot)

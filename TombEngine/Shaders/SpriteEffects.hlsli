@@ -1,7 +1,7 @@
 #ifndef TEN_SPRITE_EFFECTS
 #define TEN_SPRITE_EFFECTS
 
-// Laser barrier and laser beam sprite effects of the frontend (Shaders/SpriteEffects.hlsli), copied unchanged.
+// Laser barrier and laser beam sprite effects of Sprites.hlsl: animated noise patterns modulating the sprite color.
 
 #include "./Noise.hlsli"
 

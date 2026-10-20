@@ -1,7 +1,7 @@
 #ifndef TEN_GPU_SHARED
 #define TEN_GPU_SHARED
 
-// GPU structures and uniform blocks shared by the shaders and the C++ renderer (Renderer/Next/GpuTypes.h includes
+// GPU structures and uniform blocks shared by the shaders and the C++ renderer (Renderer/Backend/GpuTypes.h includes
 // this file inside its namespace, with HLSL type names aliased to SimpleMath types). Uniform blocks are field lists:
 // HLSL declares them as cbuffer members, C++ as struct members. TEN_DEFAULT keeps C++ default values.
 // Packing is explicit: a float3 is always followed by a scalar, and arrays in uniform blocks hold 16 byte elements.
@@ -39,6 +39,7 @@ struct GpuAnimatedFrame
     float2 BottomLeft  TEN_DEFAULT(Vector2::Zero);
 };
 
+// Animated texture sequence: a range of GpuAnimatedFrame entries played at Fps, or a UV rotation, by Type.
 struct GpuAnimatedSet
 {
     uint  FirstFrame        TEN_DEFAULT(0);
@@ -67,7 +68,8 @@ struct GpuObjectInstance
     uint     Skinning     TEN_DEFAULT(0); // Bone palette offset in the low 24 bits, skinning mode in the high 8 bits.
 };
 
-// Same layout as ShaderLight in the frontend; spot ranges are stored as cosines.
+// Element of the frame light buffer, filled by SceneRenderer::ToGpuLight. Type is an LT_* value of Lighting.hlsli;
+// spot ranges are stored as cosines.
 struct GpuLight
 {
     float3 Position  TEN_DEFAULT(Vector3::Zero);

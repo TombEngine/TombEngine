@@ -4,7 +4,8 @@
 #include "Renderer/ConstantBuffers/GodRayBuffer.h"
 #include "Renderer/ConstantBuffers/VolumetricCloudBuffer.h"
 
-// Sky effect draws that the frontend records and the scene renderer replays.
+// Sky effect draws that the frontend records and the scene renderer replays. They travel in FrameEnvironment and are
+// drawn by SceneRendererSky.cpp and SceneRendererAtmosphere.cpp.
 
 namespace TEN::Renderer::Backend
 {

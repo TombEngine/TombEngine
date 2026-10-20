@@ -1,13 +1,13 @@
 // ============================================================================
-// RendererGodRay.cpp - Lightweight screen-space god ray rendering integration.
+// RendererGodRay.cpp - Screen-space god ray CPU preparation.
 //
-// Implements the renderer-side logic for god rays:
-//   - Initialization: render target, constant buffer
-//   - Per-frame CB update: sun position, auto-strength, cloud state
-//   - Draw calls: half-res radial shaft pass + full-res additive composite
+// Fills the god ray uniform block (CGodRayBuffer) once per frame:
+//   - Ray source (sun, or moon at night) direction, screen position and color
+//   - Auto-strength from elevation, cloud coverage and camera facing
+//   - Underwater shaft parameters when the underwater sky is visible
 //
-// Called from the main render pipeline in RendererDraw.cpp, after volumetric
-// clouds are composited and before the GBuffer pass.
+// Called from PrepareGodRays() in RendererSkyEffects.cpp; the scene renderer
+// replays the recorded Backend::GodRayDraw with these uniforms.
 // ============================================================================
 
 #include "framework.h"
@@ -34,10 +34,6 @@ namespace TEN::Renderer
 	static constexpr float GOD_RAY_RESOLUTION_SCALE = 0.5f;
 
 	// ========================================================================
-	// Initialization
-	// ========================================================================
-
-	// ========================================================================
 	// Auto-strength computation
 	// ========================================================================
 
@@ -54,11 +50,7 @@ namespace TEN::Renderer
 	}
 
 	// ========================================================================
-	// Horizon mask pass
-	// ========================================================================
-
-	// ========================================================================
-	// Per-frame constant buffer update
+	// Per-frame uniform block update
 	// ========================================================================
 
 	void Renderer::UpdateGodRayBuffer(RenderView& renderView)
@@ -255,7 +247,7 @@ namespace TEN::Renderer
 			finalAutoStrength = std::max(finalAutoStrength, underwaterStrength);
 		}
 
-		// --- Fill constant buffer ---
+		// --- Fill uniform block ---
 		_stGodRay.SunScreenPos  = rayScreenUV;
 		_stGodRay.RayLength     = rayLength;
 		_stGodRay.Intensity     = rayIntensity;
@@ -288,8 +280,8 @@ namespace TEN::Renderer
 		_stGodRay.InvViewSize   = Vector2(1.0f / (float)_screenWidth, 1.0f / (float)_screenHeight);
 
 		// Underwater shaft mode: when the underwater sky is visible, drive the god
-		// ray shader with a procedural wave mask instead of the (empty) cloud RT.
-		// Wind direction is sourced from the atmospheric sky CB so drift matches exactly.
+		// ray shader with a procedural wave mask instead of the (empty) cloud occlusion mask.
+		// Wind direction is sourced from the atmospheric sky uniforms so drift matches exactly.
 		if (underwaterVis > 0.001f && !useMoonRays)
 		{
 			_stGodRay.UnderwaterShaftActive     = 1.0f;
@@ -324,9 +316,5 @@ namespace TEN::Renderer
 		}
 
 	}
-
-	// ========================================================================
-	// Draw god rays
-	// ========================================================================
 
 }

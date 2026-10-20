@@ -8,6 +8,8 @@ namespace TEN::Renderer::Structures
 {
 	using namespace TEN::Math::Library;
 
+	// Polygons sharing texture, blend mode, material and animation, with their vertex and index ranges in the level
+	// geometry arrays.
 	struct RendererBucket
 	{
 		int Texture;

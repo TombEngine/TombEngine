@@ -1,14 +1,14 @@
 // ============================================================================
-// RendererAtmosphericSky.cpp - Atmospheric sky dome rendering integration.
+// RendererAtmosphericSky.cpp - Atmospheric sky dome CPU preparation.
 //
-// Implements the renderer-side logic for the atmospheric scattering sky dome:
-//   - Initialization of constant buffer
-//   - Per-frame CB update using lens flare sun direction/color
-//   - Day/night blend computation
-//   - Starfield visibility computation
-//   - Fullscreen draw call
+// Fills the atmospheric sky uniform block (CAtmosphericSkyBuffer) once per frame:
+//   - Sun direction and color from the level lens flare
+//   - Day/night blend, starfield and moon visibility, moon phase
+//   - Aurora and underwater sky parameters and preset fades
 //
-// Called from DrawHorizonAndSky() in RendererDraw.cpp.
+// Called from PrepareAtmosphericSky() in RendererSkyEffects.cpp; the scene
+// renderer pushes the block as pixel uniforms of the dome, aurora and
+// sun/moon disc passes.
 // ============================================================================
 
 #include "framework.h"
@@ -33,10 +33,6 @@ using namespace TEN::Sky;
 
 namespace TEN::Renderer
 {
-	// ========================================================================
-	// Initialization
-	// ========================================================================
-
 	// ========================================================================
 	// Day/night blend computation
 	// ========================================================================
@@ -98,7 +94,7 @@ namespace TEN::Renderer
 	}
 
 	// ========================================================================
-	// Per-frame constant buffer update
+	// Per-frame uniform block update
 	// ========================================================================
 
 	void Renderer::UpdateAtmosphericSkyBuffer(RenderView& renderView)
@@ -142,7 +138,7 @@ namespace TEN::Renderer
 		g_SkyCloudSystem.SetNightBlend(starfieldVis);
 
 		// --- Pre-compute moon data ---
-		// Done before the CB fill so phaseBrightness is available to modulate NightSkyBrightness.
+		// Done before the uniform fill so phaseBrightness is available to modulate NightSkyBrightness.
 		const auto& moon  = _moonSettings;
 		float moonPitchRad    = moon.Pitch * (PI / 180.0f);
 		float moonYawRad      = moon.Yaw   * (PI / 180.0f);
@@ -163,7 +159,7 @@ namespace TEN::Renderer
 			moon.BaseColorG + sunColor.y * sunTint,
 			moon.BaseColorB + sunColor.z * sunTint);
 
-		// --- Fill constant buffer ---
+		// --- Fill uniform block ---
 		_stAtmosphericSky.SkyQualityLevel = (float)GetCurrentSkyQuality();
 		_stAtmosphericSky.SunDirection    = sunDir;
 		_stAtmosphericSky.SunElevation    = sunElevation;
@@ -205,8 +201,8 @@ namespace TEN::Renderer
 		_stAtmosphericSky.SunDiskCosRadius  = std::cos(settings.SunDiskSize * (PI / 180.0f));
 		_stAtmosphericSky.SunDiskIntensity  = settings.SunDiskIntensity;
 
-		// --- Moon CB fill ---
-		// (direction, phase, visibility, and color are all pre-computed above)
+		// --- Moon uniforms ---
+		// Direction, phase, visibility and color are all pre-computed above.
 		_stAtmosphericSky.MoonDirection      = moonDir;
 		_stAtmosphericSky.MoonElevation      = moonElevation;
 		_stAtmosphericSky.MoonColor          = moonColor;
@@ -220,7 +216,7 @@ namespace TEN::Renderer
 		_stAtmosphericSky.MoonVisibility     = moonVisibility;
 		_stAtmosphericSky.AtmoSkyEnabled     = settings.Enabled ? 1.0f : 0.0f;
 
-		// --- Aurora CB fill ---
+		// --- Aurora uniforms ---
 		auto& aurora = _auroraSettings;
 
 		// Drive aurora.Enabled from the sky cloud system's live snapshot.
@@ -296,7 +292,7 @@ namespace TEN::Renderer
 		_stAtmosphericSky.HorizonColorG = settings.HorizonColorG;
 		_stAtmosphericSky.HorizonColorB = settings.HorizonColorB;
 
-		// --- Underwater sky CB fill ---
+		// --- Underwater sky uniforms ---
 		{
 			auto& uw = _underwaterSkySettings;
 
@@ -354,20 +350,5 @@ namespace TEN::Renderer
 		}
 
 	}
-
-	// ========================================================================
-	// Draw atmospheric sky dome
-	// ========================================================================
-
-	// ========================================================================
-	// Draw aurora - separate additive pass, independent of sky dome
-	// ========================================================================
-
-	// ========================================================================
-	// Draw sun/moon disc - separate additive pass AFTER cloud compositing
-	// ========================================================================
-	// The cloud compositor writes cloud coverage into the alpha channel of
-	// _renderTarget. This pass reads that alpha to mask sun and moon discs
-	// so that clouds naturally occlude them without blend-mode hacks.
 
 }

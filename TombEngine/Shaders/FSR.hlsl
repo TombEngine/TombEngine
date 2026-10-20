@@ -39,6 +39,7 @@ void FsrRcasInputH(inout AH1 r, inout AH1 g, inout AH1 b) {}
 
 #include "./FidelityFX/ffx_fsr1.h"
 
+// EASU output is opaque; the pixel position addresses the output texel.
 float4 PSEasu(FullscreenPixelInput input) : SV_TARGET
 {
     AH3 color;

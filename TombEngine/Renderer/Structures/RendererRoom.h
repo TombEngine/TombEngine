@@ -14,6 +14,8 @@ namespace TEN::Renderer::Structures
 	using namespace TEN::Math::Collision;
 	using namespace TEN::Math::Library;
 
+	// Renderer data of a room: geometry buckets, lights, statics and portals, plus the per-frame draw lists and the
+	// screen rectangle (ViewPort, in normalized device coordinates) of the portals the room is seen through.
 	struct RendererRoom
 	{
 		bool Visited;

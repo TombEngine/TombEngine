@@ -18,6 +18,9 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/trutils.h"
 
+// 2D layer recording: HUD bars, loading bar, screen overlays (flash and optics), full screen images and display
+// sprites are added to the Backend::UiFrame, which the scene renderer composes when the frame is presented.
+
 TEN::Renderer::RendererHudBar* g_AirBar;
 TEN::Renderer::RendererHudBar* g_ExposureBar;
 TEN::Renderer::RendererHudBar* g_HealthBar;
@@ -54,6 +57,7 @@ namespace TEN::Renderer
 		g_LoadingBar = new RendererHudBar(LOADING_BAR_POS, LOADING_BAR_VERT_POS, RendererHudBar::SIZE_DEFAULT);
 	}
 
+	// Adds a HUD bar with the border sprite and the fill sprite of the texture slot.
 	void Renderer::DrawBar(float percent, const RendererHudBar& bar, GAME_OBJECT_ID textureSlot, int frame, bool isPoisoned)
 	{
 		if (!CheckIfSlotExists(ID_BAR_BORDER_GRAPHICS, "Bar rendering"))
@@ -104,6 +108,7 @@ namespace TEN::Renderer
 		DrawFullScreenQuad(image, Vector3(fade), true);
 	}
 
+	// Adds the display sprites of the view with negative or non-negative priority, as rotated quads in display space.
 	void Renderer::DrawDisplaySprites(RenderView& renderView, bool negativePriority)
 	{
 		constexpr auto VERTEX_COUNT = 4;
@@ -178,6 +183,7 @@ namespace TEN::Renderer
 		renderView.DisplaySpritesToDraw.push_back(spriteToDraw);
 	}
 
+	// Lays out the scripted display sprites for the screen aspect ratio and sorts them by priority and blend mode.
 	void Renderer::CollectDisplaySprites(RenderView& renderView)
 	{
 		// Calculate screen aspect ratio.

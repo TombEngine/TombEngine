@@ -3,10 +3,10 @@
 #include "Math/SimpleMath.h"
 
 // ============================================================================
-// GodRayBuffer.h - GPU constant buffer for the god ray shader pass.
+// GodRayBuffer.h - Uniform block for the god ray shader pass.
 //
-// Bound to register b10 (reuses the AtmosphericSky/Hud slot; god rays render
-// after sky dome and before HUD so there is no overlap).
+// Filled by UpdateGodRayBuffer, copied into Backend::GodRayDraw and pushed by
+// the scene renderer as pixel uniforms of the god ray pass.
 // Must match CBGodRay.hlsli layout exactly.
 // ============================================================================
 
@@ -32,7 +32,7 @@ namespace TEN::Renderer::ConstantBuffers
 		float   Softness;         // Sun-glow source falloff multiplier.
 		//--
 		// Row 3 - View info
-		Vector2 ViewSize;         // Full resolution render target size.
+		Vector2 ViewSize;         // Full screen resolution.
 		Vector2 InvViewSize;      // 1.0 / ViewSize.
 		//--
 		// Row 4 - Underwater shaft mode
@@ -42,7 +42,7 @@ namespace TEN::Renderer::ConstantBuffers
 		float   UnderwaterShaftSharpness;  // Mask power (1 = soft, 4+ = thin shafts).
 		//--
 		// Row 5 - Underwater wind drift direction and ray params
-		float   UnderwaterWindX;           // Normalized X wind component (same as atmospheric sky CB).
+		float   UnderwaterWindX;           // Normalized X wind component (same as atmospheric sky uniforms).
 		float   UnderwaterWindY;           // Normalized Y wind component.
 		float   UnderwaterRayLength;       // Underwater-specific march reach in UV space.
 		float   UnderwaterRayDecay;        // Underwater-specific per-sample exponential decay.

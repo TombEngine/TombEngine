@@ -1,7 +1,8 @@
 #ifndef TEN_SMAA_COMMON
 #define TEN_SMAA_COMMON
 
-// SMAA 1x of the frontend (Renderer::ApplySMAA) on the shared SMAA library (Shaders/SMAA.hlsli). Every texture
+// SMAA 1x (SceneRendererSMAA.cpp) on the shared SMAA library (SMAA.hlsli), in three passes: edge detection,
+// blending weights and neighborhood blending. Every texture
 // carries its own sampler, so the library macros pass texture and sampler together. The preset is defined by the
 // including shader. Vertex offsets are computed in the pixel shaders, which use the shared fullscreen triangle.
 

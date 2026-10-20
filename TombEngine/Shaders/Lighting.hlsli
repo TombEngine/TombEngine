@@ -1,9 +1,9 @@
 #ifndef TEN_LIGHTING
 #define TEN_LIGHTING
 
-// Light model of the frontend (Shaders/ShaderLight.hlsli), ported unchanged.
-// Light lists are slices of the frame light buffer: rooms pass offset and count per room,
-// object instances store them in their instance data.
+// Light model of the room and object shaders: diffuse point, spot, sun and shadow lights with linear
+// attenuation between In and Out (world units), plus specular terms. Light lists are slices of the frame light
+// buffer: rooms pass offset and count per room, object instances store them in their instance data.
 
 #include "./Common.hlsli"
 
@@ -12,6 +12,7 @@
 #define LT_SPOT   2
 #define LT_SHADOW 3
 
+// A light count holds the count in the low 16 bits (LT_MASK) and one bit per present light type from bit 31 down.
 #define LT_MASK        0xFFFF
 #define LIGHTS_PER_DRAW_MAX 256 // Loop bound: a corrupted count must not hang the GPU (Vulkan loses the device).
 #define LT_MASK_SUN    (1 << (31 - LT_SUN))
@@ -34,6 +35,8 @@ float3 DoPointLight(float3 position, float3 normal, GpuLight light)
     return saturate(light.Color * light.Intensity * attenuation * d);
 }
 
+// Shadow lights darken the ambient term (see CombineLights in Objects.hlsl): one third uniform and two thirds
+// directional, using the red channel of the color as strength.
 float3 DoShadowLight(float3 position, float3 normal, GpuLight light)
 {
     float3 lightVector = light.Position - position;
@@ -49,6 +52,7 @@ float3 DoShadowLight(float3 position, float3 normal, GpuLight light)
     return saturate((absolute * 0.33f) + (directional * 0.66f)) * 2.0f;
 }
 
+// Angular falloff between the cosines of the outer and inner cone angles.
 float3 DoSpotLight(float3 position, float3 normal, GpuLight light)
 {
     float3 lightVector = position - light.Position;
@@ -72,6 +76,7 @@ float3 DoDirectionalLight(float3 normal, GpuLight light)
 // Specular terms. A positive strength (vertex sheen) overrides the material specular intensity and
 // roughness. The model uses the camera direction rather than the per-pixel view vector.
 
+// Smoother surfaces get a larger exponent, so a tighter highlight.
 float RoughnessToExponentMultiplier(float roughness)
 {
     float gloss = 1.0f - max(saturate(roughness), 0.04f);

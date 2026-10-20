@@ -917,7 +917,7 @@ float4 PSAurora(SKY_PIXEL_INPUT input) : SV_TARGET
     float3 aurora = ComputeAurora(viewDir, input.Position.xy);
 
     // Attenuate aurora by volumetric cloud coverage. The cloud compositor writes
-    // coverage into the alpha channel of _scenePreCloudBackup (bound to t0).
+    // coverage into the alpha channel of the SceneAfterClouds copy (texture slot 0).
     // Dense clouds progressively occlude the aurora, matching the behaviour of
     // sun, moon, and stars which are all hidden by AltocumulusMid clouds.
     float cloudCoverage = SceneAfterClouds.Sample(SunMoonLinearSamp, input.UV).a;

@@ -35,7 +35,7 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
     // =========================================================================
     // UNDERWATER PATH - distinct from normal god rays.
     // The cloud RT is empty when UnderwaterSky is active. Instead, sample the
-    // main scene RT (t3) which contains the rendered underwater sky. Only the
+    // main scene RT (slot 3) which contains the rendered underwater sky. Only the
     // medium-bright glow rim (not the solid white core) acts as the shaft source
     // so rays appear to diverge from the edge of the sun glow, not its center.
     // =========================================================================
@@ -83,8 +83,9 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
     }
 
     // =========================================================================
-    // NORMAL PATH - unchanged from before underwater sky was added.
-    // Uses cloud RT occlusion mask + virtual sun disc.
+    // NORMAL PATH - above water.
+    // Uses cloud RT occlusion mask + virtual sun disc. The sun disc fades as
+    // clouds or the horizon cover the sun, more aggressively at sunset.
     // =========================================================================
 
     float2 sunEdgeDist    = max(abs(GodRaySunScreenPos - 0.5f) - 0.5f, 0.0f);
@@ -141,13 +142,13 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
 // ---------------------------------------------------------------------------
 // PSGodRayComposite - blend half-res god rays onto the full-res scene
 // ---------------------------------------------------------------------------
-// Uses additive BlendMode on the C++ side (One + One).
-// t0 is rebound to the half-res god ray render target before this pass.
+// Uses BlendMode::Additive on the C++ side (source alpha + one, see GetBlendState in SceneRenderer.cpp).
+// Texture slot 0 is rebound to the half-res god ray render target before this pass.
 
 float4 PSGodRayComposite(VSOutput input) : SV_TARGET
 {
     float3 godRay = CloudTexture.Sample(GOD_RAY_SAMPLER(CloudTexture), input.UV).rgb;
-    // alpha=1 is required: BlendMode::Additive uses SrcBlend=SRC_ALPHA (DirectXTK CommonStates).
+    // alpha=1 is required: BlendMode::Additive uses the source alpha as source blend factor.
     // With alpha=0 the entire contribution would be multiplied to zero and nothing would appear.
     return float4(godRay, 1.0f);
 }
