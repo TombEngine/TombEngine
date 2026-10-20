@@ -168,19 +168,6 @@ enum class PrintStringFlags
 	VerticalBottom	= (1 << 5)
 };
 
-enum class RendererPass
-{
-	ShadowMap,
-	Opaque,
-	Transparent,
-	CollectTransparentFaces,
-	Additive,
-	Distortion,
-	GBuffer,
-	GunFlashes,
-	RoomAmbient
-};
-
 enum class SceneRenderMode
 {
 	Full,

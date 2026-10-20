@@ -311,11 +311,11 @@ void Renderer::UpdateLaraAnimations(bool force)
 	rItem.DoneAnimations = true;
 }
 
-void Renderer::DrawLara(RenderView& view, RendererPass rendererPass)
+void Renderer::CollectSortedPlayerFaces(RenderView& view)
 {
 	// TODO: Avoid Lara global.
-	// Don't draw player if using optics (but still draw reflections).
-	if (Lara.Control.Look.OpticRange != 0 && _currentMirror == nullptr)
+	// Don't draw player if using optics.
+	if (Lara.Control.Look.OpticRange != 0)
 		return;
 
 	auto* item = &_items[LaraItem->Index];
@@ -330,7 +330,7 @@ void Renderer::DrawLara(RenderView& view, RendererPass rendererPass)
 	RendererRoom* room = &_rooms[LaraItem->RoomNumber];
 
 	if (skinMode == SkinningMode::Full)
-		DrawMesh(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view, rendererPass);
+		CollectSortedMeshFaces(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view);
 
 	for (int k = 0; k < item->MeshIndex.size(); k++)
 	{
@@ -340,17 +340,17 @@ void Renderer::DrawLara(RenderView& view, RendererPass rendererPass)
 		if (skinMode == SkinningMode::Full && g_Level.Meshes[nativeItem->Model.MeshIndex[k]].hidden)
 			continue;
 
-		DrawMesh(item, GetMesh(item->MeshIndex[k]), RendererObjectType::Moveable, k, false, view, rendererPass);
+		CollectSortedMeshFaces(item, GetMesh(item->MeshIndex[k]), RendererObjectType::Moveable, k, false, view);
 	}
 
 	if (skinMode == SkinningMode::Classic)
-		DrawLaraJoints(item, room, view, rendererPass);
+		CollectSortedPlayerJointFaces(item, room, view);
 
-	DrawLaraHolsters(item, room, view, rendererPass);
-	DrawLaraHair(item, room, view, rendererPass);
+	CollectSortedPlayerHolsterFaces(item, room, view);
+	CollectSortedPlayerHairFaces(item, room, view);
 }
 
-void Renderer::DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass)
+void Renderer::CollectSortedPlayerHairFaces(RendererItem* itemToDraw, RendererRoom* room, RenderView& view)
 {
 	bool forceValue = g_GameFlow->CurrentFreezeMode == FreezeMode::Player;
 
@@ -386,26 +386,25 @@ void Renderer::DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, Render
 			if (flipped)
 				worldMatrix = Matrix::CreateRotationY(PI) * worldMatrix;
 
-			ReflectMatrixOptionally(worldMatrix);
 			segment.GlobalTransform = worldMatrix;
 		}
 
 		if (skinned)
 		{
-			DrawMesh(itemToDraw, GetMesh(object.skinIndex), objectType, 0, true, view, rendererPass);
+			CollectSortedMeshFaces(itemToDraw, GetMesh(object.skinIndex), objectType, 0, true, view);
 		}
 		else
 		{
 			for (int j = 0; j < rendererObject.ObjectMeshes.size(); j++)
 			{
 				auto& rendererMesh = *rendererObject.ObjectMeshes[j];
-				DrawMesh(itemToDraw, &rendererMesh, objectType, j, false, view, rendererPass);
+				CollectSortedMeshFaces(itemToDraw, &rendererMesh, objectType, j, false, view);
 			}
 		}
 	}
 }
 
-void Renderer::DrawLaraJoints(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass)
+void Renderer::CollectSortedPlayerJointFaces(RendererItem* itemToDraw, RendererRoom* room, RenderView& view)
 {
 	if (!_moveableObjects[Lara.Skin.SkinJoints].has_value())
 		return;
@@ -415,11 +414,11 @@ void Renderer::DrawLaraJoints(RendererItem* itemToDraw, RendererRoom* room, Rend
 	for (int k = 1; k < laraSkinJoints.ObjectMeshes.size(); k++)
 	{
 		RendererMesh* mesh = laraSkinJoints.ObjectMeshes[k];
-		DrawMesh(itemToDraw, mesh, RendererObjectType::Moveable, k, false, view, rendererPass);
+		CollectSortedMeshFaces(itemToDraw, mesh, RendererObjectType::Moveable, k, false, view);
 	}
 }
 
-void Renderer::DrawLaraHolsters(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass)
+void Renderer::CollectSortedPlayerHolsterFaces(RendererItem* itemToDraw, RendererRoom* room, RenderView& view)
 {
 	auto leftHolsterID  = Lara.Control.Weapon.HolsterInfo.LeftHolster;
 	auto rightHolsterID = Lara.Control.Weapon.HolsterInfo.RightHolster;
@@ -429,20 +428,20 @@ void Renderer::DrawLaraHolsters(RendererItem* itemToDraw, RendererRoom* room, Re
 	{
 		RendererObject& holsterSkin = *_moveableObjects[(int)leftHolsterID];
 		RendererMesh* mesh = holsterSkin.ObjectMeshes[LM_LTHIGH];
-		DrawMesh(itemToDraw, mesh, RendererObjectType::Moveable, LM_LTHIGH, false, view, rendererPass);
+		CollectSortedMeshFaces(itemToDraw, mesh, RendererObjectType::Moveable, LM_LTHIGH, false, view);
 	}
 
 	if (_moveableObjects[(int)rightHolsterID])
 	{
 		RendererObject& holsterSkin = *_moveableObjects[(int)rightHolsterID];
 		RendererMesh* mesh = holsterSkin.ObjectMeshes[LM_RTHIGH];
-		DrawMesh(itemToDraw, mesh, RendererObjectType::Moveable, LM_RTHIGH, false, view, rendererPass);
+		CollectSortedMeshFaces(itemToDraw, mesh, RendererObjectType::Moveable, LM_RTHIGH, false, view);
 	}
 
 	if (backHolsterID != HolsterSlot::Empty && _moveableObjects[(int)backHolsterID])
 	{
 		RendererObject& holsterSkin = *_moveableObjects[(int)backHolsterID];
 		RendererMesh* mesh = holsterSkin.ObjectMeshes[LM_TORSO];
-		DrawMesh(itemToDraw, mesh, RendererObjectType::Moveable, LM_TORSO, false, view, rendererPass);
+		CollectSortedMeshFaces(itemToDraw, mesh, RendererObjectType::Moveable, LM_TORSO, false, view);
 	}
 }

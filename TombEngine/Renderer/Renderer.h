@@ -295,9 +295,6 @@ namespace TEN::Renderer
 		DOFState _currentDOF;
 		DOFState _lastDOF;
 
-		// Special effects
-		RendererMirror* _currentMirror = nullptr;
-
 		// Transparency
 		std::vector<RendererSortKey> _sortKeysScratch;
 
@@ -416,13 +413,13 @@ namespace TEN::Renderer
 		bool IsSkyboxVisible(const RenderView& view) const;
 		bool IsHorizonLayerDrawn(int layer);
 		Matrix GetHorizonWorldMatrix(int layer, const RenderView& view);
-		void DrawRooms(RenderView& view, RendererPass rendererPass);
-		void DrawItems(RenderView& view, RendererPass rendererPass, bool onlyPlayer = false);
-		void DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass);
-		void DrawEffects(RenderView& view, RendererPass rendererPass);
+		void CollectSortedRoomFaces(RenderView& view);
+		void CollectSortedItemFaces(RenderView& view);
+		void CollectSortedMoveableFaces(RendererItem* item, RenderView& view);
+		void CollectSortedEffectFaces(RenderView& view);
 		void CollectEffect(int itemNumber, RendererRoom& room);
-		void DrawStatics(RenderView& view, RendererPass rendererPass);
-		void DrawLara(RenderView& view, RendererPass rendererPass);
+		void CollectSortedStaticFaces(RenderView& view);
+		void CollectSortedPlayerFaces(RenderView& view);
 		void PrepareFires(RenderView& view);
 		void PrepareParticles(RenderView& view);
 		void PrepareSmokes(RenderView& view);
@@ -433,18 +430,17 @@ namespace TEN::Renderer
 		void PrepareWeatherParticles(RenderView& view);
 		void PrepareDrips(RenderView& view);
 		void PrepareBubbles(RenderView& view);
-		void DoRenderPass(RendererPass pass, RenderView& view, bool drawMirrors);
-		void DrawObjects(RendererPass pass, RenderView& view, bool player, bool moveables, bool statics, bool sprites);
+		void CollectSortedFaces(RenderView& view);
 		void PrepareSplashes(RenderView& view);
 		void DrawDisplaySprites(RenderView& view, bool negativePriority);
 		void DrawDisplayItems();
 		void DrawOverlays(RenderView& view);
 		void PrepareRopes(RenderView& view);
-		void DrawFishSwarm(RenderView& view, RendererPass rendererPass);
-		void DrawBats(RenderView& view, RendererPass rendererPass);
-		void DrawRats(RenderView& view, RendererPass rendererPass);
-		void DrawScarabs(RenderView& view, RendererPass rendererPass);
-		void DrawLocusts(RenderView& view, RendererPass rendererPass);
+		void CollectSortedFishFaces(RenderView& view);
+		void CollectSortedBatFaces(RenderView& view);
+		void CollectSortedRatFaces(RenderView& view);
+		void CollectSortedScarabFaces(RenderView& view);
+		void CollectSortedLocustFaces(RenderView& view);
 		void DrawStatistics();
 		void DrawExamines();
 		void DrawFullScreenImage(const RendererImage& image, float fade);
@@ -455,13 +451,13 @@ namespace TEN::Renderer
 		void PrepareSmokeParticles(RenderView& view);
 		void PrepareSparkParticles(RenderView& view);
 		void PrepareExplosionParticles(RenderView& view);
-		void DrawLaraHolsters(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass);
-		void DrawLaraJoints(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass);
-		void DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass);
-		void DrawMesh(RendererItem* itemToDraw, RendererMesh* mesh, RendererObjectType type, int boneIndex, bool skinned, RenderView& view, RendererPass rendererPass);
+		void CollectSortedPlayerHolsterFaces(RendererItem* itemToDraw, RendererRoom* room, RenderView& view);
+		void CollectSortedPlayerJointFaces(RendererItem* itemToDraw, RendererRoom* room, RenderView& view);
+		void CollectSortedPlayerHairFaces(RendererItem* itemToDraw, RendererRoom* room, RenderView& view);
+		void CollectSortedMeshFaces(RendererItem* itemToDraw, RendererMesh* mesh, RendererObjectType type, int boneIndex, bool skinned, RenderView& view);
 		void PrepareSimpleParticles(RenderView& view);
 		void PrepareParticleGroups(RenderView& view);
-		void DrawParticleGroupMeshes(RenderView& view, RendererPass rendererPass);
+		void CollectSortedParticleGroupFaces(RenderView& view);
 		void PrepareStreamers(RenderView& view);
 		void PrepareFootprints(RenderView& view);
 		void DrawLoadingBar(float percent);
@@ -511,34 +507,12 @@ namespace TEN::Renderer
 			const Vector4& color0, const Vector4& color1, const Vector4& color2, const Vector4& color3,
 			BlendMode blendMode, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
 
-		Matrix GetWorldMatrixForSprite(const RendererSpriteToDraw& sprite, RenderView& view);
 		Matrix GetWorldMatrixForMoveable(const ItemInfo& item, Matrix* rotationMatrix = nullptr, Matrix* translationMatrix = nullptr) const;
 		RendererObject& GetRendererObject(GAME_OBJECT_ID id);
 		RendererMesh* GetMesh(int meshIndex);
 		void BackupObjectVertices(GAME_OBJECT_ID objectID);
 		void RestoreObjectVertices(GAME_OBJECT_ID objectID);
 		bool IsRoomReflected(RenderView& renderView, int roomNumber);
-
-		inline bool IgnoreReflectionPassForRoom(int roomNumber)
-		{
-			return (_currentMirror != nullptr && roomNumber != _currentMirror->RoomNumber);
-		}
-
-		inline void ReflectVectorOptionally(Vector3& vector)
-		{
-			if (_currentMirror == nullptr)
-				return;
-
-			vector = Vector3::Transform(vector, _currentMirror->ReflectionMatrix);
-		}
-
-		inline void ReflectMatrixOptionally(Matrix& matrix)
-		{
-			if (_currentMirror == nullptr)
-				return;
-
-			matrix = matrix * _currentMirror->ReflectionMatrix;
-		}
 
 		static inline bool IsSortedBlendMode(BlendMode blendMode)
 		{

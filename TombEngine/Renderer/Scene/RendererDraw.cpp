@@ -167,7 +167,7 @@ namespace TEN::Renderer
 		}
 	}
 
-	void Renderer::DrawRats(RenderView& view, RendererPass rendererPass)
+	void Renderer::CollectSortedRatFaces(RenderView& view)
 	{
 		if (!Objects[ID_RATS_EMITTER].loaded)
 			return;
@@ -175,9 +175,6 @@ namespace TEN::Renderer
 		for (int i = 0; i < NUM_RATS; i++)
 		{
 			auto* rat = &Rats[i];
-
-			if (IgnoreReflectionPassForRoom(rat->RoomNumber))
-				continue;
 
 			if (rat->On)
 			{
@@ -191,12 +188,12 @@ namespace TEN::Renderer
 					if (IsSortedBlendMode(bucket.BlendMode))
 					{
 						auto object = RendererSortableObject{};
-							object.ObjectType = RendererObjectType::MoveableAsStatic;
-							object.BlendMode = bucket.BlendMode;
-							object.Bucket = &bucket;
-							object.LightMode = mesh->LightMode;
-							object.World = rat->Transform;
-							object.Room = &_rooms[rat->RoomNumber];
+						object.ObjectType = RendererObjectType::MoveableAsStatic;
+						object.BlendMode = bucket.BlendMode;
+						object.Bucket = &bucket;
+						object.LightMode = mesh->LightMode;
+						object.World = rat->Transform;
+						object.Room = &_rooms[rat->RoomNumber];
 
 						CollectSortedBucket(view, object, &object.World, view.Camera.WorldPosition);
 					}
@@ -205,7 +202,7 @@ namespace TEN::Renderer
 		}
 	}
 
-	void Renderer::DrawFishSwarm(RenderView& view, RendererPass rendererPass)
+	void Renderer::CollectSortedFishFaces(RenderView& view)
 	{
 		if (!Objects[ID_FISH_EMITTER].loaded)
 			return;
@@ -223,20 +220,20 @@ namespace TEN::Renderer
 				if (!IsSortedBlendMode(bucket.BlendMode))
 					continue;
 
-					auto object = RendererSortableObject{};
-					object.ObjectType = RendererObjectType::MoveableAsStatic;
-					object.BlendMode = bucket.BlendMode;
-					object.Bucket = &bucket;
-					object.LightMode = mesh.LightMode;
-					object.World = worldMatrix;
-					object.Room = &_rooms[fish.RoomNumber];
+				auto object = RendererSortableObject{};
+				object.ObjectType = RendererObjectType::MoveableAsStatic;
+				object.BlendMode = bucket.BlendMode;
+				object.Bucket = &bucket;
+				object.LightMode = mesh.LightMode;
+				object.World = worldMatrix;
+				object.Room = &_rooms[fish.RoomNumber];
 
 				CollectSortedBucket(view, object, &worldMatrix, view.Camera.WorldPosition);
 			}
 		}
 	}
 
-	void Renderer::DrawParticleGroupMeshes(RenderView& view, RendererPass rendererPass)
+	void Renderer::CollectSortedParticleGroupFaces(RenderView& view)
 	{
 		using namespace TEN::Effects::ParticleGroups;
 
@@ -259,9 +256,6 @@ namespace TEN::Renderer
 				if (!p.Active)
 					continue;
 
-				if (IgnoreReflectionPassForRoom(p.RoomNumber))
-					continue;
-
 				float dist = Vector3::Distance(p.Position, view.Camera.WorldPosition);
 				if (dist > DEFAULT_RENDER_DISTANCE)
 					continue;
@@ -282,20 +276,19 @@ namespace TEN::Renderer
 
 				// Transform is identical for all polygons of the particle; compute it once.
 				auto worldMatrix = Matrix::Lerp(p.PrevTransform, p.Transform, GetInterpolationFactor());
-				ReflectMatrixOptionally(worldMatrix);
 
 				for (auto& bucket : mesh.Buckets)
 				{
 					if (!IsSortedBlendMode(bucket.BlendMode))
 						continue;
 
-						auto object = RendererSortableObject{};
-						object.ObjectType = RendererObjectType::MoveableAsStatic;
-						object.BlendMode = bucket.BlendMode;
-						object.Bucket = &bucket;
-						object.LightMode = mesh.LightMode;
-						object.World = worldMatrix;
-						object.Room = &_rooms[p.RoomNumber];
+					auto object = RendererSortableObject{};
+					object.ObjectType = RendererObjectType::MoveableAsStatic;
+					object.BlendMode = bucket.BlendMode;
+					object.Bucket = &bucket;
+					object.LightMode = mesh.LightMode;
+					object.World = worldMatrix;
+					object.Room = &_rooms[p.RoomNumber];
 
 					CollectSortedBucket(view, object, &worldMatrix, view.Camera.WorldPosition);
 				}
@@ -303,7 +296,7 @@ namespace TEN::Renderer
 		}
 	}
 
-	void Renderer::DrawBats(RenderView& view, RendererPass rendererPass)
+	void Renderer::CollectSortedBatFaces(RenderView& view)
 	{
 		if (!Objects[ID_BATS_EMITTER].loaded)
 			return;
@@ -315,9 +308,6 @@ namespace TEN::Renderer
 			if (!bat.On)
 				continue;
 
-			if (IgnoreReflectionPassForRoom(bat.RoomNumber))
-				continue;
-
 			auto transformMatrix = Matrix::Lerp(bat.PrevTransform, bat.Transform, GetInterpolationFactor());
 
 			for (auto& bucket : mesh.Buckets)
@@ -325,20 +315,20 @@ namespace TEN::Renderer
 				if (!IsSortedBlendMode(bucket.BlendMode))
 					continue;
 
-					auto object = RendererSortableObject{};
-					object.ObjectType = RendererObjectType::MoveableAsStatic;
-					object.BlendMode = bucket.BlendMode;
-					object.Bucket = &bucket;
-					object.LightMode = mesh.LightMode;
-					object.World = transformMatrix;
-					object.Room = &_rooms[bat.RoomNumber];
+				auto object = RendererSortableObject{};
+				object.ObjectType = RendererObjectType::MoveableAsStatic;
+				object.BlendMode = bucket.BlendMode;
+				object.Bucket = &bucket;
+				object.LightMode = mesh.LightMode;
+				object.World = transformMatrix;
+				object.Room = &_rooms[bat.RoomNumber];
 
 				CollectSortedBucket(view, object, &transformMatrix, view.Camera.WorldPosition);
 			}
 		}
 	}
 
-	void Renderer::DrawScarabs(RenderView& view, RendererPass rendererPass)
+	void Renderer::CollectSortedScarabFaces(RenderView& view)
 	{
 		if (!Objects[ID_LITTLE_BEETLE].loaded)
 			return;
@@ -350,9 +340,6 @@ namespace TEN::Renderer
 			if (!beetle.On)
 				continue;
 
-			if (IgnoreReflectionPassForRoom(beetle.RoomNumber))
-				continue;
-
 			auto transformMatrix = Matrix::Lerp(beetle.PrevTransform, beetle.Transform, GetInterpolationFactor());
 
 			for (auto& bucket : mesh.Buckets)
@@ -360,20 +347,20 @@ namespace TEN::Renderer
 				if (!IsSortedBlendMode(bucket.BlendMode))
 					continue;
 
-					auto object = RendererSortableObject{};
-					object.ObjectType = RendererObjectType::MoveableAsStatic;
-					object.BlendMode = bucket.BlendMode;
-					object.Bucket = &bucket;
-					object.LightMode = mesh.LightMode;
-					object.World = transformMatrix;
-					object.Room = &_rooms[beetle.RoomNumber];
+				auto object = RendererSortableObject{};
+				object.ObjectType = RendererObjectType::MoveableAsStatic;
+				object.BlendMode = bucket.BlendMode;
+				object.Bucket = &bucket;
+				object.LightMode = mesh.LightMode;
+				object.World = transformMatrix;
+				object.Room = &_rooms[beetle.RoomNumber];
 
 				CollectSortedBucket(view, object, &transformMatrix, view.Camera.WorldPosition);
 			}
 		}
 	}
 
-	void Renderer::DrawLocusts(RenderView& view, RendererPass rendererPass)
+	void Renderer::CollectSortedLocustFaces(RenderView& view)
 	{
 		if (!Objects[ID_LOCUSTS].loaded)
 			return;
@@ -386,9 +373,6 @@ namespace TEN::Renderer
 			if (!locust.On)
 				continue;
 
-			if (IgnoreReflectionPassForRoom(locust.RoomNumber))
-				continue;
-
 			auto& mesh = *GetMesh(Objects[ID_LOCUSTS].meshIndex + (-locust.Counter & 3));
 			auto transformMatrix = Matrix::Lerp(locust.PrevTransform, locust.Transform, GetInterpolationFactor());
 
@@ -397,13 +381,13 @@ namespace TEN::Renderer
 				if (!IsSortedBlendMode(bucket.BlendMode))
 					continue;
 
-					auto object = RendererSortableObject{};
-					object.ObjectType = RendererObjectType::MoveableAsStatic;
-					object.BlendMode = bucket.BlendMode;
-					object.Bucket = &bucket;
-					object.LightMode = mesh.LightMode;
-					object.World = transformMatrix;
-					object.Room = &_rooms[locust.RoomNumber];
+				auto object = RendererSortableObject{};
+				object.ObjectType = RendererObjectType::MoveableAsStatic;
+				object.BlendMode = bucket.BlendMode;
+				object.Bucket = &bucket;
+				object.LightMode = mesh.LightMode;
+				object.World = transformMatrix;
+				object.Room = &_rooms[locust.RoomNumber];
 
 				CollectSortedBucket(view, object, &transformMatrix, view.Camera.WorldPosition);
 			}
@@ -1017,7 +1001,7 @@ namespace TEN::Renderer
 		PrepareSkyEffects(view);
 
 		auto sortedTime0 = std::chrono::high_resolution_clock::now();
-		DoRenderPass(RendererPass::CollectTransparentFaces, view, false);
+		CollectSortedFaces(view);
 		auto sortedTime1 = std::chrono::high_resolution_clock::now();
 		SortTransparentFaces(view);
 		auto sortedTime2 = std::chrono::high_resolution_clock::now();
@@ -1257,50 +1241,41 @@ namespace TEN::Renderer
 	}
 
 	// Sorted faces of rooms, moveables, effects, swarms and statics; sprites were collected with the other sprites.
-	void Renderer::DoRenderPass(RendererPass pass, RenderView& view, bool drawMirrors)
+	void Renderer::CollectSortedFaces(RenderView& view)
 	{
-		DrawRooms(view, pass);
-		DrawItems(view, pass);
-		DrawEffects(view, pass);
-		DrawScarabs(view, pass);
-		DrawBats(view, pass);
-		DrawRats(view, pass);
-		DrawLocusts(view, pass);
-		DrawFishSwarm(view, pass);
-		DrawParticleGroupMeshes(view, pass);
-		DrawStatics(view, pass);
+		CollectSortedRoomFaces(view);
+		CollectSortedItemFaces(view);
+		CollectSortedEffectFaces(view);
+		CollectSortedScarabFaces(view);
+		CollectSortedBatFaces(view);
+		CollectSortedRatFaces(view);
+		CollectSortedLocustFaces(view);
+		CollectSortedFishFaces(view);
+		CollectSortedParticleGroupFaces(view);
+		CollectSortedStaticFaces(view);
 	}
 
-	void Renderer::DrawItems(RenderView& view, RendererPass rendererPass, bool onlyPlayer)
+	void Renderer::CollectSortedItemFaces(RenderView& view)
 	{
 		for (auto room : view.RoomsToDraw)
 		{
-			if (IgnoreReflectionPassForRoom(room->RoomNumber))
-				continue;
-
 			for (auto itemToDraw : room->ItemsToDraw)
 			{
-				if (_currentMirror != nullptr && (g_Level.Items[itemToDraw->ItemNumber].Flags & IFLAG_CLEAR_BODY))
-					continue;
-
-				if (onlyPlayer && itemToDraw->ObjectID != ID_LARA)
-					continue;
-
 				switch (itemToDraw->ObjectID)
 				{
 				case ID_LARA:
-					DrawLara(view, rendererPass);
+					CollectSortedPlayerFaces(view);
 					continue;
 
 				default:
-					DrawAnimatingItem(itemToDraw, view, rendererPass);
+					CollectSortedMoveableFaces(itemToDraw, view);
 					continue;
 				}
 			}
 		}
 	}
 
-	void Renderer::DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass)
+	void Renderer::CollectSortedMoveableFaces(RendererItem* item, RenderView& view)
 	{
 		ItemInfo* nativeItem = &g_Level.Items[item->ItemNumber];
 		RendererObject& moveableObj = *_moveableObjects[item->ObjectID];
@@ -1315,11 +1290,11 @@ namespace TEN::Renderer
 			if (skinMode == SkinningMode::Full && g_Level.Meshes[nativeItem->Model.MeshIndex[k]].hidden)
 				continue;
 
-			DrawMesh(item, GetMesh(item->MeshIndex[k]), RendererObjectType::Moveable, k, false, view, rendererPass);
+			CollectSortedMeshFaces(item, GetMesh(item->MeshIndex[k]), RendererObjectType::Moveable, k, false, view);
 		}
 	}
 
-	void Renderer::DrawStatics(RenderView& view, RendererPass rendererPass)
+	void Renderer::CollectSortedStaticFaces(RenderView& view)
 	{
 		if (view.SortedStaticsToDraw.empty())
 			return;
@@ -1349,12 +1324,12 @@ namespace TEN::Renderer
 
 					if (IsSortedBlendMode(blendMode) || statics[i]->Color.w < ALPHA_BLEND_THRESHOLD)
 					{
-							auto object = RendererSortableObject{};
-							object.ObjectType = RendererObjectType::Static;
-							object.Bucket = &bucket;
-							object.Static = statics[i];
-							object.BlendMode = blendMode;
-							object.LightMode = refMesh->LightMode;
+						auto object = RendererSortableObject{};
+						object.ObjectType = RendererObjectType::Static;
+						object.Bucket = &bucket;
+						object.Static = statics[i];
+						object.BlendMode = blendMode;
+						object.LightMode = refMesh->LightMode;
 						object.Room = &_rooms[statics[i]->RoomNumber];
 
 						CollectSortedBucket(view, object, &statics[i]->World, view.Camera.WorldPosition);
@@ -1364,7 +1339,7 @@ namespace TEN::Renderer
 		}
 	}
 
-	void Renderer::DrawRooms(RenderView& view, RendererPass rendererPass)
+	void Renderer::CollectSortedRoomFaces(RenderView& view)
 	{
 		for (int i = (int)view.RoomsToDraw.size() - 1; i >= 0; i--)
 		{
@@ -1378,10 +1353,10 @@ namespace TEN::Renderer
 				if (IsSortedBlendMode(bucket.BlendMode))
 				{
 					auto object = RendererSortableObject{};
-						object.ObjectType = RendererObjectType::Room;
-						object.BlendMode = bucket.BlendMode;
-						object.Bucket = &bucket;
-						object.Room = room;
+					object.ObjectType = RendererObjectType::Room;
+					object.BlendMode = bucket.BlendMode;
+					object.Bucket = &bucket;
+					object.Room = room;
 
 					CollectSortedBucket(view, object, nullptr, view.Camera.WorldPosition);
 				}
@@ -1606,7 +1581,7 @@ namespace TEN::Renderer
 		PaceFrame();
 	}
 
-	void Renderer::DrawMesh(RendererItem* itemToDraw, RendererMesh* mesh, RendererObjectType type, int boneIndex, bool skinned, RenderView& view, RendererPass rendererPass)
+	void Renderer::CollectSortedMeshFaces(RendererItem* itemToDraw, RendererMesh* mesh, RendererObjectType type, int boneIndex, bool skinned, RenderView& view)
 	{
 		auto world = itemToDraw->InterpolatedAnimationTransforms[boneIndex] * itemToDraw->InterpolatedWorld;
 		const auto& cameraPosition = view.Camera.WorldPosition;
@@ -1620,13 +1595,13 @@ namespace TEN::Renderer
 			if (!IsSortedBlendMode(blendMode))
 				continue;
 
-					auto object = RendererSortableObject{};
-					object.ObjectType = type;
-					object.Skinned = skinned;
-					object.BlendMode = blendMode;
-					object.Bucket = &bucket;
-					object.Item = itemToDraw;
-					object.LightMode = mesh->LightMode;
+			auto object = RendererSortableObject{};
+			object.ObjectType = type;
+			object.Skinned = skinned;
+			object.BlendMode = blendMode;
+			object.Bucket = &bucket;
+			object.Item = itemToDraw;
+			object.LightMode = mesh->LightMode;
 
 			CollectSortedBucket(view, object, &world, cameraPosition);
 		}
