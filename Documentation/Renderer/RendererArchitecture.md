@@ -33,7 +33,7 @@ Design rules:
   group and material so state changes are rare.
 - **Offline shaders.** All shaders are compiled at build time; pipelines a level can use are created at load.
 - **Named everything.** Every pass, resource and pipeline has a readable debug name for RenderDoc, Nsight and RGP.
-- **Classic look by default.** Modern features (SSAO, glow, reflections, water surfaces, volumetric sky) are additive
+- **Classic look by default.** Modern features (ambient occlusion, temporal antialiasing, glow, reflections, water surfaces, volumetric sky) are additive
   and can be turned off.
 
 ---
@@ -49,7 +49,7 @@ Design rules:
 | `Renderer/Sky/` | CPU state of the sky effects: atmospheric dome, sun, moon, aurora, underwater sky, volumetric clouds, god rays, dust storm, their settings and quality levels. |
 | `Renderer/Structures/` | Frontend data: rooms, buckets, polygons, meshes, objects, items, statics, lights, sprites, sortable objects, the level vertex. |
 | `Renderer/ConstantBuffers/` | Uniform blocks of the sky effects (atmospheric sky, god rays, dust storm, volumetric clouds), filled by the frontend and pushed by the backend as pixel uniforms. |
-| `Renderer/Backend/` | `SceneRenderer`, one file per area: `SceneRenderer.cpp` (initialization, frame, scene pass, objects, sorted faces), `SceneRendererGeometry.cpp`, `SceneRendererTextures.cpp`, `SceneRendererPipelines.cpp`, `SceneRendererShadows.cpp`, `SceneRendererSSAO.cpp`, `SceneRendererSky*.cpp`, `SceneRendererAtmosphere.cpp`, `SceneRendererWater.cpp`, `SceneRendererLightClusters.cpp`, `SceneRendererMirrors.cpp`, `SceneRendererSprites.cpp`, `SceneRendererEffects.cpp`, `SceneRendererDebris.cpp`, `SceneRendererDOF.cpp`, `SceneRendererGlow.cpp`, `SceneRendererPostProcess.cpp`, `SceneRendererSMAA.cpp`, `SceneRendererUpscale.cpp`, `SceneRendererOverlay.cpp`, `SceneRendererImGui.cpp`, `SceneRendererVideo.cpp`, `SceneRendererDebug.cpp`, `SceneRendererStats.cpp`; `GpuTypes.h`, `OverlayTypes.h`, `SkyTypes.h`, `DrawSort.*`, `TextureLoader.*`. |
+| `Renderer/Backend/` | `SceneRenderer`, one file per area: `SceneRenderer.cpp` (initialization, frame, scene pass, objects, sorted faces), `SceneRendererGeometry.cpp`, `SceneRendererTextures.cpp`, `SceneRendererPipelines.cpp`, `SceneRendererShadows.cpp`, `SceneRendererAmbientOcclusion.cpp` (prepass and GTAO), `SceneRendererTAA.cpp` (motion vectors and temporal antialiasing), `SceneRendererDynamicResolution.cpp`, `SceneRendererSky*.cpp`, `SceneRendererAtmosphere.cpp`, `SceneRendererWater.cpp`, `SceneRendererLightClusters.cpp`, `SceneRendererMirrors.cpp`, `SceneRendererSprites.cpp`, `SceneRendererEffects.cpp`, `SceneRendererDebris.cpp`, `SceneRendererDOF.cpp`, `SceneRendererGlow.cpp`, `SceneRendererPostProcess.cpp`, `SceneRendererSMAA.cpp`, `SceneRendererUpscale.cpp`, `SceneRendererOverlay.cpp`, `SceneRendererImGui.cpp`, `SceneRendererVideo.cpp`, `SceneRendererDebug.cpp`, `SceneRendererStats.cpp`; `GpuTypes.h`, `OverlayTypes.h`, `SkyTypes.h`, `DrawSort.*`, `TextureLoader.*`. |
 | `Renderer/RHI/` | `RHIDevice.h` (interfaces), `RHITypes.h` (descriptions and enums), `DirectX11/`, `SDLGPU/`, `OpenGL/` devices, and helpers: `ShaderLibrary` (loading compiled shaders), `UploadRing`, `RenderTargetPool`, `TextureCapture` (readback and screenshots), `MemoryTracker`. `Test/` holds a standalone device test. |
 | `Shaders/` | HLSL sources and `CompileShaders.ps1`. `GpuShared.hlsli` holds the structures shared with C++, `ShaderInterop.hlsli` the binding macros of each backend. |
 | `Specific/Benchmark.*` | Benchmark mode: CSV recording, warmup, screenshots, automatic exit. |
@@ -151,10 +151,10 @@ Collected on the CPU, uploaded once per frame through `RHI::UploadRing` before t
 
 | Buffer | Structure (`GpuShared.hlsli`) | Content |
 |---|---|---|
-| Instances | `GpuObjectInstance` | World matrix, color, ambient light, light range, bone offset and skinning mode of each drawn object. |
+| Instances | `GpuObjectInstance` | World matrix, color, ambient light, light range, bone offset and skinning mode of each drawn object, with the world matrix and bone offset of the previous frame for the motion vectors (cached per item number). |
 | Instance indices | vertex stream | Instance number per draw instance. |
 | Lights | `GpuLight` | Lights of rooms and objects; objects reference a range. |
-| Light clusters | masks | Room light masks per cluster of the view frustum (`SceneRendererLightClusters.cpp`): screen tiles times logarithmic depth slices, so room pixels evaluate only nearby dynamic lights. |
+| Light clusters | masks | Masks of the dynamic lights of the view per cluster of the view frustum (`SceneRendererLightClusters.cpp`): screen tiles times logarithmic depth slices. Room, object and lit sprite pixels evaluate only the dynamic lights near them; object light slices hold static lights only, and mirrored instances get the view lights in their own slice. |
 | Bones | matrices | Animation transforms of moveables and the player. |
 | Materials | `GpuMaterial` | Material values of the level, re-uploaded when they change. |
 | Decals | `GpuDecal` | Decals per room. |
@@ -173,17 +173,18 @@ skipped when the flag is false for the frame.
 | # | Pass | Runs when | Output | Notes |
 |---|---|---|---|---|
 | 1 | Shadow map | A shadow casting light is active | Cube shadow map (R32F, size from the settings) | Six faces; casters culled per face. |
-| 2 | Depth and normals prepass | Always | Depth (D32F), normals, R32F depth copy, emissive | Room and object prepass shaders; normal maps only with SSAO. |
-| 3 | SSAO | Ambient occlusion on | Half resolution occlusion | Separable blur. |
+| 2 | Depth and normals prepass | Always | Depth (D32F), normals, R32F depth copy, emissive, motion vectors (RG16F) while TAA or ambient occlusion is on | Room and object prepass shaders; the `VSVelocity`/`PSDepthNormalVelocity` variants add the motion vectors. |
+| 3 | GTAO | Ambient occlusion on | Half resolution occlusion | Ground truth ambient occlusion: one slice per texel and frame from the depth (normals reconstructed from it), accumulated over frames through the motion vectors, then a separable bilateral blur. |
 | 4 | Sky reflections | Sky reflective materials or water reflecting a visible sky | Dual paraboloid sky map | One hemisphere per layer. |
 | 5 | Distortion | Distortion draws in the view | Distortion target | Applied by the post-process. |
 | 6 | Sky | Always | Scene target | Classic sky layers, atmospheric dome, sun, moon, aurora, stars, volumetric clouds, horizon meshes, god rays. Occluded sky is not shaded. |
 | 7 | Scene | Always | Scene target | Opaque rooms (portal scissors, per-chunk culling) and objects, alpha edges, water surfaces and underwater fog, additive draws, debris, gun flashes, mirrors, sorted transparent faces, dust storm, debug primitives. |
-| 8 | DOF | Depth of field active | Near and far blur layers | Unused layers are skipped. |
-| 9 | Reflections | Reflective materials | Half resolution copy of the scene | Read by reflective materials in the next frame. |
-| 10 | Glow | A visible emissive material | Downscaled, blurred emissive | Added by the post-process. |
-| 11 | Post-process | Always | Color target | Distortion, glow, tint, color scheme, gamma, fade, cinematic bars, lens flares; then FXAA (low) or SMAA (medium, high). |
-| 12 | Upscale | Render scale below native | Window resolution color target | AMD FSR 1 EASU, with RCAS applied while the overlay draws the scene. |
+| 8 | TAA | Antialiasing set to temporal | Scene target and RGBA16F history | Blends the jittered scene with the reprojected history (motion of the nearest texel, Catmull-Rom history, variance clipping in YCoCg); RCAS sharpens the result at native scale. |
+| 9 | DOF | Depth of field active | Near and far blur layers | Unused layers are skipped. |
+| 10 | Reflections | Reflective materials | Half resolution copy of the scene | Read by reflective materials in the next frame. |
+| 11 | Glow | A visible emissive material | Downscaled, blurred emissive | Added by the post-process. |
+| 12 | Post-process | Always | Color target | Distortion, glow, tint, color scheme, gamma, fade, cinematic bars, lens flares; then FXAA (low) or SMAA (medium, high), not with TAA. |
+| 13 | Upscale | Render scale below native, fixed or dynamic | Window resolution color target | AMD FSR 1 EASU, with RCAS applied while the overlay draws the scene. |
 
 `FinishFrame` then draws the 2D layer (quads, text, bars, 3D menu objects with their own post-process) over the scene
 into the final target, and ImGui on top in debug mode.
@@ -201,6 +202,23 @@ With vertical sync, SDL GPU presents in mailbox mode where available and the gam
 rate; without it, immediate mode is used. DirectX 11 uses the flip model and tears without vertical sync. Frame fences
 keep the game thread at most two frames ahead of the GPU on every backend.
 
+
+### 5.6 Temporal passes and dynamic resolution
+
+While TAA or ambient occlusion is on, the prepass writes motion vectors in UV units. Rooms move with the camera only;
+objects use the transforms of the previous frame, which `SceneRendererTAA.cpp` caches per item number (interpolated
+world matrix and bones), so skinned and animated meshes move correctly. Vertex effects (wibble, refraction) are not part
+of the motion. Texels without geometry reproject with the camera matrices alone.
+
+With TAA, the projection of the frame is offset by an 8 sample Halton(2, 3) sub-pixel jitter. The TAA pass blends the
+scene with the history and writes both the scene target and the next history; camera cuts (a jump longer than two
+sectors) and target changes discard the history. GTAO accumulates through the same motion vectors in its own half float
+history.
+
+The dynamic render scale measures the frame interval and the time the game thread waits for its frame fence over 30
+frames. Late frames with a fence wait of more than 0.5 ms lower the scale by 10% (at most every 0.5 s); frames on time
+with almost no wait raise it by 5% after 2 s, a delay that doubles (up to 32 s) when a rise is undone within 3 s. Each
+change recreates the scene targets and is logged.
 ---
 
 ## 6. Assets
@@ -233,7 +251,7 @@ Sprite atlases stay single textures, since the 2D layer samples them too. The sk
 
 Fonts (`.spritefont`), menu images, loading screens and the logo are PNG, JPEG or DDS files decoded by
 `TextureLoader` (PNG through SDL, JPEG through stb_image). Video frames are uploaded as BGRA8 each frame. Noise
-textures (SSAO, clouds, SMAA, water waves) are generated or embedded.
+textures (clouds, SMAA, water waves) are generated or embedded.
 
 ### 6.3 Materials and shader variants
 
@@ -358,9 +376,9 @@ Arguments are case insensitive and may start with `-`, `--` or `/`.
 | `backend <name>` | `vulkan`, `dx11`, `d3d12`, `opengl` | Renderer backend for this run, overriding the configuration. Falls back to the others if it cannot start. |
 | `novsync` | | Presents without vertical sync (immediate mode), to measure uncapped frame times. |
 | `nogputiming` | | Disables GPU pass timings during the benchmark. On SDL GPU (Vulkan, Direct3D 12) timings split the command buffers and cost GPU time. |
-| `renderscale <0-4>` | 0 native, 1 ultra quality (1/1.3), 2 quality (1/1.5), 3 balanced (1/1.7), 4 performance (1/2) | Render scale for this run; below native, FSR 1 upscales the scene. |
+| `renderscale <0-5>` | 0 native, 1 ultra quality (1/1.3), 2 quality (1/1.5), 3 balanced (1/1.7), 4 performance (1/2), 5 dynamic | Render scale for this run; below native, FSR 1 upscales the scene. |
 | `ssao <0-1>` | | Ambient occlusion off or on for this run. |
-| `antialiasing <0-3>` | 0 none, 1 FXAA, 2 SMAA medium, 3 SMAA high | Antialiasing for this run. |
+| `antialiasing <0-4>` | 0 none, 1 FXAA, 2 SMAA medium, 3 SMAA high, 4 temporal (TAA) | Antialiasing for this run. |
 | `resolution <width> <height>` | pixels | Windowed resolution for this run. |
 | `lowpower` | | Runs on the integrated GPU of hybrid systems. |
 | `rhitest <backend>` | as `backend` | Runs the RHI device test instead of the game (9.5). |
@@ -464,9 +482,9 @@ fps, so menu animations differ more with high framerate on.
 |---|---|---|
 | Renderer | Vulkan, DirectX 11, Direct3D 12, OpenGL | Applied at the next start. |
 | Screen resolution, windowed mode | | |
-| Render scale | Native, ultra quality, quality, balanced, performance | FSR 1 below native; the material mip bias keeps the texture detail of the window resolution. |
-| Antialiasing | None, low (FXAA), medium (SMAA), high (SMAA) | |
-| Ambient occlusion | On, off | Half resolution SSAO; also requires the level setting. |
+| Render scale | Native, ultra quality, quality, balanced, performance, dynamic | FSR 1 below native; the material mip bias keeps the texture detail of the window resolution. Dynamic holds the refresh rate (high framerate) or 30 fps between 50% and 100% (section 5.6). |
+| Antialiasing | None, low (FXAA), medium (SMAA), high (SMAA), temporal (TAA) | Menu frames use SMAA high in place of TAA, which needs a history. |
+| Ambient occlusion | On, off | Half resolution GTAO with temporal accumulation; also requires the level setting. |
 | Shadows | None, player, all | Cube shadow map of one light, map size in the configuration; blob shadows otherwise. |
 | Caustics, decals | On, off | |
 | High framerate | On, off | Interpolates frames between game ticks up to the refresh rate. |

@@ -6,8 +6,8 @@ order and a completion criterion per item. It assumes the architecture described
 transparent pass described in `TransparentSorting.md`; it supersedes the transparent and GPU-driven parts of
 `ModernizationPlan.md` (Italian), which remains the reference for memory and asset goals.
 
-> In progress and not covered here: R2 motion vectors and TAA, R3 dynamic resolution, R6 clustered lights for objects
-> and sprites, R7 temporal GTAO.
+> Implemented and described in `RendererArchitecture.md`: R2 motion vectors and TAA, R3 dynamic resolution, R6 clustered
+> lights for objects and sprites, R7 temporal GTAO.
 
 Item prefixes: **S** for the sorted (transparent) faces, **R** for the rest of the renderer. Unless stated otherwise,
 paths are relative to `TombEngine/Renderer`.
