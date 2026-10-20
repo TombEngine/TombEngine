@@ -53,12 +53,15 @@ namespace TEN::Renderer::Backend
         return std::clamp((int)std::floor((ndc * 0.5f + 0.5f) * tileCount), 0, tileCount - 1);
     }
 
-    // Grid placement read by the shaders: the frame view projection and the slice parameters.
+    // Grid placement read by the shaders: the frame view projection and the slice parameters, and the dynamic light slice
+    // of the view, which CollectObjects adds first to the light buffer.
     void SceneRenderer::SetLightClusterUniforms(FramePixelUniforms& uniforms) const
     {
         uniforms.ClusterNearDepth = LIGHT_CLUSTER_NEAR_DEPTH;
         uniforms.ClusterSliceScale = GetClusterSliceScale();
         uniforms.ClusterViewProjection = _viewProjection;
+        uniforms.ClusterLightOffset = 0;
+        uniforms.ClusterLightCount = (unsigned int)(_roomLightCount & LIGHT_COUNT_MASK);
     }
 
     // Lights are the room light slice of the frame light buffer; mask bit N selects its light N. Without a perspective

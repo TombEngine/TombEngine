@@ -36,28 +36,41 @@ namespace TEN::Renderer::Backend
         }
     }
 
-    // Copy of an instance reflected by the mirror; its lights are reflected too when the mirror asks for it.
+    // Copy of an instance reflected by the mirror; its lights are reflected too when the mirror asks for it. The light
+    // clusters are placed for the unreflected view, so a reflected instance gets the dynamic lights of the view in its
+    // own light slice instead, after its static lights.
     int SceneRenderer::AddMirroredInstance(int instanceIndex, const RendererMirror& mirror)
     {
         auto instance = ((const GpuObjectInstance*)_instanceData.data())[instanceIndex];
         instance.World = instance.World * mirror.ReflectionMatrix;
 
         int lightCount = (int)(instance.LightCount & LIGHT_COUNT_MASK);
-        if (mirror.ReflectLights && lightCount > 0)
+        bool hasClusterLights = (instance.LightMode & INSTANCE_CLUSTER_LIGHTS_FLAG) != 0;
+        int dynamicLightCount = hasClusterLights ? (_roomLightCount & LIGHT_COUNT_MASK) : 0;
+        if ((mirror.ReflectLights && lightCount > 0) || dynamicLightCount > 0)
         {
             int lightOffset = (int)(_lightData.size() / sizeof(GpuLight));
-            for (int i = 0; i < lightCount; i++)
+            for (int i = 0; i < (lightCount + dynamicLightCount); i++)
             {
-                auto light = ((const GpuLight*)_lightData.data())[instance.LightOffset + i];
-                light.Position = Vector3::Transform(light.Position, mirror.ReflectionMatrix);
-                light.Direction = Vector3::TransformNormal(light.Direction, mirror.ReflectionMatrix);
+                int sourceIndex = (i < lightCount) ? ((int)instance.LightOffset + i) : (i - lightCount);
+                auto light = ((const GpuLight*)_lightData.data())[sourceIndex];
+                if (mirror.ReflectLights)
+                {
+                    light.Position = Vector3::Transform(light.Position, mirror.ReflectionMatrix);
+                    light.Direction = Vector3::TransformNormal(light.Direction, mirror.ReflectionMatrix);
+                }
 
                 const auto* bytes = (const unsigned char*)&light;
                 _lightData.insert(_lightData.end(), bytes, bytes + sizeof(light));
             }
 
             instance.LightOffset = (unsigned int)lightOffset;
+            instance.LightCount = (instance.LightCount & ~(unsigned int)LIGHT_COUNT_MASK) | (unsigned int)(lightCount + dynamicLightCount);
+            if (dynamicLightCount > 0)
+                instance.LightCount |= ((unsigned int)_roomLightCount & ~(unsigned int)LIGHT_COUNT_MASK);
         }
+
+        instance.LightMode &= ~(unsigned int)INSTANCE_CLUSTER_LIGHTS_FLAG;
 
         int index = (int)(_instanceData.size() / sizeof(GpuObjectInstance));
         const auto* bytes = (const unsigned char*)&instance;

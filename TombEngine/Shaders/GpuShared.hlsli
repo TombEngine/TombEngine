@@ -55,6 +55,8 @@ struct GpuAnimatedSet
 // Instances of outdoor rooms write the outdoor mask of the dust storm in the prepass.
 #define INSTANCE_LIGHT_MODE_MASK 0xFF
 #define INSTANCE_OUTDOOR_FLAG    0x100
+// Instances lit by the dynamic lights of the view through the light clusters; their light slice holds static lights only.
+#define INSTANCE_CLUSTER_LIGHTS_FLAG 0x200
 
 // Per-instance data of statics and moveable meshes, read through the instance index stream.
 struct GpuObjectInstance
@@ -181,6 +183,8 @@ struct GpuFogBulb
 // Gamma applies to overlay objects only: the scene applies gamma in the post-process.
 // CausticsStartUV and CausticsSize: current caustics frame in its sprite atlas page.
 // ClusterViewProjection, ClusterNearDepth and ClusterSliceScale place the room light clusters; a zero scale means none.
+// ClusterLightOffset and ClusterLightCount: the dynamic light slice of the view in the light buffer, which the cluster
+// masks index.
 #define TEN_FRAME_PIXEL_UNIFORMS \
     float4   FogColor                 TEN_DEFAULT(Vector4::Zero); \
     float3   PixelCameraPosition      TEN_DEFAULT(Vector3::Zero); \
@@ -193,7 +197,10 @@ struct GpuFogBulb
     float2   CausticsSize             TEN_DEFAULT(Vector2::Zero); \
     float    ClusterNearDepth         TEN_DEFAULT(0.0f); \
     float    ClusterSliceScale        TEN_DEFAULT(0.0f); \
-    float4x4 ClusterViewProjection    TEN_DEFAULT(Matrix::Identity);
+    float4x4 ClusterViewProjection    TEN_DEFAULT(Matrix::Identity); \
+    uint     ClusterLightOffset       TEN_DEFAULT(0); \
+    uint     ClusterLightCount        TEN_DEFAULT(0); \
+    float2   ClusterPadding           TEN_DEFAULT(Vector2::Zero);
 
 // Pixel slot 1, per draw. Light and decal slices and the caustics flag apply to rooms only.
 // TextureLayer selects the page in the texture arrays of the bound material maps.

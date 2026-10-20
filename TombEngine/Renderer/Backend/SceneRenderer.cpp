@@ -1768,10 +1768,12 @@ namespace TEN::Renderer::Backend
         return index;
     }
 
-    // Instances of outdoor rooms are flagged for the outdoor mask of the prepass.
+    // Instances of outdoor rooms are flagged for the outdoor mask of the prepass. Every scene instance reads the
+    // dynamic lights of the view from the light clusters; its own light slice holds static lights.
     void SceneRenderer::AppendInstance(const GpuObjectInstance& instance, const InstanceOrigin& origin)
     {
         auto flaggedInstance = instance;
+        flaggedInstance.LightMode |= INSTANCE_CLUSTER_LIGHTS_FLAG;
         if (origin.RoomNumber != NO_VALUE && (g_Level.Rooms[origin.RoomNumber].flags & ENV_FLAG_SKYBOX))
             flaggedInstance.LightMode |= INSTANCE_OUTDOOR_FLAG;
 
@@ -2321,7 +2323,7 @@ namespace TEN::Renderer::Backend
                     scissorRoom = nullptr;
                 }
 
-                DrawSpriteRun(commandBuffer, renderPass, draw.Sprites, lastPipeline, lastSpriteTexture, false, DrawCategory::SortedSprites);
+                DrawSpriteRun(commandBuffer, renderPass, draw.Sprites, lastPipeline, lastSpriteTexture, false, DrawCategory::SortedSprites, isMirrored);
                 lastStreamCount = 0;
                 state = BucketBindState{};
                 continue;
@@ -2883,8 +2885,6 @@ namespace TEN::Renderer::Backend
         framePixelUniforms.View = view.Camera.View;
         framePixelUniforms.InverseViewportSize = Vector2(1.0f / _sceneTarget->GetDesc().Width, 1.0f / _sceneTarget->GetDesc().Height);
         PrepareCaustics(framePixelUniforms);
-        SetLightClusterUniforms(framePixelUniforms);
-        commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 0, &framePixelUniforms, sizeof(framePixelUniforms));
 
         auto fogBulbUniforms = GetFogBulbUniforms(view);
         commandBuffer->PushUniforms(RHI::ShaderStage::Vertex, 3, &fogBulbUniforms, sizeof(fogBulbUniforms));
@@ -2920,6 +2920,10 @@ namespace TEN::Renderer::Backend
 
         UploadFrameData(*commandBuffer, environment);
         _frameStats.UploadTime = GetMilliseconds(uploadStartTime, std::chrono::steady_clock::now());
+
+        // The frame pixel uniforms follow the collection: the cluster uniforms need the dynamic light slice of the view.
+        SetLightClusterUniforms(framePixelUniforms);
+        commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 0, &framePixelUniforms, sizeof(framePixelUniforms));
 
         // Decide which optional passes of FRAME_PASSES run this frame.
         PrepareShadows(environment, environment.InterpolationFactor);

@@ -635,25 +635,19 @@ namespace TEN::Renderer
 			if (!isRoomReflected && !renderView.Camera.Frustum.SphereInFrustum(rendererStatic.Sphere.Center, rendererStatic.Sphere.Radius))
 				continue;
 
-			// Collect lights.
-			auto lights = std::vector<RendererLight*>{};
-			auto cachedRoomLights = std::vector<RendererLightNode>{};
-			if (rendererObj.ObjectMeshes.front()->LightMode != LightMode::Static)
+			// Collect the room lights once and keep them until the cache is invalidated: dynamic lights reach statics
+			// through the light clusters of the scene renderer, so the list does not change between frames.
+			if (rendererObj.ObjectMeshes.front()->LightMode == LightMode::Static)
 			{
-				if (rendererStatic.CacheLights || _invalidateCache)
-				{
-					// Collect all lights and return cached light for next frames.
-					CollectLights(rendererStatic.Pose.Position.ToVector3(), ITEM_LIGHT_COLLECTION_RADIUS, rendererRoom.RoomNumber, NO_VALUE, false, false, &cachedRoomLights, &lights);
-					rendererStatic.CacheLights = false;
-					rendererStatic.CachedRoomLights = cachedRoomLights;
-				}
-				else
-				{
-					// Collect only dynamic lights and use cached lights from rooms.
-					CollectLights(rendererStatic.Pose.Position.ToVector3(), ITEM_LIGHT_COLLECTION_RADIUS, rendererRoom.RoomNumber, NO_VALUE, false, true, &rendererStatic.CachedRoomLights, &lights);
-				}
+				rendererStatic.LightsToDraw.clear();
 			}
-			rendererStatic.LightsToDraw = lights;
+			else if (rendererStatic.CacheLights || _invalidateCache)
+			{
+				auto cachedRoomLights = std::vector<RendererLightNode>{};
+				CollectLights(rendererStatic.Pose.Position.ToVector3(), ITEM_LIGHT_COLLECTION_RADIUS, rendererRoom.RoomNumber, NO_VALUE, false, false, &cachedRoomLights, &rendererStatic.LightsToDraw, false);
+				rendererStatic.CacheLights = false;
+				rendererStatic.CachedRoomLights = cachedRoomLights;
+			}
 
 			if (renderView.SortedStaticsToDraw.find(rendererStatic.ObjectNumber) == renderView.SortedStaticsToDraw.end())
 			{
@@ -664,9 +658,11 @@ namespace TEN::Renderer
 		}
 	}
 
-	// Gathers the lights affecting a sphere: dynamic lights first, then lights of the room and its neighbours (or the
-	// cached room lights). Outputs at most MAX_LIGHTS_PER_ITEM lights, with the brightest shadow caster first if requested.
-	void Renderer::CollectLights(const Vector3& pos, float radius, int roomNumber, int prevRoomNumber, bool prioritizeShadowLight, bool useCachedRoomLights, std::vector<RendererLightNode>* roomsLights, std::vector<RendererLight*>* outputLights)
+	// Gathers the lights affecting a sphere: dynamic lights first (unless isDynamicIncluded is false, for objects lit by
+	// the light clusters), then lights of the room and its neighbours (or the cached room lights). Outputs at most
+	// MAX_LIGHTS_PER_ITEM lights, with the brightest shadow caster first if requested.
+	void Renderer::CollectLights(const Vector3& pos, float radius, int roomNumber, int prevRoomNumber, bool prioritizeShadowLight, bool useCachedRoomLights,
+								 std::vector<RendererLightNode>* roomsLights, std::vector<RendererLight*>* outputLights, bool isDynamicIncluded)
 	{
 		if (_rooms.size() <= roomNumber)
 			return;
@@ -683,6 +679,9 @@ namespace TEN::Renderer
 		// Dynamic lights have the priority
 		for (auto& light : _dynamicLights[_dynamicLightList])
 		{
+			if (!isDynamicIncluded)
+				break;
+
 			float distSqr = Vector3::DistanceSquared(pos, light.Position);
 
 			// Collect only lights nearer than 20 sectors
@@ -847,12 +846,12 @@ namespace TEN::Renderer
 	
 	void Renderer::CollectLightsForEffect(short roomNumber, RendererEffect* effect)
 	{
-		CollectLights(effect->Position, ITEM_LIGHT_COLLECTION_RADIUS, roomNumber, NO_VALUE, false, false, nullptr, &effect->LightsToDraw);
+		CollectLights(effect->Position, ITEM_LIGHT_COLLECTION_RADIUS, roomNumber, NO_VALUE, false, false, nullptr, &effect->LightsToDraw, false);
 	}
 
 	void Renderer::CollectLightsForItem(RendererItem* item)
 	{
-		CollectLights(item->Position, ITEM_LIGHT_COLLECTION_RADIUS, item->RoomNumber, item->PrevRoomNumber, false, false, nullptr, &item->LightsToDraw);
+		CollectLights(item->Position, ITEM_LIGHT_COLLECTION_RADIUS, item->RoomNumber, item->PrevRoomNumber, false, false, nullptr, &item->LightsToDraw, false);
 	}
 
 	// Blends the ambient light of an item from its previous room to the current one after a room change.

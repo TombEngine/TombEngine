@@ -90,7 +90,7 @@ namespace TEN::Renderer::Backend
     static_assert(sizeof(SkyVertexUniforms) == 160, "SkyVertexUniforms size.");
     static_assert(sizeof(SkyPixelUniforms) == 32, "SkyPixelUniforms size.");
     static_assert(sizeof(FogBulbUniforms) == 2064, "FogBulbUniforms size.");
-    static_assert(sizeof(FramePixelUniforms) == 208, "FramePixelUniforms size.");
+    static_assert(sizeof(FramePixelUniforms) == 224, "FramePixelUniforms size.");
     static_assert(sizeof(DrawPixelUniforms) == 48, "DrawPixelUniforms size.");
     static_assert(sizeof(GpuShadowUniforms) == 720, "GpuShadowUniforms size.");
     static_assert(sizeof(OverlayUniforms) == 16, "OverlayUniforms size.");

@@ -1246,7 +1246,7 @@ namespace TEN::Renderer::Backend
         RHI::ITexture* GetSpriteTexture(const Structures::RendererSprite* sprite) const;
         bool           AddSprite(const Structures::RendererSpriteToDraw& sprite, const RenderView& view, const Structures::RendererMirror* mirror = nullptr);
         void           CollectSprites(const RenderView& view);
-        void           DrawSpriteRun(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const SpriteDraw& draw, const RHI::IGraphicsPipeline*& lastPipeline, const RHI::ITexture*& lastTexture, bool isSky = false, DrawCategory category = DrawCategory::Sprites);
+        void           DrawSpriteRun(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const SpriteDraw& draw, const RHI::IGraphicsPipeline*& lastPipeline, const RHI::ITexture*& lastTexture, bool isSky = false, DrawCategory category = DrawCategory::Sprites, bool isMirrored = false);
         void           SetSkySpriteMoon(Vector3& direction, float& diskCosRadius) const;
         void           DrawSprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
 

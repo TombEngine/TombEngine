@@ -1,5 +1,5 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=4 uniform_buffers=4
-// TEN_SHADER: Pixel PS samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 options=NO_ALPHA_TEST,NO_NORMAL_MAP,NO_ORSH_MAP,NO_EMISSIVE_MAP
+// TEN_SHADER: Pixel PS samplers=9 storage_textures=0 storage_buffers=4 uniform_buffers=3 options=NO_ALPHA_TEST,NO_NORMAL_MAP,NO_ORSH_MAP,NO_EMISSIVE_MAP
 // TEN_SHADER: Pixel PSDepthNormal samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 options=NO_ALPHA_TEST,NO_NORMAL_MAP,NO_ORSH_MAP,NO_EMISSIVE_MAP
 // TEN_SHADER: Pixel PSShadow samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3
 // TEN_SHADER: Vertex VSInventory samplers=0 storage_textures=0 storage_buffers=4 uniform_buffers=4
@@ -27,6 +27,9 @@ TEN_VS_RAW_BUFFER(GpuObjectInstance, Instances, 2);
 TEN_VS_RAW_BUFFER(BoneTransform, Bones, 3);
 
 TEN_PS_RAW_BUFFER(GpuLight, Lights, 9);
+TEN_PS_RAW_BUFFER(uint2, LightClusters, 12);
+
+#include "./LightClusters.hlsli"
 
 struct VertexInput
 {
@@ -62,40 +65,74 @@ struct PixelInput
     float4 FogBulbs                     : TEXCOORD13;
 };
 
-// Dynamic light mode: ambient minus shadow lights, plus diffuse and specular of the instance's light slice,
-// all modulated by the vertex color. Fog bulb density darkens the result before fog bulb color is added.
-float3 CombineLights(float3 ambient, float3 vertexLight, float3 position, Surface surface, float sheen, uint2 lightSlice, float fogDensity)
+// Diffuse and specular of one light; shadow lights darken the ambient term instead.
+void AddLight(GpuLight light, float3 position, Surface surface, float sheen, inout float3 diffuse, inout float3 specular, inout float3 shadow)
+{
+    float3 normal = surface.Normal;
+    if (light.Type == LT_SUN)
+    {
+        diffuse += DoDirectionalLight(normal, light);
+        specular += DoSpecularSun(normal, CameraDirection, light, sheen, surface.Specular, surface.Roughness);
+    }
+    else if (light.Type == LT_POINT)
+    {
+        diffuse += DoPointLight(position, normal, light);
+        specular += DoSpecularPoint(position, normal, CameraDirection, light, sheen, surface.Specular, surface.Roughness);
+    }
+    else if (light.Type == LT_SPOT)
+    {
+        diffuse += DoSpotLight(position, normal, light);
+        specular += DoSpecularSpot(position, normal, CameraDirection, light, sheen, surface.Specular, surface.Roughness);
+    }
+    else if (light.Type == LT_SHADOW)
+    {
+        shadow += DoShadowLight(position, normal, light);
+    }
+}
+
+// Dynamic lights of the view that reach the light cluster of the position, or all of them outside the cluster grid.
+void AddClusterLights(float3 position, Surface surface, float sheen, inout float3 diffuse, inout float3 specular, inout float3 shadow)
+{
+    uint count = min(ClusterLightCount, LIGHTS_PER_DRAW_MAX);
+    uint2 mask;
+    if (count <= LIGHT_CLUSTER_LIGHTS_MAX && GetClusterLightMask(position, mask))
+    {
+        [loop]
+        for (uint word = 0; word < 2; word++)
+        {
+            uint bits = (word == 0) ? mask.x : mask.y;
+
+            [loop]
+            while (bits != 0)
+            {
+                uint index = (word * 32) + firstbitlow(bits);
+                bits &= bits - 1;
+                AddLight(TEN_LOAD_RAW(GpuLight, Lights, ClusterLightOffset + index), position, surface, sheen, diffuse, specular, shadow);
+            }
+        }
+    }
+    else
+    {
+        for (uint i = 0; i < count; i++)
+            AddLight(TEN_LOAD_RAW(GpuLight, Lights, ClusterLightOffset + i), position, surface, sheen, diffuse, specular, shadow);
+    }
+}
+
+// Dynamic light mode: ambient minus shadow lights, plus diffuse and specular of the instance's light slice and, for
+// instances with INSTANCE_CLUSTER_LIGHTS_FLAG, of the clustered dynamic lights, all modulated by the vertex color.
+// Fog bulb density darkens the result before fog bulb color is added.
+float3 CombineLights(float3 ambient, float3 vertexLight, float3 position, Surface surface, float sheen, uint2 lightSlice, uint lightMode, float fogDensity)
 {
     float3 diffuse = 0.0f;
     float3 shadow = 0.0f;
     float3 specular = 0.0f;
 
-    float3 normal = surface.Normal;
     uint count = min(lightSlice.y & LT_MASK, LIGHTS_PER_DRAW_MAX);
     for (uint i = 0; i < count; i++)
-    {
-        GpuLight light = TEN_LOAD_RAW(GpuLight, Lights, lightSlice.x + i);
+        AddLight(TEN_LOAD_RAW(GpuLight, Lights, lightSlice.x + i), position, surface, sheen, diffuse, specular, shadow);
 
-        if (light.Type == LT_SUN)
-        {
-            diffuse += DoDirectionalLight(normal, light);
-            specular += DoSpecularSun(normal, CameraDirection, light, sheen, surface.Specular, surface.Roughness);
-        }
-        else if (light.Type == LT_POINT)
-        {
-            diffuse += DoPointLight(position, normal, light);
-            specular += DoSpecularPoint(position, normal, CameraDirection, light, sheen, surface.Specular, surface.Roughness);
-        }
-        else if (light.Type == LT_SPOT)
-        {
-            diffuse += DoSpotLight(position, normal, light);
-            specular += DoSpecularSpot(position, normal, CameraDirection, light, sheen, surface.Specular, surface.Roughness);
-        }
-        else if (light.Type == LT_SHADOW)
-        {
-            shadow += DoShadowLight(position, normal, light);
-        }
-    }
+    if (lightMode & INSTANCE_CLUSTER_LIGHTS_FLAG)
+        AddClusterLights(position, surface, sheen, diffuse, specular, shadow);
 
     shadow = saturate(shadow * COLOR_MODULATION_SCALE);
     float3 texel = surface.Color.rgb;
@@ -172,7 +209,7 @@ float4 PS(PixelInput input) : SV_TARGET
     // Static light mode uses the baked vertex light only.
     float3 vertexLight = input.Color.rgb * COLOR_MODULATION_SCALE;
     float3 color = ((input.LightMode & INSTANCE_LIGHT_MODE_MASK) == LIGHT_MODE_DYNAMIC) ?
-        CombineLights(input.AmbientLight * COLOR_MODULATION_SCALE, vertexLight, input.WorldPosition, surface, input.Sheen, input.LightSlice, input.FogBulbs.w) :
+        CombineLights(input.AmbientLight * COLOR_MODULATION_SCALE, vertexLight, input.WorldPosition, surface, input.Sheen, input.LightSlice, input.LightMode, input.FogBulbs.w) :
         saturate(surface.Color.rgb * vertexLight + surface.Emissive - input.FogBulbs.w);
 
     // Only instances that do not cast shadows receive them.
