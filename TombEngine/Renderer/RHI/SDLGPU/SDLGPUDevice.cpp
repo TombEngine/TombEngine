@@ -831,7 +831,7 @@ namespace TEN::Renderer::RHI::SDLGPU
     {
     private:
         std::vector<std::string>   _debugGroups = {};
-        std::vector<unsigned char> _uniforms[3][MAX_UNIFORM_SLOTS] = {}; // Pushed again on each part of a split command buffer.
+        std::vector<unsigned char> _uniforms[3][MAX_UNIFORM_SLOTS] = {}; // Pushed again on each part of a split command buffer and after blits.
         std::string                _partName    = {};
         std::string                _frameName   = {};
         bool                       _hasPartWork = false;
@@ -862,6 +862,13 @@ namespace TEN::Renderer::RHI::SDLGPU
             for (const auto& name : _debugGroups)
                 SDL_PushGPUDebugGroup(Handle, name.c_str());
 
+            RestoreUniforms();
+            _hasPartWork = false;
+            return true;
+        }
+
+        void RestoreUniforms()
+        {
             for (int stage = 0; stage < 3; stage++)
             {
                 for (int slot = 0; slot < MAX_UNIFORM_SLOTS; slot++)
@@ -871,9 +878,6 @@ namespace TEN::Renderer::RHI::SDLGPU
                         PushUniformData((ShaderStage)stage, slot, data.data(), (int)data.size());
                 }
             }
-
-            _hasPartWork = false;
-            return true;
         }
 
         void PushUniformData(ShaderStage stage, int slot, const void* data, int size)
@@ -1023,9 +1027,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             Counters.UniformPushes++;
             Counters.UniformBytes += size;
             PushUniformData(stage, slot, data, size);
-
-            if (Profiler != nullptr)
-                _uniforms[(int)stage][slot].assign((const unsigned char*)data, (const unsigned char*)data + size);
+            _uniforms[(int)stage][slot].assign((const unsigned char*)data, (const unsigned char*)data + size);
         }
 
         void BlitTexture(ITexture* source, ITexture* destination) override
@@ -1045,6 +1047,9 @@ namespace TEN::Renderer::RHI::SDLGPU
             SDL_BlitGPUTexture(Handle, &blitInfo);
             Counters.Blits++;
             _hasPartWork = true;
+
+            // Without a native blit (Direct3D 12), SDL draws it with its own pixel uniforms in slot 0.
+            RestoreUniforms();
         }
 
         void BeginRecording(SDLGPUProfiler* profiler)

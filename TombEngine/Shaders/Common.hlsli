@@ -31,6 +31,18 @@ float LinearizeDepth(float depth, float nearPlane, float farPlane)
     return (nearPlane * 2.0f) / (farPlane + nearPlane - depth * (farPlane - nearPlane));
 }
 
+// Texel and layer of a direction in the dual paraboloid sky map. The paraboloid view looks down -Y with X up, which
+// maps a direction to (z, x, y).
+float3 GetSkyReflectionCoordinates(float3 reflection)
+{
+    float3 direction = normalize(reflection.zxy);
+
+    float2 uv = (direction.xy / max(1.0f + abs(direction.z), 1e-6f)) * 0.5f + 0.5f;
+    uv = clamp(0.5f + (uv - 0.5f) * 0.985f, 1e-6f, 1.0f - 1e-6f); // Crop hemisphere edges.
+    uv.y = 1.0f - uv.y;
+    return float3(uv, (direction.z <= 0.0f) ? 0.0f : 1.0f);
+}
+
 float Luma(float3 color)
 {
     return (color.x * 0.2126f) + (color.y * 0.7152f) + (color.z * 0.0722f);

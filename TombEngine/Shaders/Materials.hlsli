@@ -221,17 +221,11 @@ float GetAmbientOcclusion(GpuMaterial material, float2 screenUV, float exponent,
 }
 
 // The exaggerated reflection vector picks a texel of the dual paraboloid sky.
-// The paraboloid view looks down -Y with X up, which maps a direction to (z, x, y).
 float3 SampleSkyReflection(float3 position, float3 cameraPosition, float3 normal)
 {
     float3 viewVector = normalize(cameraPosition - position);
     float3 reflection = normalize(lerp(viewVector, reflect(-viewVector, normal), 1.5f));
-    float3 direction = normalize(reflection.zxy);
-
-    float2 uv = (direction.xy / max(1.0f + abs(direction.z), 1e-6f)) * 0.5f + 0.5f;
-    uv = clamp(0.5f + (uv - 0.5f) * 0.985f, 1e-6f, 1.0f - 1e-6f); // Crop hemisphere edges.
-    uv.y = 1.0f - uv.y;
-    return SkyReflectionMap.Sample(SkyReflectionMapSampler, float3(uv, (direction.z <= 0.0f) ? 0.0f : 1.0f)).rgb;
+    return SkyReflectionMap.Sample(SkyReflectionMapSampler, GetSkyReflectionCoordinates(reflection)).rgb;
 }
 
 // The view space reflection vector picks a texel of the previous frame,
