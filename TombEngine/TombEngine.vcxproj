@@ -1609,7 +1609,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <None Include="Shaders\Rooms.hlsl" />
     <None Include="Shaders\SMAA.hlsli" />
     <None Include="Shaders\SMAACommon.hlsli" />
-    <None Include="Shaders\SMAAMedium.hlsl" />
     <None Include="Shaders\SMAAUltra.hlsl" />
     <None Include="Shaders\GTAO.hlsl" />
     <None Include="Shaders\ShaderInterop.hlsli" />

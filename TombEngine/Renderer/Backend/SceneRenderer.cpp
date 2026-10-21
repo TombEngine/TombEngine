@@ -195,8 +195,6 @@ namespace TEN::Renderer::Backend
         _rcasPipeline = nullptr;
         _easuPixelShader = nullptr;
         _rcasPixelShader = nullptr;
-        _fxaaPipeline = nullptr;
-        _fxaaPixelShader = nullptr;
         _gtaoPipeline = nullptr;
         _aoTemporalPipeline = nullptr;
         _aoVertexShader = nullptr;
@@ -272,8 +270,7 @@ namespace TEN::Renderer::Backend
             target = nullptr;
 
         _dofVertexShader = nullptr;
-        for (auto& preset : _smaaPresets)
-            preset = SmaaPreset{};
+        _smaa = SmaaPreset{};
 
         _smaaAreaTexture = nullptr;
         _smaaSearchTexture = nullptr;

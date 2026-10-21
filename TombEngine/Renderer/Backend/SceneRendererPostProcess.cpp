@@ -2,7 +2,7 @@
 // before the sky pass and accumulates distortion surfaces into the half resolution distortion target. "Post-process"
 // runs after the glow pass: a single fullscreen pass at scene resolution that composes the scene target with
 // distortion, glow, the DOF layers and lens flares and applies color scheme, fade, cinematic bars, tint and gamma.
-// It writes the frame target directly, or through FXAA/SMAA (SceneRendererSMAA.cpp) and the FSR 1 upscale source.
+// It writes the frame target directly, or through SMAA (SceneRendererSMAA.cpp) and the FSR 1 upscale source.
 
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
@@ -63,7 +63,7 @@ namespace TEN::Renderer::Backend
         return _device->CreateGraphicsPipeline(GetFullscreenPipelineDesc(vertexShader, pixelShader, format, name));
     }
 
-    // Post-process and FXAA pipelines; both write the swapchain format.
+    // Post-process pipeline, which writes the swapchain format.
     bool SceneRenderer::CreatePostProcessResources()
     {
         _postProcessVertexShader = LoadShader(*_device, _shaderDirectory, "PostProcess", "VS");
@@ -72,13 +72,7 @@ namespace TEN::Renderer::Backend
             return false;
 
         _postProcessPipeline = CreateFullscreenPipeline(_postProcessVertexShader.get(), _postProcessPixelShader.get(), _device->GetSwapchainFormat(), "PostProcess");
-
-        _fxaaPixelShader = LoadShader(*_device, _shaderDirectory, "PostProcess", "PSFXAA");
-        if (_fxaaPixelShader == nullptr)
-            return false;
-
-        _fxaaPipeline = CreateFullscreenPipeline(_postProcessVertexShader.get(), _fxaaPixelShader.get(), _device->GetSwapchainFormat(), "FXAA");
-        return (_postProcessPipeline != nullptr && _fxaaPipeline != nullptr);
+        return (_postProcessPipeline != nullptr);
     }
 
     // Enables the distortion pass: true when any collected sprite, object bucket or visible room bucket distorts.
@@ -129,7 +123,7 @@ namespace TEN::Renderer::Backend
     }
 
     // Single fullscreen pass from the scene target to the frame target, or to the upscale source below native scale.
-    // With antialiasing it writes the antialiasing source, which FXAA or SMAA then resolve into that output.
+    // With SMAA it writes the antialiasing source, which SMAA then resolves into that output.
     void SceneRenderer::RenderPostProcess(ICommandBuffer& commandBuffer)
     {
         const auto& environment = *_frameEnvironment;
@@ -193,7 +187,7 @@ namespace TEN::Renderer::Backend
         commandBuffer.EndRenderPass();
 
         if (isAntialiased)
-            RenderAntialiasing(commandBuffer, environment.AntialiasingMode, _antialiasingSource.get(), outputTarget);
+            RenderAntialiasing(commandBuffer, _antialiasingSource.get(), outputTarget);
 
         // The temporal antialiasing softens the image; RCAS sharpens it while the overlay draws it, as it does for the FSR
         // upscale.

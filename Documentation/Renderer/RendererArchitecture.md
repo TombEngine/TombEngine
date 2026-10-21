@@ -183,7 +183,7 @@ skipped when the flag is false for the frame.
 | 9 | DOF | Depth of field active | Near and far blur layers | Unused layers are skipped. |
 | 10 | Reflections | Reflective materials | Half resolution copy of the scene | Read by reflective materials in the next frame. |
 | 11 | Glow | A visible emissive material | Downscaled, blurred emissive | Added by the post-process. |
-| 12 | Post-process | Always | Color target | Distortion, glow, tint, color scheme, gamma, fade, cinematic bars, lens flares; then FXAA (low) or SMAA (medium, high), not with TAA. |
+| 12 | Post-process | Always | Color target | Distortion, glow, tint, color scheme, gamma, fade, cinematic bars, lens flares; then SMAA (ultra preset) when the SMAA mode is set. |
 | 13 | Upscale | Render scale below native, fixed or dynamic, without TAA | Window resolution color target | AMD FSR 1 EASU, with RCAS applied while the overlay draws the scene. With TAA the resolve upscales instead, and the post-process writes the window resolution directly. |
 
 `FinishFrame` then draws the 2D layer (quads, text, bars, 3D menu objects with their own post-process) over the scene
@@ -385,9 +385,9 @@ Arguments are case insensitive and may start with `-`, `--` or `/`.
 | `backend <name>` | `vulkan`, `dx11`, `d3d12`, `opengl` | Renderer backend for this run, overriding the configuration. Falls back to the others if it cannot start. |
 | `novsync` | | Presents without vertical sync (immediate mode), to measure uncapped frame times. |
 | `nogputiming` | | Disables GPU pass timings during the benchmark. On SDL GPU (Vulkan, Direct3D 12) timings split the command buffers and cost GPU time. |
-| `renderscale <0-5>` | 0 native, 1 ultra quality (1/1.3), 2 quality (1/1.5), 3 balanced (1/1.7), 4 performance (1/2), 5 dynamic | Render scale for this run; below native, TAA upscales the scene temporally, the other modes with FSR 1. |
+| `renderscale <0|2|5>` | 0 native, 2 performance (1/1.5), 5 dynamic; 1, 3 and 4 (fixed scales of older versions) run as 2 | Render scale for this run; below native, TAA upscales the scene temporally, the other modes with FSR 1. |
 | `ssao <0-1>` | | Ambient occlusion off or on for this run. |
-| `antialiasing <0-4>` | 0 none, 1 FXAA, 2 SMAA medium, 3 SMAA high, 4 temporal (TAA) | Antialiasing for this run. |
+| `antialiasing <0|3|4>` | 0 none, 3 SMAA, 4 TAA; 1 and 2 (FXAA and SMAA medium of older versions) run as 3 | Antialiasing for this run. The values are the codes stored in the configuration. |
 | `resolution <width> <height>` | pixels | Windowed resolution for this run. |
 | `lowpower` | | Runs on the integrated GPU of hybrid systems. |
 | `rhitest <backend>` | as `backend` | Runs the RHI device test instead of the game (9.5). |
@@ -491,8 +491,8 @@ fps, so menu animations differ more with high framerate on.
 |---|---|---|
 | Renderer | Vulkan, DirectX 11, Direct3D 12, OpenGL | Applied at the next start. |
 | Screen resolution, windowed mode | | |
-| Render scale | Native, ultra quality, quality, balanced, performance, dynamic | Below native, TAA upscales temporally, other antialiasing modes use FSR 1; the material mip bias keeps the texture detail of the window resolution. Dynamic holds the refresh rate (high framerate) or 30 fps between 50% and 100% (section 5.6). |
-| Antialiasing | None, low (FXAA), medium (SMAA), high (SMAA), temporal (TAA) | Menu frames use SMAA high in place of TAA, which needs a history. |
+| Render scale | Native, dynamic, performance (67%) | The upscaler follows the antialiasing: below native, TAA upscales temporally, the other modes use FSR 1. Older configurations with fixed scales load as performance; the material mip bias keeps the texture detail of the window resolution. Dynamic holds the refresh rate (high framerate) or 30 fps between 50% and 100% (section 5.6). |
+| Antialiasing | None, SMAA, TAA | Older configurations with FXAA or SMAA medium load as SMAA. Menu frames use SMAA in place of TAA, which needs a history. |
 | Ambient occlusion | On, off | Half resolution GTAO with temporal accumulation; also requires the level setting. |
 | Shadows | None, player, all | Cube shadow map of one light, map size in the configuration; blob shadows otherwise. |
 | Caustics, decals | On, off | |

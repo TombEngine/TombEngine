@@ -93,7 +93,7 @@ namespace TEN::Renderer::Backend
         float        ColorSchemeStrength = 1.0f;
         float        ScreenFade          = 1.0f;
         float        CinematicBarsHeight = 0.0f;
-        int          AntialiasingMode    = 0; // Antialiasing setting: FXAA for low, SMAA for medium and high.
+        int          AntialiasingMode    = 0; // Antialiasing setting: 0 none, 3 SMAA, 4 TAA (the stored codes).
         float        RenderScale         = 1.0f; // Scene resolution relative to the window; below 1, FSR 1 upscales the scene. 0 is dynamic.
         float        TargetFrameTime     = 0.0f; // Milliseconds per frame the dynamic render scale aims at.
 
@@ -154,7 +154,7 @@ namespace TEN::Renderer::Backend
 
     float GetMilliseconds(std::chrono::steady_clock::time_point start, std::chrono::steady_clock::time_point end);
 
-    // Antialiasing setting of the temporal antialiasing (AntialiasingMode::Temporal); FXAA and SMAA are skipped with it.
+    // Antialiasing setting of the temporal antialiasing (AntialiasingMode::Temporal); SMAA is skipped with it.
     constexpr auto ANTIALIASING_MODE_TEMPORAL = 4;
 
     // Content of a draw call, as the draw call statistics of the frontend.
@@ -528,9 +528,7 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::IShader>           _postProcessPixelShader  = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _postProcessPipeline     = nullptr;
         std::unique_ptr<RHI::ITexture>          _sceneTarget             = nullptr;
-        std::unique_ptr<RHI::IShader>           _fxaaPixelShader         = nullptr;
-        std::unique_ptr<RHI::IGraphicsPipeline> _fxaaPipeline            = nullptr;
-        std::unique_ptr<RHI::ITexture>          _antialiasingSource      = nullptr; // Post-processed image before FXAA.
+        std::unique_ptr<RHI::ITexture>          _antialiasingSource      = nullptr; // Post-processed image before SMAA.
         std::unique_ptr<RHI::ITexture>          _sceneDepthCopy          = nullptr; // R32 float copy of the prepass depth.
         std::unique_ptr<RHI::ITexture>          _distortionTarget        = nullptr;
         std::unique_ptr<RHI::ITexture>          _emissiveTarget          = nullptr; // Prepass emissive, source of the glow.
@@ -652,7 +650,6 @@ namespace TEN::Renderer::Backend
         bool                                    _isDofActive                       = false;
 
         // SMAA antialiasing (SceneRendererSMAA.cpp).
-        static constexpr int SMAA_PRESET_COUNT = 2; // Medium and ultra.
         static constexpr int SMAA_PASS_COUNT   = 3;
 
         struct SmaaPreset
@@ -662,7 +659,7 @@ namespace TEN::Renderer::Backend
             std::unique_ptr<RHI::IGraphicsPipeline> Pipelines[SMAA_PASS_COUNT]    = {};
         };
 
-        SmaaPreset                              _smaaPresets[SMAA_PRESET_COUNT] = {};
+        SmaaPreset                              _smaa                           = {}; // Ultra preset.
         RHI::PixelFormat                        _smaaStencilFormat              = RHI::PixelFormat::Unknown; // Unknown without stencil support.
         std::unique_ptr<RHI::ITexture>          _smaaAreaTexture                = nullptr;
         std::unique_ptr<RHI::ITexture>          _smaaSearchTexture              = nullptr;
@@ -1292,9 +1289,9 @@ namespace TEN::Renderer::Backend
                                    const RHI::TextureSamplerBinding* bindings, int bindingCount, const char* name, RHI::LoadOp load = RHI::LoadOp::DontCare,
                                    const RHI::DepthTargetInfo* depthTarget = nullptr);
 
-        // FXAA and SMAA antialiasing (SceneRendererSMAA.cpp).
+        // SMAA antialiasing (SceneRendererSMAA.cpp).
         bool  CreateSMAAResources();
-        void  RenderAntialiasing(RHI::ICommandBuffer& commandBuffer, int antialiasingMode, RHI::ITexture* source, RHI::ITexture* target);
+        void  RenderAntialiasing(RHI::ICommandBuffer& commandBuffer, RHI::ITexture* source, RHI::ITexture* target);
         void  GetSMAATargetDescs(const RHI::TextureDesc& targetDesc, RHI::TextureDesc& edgesDesc, RHI::TextureDesc& weightsDesc, RHI::TextureDesc& stencilDesc) const;
         std::unique_ptr<RHI::IGraphicsPipeline> CreateSMAAPipeline(const SmaaPreset& preset, int pass, const char* name);
 

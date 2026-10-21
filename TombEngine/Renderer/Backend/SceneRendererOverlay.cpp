@@ -763,7 +763,7 @@ namespace TEN::Renderer::Backend
         }
 
         if (ui.AntialiasingMode != 0)
-            RenderAntialiasing(commandBuffer, ui.AntialiasingMode, _overlayTargets.AntialiasingSource, _finalTarget.get());
+            RenderAntialiasing(commandBuffer, _overlayTargets.AntialiasingSource, _finalTarget.get());
         else
             commandBuffer.BlitTexture(_overlayTargets.AntialiasingSource, _finalTarget.get());
 

@@ -80,6 +80,8 @@ struct GameConfiguration
 };
 
 void InitDefaultConfiguration();
+AntialiasingMode GetAntialiasingMode(int value);
+RenderScaleMode GetRenderScaleMode(int value);
 bool LoadConfiguration();
 bool SaveConfiguration();
 void SetAudioConfiguration(const GameConfiguration& config);

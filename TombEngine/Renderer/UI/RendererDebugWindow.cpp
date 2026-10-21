@@ -107,12 +107,12 @@ namespace TEN::Renderer
 		AddStatRow("Frontend frame time", "%d ms", _timeFrame);
 		AddStatRow("Screen resolution", "%d x %d", _screenWidth, _screenHeight);
 		AddStatRow("Windowed", YesNo(g_Configuration.EnableWindowedMode));
-		constexpr const char* ANTIALIASING_NAMES[] = { "none", "low (FXAA)", "medium (SMAA)", "high (SMAA)", "temporal (TAA)" };
 		constexpr const char* SHADOW_NAMES[] = { "none", "player", "all" };
 		constexpr const char* QUALITY_NAMES[] = { "low", "medium", "high" };
-		AddStatRow("Antialiasing", "%s", ANTIALIASING_NAMES[std::clamp((int)g_Configuration.AntialiasingMode, 0, (int)AntialiasingMode::Temporal)]);
-		constexpr const char* RENDER_SCALE_NAMES[] = { "native", "ultra quality (FSR 1)", "quality (FSR 1)", "balanced (FSR 1)", "performance (FSR 1)", "dynamic (FSR 1)" };
-		AddStatRow("Render scale", "%s", RENDER_SCALE_NAMES[std::clamp((int)g_Configuration.RenderScale, 0, (int)RenderScaleMode::Count - 1)]);
+		auto antialiasing = g_Configuration.AntialiasingMode;
+		AddStatRow("Antialiasing", "%s", (antialiasing == AntialiasingMode::Temporal) ? "TAA" : ((antialiasing == AntialiasingMode::Smaa) ? "SMAA" : "none"));
+		auto renderScale = g_Configuration.RenderScale;
+		AddStatRow("Render scale", "%s", (renderScale == RenderScaleMode::Dynamic) ? "dynamic" : ((renderScale == RenderScaleMode::Performance) ? "performance (67%)" : "native"));
 		AddStatRow("Shadows", "%s", SHADOW_NAMES[std::clamp((int)g_Configuration.ShadowType, 0, 2)]);
 		AddStatRow("Shadow map size", "%d", g_Configuration.ShadowMapSize);
 		AddStatRow("Ambient occlusion", YesNo(g_Configuration.EnableAmbientOcclusion));

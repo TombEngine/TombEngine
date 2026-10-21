@@ -1,10 +1,9 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=0
 // TEN_SHADER: Pixel PS samplers=6 storage_textures=0 storage_buffers=0 uniform_buffers=3
-// TEN_SHADER: Pixel PSFXAA samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
 
 // Distortion, depth of field, glow, lens flares, color scheme (monochrome, negative, exclusion), screen fade,
 // cinematic bars, tint and gamma in a single pass (SceneRendererPostProcess.cpp). PS reads the scene, the
-// distortion payload, the depth copy and the glow and depth of field targets; PSFXAA antialiases its output.
+// distortion payload, the depth copy and the glow and depth of field targets.
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -270,47 +269,3 @@ float4 PS(FullscreenPixelInput input) : SV_Target
     return float4(color, 1.0f);
 }
 
-// FXAA for the low antialiasing mode, sampling the post-processed image with a linear sampler.
-#define FXAA_SPAN_MAX   8.0f
-#define FXAA_REDUCE_MUL (1.0f / 4.0f)
-#define FXAA_REDUCE_MIN (1.0f / 64.0f)
-
-float3 SampleScene(float2 uv)
-{
-    return SceneMap.SampleLevel(SceneMapSampler, uv, 0.0f).rgb;
-}
-
-// Blurs along the edge direction estimated from the luma gradient of the four diagonal neighbors; the wider
-// four tap result is rejected when its luma leaves the local range.
-float4 PSFXAA(FullscreenPixelInput input) : SV_Target
-{
-    float width = 0.0f;
-    float height = 0.0f;
-    SceneMap.GetDimensions(width, height);
-    float2 texel = float2(1.0f / width, 1.0f / height);
-
-    float3 rgbNW = SampleScene(input.UV + float2(-texel.x, -texel.y));
-    float3 rgbNE = SampleScene(input.UV + float2(texel.x, -texel.y));
-    float3 rgbSW = SampleScene(input.UV + float2(-texel.x, texel.y));
-    float3 rgbSE = SampleScene(input.UV + float2(texel.x, texel.y));
-    float3 rgbM = SampleScene(input.UV);
-
-    float lumaNW = Luma(rgbNW);
-    float lumaNE = Luma(rgbNE);
-    float lumaSW = Luma(rgbSW);
-    float lumaSE = Luma(rgbSE);
-    float lumaM = Luma(rgbM);
-    float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
-    float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
-
-    float2 direction = float2(-((lumaNW + lumaNE) - (lumaSW + lumaSE)), (lumaNW + lumaSW) - (lumaNE + lumaSE));
-    float directionReduce = max((lumaNW + lumaNE + lumaSW + lumaSE) * (0.25f * FXAA_REDUCE_MUL), FXAA_REDUCE_MIN);
-    float rcpDirectionMin = 1.0f / (min(abs(direction.x), abs(direction.y)) + directionReduce);
-    direction = clamp(direction * rcpDirectionMin, -FXAA_SPAN_MAX, FXAA_SPAN_MAX) * texel;
-
-    float3 rgbA = 0.5f * (SampleScene(input.UV + direction * (1.0f / 3.0f - 0.5f)) + SampleScene(input.UV + direction * (2.0f / 2.0f - 0.5f)));
-    float3 rgbB = rgbA * 0.5f + 0.25f * (SampleScene(input.UV + direction * -0.5f) + SampleScene(input.UV + direction * 0.5f));
-
-    float lumaB = Luma(rgbB);
-    return float4(((lumaB < lumaMin) || (lumaB > lumaMax)) ? rgbA : rgbB, 1.0f);
-}

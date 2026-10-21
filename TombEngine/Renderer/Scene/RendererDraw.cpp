@@ -1129,10 +1129,10 @@ namespace TEN::Renderer
 		environment.CinematicBarsHeight = CinematicBarsHeight;
 		environment.AntialiasingMode = (int)g_Configuration.AntialiasingMode;
 
-		// Scale factors of the AMD FSR 1 quality modes; 0 is the dynamic scale, which holds the refresh rate with high
-		// framerate and 30 frames per second without.
-		constexpr float RENDER_SCALES[(int)RenderScaleMode::Count] = { 1.0f, 1.0f / 1.3f, 1.0f / 1.5f, 1.0f / 1.7f, 0.5f, 0.0f };
-		environment.RenderScale = RENDER_SCALES[std::clamp((int)g_Configuration.RenderScale, 0, (int)RenderScaleMode::Count - 1)];
+		// 0 is the dynamic scale, which holds the refresh rate with high framerate and 30 frames per second without.
+		constexpr auto PERFORMANCE_RENDER_SCALE = 1.0f / 1.5f;
+		environment.RenderScale = (g_Configuration.RenderScale == RenderScaleMode::Dynamic) ? 0.0f :
+			((g_Configuration.RenderScale == RenderScaleMode::Performance) ? PERFORMANCE_RENDER_SCALE : 1.0f);
 		environment.TargetFrameTime = 1000.0f / (float)(g_Configuration.EnableHighFramerate ? GetScreenRefreshRate() : FPS);
 
 		// Background video, shown by video animated sets and sprites while it plays.
@@ -1540,7 +1540,7 @@ namespace TEN::Renderer
 			_uiFrame.ScreenHeight = screenResolution.y;
 			_uiFrame.Gamma = g_Configuration.Gamma;
 			// Menu frames have no history for the temporal antialiasing: SMAA replaces it.
-			_uiFrame.AntialiasingMode = (g_Configuration.AntialiasingMode == AntialiasingMode::Temporal) ? (int)AntialiasingMode::High : (int)g_Configuration.AntialiasingMode;
+			_uiFrame.AntialiasingMode = (g_Configuration.AntialiasingMode == AntialiasingMode::Temporal) ? (int)AntialiasingMode::Smaa : (int)g_Configuration.AntialiasingMode;
 			if (IsVideoSpriteActive())
 			{
 				auto videoSize = TEN::Video::g_VideoPlayer.GetFrameSize();

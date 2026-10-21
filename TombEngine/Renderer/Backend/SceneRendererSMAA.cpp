@@ -1,5 +1,5 @@
-// Antialiasing resolve: FXAA or SMAA 1x (medium or ultra preset), called at the end of the post-process pass (and by
-// the overlay composition) when an antialiasing mode is set. Reads an antialiasing source and writes the given target
+// Antialiasing resolve: SMAA 1x with the ultra preset, called at the end of the post-process pass (and by the overlay
+// composition) when the SMAA antialiasing mode is set. Reads an antialiasing source and writes the given target
 // at its resolution: the frame target or the upscale source after the post-process, the final target for the overlay.
 // SMAA uses pooled edge, weight and stencil targets and the precomputed area and search textures in SMAA/.
 
@@ -14,9 +14,6 @@ using namespace TEN::Renderer::RHI;
 
 namespace TEN::Renderer::Backend
 {
-    constexpr auto ANTIALIASING_MODE_LOW    = 1;
-    constexpr auto ANTIALIASING_MODE_MEDIUM = 2;
-
     constexpr auto SMAA_EDGE_STENCIL = 1;
 
     // As in the original SMAA, edge detection marks the edge pixels in a stencil, and the blending weights, by far the
@@ -39,10 +36,10 @@ namespace TEN::Renderer::Backend
     }
 
     // Picks a stencil format for the edge mask (none if unsupported, then weights run on every pixel), builds the
-    // three pipelines of both presets and uploads the area and search lookup textures.
+    // three pipelines and uploads the area and search lookup textures.
     bool SceneRenderer::CreateSMAAResources()
     {
-        const char* shaderNames[SMAA_PRESET_COUNT] = { "SMAAMedium", "SMAAUltra" };
+        constexpr auto SHADER_NAME = "SMAAUltra";
         const char* entryPoints[SMAA_PASS_COUNT] = { "PSEdgeDetection", "PSBlendingWeight", "PSNeighborhoodBlending" };
 
         _smaaStencilFormat = PixelFormat::Unknown;
@@ -55,24 +52,20 @@ namespace TEN::Renderer::Backend
             }
         }
 
-        for (int preset = 0; preset < SMAA_PRESET_COUNT; preset++)
+        _smaa.VertexShader = LoadShader(*_device, _shaderDirectory, SHADER_NAME, "VS");
+        if (_smaa.VertexShader == nullptr)
+            return false;
+
+        for (int pass = 0; pass < SMAA_PASS_COUNT; pass++)
         {
-            auto& resources = _smaaPresets[preset];
-            resources.VertexShader = LoadShader(*_device, _shaderDirectory, shaderNames[preset], "VS");
-            if (resources.VertexShader == nullptr)
+            _smaa.PixelShaders[pass] = LoadShader(*_device, _shaderDirectory, SHADER_NAME, entryPoints[pass]);
+            if (_smaa.PixelShaders[pass] == nullptr)
                 return false;
 
-            for (int pass = 0; pass < SMAA_PASS_COUNT; pass++)
-            {
-                resources.PixelShaders[pass] = LoadShader(*_device, _shaderDirectory, shaderNames[preset], entryPoints[pass]);
-                if (resources.PixelShaders[pass] == nullptr)
-                    return false;
-
-                auto name = std::string(shaderNames[preset]) + "." + entryPoints[pass];
-                resources.Pipelines[pass] = CreateSMAAPipeline(resources, pass, name.c_str());
-                if (resources.Pipelines[pass] == nullptr)
-                    return false;
-            }
+            auto name = std::string(SHADER_NAME) + "." + entryPoints[pass];
+            _smaa.Pipelines[pass] = CreateSMAAPipeline(_smaa, pass, name.c_str());
+            if (_smaa.Pipelines[pass] == nullptr)
+                return false;
         }
 
         auto desc = TextureDesc{};
@@ -112,19 +105,10 @@ namespace TEN::Renderer::Backend
         stencilDesc.Usage = TextureUsage::DepthStencilTarget;
     }
 
-    // FXAA for the low antialiasing mode, SMAA 1x with the medium or ultra preset for the medium and high modes,
-    // from the post-processed source image to the target.
-    void SceneRenderer::RenderAntialiasing(ICommandBuffer& commandBuffer, int antialiasingMode, ITexture* source, ITexture* target)
+    // SMAA 1x from the post-processed source image to the target: edge detection, blending weights, neighborhood blending.
+    void SceneRenderer::RenderAntialiasing(ICommandBuffer& commandBuffer, ITexture* source, ITexture* target)
     {
-        if (antialiasingMode == ANTIALIASING_MODE_LOW)
-        {
-            auto binding = TextureSamplerBinding{ source, _linearClampSampler.get() };
-            RenderFullscreenPass(commandBuffer, _fxaaPipeline.get(), target, &binding, 1, "FXAA");
-            return;
-        }
-
-        // SMAA: edge detection, blending weights, neighborhood blending.
-        const auto& resources = _smaaPresets[(antialiasingMode == ANTIALIASING_MODE_MEDIUM) ? 0 : 1];
+        const auto& resources = _smaa;
         const auto& desc = target->GetDesc();
         auto metrics = Vector4(1.0f / desc.Width, 1.0f / desc.Height, (float)desc.Width, (float)desc.Height);
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &metrics, sizeof(metrics));

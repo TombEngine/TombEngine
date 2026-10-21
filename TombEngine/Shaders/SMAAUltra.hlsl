@@ -3,7 +3,7 @@
 // TEN_SHADER: Pixel PSBlendingWeight samplers=3 storage_textures=0 storage_buffers=0 uniform_buffers=3
 // TEN_SHADER: Pixel PSNeighborhoodBlending samplers=2 storage_textures=0 storage_buffers=0 uniform_buffers=3
 
-// SMAA for the high antialiasing mode.
+// SMAA for the SMAA antialiasing mode, with the ultra preset.
 
 #define SMAA_PRESET_ULTRA
 #include "./SMAACommon.hlsli"

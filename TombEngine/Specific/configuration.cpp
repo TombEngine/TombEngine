@@ -116,14 +116,14 @@ static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 	g_Configuration.ShadowBlobsMax = config->shadow_blobs_max();
 	g_Configuration.EnableCaustics = config->enable_caustics();
 	g_Configuration.EnableDecals = config->enable_decals();
-	g_Configuration.AntialiasingMode = (AntialiasingMode)config->antialiasing_mode();
+	g_Configuration.AntialiasingMode = GetAntialiasingMode(config->antialiasing_mode());
 	g_Configuration.EnableAmbientOcclusion = config->enable_ambient_occlusion();
 	g_Configuration.EnableHighFramerate = config->enable_high_framerate();
 	g_Configuration.AtmosphericSkyQuality = (AtmosphericSkyQuality)std::clamp(config->atmospheric_sky_quality(), (int)AtmosphericSkyQuality::Low, (int)AtmosphericSkyQuality::High);
 	// The retired legacy renderer, stored as 0, and unknown values use Vulkan.
 	int backend = config->graphics_backend();
 	g_Configuration.GraphicsBackend = (backend >= (int)GraphicsBackend::Vulkan && backend <= (int)GraphicsBackend::OpenGL) ? (GraphicsBackend)backend : GraphicsBackend::Vulkan;
-	g_Configuration.RenderScale = (RenderScaleMode)std::clamp(config->render_scale(), 0, (int)RenderScaleMode::Count - 1);
+	g_Configuration.RenderScale = GetRenderScaleMode(config->render_scale());
 
 	if (config->adapter_name() != nullptr)
 		g_Configuration.AdapterName = config->adapter_name()->str();
@@ -184,6 +184,24 @@ const char* GetGraphicsBackendName(GraphicsBackend backend)
 	}
 }
 
+// Antialiasing mode of a stored code: FXAA (1) and SMAA medium (2) of older versions load as SMAA.
+AntialiasingMode GetAntialiasingMode(int value)
+{
+	if (value >= 1 && value <= 3)
+		return AntialiasingMode::Smaa;
+
+	return (value == (int)AntialiasingMode::Temporal) ? AntialiasingMode::Temporal : AntialiasingMode::None;
+}
+
+// Render scale mode of a stored code: the fixed scales of older versions (1 to 4) load as the performance scale.
+RenderScaleMode GetRenderScaleMode(int value)
+{
+	if (value >= 1 && value <= 4)
+		return RenderScaleMode::Performance;
+
+	return (value == (int)RenderScaleMode::Dynamic) ? RenderScaleMode::Dynamic : RenderScaleMode::Native;
+}
+
 void InitDefaultConfiguration()
 {
 	// Include default device in list.
@@ -199,7 +217,7 @@ void InitDefaultConfiguration()
 	g_Configuration.ShadowBlobsMax = GameConfiguration::DEFAULT_SHADOW_BLOBS_MAX;
 	g_Configuration.EnableCaustics = true;
 	g_Configuration.EnableDecals = true;
-	g_Configuration.AntialiasingMode = AntialiasingMode::Medium;
+	g_Configuration.AntialiasingMode = AntialiasingMode::Smaa;
 	g_Configuration.EnableAmbientOcclusion = true;
 	g_Configuration.EnableHighFramerate = true;
 	g_Configuration.Gamma = 1.0f;

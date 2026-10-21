@@ -351,7 +351,8 @@ int main(int argc, char* argv[])
 		}
 		else if (ArgEquals(arg.c_str(), "renderscale") && i + 1 < argc)
 		{
-			// Render scale mode for this run (0 native to 4 FSR 1 performance, 5 dynamic), overriding the configuration, for benchmarks.
+			// Render scale mode for this run (0 native, 2 performance, 5 dynamic; 1, 3 and 4 as 2), overriding the configuration.
+			// For benchmarks.
 			renderScaleOverride = std::stoi(argv[++i]);
 		}
 		else if (ArgEquals(arg.c_str(), "ssao") && i + 1 < argc)
@@ -484,13 +485,13 @@ int main(int argc, char* argv[])
 	}
 
 	if (renderScaleOverride >= 0)
-		g_Configuration.RenderScale = (RenderScaleMode)std::clamp(renderScaleOverride, 0, (int)RenderScaleMode::Count - 1);
+		g_Configuration.RenderScale = GetRenderScaleMode(renderScaleOverride);
 
 	if (ambientOcclusionOverride >= 0)
 		g_Configuration.EnableAmbientOcclusion = (ambientOcclusionOverride != 0);
 
 	if (antialiasingOverride >= 0)
-		g_Configuration.AntialiasingMode = (AntialiasingMode)std::clamp(antialiasingOverride, 0, (int)AntialiasingMode::Temporal);
+		g_Configuration.AntialiasingMode = GetAntialiasingMode(antialiasingOverride);
 
 	if (widthOverride > 0 && heightOverride > 0)
 	{
