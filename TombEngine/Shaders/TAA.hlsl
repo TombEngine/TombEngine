@@ -1,41 +1,42 @@
-// TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=0
-// TEN_SHADER: Pixel PS samplers=4 storage_textures=0 storage_buffers=0 uniform_buffers=3
+// TEN_SHADER: Compute CS samplers=4 storage_textures=0 storage_buffers=0 uniform_buffers=1 rw_storage_textures=1 threads=16,16,1
 
 // Temporal antialiasing resolve (SceneRendererTAA.cpp), the "TAA" pass after the scene pass. The scene is rendered with
 // a sub-pixel jitter that changes every frame; this pass blends it with the history of the previous frames, fetched
 // where the prepass motion vectors (or the camera motion, for texels without geometry) say the texel was. The history
 // is clamped to the color range of the current neighborhood, so stale history (disocclusions, transparent and
-// animated surfaces without motion vectors) cannot ghost. Writes the antialiased scene and the next history.
+// animated surfaces without motion vectors) cannot ghost. Writes the next history, which the later passes read as the
+// scene. A compute shader: each group gathers the colors, depths and motions of its tile and a one texel border once
+// into group shared memory, so the 3x3 neighborhoods cost no texture fetches.
 
 #include "./ShaderInterop.hlsli"
-#include "./Fullscreen.hlsli"
 
-// Slot 2, so the frame uniforms in slots 0 and 1 stay valid for the scene shaders.
-TEN_PS_UNIFORMS(TemporalUniforms, 2)
+#define GROUP_SIZE 16
+#define TILE_SIZE  (GROUP_SIZE + 2)
+
+TEN_CS_UNIFORMS(TemporalUniforms, 0)
 {
     float4x4 ReprojectionMatrix; // Current unjittered clip space to the previous frame, for texels without geometry.
     float2   TexelSize;
     float    CurrentWeight;      // Share of the current frame in the blend.
     uint     IsHistoryValid;     // False after a camera cut or a target change.
+    int2     TargetSize;
+    uint     FrameIndex;         // Changes the rounding noise every frame.
+    uint     TemporalPadding;
 };
 
-TEN_PS_TEXTURE(Texture2D, CurrentMap, 0);  // Copy of the scene target.
-TEN_PS_TEXTURE(Texture2D, HistoryMap, 1);  // Antialiased scene of the previous frame, linear filtered.
-TEN_PS_TEXTURE(Texture2D, VelocityMap, 2); // Prepass motion in UV units.
-TEN_PS_TEXTURE(Texture2D, DepthMap, 3);    // Prepass depth copy, 1 where no geometry was drawn.
+TEN_CS_TEXTURE(Texture2D, CurrentMap, 0);  // Scene target.
+TEN_CS_TEXTURE(Texture2D, HistoryMap, 1);  // Antialiased scene of the previous frame, linear filtered.
+TEN_CS_TEXTURE(Texture2D, VelocityMap, 2); // Prepass motion in UV units.
+TEN_CS_TEXTURE(Texture2D, DepthMap, 3);    // Prepass depth copy, 1 where no geometry was drawn.
 
-typedef FullscreenPixelInput PixelInput;
+#ifdef __spirv__
+[[vk::image_format("rgba8")]]
+#endif
+TEN_CS_RW_TEXTURE(RWTexture2D<float4>, OutputMap, 0); // Next history, 8 bits per channel.
 
-struct TemporalOutput
-{
-    float4 Color   : SV_Target0;
-    float4 History : SV_Target1;
-};
-
-PixelInput VS(uint vertexId : SV_VertexID)
-{
-    return FullscreenVS(vertexId);
-}
+groupshared float3 TileColors[TILE_SIZE * TILE_SIZE]; // YCoCg.
+groupshared float  TileDepths[TILE_SIZE * TILE_SIZE];
+groupshared float2 TileMotions[TILE_SIZE * TILE_SIZE];
 
 // Luma and chroma: the neighborhood range is tighter in this space than in RGB.
 float3 RGBToYCoCg(float3 color)
@@ -75,6 +76,13 @@ float3 SampleHistoryCatmullRom(float2 uv)
     return max(result / weight, 0.0f);
 }
 
+// Noise in [0, 1) per texel and frame (interleaved gradient noise).
+float GetRoundingNoise(int2 pixel)
+{
+    float2 position = float2(pixel) + 5.588238f * (float)(FrameIndex % 64);
+    return frac(52.982919f * frac(dot(position, float2(0.06711056f, 0.00583715f))));
+}
+
 // Moves a color outside the box toward the box center until it lies on the box.
 float3 ClipToBox(float3 color, float3 boxMin, float3 boxMax)
 {
@@ -86,32 +94,13 @@ float3 ClipToBox(float3 color, float3 boxMin, float3 boxMax)
     return (scale > 1.0f) ? (center + offset / scale) : color;
 }
 
-// Motion of the nearest texel of the 3x3 neighborhood: the edges of a moving object, where the texel itself may belong
-// to the background, follow the object, which keeps them from trailing. Texels without geometry are at the far plane:
+// Motion of the nearest texel of the neighborhood: the edges of a moving object, where the texel itself may belong to
+// the background, follow the object, which keeps them from trailing. Texels without geometry are at the far plane:
 // their motion comes from the camera motion alone.
-float2 GetMotion(float2 uv, int2 pixel, int2 lastPixel)
+float2 GetMotion(float2 uv, int nearestIndex, float depth)
 {
-    int2 nearestPixel = pixel;
-    float depth = DepthMap.Load(int3(pixel, 0)).x;
-
-    [unroll]
-    for (int y = -1; y <= 1; y++)
-    {
-        [unroll]
-        for (int x = -1; x <= 1; x++)
-        {
-            int2 neighborPixel = clamp(pixel + int2(x, y), int2(0, 0), lastPixel);
-            float neighborDepth = DepthMap.Load(int3(neighborPixel, 0)).x;
-            if (neighborDepth < depth)
-            {
-                depth = neighborDepth;
-                nearestPixel = neighborPixel;
-            }
-        }
-    }
-
     if (depth < 1.0f)
-        return VelocityMap.Load(int3(nearestPixel, 0)).xy;
+        return TileMotions[nearestIndex];
 
     float2 ndc = float2(uv.x * 2.0f - 1.0f, 1.0f - uv.y * 2.0f);
     float4 previousClip = mul(float4(ndc, depth, 1.0f), ReprojectionMatrix);
@@ -121,13 +110,58 @@ float2 GetMotion(float2 uv, int2 pixel, int2 lastPixel)
     return (ndc - previousClip.xy / previousClip.w) * float2(0.5f, -0.5f);
 }
 
-TemporalOutput PS(PixelInput input)
+// Colors, depths and motions of the tile of the group and its border, in 2x2 blocks: each block takes six gathers
+// instead of twelve loads, which matters on small GPUs, where the resolve is bound by texture fetches. The point clamp
+// samplers repeat the edge texels for blocks past the target. Gather returns the lower left, lower right, upper right
+// and upper left texels in x, y, z and w.
+void LoadTile(int2 groupOrigin, int threadIndex)
 {
-    int2 pixel = int2(input.Position.xy);
-    int2 lastPixel = int2(1.0f / TexelSize) - 1;
-    float4 current = CurrentMap.Load(int3(pixel, 0));
+    const int BLOCKS = TILE_SIZE / 2;
+    if (threadIndex >= (BLOCKS * BLOCKS))
+        return;
 
-    // Mean and deviation of the 3x3 neighborhood bound the accepted history (variance clipping).
+    int2 block = int2(threadIndex % BLOCKS, threadIndex / BLOCKS);
+    int2 topLeft = groupOrigin - 1 + block * 2;
+    float2 uv = float2(topLeft + 1) * TexelSize;
+
+    float4 depths = DepthMap.GatherRed(DepthMapSampler, uv);
+    float4 reds = CurrentMap.GatherRed(CurrentMapSampler, uv);
+    float4 greens = CurrentMap.GatherGreen(CurrentMapSampler, uv);
+    float4 blues = CurrentMap.GatherBlue(CurrentMapSampler, uv);
+    float4 motionsX = VelocityMap.GatherRed(VelocityMapSampler, uv);
+    float4 motionsY = VelocityMap.GatherGreen(VelocityMapSampler, uv);
+
+    const int2 OFFSETS[4] = { int2(0, 1), int2(1, 1), int2(1, 0), int2(0, 0) };
+
+    [unroll]
+    for (int i = 0; i < 4; i++)
+    {
+        int2 texel = block * 2 + OFFSETS[i];
+        int index = texel.y * TILE_SIZE + texel.x;
+        TileColors[index] = RGBToYCoCg(float3(reds[i], greens[i], blues[i]));
+        TileDepths[index] = depths[i];
+        TileMotions[index] = float2(motionsX[i], motionsY[i]);
+    }
+}
+
+[numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
+void CS(uint3 groupId : SV_GroupID, uint3 threadId : SV_GroupThreadID)
+{
+    int2 lastPixel = TargetSize - 1;
+    int2 groupOrigin = int2(groupId.xy) * GROUP_SIZE;
+    LoadTile(groupOrigin, (int)(threadId.y * GROUP_SIZE + threadId.x));
+    GroupMemoryBarrierWithGroupSync();
+
+    int2 pixel = groupOrigin + int2(threadId.xy);
+    if (any(pixel > lastPixel))
+        return;
+
+    // Mean and deviation of the 3x3 neighborhood bound the accepted history (variance clipping); its nearest texel
+    // gives the motion.
+    int center = (int)((threadId.y + 1) * TILE_SIZE + threadId.x + 1);
+    float3 current = TileColors[center];
+    float depth = TileDepths[center];
+    int nearestIndex = center;
     float3 moment1 = float3(0.0f, 0.0f, 0.0f);
     float3 moment2 = float3(0.0f, 0.0f, 0.0f);
 
@@ -137,9 +171,17 @@ TemporalOutput PS(PixelInput input)
         [unroll]
         for (int x = -1; x <= 1; x++)
         {
-            float3 neighbor = RGBToYCoCg(CurrentMap.Load(int3(clamp(pixel + int2(x, y), int2(0, 0), lastPixel), 0)).rgb);
+            int index = center + y * TILE_SIZE + x;
+            float3 neighbor = TileColors[index];
             moment1 += neighbor;
             moment2 += neighbor * neighbor;
+
+            float neighborDepth = TileDepths[index];
+            if (neighborDepth < depth)
+            {
+                depth = neighborDepth;
+                nearestIndex = index;
+            }
         }
     }
 
@@ -148,21 +190,20 @@ TemporalOutput PS(PixelInput input)
     float3 boxMin = mean - deviation;
     float3 boxMax = mean + deviation;
 
-    float3 result = current.rgb;
-    float2 historyUV = input.UV - GetMotion(input.UV, pixel, lastPixel);
+    float3 result = current;
+    float2 uv = (float2(pixel) + 0.5f) * TexelSize;
+    float2 historyUV = uv - GetMotion(uv, nearestIndex, depth);
     if (IsHistoryValid != 0 && all(historyUV >= 0.0f) && all(historyUV <= 1.0f))
     {
-        float3 currentColor = RGBToYCoCg(current.rgb);
         float3 history = ClipToBox(RGBToYCoCg(SampleHistoryCatmullRom(historyUV)), boxMin, boxMax);
 
         // Weights divided by the luma keep single bright texels from flickering through the blend.
-        float currentWeight = CurrentWeight / (1.0f + currentColor.x);
+        float currentWeight = CurrentWeight / (1.0f + current.x);
         float historyWeight = (1.0f - CurrentWeight) / (1.0f + history.x);
-        result = YCoCgToRGB((currentColor * currentWeight + history * historyWeight) / (currentWeight + historyWeight));
+        result = (current * currentWeight + history * historyWeight) / (currentWeight + historyWeight);
     }
 
-    TemporalOutput output;
-    output.Color = float4(saturate(result), current.a);
-    output.History = float4(saturate(result), 1.0f);
-    return output;
+    // The 8 bit history is rounded stochastically: plain rounding would stop a slow blend short of its target, since the
+    // current share of a small difference rounds to nothing. The noise averages out over frames.
+    OutputMap[pixel] = float4(saturate(YCoCgToRGB(result) + (GetRoundingNoise(pixel) - 0.5f) / 255.0f), 1.0f);
 }

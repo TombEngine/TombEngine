@@ -178,7 +178,7 @@ namespace TEN::Renderer::Backend
         // The depth target is never sampled: occlusion tests of the distortion and lens flares read the prepass copy.
         TextureSamplerBinding bindings[6] =
         {
-            { _sceneTarget.get(), _linearClampSampler.get() },
+            { GetResolvedSceneTarget(), _linearClampSampler.get() },
             { _distortionTarget.get(), _linearClampSampler.get() },
             { _sceneDepthCopy.get(), _pointClampSampler.get() },
             { _glowTarget.get(), _linearClampSampler.get() },

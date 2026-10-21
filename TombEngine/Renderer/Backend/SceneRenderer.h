@@ -622,9 +622,8 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::IShader>           _objectsVelocityVertexShader = nullptr;
         std::unique_ptr<RHI::IShader>           _roomsVelocityPixelShader    = nullptr;
         std::unique_ptr<RHI::IShader>           _objectsVelocityPixelShader  = nullptr;
-        std::unique_ptr<RHI::IShader>           _taaVertexShader             = nullptr;
-        std::unique_ptr<RHI::IShader>           _taaPixelShader              = nullptr;
-        std::unique_ptr<RHI::IGraphicsPipeline> _taaPipeline                 = nullptr;
+        std::unique_ptr<RHI::IShader>           _taaShader                   = nullptr;
+        std::unique_ptr<RHI::IComputePipeline>  _taaPipeline                 = nullptr;
         std::unique_ptr<RHI::ITexture>          _velocityTarget              = nullptr; // Prepass motion in UV units, RG16F.
         std::unique_ptr<RHI::ITexture>          _taaHistory[TAA_HISTORY_COUNT] = {};    // Antialiased scenes, read and written in turn.
         int                                     _taaHistoryIndex             = 0;       // History written by the last frame.
@@ -1162,6 +1161,7 @@ namespace TEN::Renderer::Backend
         bool EnsureTemporalTargets(int width, int height);
         void PrepareTemporalFrame(const RenderView& view, const FrameEnvironment& environment, Matrix& projection);
         Matrix GetPrevViewProjection() const;
+        RHI::ITexture* GetResolvedSceneTarget() const;
         void FinishTemporalFrame();
         const PreviousItemTransforms* GetPreviousItemTransforms(int itemNumber) const;
         void StoreItemTransforms(const Structures::RendererItem& item);

@@ -278,8 +278,7 @@ namespace TEN::Renderer::Backend
         _smaaAreaTexture = nullptr;
         _smaaSearchTexture = nullptr;
         _taaPipeline = nullptr;
-        _taaVertexShader = nullptr;
-        _taaPixelShader = nullptr;
+        _taaShader = nullptr;
         _roomsVelocityVertexShader = nullptr;
         _objectsVelocityVertexShader = nullptr;
         _roomsVelocityPixelShader = nullptr;

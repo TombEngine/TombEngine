@@ -120,7 +120,7 @@ namespace TEN::Renderer::Backend
         };
 
         int layers = GetDOFLayers(environment);
-        drawPass(0, _dofTargets[0].get(), _sceneTarget.get(), "Downsample");
+        drawPass(0, _dofTargets[0].get(), GetResolvedSceneTarget(), "Downsample");
         if (layers & 1)
             drawPass(1, _dofTargets[1].get(), _dofTargets[0].get(), "Far blur");
 

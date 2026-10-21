@@ -112,6 +112,6 @@ namespace TEN::Renderer::Backend
     // Reflective materials sample a half resolution copy of the scene, read by the next frame.
     void SceneRenderer::CopyReflectionSource(ICommandBuffer& commandBuffer)
     {
-        DownscaleTexture(commandBuffer, _sceneTarget.get(), _reflectionTarget.get(), "Downscale");
+        DownscaleTexture(commandBuffer, GetResolvedSceneTarget(), _reflectionTarget.get(), "Downscale");
     }
 }

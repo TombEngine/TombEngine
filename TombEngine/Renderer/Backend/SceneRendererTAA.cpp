@@ -2,7 +2,8 @@
 // screen space motion vectors (_velocityTarget), using the unjittered view projection of this frame and of the previous
 // one and the previous transforms of moving items, cached here by item number. With TAA, the projection of the frame
 // is jittered by a sub-pixel Halton offset, and the "TAA" pass of FRAME_PASSES, after the scene pass, blends the scene
-// with the reprojected history of the previous frames (Shaders/TAA.hlsl). All targets have the render resolution.
+// with the reprojected history of the previous frames into the next history (Shaders/TAA.hlsl), which the later passes
+// read as the scene. All targets have the render resolution.
 
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
@@ -20,6 +21,7 @@ namespace TEN::Renderer::Backend
     constexpr auto TAA_JITTER_SAMPLES     = 8;
     constexpr auto TAA_CURRENT_WEIGHT     = 0.1f;
     constexpr auto TAA_CAMERA_CUT_DISTANCE = BLOCK(2); // A camera jump longer than this per frame invalidates the history.
+    constexpr auto TAA_GROUP_SIZE          = 16;       // Threads per group side, as GROUP_SIZE in Shaders/TAA.hlsl.
 
     // Same layout as TemporalUniforms in Shaders/TAA.hlsl.
     struct TemporalUniforms
@@ -28,6 +30,9 @@ namespace TEN::Renderer::Backend
         Vector2      TexelSize          = Vector2::Zero;
         float        CurrentWeight      = TAA_CURRENT_WEIGHT;
         unsigned int IsHistoryValid     = 0;
+        int          TargetSize[2]      = {};
+        unsigned int FrameIndex         = 0;
+        unsigned int Padding            = 0;
     };
 
     // Radical inverse of an index in a base: the low discrepancy points of the Halton sequence, in [0, 1).
@@ -45,30 +50,26 @@ namespace TEN::Renderer::Backend
         return result;
     }
 
-    // Prepass shaders with motion vectors and the resolve pipeline, which writes the scene and the history.
+    // Prepass shaders with motion vectors and the resolve compute pipeline, which writes the history.
     bool SceneRenderer::CreateTemporalResources()
     {
         _roomsVelocityVertexShader = LoadShader(*_device, _shaderDirectory, "Rooms", "VSVelocity");
         _objectsVelocityVertexShader = LoadShader(*_device, _shaderDirectory, "Objects", "VSVelocity");
         _roomsVelocityPixelShader = LoadShader(*_device, _shaderDirectory, "Rooms", "PSDepthNormalVelocity");
         _objectsVelocityPixelShader = LoadShader(*_device, _shaderDirectory, "Objects", "PSDepthNormalVelocity");
-        _taaVertexShader = LoadShader(*_device, _shaderDirectory, "TAA", "VS");
-        _taaPixelShader = LoadShader(*_device, _shaderDirectory, "TAA", "PS");
+        _taaShader = LoadShader(*_device, _shaderDirectory, "TAA", "CS");
         if (_roomsVelocityVertexShader == nullptr || _objectsVelocityVertexShader == nullptr || _roomsVelocityPixelShader == nullptr ||
-            _objectsVelocityPixelShader == nullptr || _taaVertexShader == nullptr || _taaPixelShader == nullptr)
+            _objectsVelocityPixelShader == nullptr || _taaShader == nullptr)
         {
             return false;
         }
 
-        auto desc = GetFullscreenPipelineDesc(_taaVertexShader.get(), _taaPixelShader.get(), _device->GetSwapchainFormat(), "TAA");
-        desc.NumColorTargets = 2;
-        desc.ColorTargets[1].Format = PixelFormat::RGBA16Float;
-        _taaPipeline = _device->CreateGraphicsPipeline(desc);
+        _taaPipeline = _device->CreateComputePipeline(ComputePipelineDesc{ _taaShader.get(), "TAA" });
         return (_taaPipeline != nullptr);
     }
 
-    // Motion vectors and the two history targets the resolve alternates between. The history is half float, so the
-    // blend of many frames does not band.
+    // Motion vectors and the two history targets the resolve alternates between, written by the compute shader. The
+    // history has 8 bits per channel, as the scene, and the resolve rounds it stochastically so slow blends converge.
     bool SceneRenderer::EnsureTemporalTargets(int width, int height)
     {
         auto desc = TextureDesc{};
@@ -79,7 +80,8 @@ namespace TEN::Renderer::Backend
         desc.Name = "Prepass.Velocity";
         _velocityTarget = _device->CreateTexture(desc);
 
-        desc.Format = PixelFormat::RGBA16Float;
+        desc.Format = PixelFormat::RGBA8Unorm;
+        desc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler | TextureUsage::ComputeStorageWrite; // Cleared as targets.
         for (int i = 0; i < TAA_HISTORY_COUNT; i++)
         {
             desc.Name = "TAA.History[" + std::to_string(i) + "]";
@@ -164,46 +166,49 @@ namespace TEN::Renderer::Backend
             gpuInstance.PrevSkinning = ((unsigned int)prevBoneOffset & 0xFFFFFF) | (gpuInstance.Skinning & 0xFF000000);
     }
 
-    // Copies the scene, then blends the copy with the history into the scene target and the next history.
+    // The scene the passes after the scene pass read: the antialiased history with TAA, else the scene target.
+    ITexture* SceneRenderer::GetResolvedSceneTarget() const
+    {
+        return _isTaaActive ? _taaHistory[_taaHistoryIndex].get() : _sceneTarget.get();
+    }
+
+    // Blends the scene with the history into the next history, which then stands for the scene: one 8 bit write per
+    // texel, without a copy of the scene target, in groups of TAA_GROUP_SIZE squared texels.
     void SceneRenderer::RenderTemporalAntialiasing(ICommandBuffer& commandBuffer)
     {
         const auto& sceneDesc = _sceneTarget->GetDesc();
-        auto* current = CopySceneTarget(commandBuffer);
         int nextHistory = (_taaHistoryIndex + 1) % TAA_HISTORY_COUNT;
 
         auto uniforms = TemporalUniforms{};
         uniforms.ReprojectionMatrix = _unjitteredViewProjection.Invert() * GetPrevViewProjection();
         uniforms.TexelSize = Vector2(1.0f / sceneDesc.Width, 1.0f / sceneDesc.Height);
         uniforms.IsHistoryValid = _isTaaHistoryValid ? 1 : 0;
-        commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &uniforms, sizeof(uniforms));
+        uniforms.TargetSize[0] = sceneDesc.Width;
+        uniforms.TargetSize[1] = sceneDesc.Height;
+        uniforms.FrameIndex = (unsigned int)_motionFrame;
+        commandBuffer.PushUniforms(RHI::ShaderStage::Compute, 0, &uniforms, sizeof(uniforms));
 
-        ColorTargetInfo colorTargets[2] = {};
-        colorTargets[0].Texture = _sceneTarget.get();
-        colorTargets[0].Load = LoadOp::DontCare;
-        colorTargets[1].Texture = _taaHistory[nextHistory].get();
-        colorTargets[1].Load = LoadOp::DontCare;
+        auto passDesc = ComputePassDesc{};
+        passDesc.RWTextures[0] = _taaHistory[nextHistory].get();
+        passDesc.NumRWTextures = 1;
 
-        auto* renderPass = commandBuffer.BeginRenderPass(colorTargets, 2, nullptr);
-        renderPass->BindPipeline(_taaPipeline.get());
+        auto* computePass = commandBuffer.BeginComputePass(passDesc);
+        computePass->BindPipeline(_taaPipeline.get());
 
         TextureSamplerBinding bindings[4] =
         {
-            { current, _pointClampSampler.get() },
+            { _sceneTarget.get(), _pointClampSampler.get() },
             { _taaHistory[_taaHistoryIndex].get(), _linearClampSampler.get() },
             { _velocityTarget.get(), _pointClampSampler.get() },
             { _sceneDepthCopy.get(), _pointClampSampler.get() }
         };
-        renderPass->BindPixelSamplers(0, bindings, 4);
+        computePass->BindSamplers(0, bindings, 4);
 
         CountDraw(DrawCategory::Fullscreen, 1);
-        renderPass->Draw(3, 1, 0, 0);
-        commandBuffer.EndRenderPass();
+        computePass->Dispatch((sceneDesc.Width + TAA_GROUP_SIZE - 1) / TAA_GROUP_SIZE, (sceneDesc.Height + TAA_GROUP_SIZE - 1) / TAA_GROUP_SIZE, 1);
+        commandBuffer.EndComputePass();
 
-        _targetPool.Release(current);
         _taaHistoryIndex = nextHistory;
         _isTaaHistoryValid = true;
-
-        // The scene pass and the screen space passes after it read the slot 2 uniforms of their own.
-        commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
     }
 }

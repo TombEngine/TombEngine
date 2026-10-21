@@ -179,7 +179,7 @@ skipped when the flag is false for the frame.
 | 5 | Distortion | Distortion draws in the view | Distortion target | Applied by the post-process. |
 | 6 | Sky | Always | Scene target | Classic sky layers, atmospheric dome, sun, moon, aurora, stars, volumetric clouds, horizon meshes, god rays. Occluded sky is not shaded. |
 | 7 | Scene | Always | Scene target | Opaque rooms (portal scissors, per-chunk culling) and objects, alpha edges, water surfaces and underwater fog, additive draws, debris, gun flashes, mirrors, sorted transparent faces, dust storm, debug primitives. |
-| 8 | TAA | Antialiasing set to temporal | Scene target and RGBA16F history | Blends the jittered scene with the reprojected history (motion of the nearest texel, Catmull-Rom history, variance clipping in YCoCg); RCAS sharpens the result at native scale. |
+| 8 | TAA | Antialiasing set to temporal | RGBA8 history | Compute shader (16x16 groups): gathers the scene, depth and motion of each tile into group shared memory, then blends the jittered scene with the reprojected history (motion of the nearest texel, Catmull-Rom history, variance clipping in YCoCg) into the next history, with stochastic rounding. The later passes read the history as the scene; RCAS sharpens the result at native scale. |
 | 9 | DOF | Depth of field active | Near and far blur layers | Unused layers are skipped. |
 | 10 | Reflections | Reflective materials | Half resolution copy of the scene | Read by reflective materials in the next frame. |
 | 11 | Glow | A visible emissive material | Downscaled, blurred emissive | Added by the post-process. |
@@ -211,7 +211,8 @@ world matrix and bones), so skinned and animated meshes move correctly. Vertex e
 of the motion. Texels without geometry reproject with the camera matrices alone.
 
 With TAA, the projection of the frame is offset by an 8 sample Halton(2, 3) sub-pixel jitter. The TAA pass blends the
-scene with the history and writes both the scene target and the next history; camera cuts (a jump longer than two
+scene with the history into the next history, which DOF, the reflection source and the post-process then read in place of
+the scene target (`GetResolvedSceneTarget`), so the pass needs no copy of the scene and writes one 8 bit target; camera cuts (a jump longer than two
 sectors) and target changes discard the history. GTAO accumulates through the same motion vectors (or, without TAA, the camera reprojection) in its own half float
 history.
 
