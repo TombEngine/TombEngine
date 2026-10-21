@@ -278,7 +278,9 @@ namespace TEN::Renderer::Backend
         _smaaAreaTexture = nullptr;
         _smaaSearchTexture = nullptr;
         _taaPipeline = nullptr;
+        _taauPipeline = nullptr;
         _taaShader = nullptr;
+        _taauShader = nullptr;
         _roomsVelocityVertexShader = nullptr;
         _objectsVelocityVertexShader = nullptr;
         _roomsVelocityPixelShader = nullptr;
@@ -815,7 +817,8 @@ namespace TEN::Renderer::Backend
         {
             _distortionTarget.get(), _emissiveTarget.get(), _glowTarget.get(), _reflectionTarget.get(), _dofTargets[0].get(), _dofTargets[1].get(),
             _antialiasingSource.get(), includeFrameTargets ? _colorTarget.get() : nullptr, _skyReflectionTarget.get(),
-            _velocityTarget.get(), _taaHistory[0].get(), _taaHistory[1].get(), _aoHistory[0].get(), _aoHistory[1].get()
+            _velocityTarget.get(), includeFrameTargets ? _taaHistory[0].get() : nullptr, includeFrameTargets ? _taaHistory[1].get() : nullptr,
+            _aoHistory[0].get(), _aoHistory[1].get()
         };
 
         auto* commandBuffer = _device->AcquireCommandBuffer();
@@ -899,7 +902,7 @@ namespace TEN::Renderer::Backend
 
         colorDesc.Name = "Frame.Final";
         _finalTarget = _device->CreateTexture(colorDesc);
-        return (_colorTarget != nullptr && _finalTarget != nullptr);
+        return (_colorTarget != nullptr && _finalTarget != nullptr && EnsureTemporalHistory(width, height));
     }
 
     // Render resolution targets of the scene and its screen space passes. The window width decides whether the FSR
@@ -2836,7 +2839,7 @@ namespace TEN::Renderer::Backend
         { "Reflections", &SceneRenderer::_hasReflectiveMaterials, &SceneRenderer::CopyReflectionSource },
         { "Glow", &SceneRenderer::_hasVisibleEmissive, &SceneRenderer::RenderGlow },
         { "Post-process", nullptr, &SceneRenderer::RenderPostProcess },
-        { "Upscale", &SceneRenderer::_isUpscaleActive, &SceneRenderer::RenderUpscale }
+        { "Upscale", &SceneRenderer::_isSpatialUpscaleActive, &SceneRenderer::RenderUpscale }
     };
 
     // The sky pass cleared the target and drew the sky. Depth is kept only when the scene pass resumes after the water.

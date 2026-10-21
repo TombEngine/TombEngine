@@ -142,8 +142,10 @@ namespace TEN::Renderer::Backend
         uniforms.ColorSchemeStrength = (environment.ColorScheme != 0) ? environment.ColorSchemeStrength : 0.0f;
         uniforms.ScreenFade = environment.ScreenFade;
         uniforms.CinematicBarsHeight = environment.CinematicBarsHeight;
-        uniforms.ViewportHeight = (float)_sceneTarget->GetDesc().Height;
-        uniforms.ViewportWidth = (float)_sceneTarget->GetDesc().Width;
+        // The temporal resolve already upscaled the scene; else FSR 1 upscales the result below native scale.
+        auto* outputTarget = _isSpatialUpscaleActive ? _upscaleSource.get() : _colorTarget.get();
+        uniforms.ViewportHeight = (float)outputTarget->GetDesc().Height;
+        uniforms.ViewportWidth = (float)outputTarget->GetDesc().Width;
         uniforms.NearPlane = _nearPlane;
         uniforms.FarPlane = _farPlane;
         uniforms.IsDistortionActive = _hasDistortion ? 1 : 0;
@@ -166,7 +168,6 @@ namespace TEN::Renderer::Backend
 
         // The temporal antialiasing already resolved the scene after the scene pass.
         bool isAntialiased = (environment.AntialiasingMode != 0 && environment.AntialiasingMode != ANTIALIASING_MODE_TEMPORAL);
-        auto* outputTarget = _isUpscaleActive ? _upscaleSource.get() : _colorTarget.get();
 
         auto colorTarget = ColorTargetInfo{};
         colorTarget.Texture = isAntialiased ? _antialiasingSource.get() : outputTarget;
@@ -194,9 +195,9 @@ namespace TEN::Renderer::Backend
         if (isAntialiased)
             RenderAntialiasing(commandBuffer, environment.AntialiasingMode, _antialiasingSource.get(), outputTarget);
 
-        // The temporal antialiasing softens the image; at native scale RCAS sharpens it while the overlay draws it, as
-        // it does for the FSR upscale.
-        if (_isTaaActive && !_isUpscaleActive)
+        // The temporal antialiasing softens the image; RCAS sharpens it while the overlay draws it, as it does for the FSR
+        // upscale.
+        if (_isTaaActive)
             _isColorTargetSharpened = true;
     }
 }
