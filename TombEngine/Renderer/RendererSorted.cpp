@@ -991,8 +991,9 @@ namespace TEN::Renderer
 		_lastSortedObjectType = objectInfo->ObjectType;
 		_lastSortedObject = nullptr;
 
+		// No alpha test, as for other sorted meshes: alpha blended faces would lose every texel below the threshold.
 		SetBlendMode(objectInfo->BlendMode);
-		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
+		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Moveables, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
