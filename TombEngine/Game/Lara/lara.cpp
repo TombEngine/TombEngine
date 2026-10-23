@@ -60,6 +60,140 @@ LaraInfo	  Lara			= {};
 ItemHandler	  LaraItem		= {};
 CollisionInfo LaraCollision = {};
 
+static bool HandlePlayerWalkInteractionMovement(ItemInfo& playerItem)
+{
+	constexpr auto VEL = BLOCK(0.02f);
+	constexpr auto TURN_RATE = ANGLE(2.0f);
+
+	auto& player = GetLaraInfo(playerItem);
+	const auto& interactable = g_Level.Items[player.Context.InteractedItem];
+
+	// Calculate interaction position.
+	auto rotMatrix = interactable.Pose.Orientation.ToRotationMatrix();
+	auto relInteractPos = Vector3::Transform(player.Context.WalkInteraction.Basis->PosOffset.ToVector3(), rotMatrix);
+	auto interactPos = interactable.Pose.Position + Vector3i(relInteractPos);
+
+	// Get point collision.
+	auto pointColl = GetPointCollision(interactPos, playerItem.RoomNumber);
+	int relFloorHeight = abs(pointColl.GetFloorHeight() - playerItem.Pose.Position.y);
+
+	// 1) Test relative floor height.
+	if (relFloorHeight > STEPUP_HEIGHT)
+		return false;
+
+	// 2) Set new interaction.
+	if (!player.Control.IsMoving)
+	{
+		short headingAngle = Geometry::GetOrientToPoint(playerItem.Pose.Position.ToVector3(), interactPos.ToVector3()).y;
+		int cardinalDir = GetQuadrant(headingAngle - playerItem.Pose.Orientation.y);
+
+		// Determine walk anim number.
+		int animNumber = 0;
+		switch (cardinalDir)
+		{
+		default:
+		case NORTH:
+			animNumber = LA_WALK;
+			break;
+
+		case SOUTH:
+			animNumber = LA_WALK_BACK;
+			break;
+
+		case EAST:
+			animNumber = LA_SIDESTEP_RIGHT;
+			break;
+
+		case WEST:
+			animNumber = LA_SIDESTEP_LEFT;
+			break;
+		}
+
+		// Set parameters.
+		SetAnimation(&playerItem, animNumber);
+		player.Control.HandStatus = HandStatus::Busy;
+		player.Control.IsMoving = true;
+		player.Control.Count.PositionAdjust = 0;
+	}
+
+	// 3) Translate.
+	float dist = Vector3i::Distance(playerItem.Pose.Position, interactPos);
+	if (VEL < dist)
+	{
+		auto deltaPos = interactPos - playerItem.Pose.Position;
+		playerItem.Pose.Position += deltaPos * (VEL / dist);
+	}
+	else
+	{
+		playerItem.Pose.Position = interactPos;
+	}
+
+	// Calculate interaction orientation.
+	auto interactOrient = player.Context.WalkInteraction.Basis->OrientOffset.has_value() ?
+		(interactable.Pose.Orientation + *player.Context.WalkInteraction.Basis->OrientOffset) :
+		interactable.Pose.Orientation;
+
+	// 4) Rotate.
+	playerItem.Pose.Orientation.InterpolateConstant(interactOrient, TURN_RATE);
+
+	// 5) Set complete status.
+	player.Context.WalkInteraction.IsComplete = (playerItem.Pose == Pose(interactPos, interactOrient));
+
+	return true;
+}
+
+static void HandlePlayerWalkInteraction(ItemInfo& playerItem)
+{
+	auto& player = GetLaraInfo(playerItem);
+
+	// No walk interaction is active; don't touch state shared with legacy interactions.
+	if (!player.Context.WalkInteraction.Basis.has_value() ||
+		player.Context.WalkInteraction.Routine == nullptr)
+	{
+		return;
+	}
+
+	// Interacted item was cleared elsewhere; cancel walk interaction.
+	if (player.Context.InteractedItem == NO_VALUE)
+	{
+		player.Context.WalkInteraction.IsComplete = false;
+		player.Context.WalkInteraction.Basis = std::nullopt;
+		player.Context.WalkInteraction.Routine = nullptr;
+		return;
+	}
+
+	auto& interactable = g_Level.Items[player.Context.InteractedItem];
+
+	// Abort interaction if the target position cannot be reached.
+	if (!HandlePlayerWalkInteractionMovement(playerItem))
+	{
+		player.Control.IsMoving = false;
+		player.Control.HandStatus = HandStatus::Free;
+
+		player.Context.InteractedItem = NO_VALUE;
+		player.Context.WalkInteraction.IsComplete = false;
+		player.Context.WalkInteraction.Basis = std::nullopt;
+		player.Context.WalkInteraction.Routine = nullptr;
+		return;
+	}
+
+	// Interaction complete; call routine and reset context.
+	if (player.Context.WalkInteraction.IsComplete)
+	{
+		player.Context.WalkInteraction.Routine(playerItem, interactable);
+		player.Control.IsMoving = false;
+		player.Control.HandStatus = HandStatus::Busy;
+
+		player.Context.WalkInteraction.IsComplete = false;
+		player.Context.WalkInteraction.Basis = std::nullopt;
+		player.Context.WalkInteraction.Routine = nullptr;
+	}
+	else
+	{
+		player.Context.InteractedItem = interactable.Index;
+	}
+}
+
 static void HandlePlayerDebug(const ItemInfo& item)
 {
 	// Collision stats.
@@ -473,6 +607,7 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 	{
 		// Check for collision with items.
 		DoObjectCollision(item, coll);
+		HandlePlayerWalkInteraction(*item);
 
 		// Handle player behavior state collision.
 		if (player.Context.Vehicle == NO_VALUE)
@@ -549,6 +684,7 @@ void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll)
 	item->Pose.Translate(player.Control.MoveAngle, item->Animation.Velocity.y);
 
 	DoObjectCollision(item, coll);
+	HandlePlayerWalkInteraction(*item);
 
 	if (player.Context.Vehicle == NO_VALUE)
 		HandlePlayerBehaviorState(*item, *coll, PlayerBehaviorStateRoutineType::Collision);
@@ -653,6 +789,7 @@ void LaraUnderwater(ItemInfo* item, CollisionInfo* coll)
 	item->Pose.Translate(item->Pose.Orientation, item->Animation.Velocity.y);
 
 	DoObjectCollision(item, coll);
+	HandlePlayerWalkInteraction(*item);
 
 	if (player.Context.Vehicle == NO_VALUE)
 		HandlePlayerBehaviorState(*item, *coll, PlayerBehaviorStateRoutineType::Collision);
@@ -674,7 +811,8 @@ void LaraCheat(ItemInfo* item, CollisionInfo* coll)
 	player.Status.Exposure = LARA_EXPOSURE_MAX;
 	player.Status.Poison = 0;
 	player.Status.Stamina = LARA_STAMINA_MAX;
-	
+	player.Context.InteractedItem = NO_VALUE;
+
 	LaraUnderwater(item, coll);
 
 	if (IsHeld(In::Walk) && !IsHeld(In::Look))

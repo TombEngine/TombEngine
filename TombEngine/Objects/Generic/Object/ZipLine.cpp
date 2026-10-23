@@ -3,6 +3,7 @@
 
 #include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
+#include "Game/collision/Interaction.h"
 #include "Game/collision/Point.h"
 #include "Game/control/box.h"
 #include "Game/Hud/Hud.h"
@@ -15,6 +16,7 @@
 #include "Specific/Input/Input.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Collision::Interaction;
 using namespace TEN::Collision::Point;
 using namespace TEN::Hud;
 using namespace TEN::Input;
@@ -22,17 +24,16 @@ using namespace TEN::Math;
 
 namespace TEN::Entities::Traps
 {
-	const auto ZipLineInteractOffset = Vector3i(0, 0, 371);
-	const auto ZipLineInteractBasis = ObjectCollisionBounds
-	{
+	const auto ZIP_LINE_INTERACT_BASIS = InteractionBasis(
+		Vector3i(0, 0, BLOCK(3 / 8.0f)),
+		EulerAngles::Identity,
 		GameBoundingBox(
 			-BLOCK(0.25f), BLOCK(0.25f),
 			-CLICK(1), CLICK(1),
-			BLOCK(0.25f), BLOCK(0.5f)),
+			BLOCK(0.25f), BLOCK(0.5f)).ToBoundingOrientedBox(Pose::Zero),
 		std::pair(
-			EulerAngles(ANGLE(-10.0f), ANGLE(-25.0f), ANGLE(-10.0f)),
-			EulerAngles(ANGLE(10.0f), ANGLE(25.0f), ANGLE(10.0f)))
-	};
+			EulerAngles(ANGLE(-10.0f), -LARA_GRAB_THRESHOLD, ANGLE(-10.0f)),
+			EulerAngles(ANGLE(10.0f), LARA_GRAB_THRESHOLD, ANGLE(10.0f))));
 
 	void InitializeZipLine(short itemNumber)
 	{
@@ -41,53 +42,6 @@ namespace TEN::Entities::Traps
 		auto& pos = *(GameVector*)zipLineItem.Data;
 
 		pos = GameVector(zipLineItem.Pose.Position, zipLineItem.RoomNumber);
-	}
-
-	void CollideZipLine(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
-	{
-		auto& zipLineItem = g_Level.Items[itemNumber];
-		auto& player = GetLaraInfo(*laraItem);
-
-		if (zipLineItem.Status != ITEM_NOT_ACTIVE)
-			return;
-
-		g_Hud.InteractionHighlighter.Test(*laraItem, zipLineItem, InteractionMode::Custom);
-
-		if ((IsHeld(In::Action) &&
-			laraItem->Animation.ActiveState == LS_IDLE &&
-			!laraItem->Animation.IsAirborne &&
-			player.Control.HandStatus == HandStatus::Free) ||
-			(player.Control.IsMoving && player.Context.InteractedItem == itemNumber))
-		{
-			if (TestLaraPosition(ZipLineInteractBasis, &zipLineItem, laraItem))
-			{
-				if (MoveLaraPosition(ZipLineInteractOffset, &zipLineItem, laraItem))
-				{
-					SetAnimation(laraItem, LaraAnim::LA_ZIPLINE_MOUNT);
-					ResetPlayerFlex(laraItem);
-					player.Control.IsMoving = false;
-					player.Control.HandStatus = HandStatus::Busy;
-
-					if (laraItem->Animation.ActiveState == LS_GRABBING)
-					{
-						if (!zipLineItem.Active)
-							AddActiveItem(itemNumber);
-
-						zipLineItem.Status = ITEM_ACTIVE;
-						zipLineItem.Flags |= IFLAG_INVISIBLE;
-					}
-				}
-				else
-				{
-					player.Context.InteractedItem = itemNumber;
-				}
-			}
-			else if (player.Control.IsMoving && player.Context.InteractedItem == itemNumber)
-			{
-				player.Control.IsMoving = false;
-				player.Control.HandStatus = HandStatus::Free;
-			}
-		}
 	}
 
 	void ControlZipLine(short itemNumber)
@@ -166,6 +120,67 @@ namespace TEN::Entities::Traps
 
 			// Whizz sound.
 			SoundEffect(SFX_TR2_ZIPLINE_GO, &zipLineItem.Pose);
+		}
+	}
+
+	static bool TestPlayerZipLineInteraction(const ItemInfo& playerItem, const ItemInfo& zipLineItem)
+	{
+		auto& player = GetLaraInfo(playerItem);
+
+		// Check zip line status.
+		if (zipLineItem.Status != ITEM_NOT_ACTIVE)
+			return false;
+
+		// Test for ongoing interaction.
+		if (player.Control.IsMoving && player.Context.InteractedItem == zipLineItem.Index)
+			return true;
+
+		// Test for new interaction.
+		return (IsHeld(In::Action) &&
+			playerItem.Animation.ActiveState == LS_IDLE &&
+			!playerItem.Animation.IsAirborne &&
+			player.Control.HandStatus == HandStatus::Free);
+	}
+
+	static void SetPlayerZipLineInteraction(ItemInfo& playerItem, ItemInfo& zipLineItem)
+	{
+		auto& player = GetLaraInfo(playerItem);
+
+		SetAnimation(playerItem, LA_ZIPLINE_MOUNT);
+		ResetPlayerFlex(&playerItem);
+
+		player.Control.IsMoving = false;
+		player.Control.HandStatus = HandStatus::Busy;
+
+		// Activate zip line if mount state was reached.
+		if (playerItem.Animation.ActiveState == LS_GRABBING)
+		{
+			if (!zipLineItem.Active)
+				AddActiveItem(zipLineItem.Index);
+
+			zipLineItem.Status = ITEM_ACTIVE;
+			zipLineItem.Flags |= IFLAG_INVISIBLE;
+		}
+	}
+
+	void CollideZipLine(short itemNumber, ItemInfo* collided, CollisionInfo* coll)
+	{
+		auto& zipLineItem = g_Level.Items[itemNumber];
+
+		if (zipLineItem.Status != ITEM_NOT_ACTIVE)
+			return;
+
+		// Spawn interaction highlight.
+		g_Hud.InteractionHighlighter.Test(*collided, zipLineItem, InteractionMode::Custom);
+
+		// Interact.
+		if (collided->IsLara())
+		{
+			if (TestInteraction(*collided, zipLineItem, ZIP_LINE_INTERACT_BASIS))
+			{
+				if (TestPlayerZipLineInteraction(*collided, zipLineItem))
+					SetInteraction(*collided, zipLineItem, ZIP_LINE_INTERACT_BASIS, SetPlayerZipLineInteraction, InteractionBasisType::Walk);
+			}
 		}
 	}
 }
