@@ -2175,10 +2175,6 @@ namespace TEN::Renderer
 		DoRenderPass(RendererPass::Transparent, view, true);
 		auto sortedTime3 = std::chrono::high_resolution_clock::now();
 
-		_timeSortedCollect = ms(sortedTime1 - sortedTime0).count();
-		_timeSortedSort = ms(sortedTime2 - sortedTime1).count();
-		_timeSortedDraw = ms(sortedTime3 - sortedTime2).count();
-
 		DoRenderPass(RendererPass::GunFlashes, view, true); // HACK: Gunflashes are drawn after everything because they are near camera.
 
 		// Draw 3D debug lines and triangles.

@@ -492,12 +492,6 @@ namespace TEN::Renderer
 		auto clusterSizes = std::vector<int>(groups.size(), 0);
 		for (const auto& group : groups)
 			clusterSizes[group.Cluster]++;
-
-		for (const auto& group : groups)
-		{
-			if (clusterSizes[group.Cluster] > 1)
-				_numInterleavedSortedGroups++;
-		}
 	}
 
 	void Renderer::CollectSortedBucket(RenderView& view, const RendererSortableObject& object, const Matrix* world, const Vector3& cameraPosition)

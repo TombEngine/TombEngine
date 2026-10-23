@@ -269,7 +269,6 @@ namespace TEN::Renderer
 		int _numConstantBufferUpdates = 0;
 		unsigned long long _numConstantBufferBytes = 0;
 		int _numPerDrawUpdates = 0;
-		int _numInterleavedSortedGroups = 0;
 
 		int _numExecutedMaterialsUpdates = 0;
 		int _numRequestedMaterialsUpdates = 0;
@@ -284,9 +283,6 @@ namespace TEN::Renderer
 		int _timeRoomsCollector;
 		int _timeDraw;
 		int _timeFrame;
-		float _timeSortedCollect = 0.0f;
-		float _timeSortedSort = 0.0f;
-		float _timeSortedDraw = 0.0f;
 		float _fps;
 		int _currentCausticsFrame;
 
