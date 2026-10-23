@@ -145,9 +145,9 @@ struct ParticleInfo;
 struct ParticleInfoBuilder;
 struct ParticleInfoT;
 
-struct Soundtrack;
-struct SoundtrackBuilder;
-struct SoundtrackT;
+struct NamedSoundtrack;
+struct NamedSoundtrackBuilder;
+struct NamedSoundtrackT;
 
 struct VideoInfo;
 struct VideoInfoBuilder;
@@ -6545,86 +6545,192 @@ struct ParticleInfo::Traits {
 
 flatbuffers::Offset<ParticleInfo> CreateParticleInfo(flatbuffers::FlatBufferBuilder &_fbb, const ParticleInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct SoundtrackT : public flatbuffers::NativeTable {
-  typedef Soundtrack TableType;
-  std::string name{};
+struct NamedSoundtrackT : public flatbuffers::NativeTable {
+  typedef NamedSoundtrack TableType;
+  std::string channel_name{};
+  std::string track{};
   uint64_t position = 0;
+  int32_t preset = 0;
+  int32_t flags = 0;
+  int32_t fade_out_time = 0;
+  int32_t crossfade_time = 0;
+  float volume = 0.0f;
+  float damp_volume = 0.0f;
+  int32_t status = 0;
 };
 
-struct Soundtrack FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef SoundtrackT NativeTableType;
-  typedef SoundtrackBuilder Builder;
+struct NamedSoundtrack FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef NamedSoundtrackT NativeTableType;
+  typedef NamedSoundtrackBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_NAME = 4,
-    VT_POSITION = 6
+    VT_CHANNEL_NAME = 4,
+    VT_TRACK = 6,
+    VT_POSITION = 8,
+    VT_PRESET = 10,
+    VT_FLAGS = 12,
+    VT_FADE_OUT_TIME = 14,
+    VT_CROSSFADE_TIME = 16,
+    VT_VOLUME = 18,
+    VT_DAMP_VOLUME = 20,
+    VT_STATUS = 22
   };
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const flatbuffers::String *channel_name() const {
+    return GetPointer<const flatbuffers::String *>(VT_CHANNEL_NAME);
+  }
+  const flatbuffers::String *track() const {
+    return GetPointer<const flatbuffers::String *>(VT_TRACK);
   }
   uint64_t position() const {
     return GetField<uint64_t>(VT_POSITION, 0);
   }
+  int32_t preset() const {
+    return GetField<int32_t>(VT_PRESET, 0);
+  }
+  int32_t flags() const {
+    return GetField<int32_t>(VT_FLAGS, 0);
+  }
+  int32_t fade_out_time() const {
+    return GetField<int32_t>(VT_FADE_OUT_TIME, 0);
+  }
+  int32_t crossfade_time() const {
+    return GetField<int32_t>(VT_CROSSFADE_TIME, 0);
+  }
+  float volume() const {
+    return GetField<float>(VT_VOLUME, 0.0f);
+  }
+  float damp_volume() const {
+    return GetField<float>(VT_DAMP_VOLUME, 0.0f);
+  }
+  int32_t status() const {
+    return GetField<int32_t>(VT_STATUS, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffset(verifier, VT_CHANNEL_NAME) &&
+           verifier.VerifyString(channel_name()) &&
+           VerifyOffset(verifier, VT_TRACK) &&
+           verifier.VerifyString(track()) &&
            VerifyField<uint64_t>(verifier, VT_POSITION) &&
+           VerifyField<int32_t>(verifier, VT_PRESET) &&
+           VerifyField<int32_t>(verifier, VT_FLAGS) &&
+           VerifyField<int32_t>(verifier, VT_FADE_OUT_TIME) &&
+           VerifyField<int32_t>(verifier, VT_CROSSFADE_TIME) &&
+           VerifyField<float>(verifier, VT_VOLUME) &&
+           VerifyField<float>(verifier, VT_DAMP_VOLUME) &&
+           VerifyField<int32_t>(verifier, VT_STATUS) &&
            verifier.EndTable();
   }
-  SoundtrackT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(SoundtrackT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<Soundtrack> Pack(flatbuffers::FlatBufferBuilder &_fbb, const SoundtrackT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  NamedSoundtrackT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(NamedSoundtrackT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<NamedSoundtrack> Pack(flatbuffers::FlatBufferBuilder &_fbb, const NamedSoundtrackT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct SoundtrackBuilder {
-  typedef Soundtrack Table;
+struct NamedSoundtrackBuilder {
+  typedef NamedSoundtrack Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(Soundtrack::VT_NAME, name);
+  void add_channel_name(flatbuffers::Offset<flatbuffers::String> channel_name) {
+    fbb_.AddOffset(NamedSoundtrack::VT_CHANNEL_NAME, channel_name);
+  }
+  void add_track(flatbuffers::Offset<flatbuffers::String> track) {
+    fbb_.AddOffset(NamedSoundtrack::VT_TRACK, track);
   }
   void add_position(uint64_t position) {
-    fbb_.AddElement<uint64_t>(Soundtrack::VT_POSITION, position, 0);
+    fbb_.AddElement<uint64_t>(NamedSoundtrack::VT_POSITION, position, 0);
   }
-  explicit SoundtrackBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  void add_preset(int32_t preset) {
+    fbb_.AddElement<int32_t>(NamedSoundtrack::VT_PRESET, preset, 0);
+  }
+  void add_flags(int32_t flags) {
+    fbb_.AddElement<int32_t>(NamedSoundtrack::VT_FLAGS, flags, 0);
+  }
+  void add_fade_out_time(int32_t fade_out_time) {
+    fbb_.AddElement<int32_t>(NamedSoundtrack::VT_FADE_OUT_TIME, fade_out_time, 0);
+  }
+  void add_crossfade_time(int32_t crossfade_time) {
+    fbb_.AddElement<int32_t>(NamedSoundtrack::VT_CROSSFADE_TIME, crossfade_time, 0);
+  }
+  void add_volume(float volume) {
+    fbb_.AddElement<float>(NamedSoundtrack::VT_VOLUME, volume, 0.0f);
+  }
+  void add_damp_volume(float damp_volume) {
+    fbb_.AddElement<float>(NamedSoundtrack::VT_DAMP_VOLUME, damp_volume, 0.0f);
+  }
+  void add_status(int32_t status) {
+    fbb_.AddElement<int32_t>(NamedSoundtrack::VT_STATUS, status, 0);
+  }
+  explicit NamedSoundtrackBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<Soundtrack> Finish() {
+  flatbuffers::Offset<NamedSoundtrack> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<Soundtrack>(end);
+    auto o = flatbuffers::Offset<NamedSoundtrack>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<Soundtrack> CreateSoundtrack(
+inline flatbuffers::Offset<NamedSoundtrack> CreateNamedSoundtrack(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
-    uint64_t position = 0) {
-  SoundtrackBuilder builder_(_fbb);
+    flatbuffers::Offset<flatbuffers::String> channel_name = 0,
+    flatbuffers::Offset<flatbuffers::String> track = 0,
+    uint64_t position = 0,
+    int32_t preset = 0,
+    int32_t flags = 0,
+    int32_t fade_out_time = 0,
+    int32_t crossfade_time = 0,
+    float volume = 0.0f,
+    float damp_volume = 0.0f,
+    int32_t status = 0) {
+  NamedSoundtrackBuilder builder_(_fbb);
   builder_.add_position(position);
-  builder_.add_name(name);
+  builder_.add_status(status);
+  builder_.add_damp_volume(damp_volume);
+  builder_.add_volume(volume);
+  builder_.add_crossfade_time(crossfade_time);
+  builder_.add_fade_out_time(fade_out_time);
+  builder_.add_flags(flags);
+  builder_.add_preset(preset);
+  builder_.add_track(track);
+  builder_.add_channel_name(channel_name);
   return builder_.Finish();
 }
 
-struct Soundtrack::Traits {
-  using type = Soundtrack;
-  static auto constexpr Create = CreateSoundtrack;
+struct NamedSoundtrack::Traits {
+  using type = NamedSoundtrack;
+  static auto constexpr Create = CreateNamedSoundtrack;
 };
 
-inline flatbuffers::Offset<Soundtrack> CreateSoundtrackDirect(
+inline flatbuffers::Offset<NamedSoundtrack> CreateNamedSoundtrackDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *name = nullptr,
-    uint64_t position = 0) {
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return TEN::Serialization::Save::CreateSoundtrack(
+    const char *channel_name = nullptr,
+    const char *track = nullptr,
+    uint64_t position = 0,
+    int32_t preset = 0,
+    int32_t flags = 0,
+    int32_t fade_out_time = 0,
+    int32_t crossfade_time = 0,
+    float volume = 0.0f,
+    float damp_volume = 0.0f,
+    int32_t status = 0) {
+  auto channel_name__ = channel_name ? _fbb.CreateString(channel_name) : 0;
+  auto track__ = track ? _fbb.CreateString(track) : 0;
+  return TEN::Serialization::Save::CreateNamedSoundtrack(
       _fbb,
-      name__,
-      position);
+      channel_name__,
+      track__,
+      position,
+      preset,
+      flags,
+      fade_out_time,
+      crossfade_time,
+      volume,
+      damp_volume,
+      status);
 }
 
-flatbuffers::Offset<Soundtrack> CreateSoundtrack(flatbuffers::FlatBufferBuilder &_fbb, const SoundtrackT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<NamedSoundtrack> CreateNamedSoundtrack(flatbuffers::FlatBufferBuilder &_fbb, const NamedSoundtrackT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 struct VideoInfoT : public flatbuffers::NativeTable {
   typedef VideoInfo TableType;
@@ -10175,7 +10281,6 @@ struct SaveGameT : public flatbuffers::NativeTable {
   int16_t current_fov = 0;
   int32_t last_inv_item = 0;
   std::vector<int32_t> action_queue{};
-  std::vector<std::unique_ptr<TEN::Serialization::Save::SoundtrackT>> soundtracks{};
   std::vector<int32_t> cd_flags{};
   std::unique_ptr<TEN::Serialization::Save::VideoInfoT> video{};
   int32_t postprocess_mode = 0;
@@ -10193,6 +10298,7 @@ struct SaveGameT : public flatbuffers::NativeTable {
   std::vector<std::unique_ptr<TEN::Serialization::Save::EventSetT>> volume_event_sets{};
   std::unique_ptr<TEN::Serialization::Save::UnionVecT> script_vars{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::CallbackSetT>> callbacks{};
+  std::vector<std::unique_ptr<TEN::Serialization::Save::NamedSoundtrackT>> named_soundtracks{};
   std::vector<int32_t> active_items{};
   std::vector<int32_t> free_item_slots{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>> moveable_type_properties{};
@@ -10240,24 +10346,24 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_CURRENT_FOV = 70,
     VT_LAST_INV_ITEM = 72,
     VT_ACTION_QUEUE = 74,
-    VT_SOUNDTRACKS = 76,
-    VT_CD_FLAGS = 78,
-    VT_VIDEO = 80,
-    VT_POSTPROCESS_MODE = 82,
-    VT_POSTPROCESS_STRENGTH = 84,
-    VT_POSTPROCESS_TINT = 86,
-    VT_DOF_DISTANCE = 88,
-    VT_DOF_RANGE = 90,
-    VT_DOF_STRENGTH = 92,
-    VT_DOF_MODE = 94,
-    VT_ROPE = 96,
-    VT_PENDULUM = 98,
-    VT_ALTERNATE_PENDULUM = 100,
-    VT_VOLUMES = 102,
-    VT_GLOBAL_EVENT_SETS = 104,
-    VT_VOLUME_EVENT_SETS = 106,
-    VT_SCRIPT_VARS = 108,
-    VT_CALLBACKS = 110,
+    VT_CD_FLAGS = 76,
+    VT_VIDEO = 78,
+    VT_POSTPROCESS_MODE = 80,
+    VT_POSTPROCESS_STRENGTH = 82,
+    VT_POSTPROCESS_TINT = 84,
+    VT_DOF_DISTANCE = 86,
+    VT_DOF_RANGE = 88,
+    VT_DOF_STRENGTH = 90,
+    VT_DOF_MODE = 92,
+    VT_ROPE = 94,
+    VT_PENDULUM = 96,
+    VT_ALTERNATE_PENDULUM = 98,
+    VT_VOLUMES = 100,
+    VT_GLOBAL_EVENT_SETS = 102,
+    VT_VOLUME_EVENT_SETS = 104,
+    VT_SCRIPT_VARS = 106,
+    VT_CALLBACKS = 108,
+    VT_NAMED_SOUNDTRACKS = 110,
     VT_ACTIVE_ITEMS = 112,
     VT_FREE_ITEM_SLOTS = 114,
     VT_MOVEABLE_TYPE_PROPERTIES = 116,
@@ -10371,9 +10477,6 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<int32_t> *action_queue() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_ACTION_QUEUE);
   }
-  const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::Soundtrack>> *soundtracks() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::Soundtrack>> *>(VT_SOUNDTRACKS);
-  }
   const flatbuffers::Vector<int32_t> *cd_flags() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_CD_FLAGS);
   }
@@ -10424,6 +10527,9 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>> *callbacks() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>> *>(VT_CALLBACKS);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::NamedSoundtrack>> *named_soundtracks() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::NamedSoundtrack>> *>(VT_NAMED_SOUNDTRACKS);
   }
   const flatbuffers::Vector<int32_t> *active_items() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_ACTIVE_ITEMS);
@@ -10517,9 +10623,6 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_LAST_INV_ITEM) &&
            VerifyOffset(verifier, VT_ACTION_QUEUE) &&
            verifier.VerifyVector(action_queue()) &&
-           VerifyOffset(verifier, VT_SOUNDTRACKS) &&
-           verifier.VerifyVector(soundtracks()) &&
-           verifier.VerifyVectorOfTables(soundtracks()) &&
            VerifyOffset(verifier, VT_CD_FLAGS) &&
            verifier.VerifyVector(cd_flags()) &&
            VerifyOffset(verifier, VT_VIDEO) &&
@@ -10551,6 +10654,9 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_CALLBACKS) &&
            verifier.VerifyVector(callbacks()) &&
            verifier.VerifyVectorOfTables(callbacks()) &&
+           VerifyOffset(verifier, VT_NAMED_SOUNDTRACKS) &&
+           verifier.VerifyVector(named_soundtracks()) &&
+           verifier.VerifyVectorOfTables(named_soundtracks()) &&
            VerifyOffset(verifier, VT_ACTIVE_ITEMS) &&
            verifier.VerifyVector(active_items()) &&
            VerifyOffset(verifier, VT_FREE_ITEM_SLOTS) &&
@@ -10680,9 +10786,6 @@ struct SaveGameBuilder {
   void add_action_queue(flatbuffers::Offset<flatbuffers::Vector<int32_t>> action_queue) {
     fbb_.AddOffset(SaveGame::VT_ACTION_QUEUE, action_queue);
   }
-  void add_soundtracks(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::Soundtrack>>> soundtracks) {
-    fbb_.AddOffset(SaveGame::VT_SOUNDTRACKS, soundtracks);
-  }
   void add_cd_flags(flatbuffers::Offset<flatbuffers::Vector<int32_t>> cd_flags) {
     fbb_.AddOffset(SaveGame::VT_CD_FLAGS, cd_flags);
   }
@@ -10733,6 +10836,9 @@ struct SaveGameBuilder {
   }
   void add_callbacks(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>>> callbacks) {
     fbb_.AddOffset(SaveGame::VT_CALLBACKS, callbacks);
+  }
+  void add_named_soundtracks(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::NamedSoundtrack>>> named_soundtracks) {
+    fbb_.AddOffset(SaveGame::VT_NAMED_SOUNDTRACKS, named_soundtracks);
   }
   void add_active_items(flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_items) {
     fbb_.AddOffset(SaveGame::VT_ACTIVE_ITEMS, active_items);
@@ -10795,7 +10901,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     int16_t current_fov = 0,
     int32_t last_inv_item = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> action_queue = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::Soundtrack>>> soundtracks = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> cd_flags = 0,
     flatbuffers::Offset<TEN::Serialization::Save::VideoInfo> video = 0,
     int32_t postprocess_mode = 0,
@@ -10813,6 +10918,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>>> volume_event_sets = 0,
     flatbuffers::Offset<TEN::Serialization::Save::UnionVec> script_vars = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>>> callbacks = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::NamedSoundtrack>>> named_soundtracks = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_items = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> free_item_slots = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>> moveable_type_properties = 0,
@@ -10822,6 +10928,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
   builder_.add_moveable_type_properties(moveable_type_properties);
   builder_.add_free_item_slots(free_item_slots);
   builder_.add_active_items(active_items);
+  builder_.add_named_soundtracks(named_soundtracks);
   builder_.add_callbacks(callbacks);
   builder_.add_script_vars(script_vars);
   builder_.add_volume_event_sets(volume_event_sets);
@@ -10839,7 +10946,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
   builder_.add_postprocess_mode(postprocess_mode);
   builder_.add_video(video);
   builder_.add_cd_flags(cd_flags);
-  builder_.add_soundtracks(soundtracks);
   builder_.add_action_queue(action_queue);
   builder_.add_last_inv_item(last_inv_item);
   builder_.add_flip_status(flip_status);
@@ -10922,7 +11028,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     int16_t current_fov = 0,
     int32_t last_inv_item = 0,
     const std::vector<int32_t> *action_queue = nullptr,
-    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::Soundtrack>> *soundtracks = nullptr,
     const std::vector<int32_t> *cd_flags = nullptr,
     flatbuffers::Offset<TEN::Serialization::Save::VideoInfo> video = 0,
     int32_t postprocess_mode = 0,
@@ -10940,6 +11045,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>> *volume_event_sets = nullptr,
     flatbuffers::Offset<TEN::Serialization::Save::UnionVec> script_vars = 0,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>> *callbacks = nullptr,
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::NamedSoundtrack>> *named_soundtracks = nullptr,
     const std::vector<int32_t> *active_items = nullptr,
     const std::vector<int32_t> *free_item_slots = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *moveable_type_properties = nullptr,
@@ -10964,12 +11070,12 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
   auto flip_maps__ = flip_maps ? _fbb.CreateVector<int32_t>(*flip_maps) : 0;
   auto flip_stats__ = flip_stats ? _fbb.CreateVector<int32_t>(*flip_stats) : 0;
   auto action_queue__ = action_queue ? _fbb.CreateVector<int32_t>(*action_queue) : 0;
-  auto soundtracks__ = soundtracks ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::Soundtrack>>(*soundtracks) : 0;
   auto cd_flags__ = cd_flags ? _fbb.CreateVector<int32_t>(*cd_flags) : 0;
   auto volumes__ = volumes ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::Volume>>(*volumes) : 0;
   auto global_event_sets__ = global_event_sets ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>>(*global_event_sets) : 0;
   auto volume_event_sets__ = volume_event_sets ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>>(*volume_event_sets) : 0;
   auto callbacks__ = callbacks ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>>(*callbacks) : 0;
+  auto named_soundtracks__ = named_soundtracks ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::NamedSoundtrack>>(*named_soundtracks) : 0;
   auto active_items__ = active_items ? _fbb.CreateVector<int32_t>(*active_items) : 0;
   auto free_item_slots__ = free_item_slots ? _fbb.CreateVector<int32_t>(*free_item_slots) : 0;
   auto moveable_type_properties__ = moveable_type_properties ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>(*moveable_type_properties) : 0;
@@ -11012,7 +11118,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       current_fov,
       last_inv_item,
       action_queue__,
-      soundtracks__,
       cd_flags__,
       video,
       postprocess_mode,
@@ -11030,6 +11135,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       volume_event_sets__,
       script_vars,
       callbacks__,
+      named_soundtracks__,
       active_items__,
       free_item_slots__,
       moveable_type_properties__,
@@ -12761,33 +12867,57 @@ inline flatbuffers::Offset<ParticleInfo> CreateParticleInfo(flatbuffers::FlatBuf
       _constraint);
 }
 
-inline SoundtrackT *Soundtrack::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<SoundtrackT>();
+inline NamedSoundtrackT *NamedSoundtrack::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<NamedSoundtrackT>();
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void Soundtrack::UnPackTo(SoundtrackT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void NamedSoundtrack::UnPackTo(NamedSoundtrackT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = name(); if (_e) _o->name = _e->str(); }
+  { auto _e = channel_name(); if (_e) _o->channel_name = _e->str(); }
+  { auto _e = track(); if (_e) _o->track = _e->str(); }
   { auto _e = position(); _o->position = _e; }
+  { auto _e = preset(); _o->preset = _e; }
+  { auto _e = flags(); _o->flags = _e; }
+  { auto _e = fade_out_time(); _o->fade_out_time = _e; }
+  { auto _e = crossfade_time(); _o->crossfade_time = _e; }
+  { auto _e = volume(); _o->volume = _e; }
+  { auto _e = damp_volume(); _o->damp_volume = _e; }
+  { auto _e = status(); _o->status = _e; }
 }
 
-inline flatbuffers::Offset<Soundtrack> Soundtrack::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SoundtrackT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateSoundtrack(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<NamedSoundtrack> NamedSoundtrack::Pack(flatbuffers::FlatBufferBuilder &_fbb, const NamedSoundtrackT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateNamedSoundtrack(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<Soundtrack> CreateSoundtrack(flatbuffers::FlatBufferBuilder &_fbb, const SoundtrackT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<NamedSoundtrack> CreateNamedSoundtrack(flatbuffers::FlatBufferBuilder &_fbb, const NamedSoundtrackT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const SoundtrackT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _name = _o->name.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->name);
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const NamedSoundtrackT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _channel_name = _o->channel_name.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->channel_name);
+  auto _track = _o->track.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->track);
   auto _position = _o->position;
-  return TEN::Serialization::Save::CreateSoundtrack(
+  auto _preset = _o->preset;
+  auto _flags = _o->flags;
+  auto _fade_out_time = _o->fade_out_time;
+  auto _crossfade_time = _o->crossfade_time;
+  auto _volume = _o->volume;
+  auto _damp_volume = _o->damp_volume;
+  auto _status = _o->status;
+  return TEN::Serialization::Save::CreateNamedSoundtrack(
       _fbb,
-      _name,
-      _position);
+      _channel_name,
+      _track,
+      _position,
+      _preset,
+      _flags,
+      _fade_out_time,
+      _crossfade_time,
+      _volume,
+      _damp_volume,
+      _status);
 }
 
 inline VideoInfoT *VideoInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -14082,7 +14212,6 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = current_fov(); _o->current_fov = _e; }
   { auto _e = last_inv_item(); _o->last_inv_item = _e; }
   { auto _e = action_queue(); if (_e) { _o->action_queue.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->action_queue[_i] = _e->Get(_i); } } }
-  { auto _e = soundtracks(); if (_e) { _o->soundtracks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->soundtracks[_i] = std::unique_ptr<TEN::Serialization::Save::SoundtrackT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = cd_flags(); if (_e) { _o->cd_flags.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->cd_flags[_i] = _e->Get(_i); } } }
   { auto _e = video(); if (_e) _o->video = std::unique_ptr<TEN::Serialization::Save::VideoInfoT>(_e->UnPack(_resolver)); }
   { auto _e = postprocess_mode(); _o->postprocess_mode = _e; }
@@ -14100,6 +14229,7 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = volume_event_sets(); if (_e) { _o->volume_event_sets.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->volume_event_sets[_i] = std::unique_ptr<TEN::Serialization::Save::EventSetT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = script_vars(); if (_e) _o->script_vars = std::unique_ptr<TEN::Serialization::Save::UnionVecT>(_e->UnPack(_resolver)); }
   { auto _e = callbacks(); if (_e) { _o->callbacks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks[_i] = std::unique_ptr<TEN::Serialization::Save::CallbackSetT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = named_soundtracks(); if (_e) { _o->named_soundtracks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->named_soundtracks[_i] = std::unique_ptr<TEN::Serialization::Save::NamedSoundtrackT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = active_items(); if (_e) { _o->active_items.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->active_items[_i] = _e->Get(_i); } } }
   { auto _e = free_item_slots(); if (_e) { _o->free_item_slots.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->free_item_slots[_i] = _e->Get(_i); } } }
   { auto _e = moveable_type_properties(); if (_e) { _o->moveable_type_properties.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->moveable_type_properties[_i] = std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>(_e->Get(_i)->UnPack(_resolver)); } } }
@@ -14150,7 +14280,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _current_fov = _o->current_fov;
   auto _last_inv_item = _o->last_inv_item;
   auto _action_queue = _fbb.CreateVector(_o->action_queue);
-  auto _soundtracks = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::Soundtrack>> (_o->soundtracks.size(), [](size_t i, _VectorArgs *__va) { return CreateSoundtrack(*__va->__fbb, __va->__o->soundtracks[i].get(), __va->__rehasher); }, &_va );
   auto _cd_flags = _fbb.CreateVector(_o->cd_flags);
   auto _video = _o->video ? CreateVideoInfo(_fbb, _o->video.get(), _rehasher) : 0;
   auto _postprocess_mode = _o->postprocess_mode;
@@ -14168,6 +14297,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _volume_event_sets = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>> (_o->volume_event_sets.size(), [](size_t i, _VectorArgs *__va) { return CreateEventSet(*__va->__fbb, __va->__o->volume_event_sets[i].get(), __va->__rehasher); }, &_va );
   auto _script_vars = _o->script_vars ? CreateUnionVec(_fbb, _o->script_vars.get(), _rehasher) : 0;
   auto _callbacks = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>> (_o->callbacks.size(), [](size_t i, _VectorArgs *__va) { return CreateCallbackSet(*__va->__fbb, __va->__o->callbacks[i].get(), __va->__rehasher); }, &_va );
+  auto _named_soundtracks = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::NamedSoundtrack>> (_o->named_soundtracks.size(), [](size_t i, _VectorArgs *__va) { return CreateNamedSoundtrack(*__va->__fbb, __va->__o->named_soundtracks[i].get(), __va->__rehasher); }, &_va );
   auto _active_items = _fbb.CreateVector(_o->active_items);
   auto _free_item_slots = _fbb.CreateVector(_o->free_item_slots);
   auto _moveable_type_properties = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> (_o->moveable_type_properties.size(), [](size_t i, _VectorArgs *__va) { return CreateTypePropertyMap(*__va->__fbb, __va->__o->moveable_type_properties[i].get(), __va->__rehasher); }, &_va );
@@ -14210,7 +14340,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _current_fov,
       _last_inv_item,
       _action_queue,
-      _soundtracks,
       _cd_flags,
       _video,
       _postprocess_mode,
@@ -14228,6 +14357,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _volume_event_sets,
       _script_vars,
       _callbacks,
+      _named_soundtracks,
       _active_items,
       _free_item_slots,
       _moveable_type_properties,

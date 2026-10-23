@@ -1004,6 +1004,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Scripting\Internal\TEN\Objects\Static\StaticObject.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\Volume\VolumeObject.h" />
     <ClInclude Include="Scripting\Internal\TEN\Types\Rotation\Rotation.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Sound\AudioChannel.h" />
     <ClInclude Include="Scripting\Internal\TEN\Sound\SoundHandler.h" />
     <ClInclude Include="Scripting\Internal\TEN\Sound\SoundTrackTypes.h" />
     <ClInclude Include="Scripting\Internal\TEN\Strings\DisplayString\DisplayString.h" />
@@ -1020,6 +1021,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Scripting\Internal\TEN\View\ViewHandler.h" />
     <ClInclude Include="Sound\sound.h" />
     <ClInclude Include="Sound\sound_effects.h" />
+    <ClInclude Include="Sound\SoundTrackManager.h" />
     <ClInclude Include="Specific\Input\Bindings.h" />
     <ClInclude Include="Specific\Input\Keys.h" />
     <ClInclude Include="Specific\Input\Input.h" />
@@ -1512,6 +1514,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Scripting\Internal\TEN\Objects\Static\StaticObject.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Objects\Volume\VolumeObject.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Types\Rotation\Rotation.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Sound\AudioChannel.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Sound\SoundHandler.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Strings\DisplayString\DisplayString.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Strings\StringsHandler.cpp" />
@@ -1520,6 +1523,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Scripting\Internal\TEN\Types\Vec3\Vec3.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\View\ViewHandler.cpp" />
     <ClCompile Include="Sound\sound.cpp" />
+    <ClCompile Include="Sound\SoundTrackManager.cpp" />
     <ClCompile Include="Specific\clock.cpp" />
     <ClCompile Include="Specific\configuration.cpp" />
     <ClCompile Include="Specific\Serialization\Flatbuffers.cpp" />

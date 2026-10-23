@@ -2,6 +2,7 @@
 
 #include "Game/control/control.h"
 #include "Sound/sound_effects.h"
+#include "Sound/SoundTrackManager.h"
 
 constexpr auto SOUND_NO_CHANNEL              = -1;
 constexpr auto SOUND_SAMPLE_RATE             = 44100;
@@ -28,7 +29,6 @@ constexpr auto SOUND_XFADETIME_ONESHOT       = 200;
 constexpr auto SOUND_XFADETIME_LEVELJUMP     = 400;
 constexpr auto SOUND_XFADETIME_CUTSOUND      = 100;
 constexpr auto SOUND_XFADETIME_HIJACKSOUND   = 50;
-constexpr auto SOUND_BGM_DAMP_COEFFICIENT    = 0.5f;
 constexpr auto SOUND_MIN_PARAM_MULTIPLIER    = 0.05f;
 constexpr auto SOUND_MAX_PARAM_MULTIPLIER    = 5.0f;
 
@@ -108,12 +108,6 @@ struct SoundEffectSlot
 	float Gain;
 	HCHANNEL Channel;
 	Vector3 Origin;
-};
-
-struct SoundTrackSlot
-{
-	HSTREAM Channel { 0 };
-	std::string Track {};
 };
 
 struct SampleInfo
@@ -197,10 +191,6 @@ void EnumerateLegacyTracks();
 void LoadSubtitles(const std::string& path);
 float GetSoundTrackLoudness(SoundTrackType type);
 std::optional<std::string> GetCurrentSubtitle();
-std::pair<std::string, QWORD> GetSoundTrackNameAndPosition(SoundTrackType type);
-
-// NOTE: DWORD here is BASS's own cross-platform type (uint32_t on Linux/macOS, unsigned long on Windows).
-static void CALLBACK Sound_FinishOneshotTrack(HSYNC handle, DWORD channel, DWORD data, void* userData);
 
 void Sound_VideoPlayCallback(void* opaque, const void* samples, unsigned count, int64_t pts);
 void Sound_VideoFlushCallback(void* data, int64_t pts);

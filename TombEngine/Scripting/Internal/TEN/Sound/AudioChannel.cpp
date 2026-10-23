@@ -1,0 +1,449 @@
+#include "framework.h"
+#include "Scripting/Internal/TEN/Sound/AudioChannel.h"
+
+#include "Specific/clock.h"
+
+#include "Scripting/Internal/ReservedScriptNames.h"
+#include "Scripting/Internal/ScriptAssert.h"
+#include "Scripting/Internal/TEN/Types/Time/Time.h"
+#include "Sound/sound.h"
+
+using namespace TEN::Scripting;
+
+/***
+A named audio channel that can play a track once, looped, or as a voice line.
+
+Channels are created and referenced by name: creating a channel with a name that
+already exists returns a handle to the existing channel. User channels are
+independent of the engine's built-in music and ambience, so they can be played,
+crossfaded, paused, and stopped individually. A channel's playback behaviour is
+governed by its @{Sound.SoundTrackType}.
+
+Channels also raise the PRE_AUDIO_CHANNEL and POST_AUDIO_CHANNEL callbacks
+(see @{Logic.CallbackPoint}) when they start and stop. To check whether a
+channel is currently playing, use `AudioChannel:IsPlaying`.
+
+@tenclass Sound.AudioChannel
+@pragma nostrip
+@usage
+	local quiet = TEN.Sound.AudioChannel("quiet", "track1", TEN.Sound.SoundTrackType.LOOPED)
+	quiet:SetVolume(0.6)
+	quiet:Play()
+
+	-- Crossfade to another track over 5 seconds.
+	quiet:SetTrack("track2", Time({ 0, 0, 5 }))
+
+	-- Stop with a 5 second fade-out.
+	quiet:Stop(Time({ 0, 0, 5 }))
+*/
+
+static TrackPreset ToTrackPreset(SoundTrackType type)
+{
+    switch (type)
+    {
+    case SoundTrackType::BGM:   return TrackPreset::Loop;
+    case SoundTrackType::Voice: return TrackPreset::Voice;
+    default:                    return TrackPreset::OneShot;
+    }
+}
+
+static SoundTrackType ToSoundTrackType(TrackPreset preset)
+{
+    switch (preset)
+    {
+    case TrackPreset::BGM:
+    case TrackPreset::Loop:  return SoundTrackType::BGM;
+    case TrackPreset::Voice: return SoundTrackType::Voice;
+    default:                 return SoundTrackType::OneShot;
+    }
+}
+
+namespace TEN::Scripting::Sound
+{
+    AudioChannel::AudioChannel(const std::string& name) : _channelName(name)
+    {
+    }
+
+    /*** Create a new audio channel.
+    If a channel with the given name already exists, a handle to that channel is returned instead.
+
+    @function AudioChannel
+    @tparam string name Unique name of the channel. This name is passed to the audio channel callbacks and is used to reference the channel.
+    @tparam[opt] string track Filename of the track to assign, without extension.
+    @tparam[opt] Sound.SoundTrackType type Playback type. Defaults to `ONESHOT` if omitted.
+    @treturn Sound.AudioChannel A new audio channel.
+    @usage
+        -- A looping background track.
+        local quiet = TEN.Sound.AudioChannel("quiet", "track1", TEN.Sound.SoundTrackType.LOOPED)
+        quiet:SetVolume(0.6)
+        quiet:Play()
+
+        -- A one-shot voice line, played on demand via Play.
+        local voice = TEN.Sound.AudioChannel("voice", "my_voice_line", TEN.Sound.SoundTrackType.VOICE)
+        voice:Play()
+    */
+    std::unique_ptr<AudioChannel> AudioChannel::Create(
+        const std::string& name,
+        sol::optional<std::string> track,
+        sol::optional<SoundTrackType> type)
+    {
+        if (!ScriptAssert(!name.empty(), "AudioChannel: name must not be empty."))
+            return nullptr;
+
+        if (!g_SoundTrackManager)
+            return nullptr;
+
+        if (!g_SoundTrackManager->EnsureChannelExists(name))
+            return nullptr;
+
+        if (type.has_value())
+            g_SoundTrackManager->SetChannelPreset(name, ToTrackPreset(type.value()));
+
+        if (track.has_value())
+            g_SoundTrackManager->SetTrack(name, track.value(), 0);
+
+        return std::make_unique<AudioChannel>(name);
+    }
+
+    void AudioChannel::Play(sol::optional<std::string> track, sol::optional<SoundTrackType> type)
+    {
+        if (!g_SoundTrackManager)
+            return;
+
+        auto preset = type.has_value()
+            ? std::optional<TrackPreset>(ToTrackPreset(type.value()))
+            : std::nullopt;
+
+        g_SoundTrackManager->Play(
+            _channelName,
+            track ? std::optional<std::string>(track.value()) : std::nullopt,
+            preset);
+    }
+
+    void AudioChannel::SetTrack(const std::string& track, sol::optional<Time> crossfadeTime)
+    {
+        if (!g_SoundTrackManager)
+            return;
+
+        int ms = crossfadeTime.has_value()
+            ? crossfadeTime.value().GetMilliseconds()
+            : 0;
+        g_SoundTrackManager->SetTrack(_channelName, track, ms);
+    }
+
+    void AudioChannel::Stop(sol::optional<Time> fadeOutTime)
+    {
+        if (!g_SoundTrackManager)
+            return;
+
+        auto ms = fadeOutTime.has_value()
+            ? std::optional<int>(fadeOutTime.value().GetMilliseconds())
+            : std::nullopt;
+        g_SoundTrackManager->Stop(_channelName, ms);
+    }
+
+    void AudioChannel::Pause()
+    {
+        if (!g_SoundTrackManager)
+            return;
+
+        g_SoundTrackManager->Pause(_channelName);
+    }
+
+    void AudioChannel::Resume()
+    {
+        if (!g_SoundTrackManager)
+            return;
+
+        g_SoundTrackManager->Resume(_channelName);
+    }
+
+    void AudioChannel::Clear()
+    {
+        if (!g_SoundTrackManager)
+            return;
+
+        g_SoundTrackManager->Clear(_channelName);
+    }
+
+    void AudioChannel::SetVolume(float volume)
+    {
+        if (!g_SoundTrackManager)
+            return;
+
+        g_SoundTrackManager->SetChannelVolume(_channelName, volume);
+    }
+
+    float AudioChannel::GetVolume() const
+    {
+        if (!g_SoundTrackManager)
+            return 0.0f;
+
+        return g_SoundTrackManager->GetChannelVolume(_channelName);
+    }
+
+    void AudioChannel::SetShuffleStart(bool enable)
+    {
+        if (!g_SoundTrackManager)
+            return;
+
+        g_SoundTrackManager->SetShuffleStart(_channelName, enable);
+    }
+
+    void AudioChannel::SetDampBGM(float volume)
+    {
+        if (!g_SoundTrackManager)
+            return;
+
+        g_SoundTrackManager->SetDampBGM(_channelName, volume);
+    }
+
+    float AudioChannel::GetDampBGM() const
+    {
+        if (!g_SoundTrackManager)
+            return 0.0f;
+
+        return g_SoundTrackManager->GetDampBGM(_channelName);
+    }
+
+    void AudioChannel::SetPosition(const Time& time)
+    {
+        if (!g_SoundTrackManager)
+            return;
+
+        double seconds = time.GetFrameCount() / (double)FPS;
+        g_SoundTrackManager->SetPositionSeconds(_channelName, seconds);
+    }
+
+    Time AudioChannel::GetPosition() const
+    {
+        if (!g_SoundTrackManager)
+            return Time(0.0f);
+
+        double seconds = g_SoundTrackManager->GetPositionSeconds(_channelName);
+        return Time((float)(seconds * FPS));
+    }
+
+    float AudioChannel::GetNormalizedPosition() const
+    {
+        if (!g_SoundTrackManager)
+            return 0.0f;
+
+        return g_SoundTrackManager->GetNormalizedPosition(_channelName);
+    }
+
+    bool AudioChannel::IsPlaying() const
+    {
+        if (!g_SoundTrackManager)
+            return false;
+
+        return g_SoundTrackManager->IsPlaying(_channelName);
+    }
+
+    std::string AudioChannel::GetName() const
+    {
+        return _channelName;
+    }
+
+    std::string AudioChannel::GetTrack() const
+    {
+        if (!g_SoundTrackManager)
+            return {};
+
+        return g_SoundTrackManager->GetTrackName(_channelName);
+    }
+
+    float AudioChannel::GetLoudness() const
+    {
+        if (!g_SoundTrackManager)
+            return 0.0f;
+
+        return g_SoundTrackManager->GetLoudness(_channelName);
+    }
+
+    SoundTrackType AudioChannel::GetType() const
+    {
+        if (!g_SoundTrackManager)
+            return SoundTrackType::OneShot;
+
+        return ToSoundTrackType(g_SoundTrackManager->GetChannelPreset(_channelName));
+    }
+
+    void AudioChannel::SetType(SoundTrackType type)
+    {
+        if (!g_SoundTrackManager)
+            return;
+
+        g_SoundTrackManager->SetChannelPreset(_channelName, ToTrackPreset(type));
+    }
+
+    void AudioChannel::SetCrossFadeLength(const Time& time)
+    {
+        if (!g_SoundTrackManager)
+            return;
+
+        g_SoundTrackManager->SetCrossfadeTime(_channelName, time.GetMilliseconds());
+    }
+
+    void AudioChannel::Register(sol::state& state, sol::table& parent)
+    {
+        parent.new_usertype<AudioChannel>(
+            ScriptReserved_AudioChannel,
+            sol::call_constructor, &AudioChannel::Create,
+
+            /// Play this channel (optionally switching to a new track or type). If a track was assigned with SetTrack, it is used here.
+            // @function AudioChannel:Play
+            // @tparam[opt] string track Filename of the track to play (without extension).
+            // @tparam[opt] Sound.SoundTrackType type Playback type to apply.
+            // @usage
+            // quiet:Play()
+            // quiet:Play("track3", TEN.Sound.SoundTrackType.LOOPED)
+            ScriptReserved_AudioChannelPlay, &AudioChannel::Play,
+
+            /// Stop this channel. A fade-out is applied using the channel's default fade time unless one is given.
+            // @function AudioChannel:Stop
+            // @tparam[opt] Time fadeOutTime Fade-out duration.
+            // @usage
+            // quiet:Stop()
+            // quiet:Stop(Time({ 0, 0, 5 }))
+            ScriptReserved_AudioChannelStop, &AudioChannel::Stop,
+
+            /// Pause this channel.
+            // @function AudioChannel:Pause
+            // @usage
+            // quiet:Pause()
+            ScriptReserved_AudioChannelPause, &AudioChannel::Pause,
+
+            /// Resume this channel.
+            // @function AudioChannel:Resume
+            // @usage
+            // quiet:Resume()
+            ScriptReserved_AudioChannelResume, &AudioChannel::Resume,
+
+            /// Clear this channel (stop and remove track assignment).
+            // @function AudioChannel:Clear
+            // @usage
+            // quiet:Clear()
+            ScriptReserved_AudioChannelClear, &AudioChannel::Clear,
+
+            /// Set the track for this channel. If the channel is already playing, it will crossfade to the new track immediately; otherwise the track is stored and played on the next Play call.
+            // @function AudioChannel:SetTrack
+            // @tparam string track Filename (without extension).
+            // @tparam[opt] Time crossfadeTime Crossfade duration.
+            // @usage
+            // -- Crossfade to a new track over 5 seconds while the channel is already playing.
+            // quiet:SetTrack("track2", Time({ 0, 0, 5 }))
+            ScriptReserved_AudioChannelSetTrack, &AudioChannel::SetTrack,
+
+            /// Check if the channel is currently playing.
+            // @function AudioChannel:IsPlaying
+            // @treturn bool True if playing.
+            // @usage
+            // if quiet:IsPlaying() then
+            //     print("quiet is playing")
+            // end
+            ScriptReserved_AudioChannelIsPlaying, &AudioChannel::IsPlaying,
+
+            /// Get the name of this channel.
+            // @function AudioChannel:GetName
+            // @treturn string Channel name.
+            // @usage
+            // local name = quiet:GetName()
+            ScriptReserved_GetName, &AudioChannel::GetName,
+
+            /// Get the current track filename.
+            // @function AudioChannel:GetTrack
+            // @treturn string Track filename.
+            // @usage
+            // local track = quiet:GetTrack()
+            ScriptReserved_AudioChannelGetTrack, &AudioChannel::GetTrack,
+
+            /// Get the current loudness.
+            // @function AudioChannel:GetLoudness
+            // @treturn float Loudness value.
+            // @usage
+            // local loudness = quiet:GetLoudness()
+            ScriptReserved_AudioChannelGetLoudness, &AudioChannel::GetLoudness,
+
+            /// Set the channel volume.
+            // @function AudioChannel:SetVolume
+            // @tparam float volume Volume (0.0 to 1.0).
+            // @usage
+            // quiet:SetVolume(0.5)
+            ScriptReserved_AudioChannelSetVolume, &AudioChannel::SetVolume,
+
+            /// Get the channel volume.
+            // @function AudioChannel:GetVolume
+            // @treturn float Volume.
+            // @usage
+            // local volume = quiet:GetVolume()
+            ScriptReserved_AudioChannelGetVolume, &AudioChannel::GetVolume,
+
+            /// Get the playback type of this channel.
+            // @function AudioChannel:GetType
+            // @treturn Sound.SoundTrackType Current channel type.
+            // @usage
+            // local trackType = quiet:GetType()
+            ScriptReserved_AudioChannelGetType, &AudioChannel::GetType,
+
+            /// Set the playback type, re-applying its preset defaults (loop, fade, crossfade).
+            // @function AudioChannel:SetType
+            // @tparam Sound.SoundTrackType type New channel type.
+            // @usage
+            // quiet:SetType(TEN.Sound.SoundTrackType.LOOPED)
+            ScriptReserved_AudioChannelSetType, &AudioChannel::SetType,
+
+            /// Set the crossfade duration for looped (LOOPED) channels.
+            // @function AudioChannel:SetCrossFadeLength
+            // @tparam Time time Crossfade duration.
+            // @usage
+            // quiet:SetCrossFadeLength(Time({ 0, 0, 3 }))
+            ScriptReserved_AudioChannelSetCrossFadeLength, &AudioChannel::SetCrossFadeLength,
+
+            /// Enable or disable shuffle start.
+            // @function AudioChannel:SetShuffleStart
+            // @tparam bool enable True to start at a random position.
+            // @usage
+            // quiet:SetShuffleStart(true)
+            ScriptReserved_AudioChannelShuffleStart, &AudioChannel::SetShuffleStart,
+
+            /// Set the volume the background music is lowered to while this channel plays. Set to 1.0 to disable damping.
+            // @function AudioChannel:SetDampBGM
+            // @tparam float volume Target BGM volume multiplier while this channel is active (0.0 to 1.0).
+            // @usage
+            // -- Halve the BGM volume while this channel plays.
+            // quiet:SetDampBGM(0.5)
+            // -- Fade the BGM out completely while this channel plays.
+            // quiet:SetDampBGM(0.0)
+            ScriptReserved_AudioChannelSetDampBGM, &AudioChannel::SetDampBGM,
+
+            /// Get the BGM damp volume for this channel.
+            // @function AudioChannel:GetDampBGM
+            // @treturn float Current BGM volume multiplier (0.0 if damping is disabled).
+            // @usage
+            // local dampVolume = quiet:GetDampBGM()
+            ScriptReserved_AudioChannelGetDampBGM, &AudioChannel::GetDampBGM,
+
+            /// Set the playback position.
+            // @function AudioChannel:SetPosition
+            // @tparam Time time Playback position as a Time value.
+            // @usage
+            // quiet:SetPosition(Time({ 0, 0, 30 }))
+            ScriptReserved_AudioChannelSetPosition, &AudioChannel::SetPosition,
+
+            /// Get the current playback position.
+            // @function AudioChannel:GetPosition
+            // @treturn Time Playback position.
+            // @usage
+            // local position = quiet:GetPosition()
+            ScriptReserved_AudioChannelGetPosition, &AudioChannel::GetPosition,
+
+            /// Get the normalized playback position (0.0 to 1.0).
+            // @function AudioChannel:GetNormalizedPosition
+            // @treturn float Normalized position.
+            // @usage
+            // local progress = quiet:GetNormalizedPosition()
+            ScriptReserved_AudioChannelGetNormPos, &AudioChannel::GetNormalizedPosition
+        );
+    }
+}
