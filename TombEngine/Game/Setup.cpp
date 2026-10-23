@@ -34,6 +34,7 @@
 using namespace TEN::Animation;
 using namespace TEN::Effects::Hair;
 using namespace TEN::Entities;
+using namespace TEN::Entities::Effects;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Utils;
 

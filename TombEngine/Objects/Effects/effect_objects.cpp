@@ -2,57 +2,68 @@
 #include "Objects/Effects/effect_objects.h"
 
 #include "Game/Setup.h"
+#include "Objects/Effects/PlanetEffect.h"
 #include "Objects/Effects/enemy_missile.h"
 #include "Objects/Effects/flame_emitters.h"
 #include "Objects/Effects/LensFlare.h"
 #include "Objects/Utils/object_helper.h"
 
-using namespace TEN::Entities::Effects;
-
-void InitializeEffectsObjects()
+namespace TEN::Entities::Effects
 {
-	ObjectInfo* obj;
 
-	// Flame is always loaded
-	obj = &Objects[ID_FLAME];
+	void InitializeEffectsObjects()
 	{
-		obj->control = nullptr;
-		obj->Hidden = true;
-	}
+		ObjectInfo* obj;
 
-	obj = &Objects[ID_FLAME_EMITTER];
-	if (obj->loaded)
-	{
-		obj->Initialize = InitializeFlameEmitter;
-		obj->collision = FlameEmitterCollision;
-		obj->control = FlameEmitterControl;
-		obj->Hidden = true;
-	}
+		// Flame is always loaded
+		obj = &Objects[ID_FLAME];
+		{
+			obj->control = nullptr;
+			obj->Hidden = true;
+		}
 
-	obj = &Objects[ID_FLAME_EMITTER2];
-	if (obj->loaded)
-	{
-		obj->Initialize = InitializeFlameEmitter2;
-		obj->collision = FlameEmitterCollision;
-		obj->control = FlameEmitter2Control;
-		obj->Hidden = true;
-	}
+		obj = &Objects[ID_FLAME_EMITTER];
+		if (obj->loaded)
+		{
+			obj->Initialize = InitializeFlameEmitter;
+			obj->collision = FlameEmitterCollision;
+			obj->control = FlameEmitterControl;
+			obj->Hidden = true;
+		}
 
-	obj = &Objects[ID_FLAME_EMITTER3];
-	if (obj->loaded)
-	{
-		obj->Initialize = InitializeFlameEmitter3;
-		obj->control = FlameEmitter3Control;
-		obj->Hidden = true;
-	}
+		obj = &Objects[ID_FLAME_EMITTER2];
+		if (obj->loaded)
+		{
+			obj->Initialize = InitializeFlameEmitter2;
+			obj->collision = FlameEmitterCollision;
+			obj->control = FlameEmitter2Control;
+			obj->Hidden = true;
+		}
 
-	InitProjectile(obj, ControlEnemyMissile, ID_ENERGY_BUBBLES, true);
+		obj = &Objects[ID_FLAME_EMITTER3];
+		if (obj->loaded)
+		{
+			obj->Initialize = InitializeFlameEmitter3;
+			obj->control = FlameEmitter3Control;
+			obj->Hidden = true;
+		}
 
-	obj = &Objects[ID_LENS_FLARE];
-	if (obj->loaded)
-	{
-		obj->Hidden = true;
-		obj->control = ControlLensFlare;
-		obj->AlwaysActive = true;
+		InitProjectile(obj, ControlEnemyMissile, ID_ENERGY_BUBBLES, true);
+
+		obj = &Objects[ID_LENS_FLARE];
+		if (obj->loaded)
+		{
+			obj->Hidden = true;
+			obj->control = ControlLensFlare;
+			obj->AlwaysActive = true;
+		}
+
+		obj = &Objects[ID_PLANET_EFFECT];
+		if (obj->loaded)
+		{
+			obj->Initialize = InitializePlanetEffect;
+			obj->control = ControlPlanetEffect;
+			obj->AlwaysActive = true;
+		}
 	}
 }

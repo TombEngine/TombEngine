@@ -1,3 +1,6 @@
 #pragma once
 
-void InitializeEffectsObjects();
+namespace TEN::Entities::Effects
+{
+    void InitializeEffectsObjects();
+}
