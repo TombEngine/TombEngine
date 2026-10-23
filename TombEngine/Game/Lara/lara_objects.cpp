@@ -278,7 +278,7 @@ void lara_as_horizontal_bar_leap(ItemInfo* item, CollisionInfo* coll)
 			distance = (barItem.TriggerFlags % 100) - 2;
 
 		lara->Control.HandStatus = HandStatus::Free;
-
+		item->Parenting.Detach();
 		item->Animation.Velocity.z = (20 * distance) + 58;
 		item->Animation.Velocity.y = -(20 * distance + 64);
 	}
@@ -611,6 +611,7 @@ void lara_as_pole_idle(ItemInfo* item, CollisionInfo* coll)
 		if (IsHeld(In::Jump))
 		{
 			item->Animation.TargetState = LS_JUMP_BACK;
+			item->Parenting.Detach();
 			return;
 		}
 
@@ -645,12 +646,13 @@ void lara_as_pole_idle(ItemInfo* item, CollisionInfo* coll)
 		item->Animation.AnimNumber != LA_POLE_JUMP_BACK) // Hack.
 	{
 		item->Animation.TargetState = LS_IDLE;
+		item->Parenting.Detach();
 		return;
 	}
 	else if (item->Animation.AnimNumber == LA_POLE_IDLE)
 	{
 		item->Animation.TargetState = LS_FREEFALL;
-
+		item->Parenting.Detach();
 		// TODO: This shouldn't be required, but the set position command doesn't move Lara correctly.
 		item->Pose.Position.x -= phd_sin(item->Pose.Orientation.y) * 64;
 		item->Pose.Position.z -= phd_cos(item->Pose.Orientation.y) * 64;

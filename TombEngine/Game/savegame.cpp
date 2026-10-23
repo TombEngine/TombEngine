@@ -1030,6 +1030,7 @@ const std::vector<unsigned char> SaveGame::Build()
 		serializedItem.add_after_death(itemToSerialize.AfterDeath);
 		serializedItem.add_box_number(itemToSerialize.BoxNumber);
 		serializedItem.add_carried_item(itemToSerialize.CarriedItem);
+		serializedItem.add_parent_object(itemToSerialize.Parenting.ParentObject);
 		serializedItem.add_anim_object_id(itemToSerialize.Animation.AnimObjectID);
 		serializedItem.add_active_state(itemToSerialize.Animation.ActiveState);
 		serializedItem.add_flags(itemToSerialize.Flags);
@@ -2815,6 +2816,9 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		// Carried item
 		item->CarriedItem = savedItem->carried_item();
 
+		// Parenting
+		item->Parenting.ParentObject = savedItem->parent_object();
+
 		item->Active = savedItem->active();
 		item->HitStatus = savedItem->hit_stauts();
 		item->Status = (ItemStatus)savedItem->status();
@@ -3030,6 +3034,19 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			auto* data = savedItem->data();
 			const auto* savedData = (Common::Int*)data;
 			item->Data = savedData->scalar();
+		}
+	}
+
+	// Sync parent poses now that all items have been restored.
+	for (int i = 0; i < (int)g_Level.Items.size(); i++)
+	{
+		auto& item = g_Level.Items[i];
+
+		if (item.Parenting.ParentObject != NO_VALUE &&
+			item.Parenting.ParentObject >= 0 &&
+			item.Parenting.ParentObject < (int)g_Level.Items.size())
+		{
+			item.Parenting.PrevPose = g_Level.Items[item.Parenting.ParentObject].Pose;
 		}
 	}
 
