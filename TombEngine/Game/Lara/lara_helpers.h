@@ -1,6 +1,11 @@
 #pragma once
 #include "Game/collision/collide_room.h"
 
+namespace TEN::Input
+{
+	enum class ActionID;
+}
+
 enum class JumpDirection;
 enum class WaterStatus;
 struct ItemInfo;
@@ -84,3 +89,18 @@ void ResetPlayerLookAround(ItemInfo& item, float alpha = 0.1f);
 void RumbleLaraHealthCondition(ItemInfo* item);
 
 float GetPlayerJumpVelocity(float height);
+
+constexpr auto PLAYER_REMASTERED_SPRINT_LEAN_CLAMP = ANGLE(16.1f);
+
+bool  IsRemasteredGrabHeld();
+bool  IsRemasteredVehicleFireHeld();
+bool  DoesPlayerRemasteredSolverOwnHeading(const ItemInfo& item);
+bool  DoesPlayerRemasteredCameraAssistApply(const ItemInfo& item);
+short GetPlayerHeadingAngleY(const ItemInfo& item);
+bool  HandlePlayerRemasteredDiagonalStep(const ItemInfo& item, CollisionInfo& coll);
+void  ApplyRemasteredInput(ItemInfo& item);
+void  HandlePlayerRemasteredHeading(ItemInfo& item);
+bool  DoesRemasteredSolverOwnWaterHeading(const ItemInfo& item);
+void  HandleRemasteredWaterHeading(ItemInfo& item);
+bool  TestRemasteredSafetyGrab(ItemInfo& item, CollisionInfo& coll);
+bool  HandleRemasteredTightropeIdle(ItemInfo& item);

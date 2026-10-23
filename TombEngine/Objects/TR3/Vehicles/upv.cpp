@@ -1007,7 +1007,8 @@ namespace TEN::Entities::Vehicles
 		{
 			DoCurrent(UPVItem, laraItem);
 
-			if (IsHeld(In::Fire) &&
+			// Remastered controls: the harpoon fires on Action. -- divezzi, 12.10.26
+			if (IsRemasteredVehicleFireHeld() &&
 				UPV->Flags & UPV_FLAG_CONTROL &&
 				!UPV->HarpoonTimer)
 			{

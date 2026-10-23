@@ -123,6 +123,68 @@ namespace TEN::Gui
 		STRING_ACTIONS_LOAD
 	};
 
+	// Remastered controls: the Controls pages as action lists; the General page adds Fire, which shoots and grabs on foot. -- divezzi, 12.10.26
+	static std::vector<ActionID> BuildContiguousActionIDs(ActionID baseActionID, int count)
+	{
+		auto actionIDs = std::vector<ActionID>{};
+		actionIDs.reserve(count);
+
+		for (int i = 0; i < count; i++)
+			actionIDs.push_back((ActionID)((int)baseActionID + i));
+
+		return actionIDs;
+	}
+
+	std::vector<ActionID> GetPageActionIDs(Menu menu)
+	{
+		switch (menu)
+		{
+		case Menu::VehicleActions:
+			return BuildContiguousActionIDs(In::Accelerate, (int)VehicleActionStrings.size());
+
+		case Menu::QuickActions:
+			return BuildContiguousActionIDs(In::Flare, (int)QuickActionStrings.size());
+
+		case Menu::MenuActions:
+			return BuildContiguousActionIDs(In::Select, (int)MenuActionStrings.size());
+
+		default:
+		case Menu::GeneralActions:
+		{
+			auto actionIDs = BuildContiguousActionIDs(In::Forward, (int)GeneralActionStrings.size());
+			if (g_Configuration.IsUsingRemasteredControls())
+				actionIDs.push_back(In::Fire);
+
+			return actionIDs;
+		}
+		}
+	}
+
+	std::vector<std::string> GetPageActionStrings(Menu menu)
+	{
+		switch (menu)
+		{
+		case Menu::VehicleActions:
+			return VehicleActionStrings;
+
+		case Menu::QuickActions:
+			return QuickActionStrings;
+
+		case Menu::MenuActions:
+			return MenuActionStrings;
+
+		default:
+		case Menu::GeneralActions:
+		{
+			auto strings = GeneralActionStrings;
+			if (g_Configuration.IsUsingRemasteredControls())
+				strings.push_back(STRING_ACTIONS_FIRE);
+
+			return strings;
+		}
+		}
+	}
+
 	bool GuiController::GuiIsPulsed(ActionID actionID) const
 	{
 		constexpr auto DELAY		 = 0.1f;
@@ -294,7 +356,7 @@ namespace TEN::Gui
 
 		constexpr auto TITLE_OPTION_COUNT	  = TitleOption::Count - 1;
 		constexpr auto LOAD_GAME_OPTION_COUNT = SAVEGAME_MAX - 1;
-		constexpr auto OPTION_OPTION_COUNT	  = 2;
+		constexpr auto OPTION_OPTION_COUNT	  = 3;
 
 		static int selectedOptionBackup;
 		auto inventoryResult = InventoryResult::None;
@@ -333,6 +395,10 @@ namespace TEN::Gui
 			OptionCount = OPTION_OPTION_COUNT;
 			break;
 
+		case Menu::Gameplay:
+			HandleGameplaySettingsInput(false);
+			return inventoryResult;
+
 		case Menu::Display:
 			HandleDisplaySettingsInput(false);
 			return inventoryResult;
@@ -344,8 +410,8 @@ namespace TEN::Gui
 			HandleControlSettingsInput(item, false);
 			return inventoryResult;
 
-		case Menu::OtherSettings:
-			HandleOtherSettingsInput(false);
+		case Menu::Sound:
+			HandleSoundSettingsInput(false);
 			return inventoryResult;
 		}
 
@@ -500,7 +566,7 @@ namespace TEN::Gui
 		RebuildDisplayResolutions();
 	}
 
-	void GuiController::FillOtherOptions()
+	void GuiController::FillSoundOptions()
 	{
 		BackupOptions();
 
@@ -736,14 +802,14 @@ namespace TEN::Gui
 				g_Renderer.SetGraphicsSettingsChanged();
 
 				MenuToDisplay = Menu::Options;
-				SelectedOption = 0;
+				SelectedOption = 1;
 			}
 			else if (SelectedOption == DisplaySettingsOption::Cancel)
 			{
 				g_Configuration.Gamma = BackupGamma;
 				g_Renderer.SetGraphicsSettingsChanged();
 				MenuToDisplay = Menu::Options;
-				SelectedOption = 0;
+				SelectedOption = 1;
 			}
 			else
 			{
@@ -757,26 +823,8 @@ namespace TEN::Gui
 
 	void GuiController::HandleControlSettingsInput(ItemInfo* item, bool fromPauseMenu)
 	{
-		unsigned int numControlSettingsOptions = 0;
-		switch (MenuToDisplay)
-		{
-		default:
-		case Menu::GeneralActions:
-			numControlSettingsOptions = (int)GeneralActionStrings.size() + 2;
-			break;
-
-		case Menu::VehicleActions:
-			numControlSettingsOptions = (int)VehicleActionStrings.size() + 2;
-			break;
-
-		case Menu::QuickActions:
-			numControlSettingsOptions = (int)QuickActionStrings.size() + 2;
-			break;
-
-		case Menu::MenuActions:
-			numControlSettingsOptions = (int)MenuActionStrings.size() + 2;
-			break;
-		}
+		auto pageActionIDs = GetPageActionIDs(MenuToDisplay);
+		unsigned int numControlSettingsOptions = (unsigned int)pageActionIDs.size() + 2;
 
 		OptionCount = numControlSettingsOptions;
 		CurrentSettings.NewKeyWaitTimer = 0.0f;
@@ -845,26 +893,11 @@ namespace TEN::Gui
 
 						if (selectedKeyID != KEY_UNASSIGNED && !GetKeyName(selectedKeyID).empty())
 						{
-							unsigned int baseIndex = 0;
-							switch (MenuToDisplay)
-							{
-							case Menu::VehicleActions:
-								baseIndex = (unsigned int)GeneralActionStrings.size();
-								break;
+							// Remastered controls: stores a gamepad key in the custom gamepad profile. -- divezzi, 08.10.26
+							bool isRemasteredGamepadKey = g_Configuration.IsUsingRemasteredControls() && selectedKeyID >= KEY_OFFSET_GAMEPAD;
+							auto profileID = isRemasteredGamepadKey ? BindingProfileID::CustomGamepad : BindingProfileID::Custom;
 
-							case Menu::QuickActions:
-								baseIndex = unsigned int(GeneralActionStrings.size() + VehicleActionStrings.size());
-								break;
-
-							case Menu::MenuActions:
-								baseIndex = unsigned int(GeneralActionStrings.size() + VehicleActionStrings.size() + QuickActionStrings.size());
-								break;
-
-							default:
-								break;
-							}
-
-							g_Bindings.SetKeyBinding(BindingProfileID::Custom, ActionID(baseIndex + SelectedOption), selectedKeyID);
+							g_Bindings.SetKeyBinding(profileID, pageActionIDs[SelectedOption], selectedKeyID);
 							DefaultConflict();
 
 							CurrentSettings.NewKeyWaitTimer = 0;
@@ -957,13 +990,35 @@ namespace TEN::Gui
 
 				if (SelectedOption == (OptionCount - 1) || GuiIsDeselected()) // Apply.
 				{
-					CurrentSettings.Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
-					g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+					// Remastered controls: saves the Remastered profiles, leaving the classic bindings untouched. -- divezzi, 08.10.26
+					if (g_Configuration.IsUsingRemasteredControls())
+					{
+						g_Configuration.RemasteredBindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+						g_Configuration.RemasteredGamepadBindings = g_Bindings.GetBindingProfile(BindingProfileID::CustomGamepad);
+						CurrentSettings.Configuration.RemasteredBindings = g_Configuration.RemasteredBindings;
+						CurrentSettings.Configuration.RemasteredGamepadBindings = g_Configuration.RemasteredGamepadBindings;
+					}
+					else
+					{
+						CurrentSettings.Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+						g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+					}
+
 					SaveConfiguration();
 				}
 				else if (SelectedOption == OptionCount) // Cancel.
 				{
-					g_Bindings.SetBindingProfile(BindingProfileID::Custom, CurrentSettings.Configuration.Bindings);
+					// Remastered controls: restores both Remastered profiles. -- divezzi, 08.10.26
+					if (g_Configuration.IsUsingRemasteredControls())
+					{
+						g_Configuration.RemasteredBindings = CurrentSettings.Configuration.RemasteredBindings;
+						g_Configuration.RemasteredGamepadBindings = CurrentSettings.Configuration.RemasteredGamepadBindings;
+						RefreshBindingsForControlMode();
+					}
+					else
+					{
+						g_Bindings.SetBindingProfile(BindingProfileID::Custom, CurrentSettings.Configuration.Bindings);
+					}
 				}
 				else if (SelectedOption == (OptionCount - 2)) // Defaults.
 				{
@@ -972,7 +1027,7 @@ namespace TEN::Gui
 				}
 
 				MenuToDisplay = Menu::Options;
-				SelectedOption = 2;
+				SelectedOption = 0;
 			}
 		}
 	}
@@ -987,50 +1042,57 @@ namespace TEN::Gui
 	{
 		enum OptionsOption
 		{
+			Controls,
 			Display,
-			OtherSettings,
-			Controls
+			Gameplay,
+			Sound
 		};
 
 		switch (SelectedOption)
 		{
+		case OptionsOption::Controls:
+			BackupOptions();
+			MenuToDisplay = Menu::GeneralActions;
+			SelectedOption = 0;
+			break;
+
 		case OptionsOption::Display:
 			FillDisplayOptions();
 			MenuToDisplay = Menu::Display;
 			SelectedOption = 0;
 			break;
 
-		case OptionsOption::OtherSettings:
-			FillOtherOptions();
-			MenuToDisplay = Menu::OtherSettings;
+		case OptionsOption::Gameplay:
+			BackupOptions();
+			MenuToDisplay = Menu::Gameplay;
 			SelectedOption = 0;
 			break;
 
-		case OptionsOption::Controls:
-			BackupOptions();
-			MenuToDisplay = Menu::GeneralActions;
+		case OptionsOption::Sound:
+			FillSoundOptions();
+			MenuToDisplay = Menu::Sound;
 			SelectedOption = 0;
 			break;
 		}
 	}
 
-	void GuiController::HandleOtherSettingsInput(bool fromPauseMenu)
+	void GuiController::HandleGameplaySettingsInput(bool fromPauseMenu)
 	{
-		enum OtherSettingsOption
+		enum GameplaySettingsOption
 		{
-			SoundDevice,
-			Reverb,
-			MusicVolume,
-			SfxVolume,
-
-			Subtitles,
-			AutoMonkeySwingJump,
-			AutoTargeting,
+			ControlModeOption,
 			TargetHighlighter,
 			InteractionHighlighter,
 			ToggleRumble,
 			ThumbstickCameraControl,
-
+			AutoMonkeySwingJump,
+			AutoTargeting,
+			InvertCameraYAxisOption,
+			SprintToggleOption,
+			LookToggleOption,
+			CrouchToggleOption,
+			GrabToggleOption,
+			SmoothSprintStepsOption,
 			MouseSensitivity,
 
 			Apply,
@@ -1039,33 +1101,43 @@ namespace TEN::Gui
 			Count
 		};
 
-		OptionCount = (int)OtherSettingsOption::Count - 1;
+		OptionCount = (int)GameplaySettingsOption::Count - 1;
 
 		if (GuiIsPulsed(In::MenuLeft) || GuiIsPulsed(In::MenuRight))
 		{
 			switch (SelectedOption)
 			{
-			case OtherSettingsOption::Reverb:
+			// Remastered controls: cycles the control mode between Classic and Remastered. -- divezzi, 08.10.26
+			case GameplaySettingsOption::ControlModeOption:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableReverb = !CurrentSettings.Configuration.EnableReverb;
+				CurrentSettings.Configuration.ControlMode = (ControlMode)(((int)CurrentSettings.Configuration.ControlMode + 1) % (int)ControlMode::Count);
 				break;
 
-			case OtherSettingsOption::AutoMonkeySwingJump:
+			case GameplaySettingsOption::AutoMonkeySwingJump:
+				// Remastered controls: locked, always off. -- divezzi, 12.10.26
+				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
+				{
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+					break;
+				}
+
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableAutoMonkeySwingJump = !CurrentSettings.Configuration.EnableAutoMonkeySwingJump;
 				break;
 
-			case OtherSettingsOption::Subtitles:
-				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableSubtitles = !CurrentSettings.Configuration.EnableSubtitles;
-				break;
+			case GameplaySettingsOption::AutoTargeting:
+				// Remastered controls: locked, always on. -- divezzi, 12.10.26
+				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
+				{
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+					break;
+				}
 
-			case OtherSettingsOption::AutoTargeting:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableAutoTargeting = !CurrentSettings.Configuration.EnableAutoTargeting;
 				break;
 
-			case OtherSettingsOption::TargetHighlighter:
+			case GameplaySettingsOption::TargetHighlighter:
 				if (g_GameFlow->GetSettings()->Hud.TargetHighlighter)
 				{
 					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
@@ -1075,7 +1147,7 @@ namespace TEN::Gui
 					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
 				break;
 
-			case OtherSettingsOption::InteractionHighlighter:
+			case GameplaySettingsOption::InteractionHighlighter:
 				if (g_GameFlow->GetSettings()->Hud.InteractionHighlighter)
 				{
 					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
@@ -1085,64 +1157,92 @@ namespace TEN::Gui
 					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
 				break;
 
-			case OtherSettingsOption::ToggleRumble:
+			case GameplaySettingsOption::ToggleRumble:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableRumble = !CurrentSettings.Configuration.EnableRumble;
 				break;
 
-			case OtherSettingsOption::ThumbstickCameraControl:
+			case GameplaySettingsOption::ThumbstickCameraControl:
+				// Remastered controls: locked, as the Remastered camera does not read it. -- divezzi, 08.10.26
+				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
+				{
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+					break;
+				}
+
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableThumbstickCamera = !CurrentSettings.Configuration.EnableThumbstickCamera;
 				break;
+
+			// Remastered controls: toggles invert camera Y (Remastered camera only). -- divezzi, 08.10.26
+			case GameplaySettingsOption::InvertCameraYAxisOption:
+				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.InvertCameraYAxis = !CurrentSettings.Configuration.InvertCameraYAxis;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+				break;
+
+			// Remastered controls: toggle rows and Smooth Sprint Steps, locked under Classic. -- divezzi, 10.10.26
+			case GameplaySettingsOption::SprintToggleOption:
+				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableSprintToggle = !CurrentSettings.Configuration.EnableSprintToggle;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+				break;
+
+			case GameplaySettingsOption::LookToggleOption:
+				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableLookToggle = !CurrentSettings.Configuration.EnableLookToggle;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+				break;
+
+			case GameplaySettingsOption::CrouchToggleOption:
+				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableCrouchToggle = !CurrentSettings.Configuration.EnableCrouchToggle;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+				break;
+
+			case GameplaySettingsOption::GrabToggleOption:
+				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableGrabToggle = !CurrentSettings.Configuration.EnableGrabToggle;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+				break;
+
+			case GameplaySettingsOption::SmoothSprintStepsOption:
+				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableSmoothSprintSteps = !CurrentSettings.Configuration.EnableSmoothSprintSteps;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+				break;
 			}
 		}
-
-		if (GuiIsPulsed(In::MenuLeft) && SelectedOption == OtherSettingsOption::SoundDevice)
-		{
-			SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-			if (CurrentSettings.SelectedSoundDevice > 0)
-				CurrentSettings.SelectedSoundDevice--;
-		}
-
-		if (GuiIsPulsed(In::MenuRight) && SelectedOption == OtherSettingsOption::SoundDevice)
-		{
-			SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-			if (CurrentSettings.SelectedSoundDevice < g_Configuration.SupportedSoundDevices.size() - 1)
-				CurrentSettings.SelectedSoundDevice++;
-		}
-
-		bool isVolumeAdjusted = false;
 
 		if (IsPulsed(In::MenuLeft, 0.05f, 0.4f))
 		{
 			switch (SelectedOption)
 			{
-			case OtherSettingsOption::MusicVolume:
-				if (CurrentSettings.Configuration.MusicVolume > 0)
-				{
-					CurrentSettings.Configuration.MusicVolume -= VOLUME_STEP;
-					if (CurrentSettings.Configuration.MusicVolume < 0)
-						CurrentSettings.Configuration.MusicVolume = 0;
-
-					SetAudioConfiguration(CurrentSettings.Configuration);
-				}
-
-				break;
-
-			case OtherSettingsOption::SfxVolume:
-				if (CurrentSettings.Configuration.SfxVolume > 0)
-				{
-					CurrentSettings.Configuration.SfxVolume -= VOLUME_STEP;
-					if (CurrentSettings.Configuration.SfxVolume < 0)
-						CurrentSettings.Configuration.SfxVolume = 0;
-
-					SetAudioConfiguration(CurrentSettings.Configuration);
-					isVolumeAdjusted = IsPulsed(In::MenuLeft, 0.1f);
-				}
-
-				break;
-
-			case OtherSettingsOption::MouseSensitivity:
+			case GameplaySettingsOption::MouseSensitivity:
 				if (CurrentSettings.Configuration.MouseSensitivity > MOUSE_SENSITIVITY_MIN)
 				{
 					CurrentSettings.Configuration.MouseSensitivity -= 1;
@@ -1160,32 +1260,7 @@ namespace TEN::Gui
 		{
 			switch (SelectedOption)
 			{
-			case OtherSettingsOption::MusicVolume:
-				if (CurrentSettings.Configuration.MusicVolume < VOLUME_MAX)
-				{
-					CurrentSettings.Configuration.MusicVolume += VOLUME_STEP;
-					if (CurrentSettings.Configuration.MusicVolume > VOLUME_MAX)
-						CurrentSettings.Configuration.MusicVolume = VOLUME_MAX;
-
-					SetAudioConfiguration(CurrentSettings.Configuration);
-				}
-
-				break;
-
-			case OtherSettingsOption::SfxVolume:
-				if (CurrentSettings.Configuration.SfxVolume < VOLUME_MAX)
-				{
-					CurrentSettings.Configuration.SfxVolume += VOLUME_STEP;
-					if (CurrentSettings.Configuration.SfxVolume > VOLUME_MAX)
-						CurrentSettings.Configuration.SfxVolume = VOLUME_MAX;
-
-					SetAudioConfiguration(CurrentSettings.Configuration);
-					isVolumeAdjusted = IsPulsed(In::MenuRight, 0.1f);
-				}
-
-				break;
-
-			case OtherSettingsOption::MouseSensitivity:
+			case GameplaySettingsOption::MouseSensitivity:
 				if (CurrentSettings.Configuration.MouseSensitivity < MOUSE_SENSITIVITY_MAX)
 				{
 					CurrentSettings.Configuration.MouseSensitivity += 1;
@@ -1199,6 +1274,158 @@ namespace TEN::Gui
 			}
 		}
 
+		SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
+
+		if (GuiIsSelected() || GuiIsDeselected())
+		{
+			if (SelectedOption == GameplaySettingsOption::Apply || GuiIsDeselected())
+			{
+				// Was rumble setting changed?
+				bool indicateRumble = CurrentSettings.Configuration.EnableRumble && !g_Configuration.EnableRumble;
+				bool hasControlModeChanged = CurrentSettings.Configuration.ControlMode != g_Configuration.ControlMode;
+
+				// Save the configuration.
+				g_Configuration = CurrentSettings.Configuration;
+
+				// Remastered controls: loads the binding profiles of the newly selected control mode. -- divezzi, 08.10.26
+				if (hasControlModeChanged)
+					RefreshBindingsForControlMode();
+
+				SaveConfiguration();
+
+				// Remastered controls: puts the camera behind Lara on a mode change. -- divezzi, 08.10.26
+				if (hasControlModeChanged && LaraItem != nullptr)
+					ResetRemasteredCameraOrient(*LaraItem);
+
+				// Rumble if setting was changed.
+				if (indicateRumble)
+					Rumble(0.5f);
+			}
+			else if (SelectedOption != GameplaySettingsOption::Cancel)
+			{
+				// No action was taken, no need to play confirmation sound.
+				return;
+			}
+
+			MenuToDisplay = Menu::Options;
+			SelectedOption = 2;
+			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
+		}
+	}
+
+	void GuiController::HandleSoundSettingsInput(bool fromPauseMenu)
+	{
+		enum SoundSettingsOption
+		{
+			SoundDevice,
+			Reverb,
+			MusicVolume,
+			SfxVolume,
+
+			Subtitles,
+
+			Apply,
+			Cancel,
+
+			Count
+		};
+
+		OptionCount = (int)SoundSettingsOption::Count - 1;
+
+		if (GuiIsPulsed(In::MenuLeft) || GuiIsPulsed(In::MenuRight))
+		{
+			switch (SelectedOption)
+			{
+			case SoundSettingsOption::Reverb:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.EnableReverb = !CurrentSettings.Configuration.EnableReverb;
+				break;
+
+			case SoundSettingsOption::Subtitles:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.EnableSubtitles = !CurrentSettings.Configuration.EnableSubtitles;
+				break;
+			}
+		}
+
+		if (GuiIsPulsed(In::MenuLeft) && SelectedOption == SoundSettingsOption::SoundDevice)
+		{
+			SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+			if (CurrentSettings.SelectedSoundDevice > 0)
+				CurrentSettings.SelectedSoundDevice--;
+		}
+
+		if (GuiIsPulsed(In::MenuRight) && SelectedOption == SoundSettingsOption::SoundDevice)
+		{
+			SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+			if (CurrentSettings.SelectedSoundDevice < g_Configuration.SupportedSoundDevices.size() - 1)
+				CurrentSettings.SelectedSoundDevice++;
+		}
+
+		bool isVolumeAdjusted = false;
+
+		if (IsPulsed(In::MenuLeft, 0.05f, 0.4f))
+		{
+			switch (SelectedOption)
+			{
+			case SoundSettingsOption::MusicVolume:
+				if (CurrentSettings.Configuration.MusicVolume > 0)
+				{
+					CurrentSettings.Configuration.MusicVolume -= VOLUME_STEP;
+					if (CurrentSettings.Configuration.MusicVolume < 0)
+						CurrentSettings.Configuration.MusicVolume = 0;
+
+					SetAudioConfiguration(CurrentSettings.Configuration);
+				}
+
+				break;
+
+			case SoundSettingsOption::SfxVolume:
+				if (CurrentSettings.Configuration.SfxVolume > 0)
+				{
+					CurrentSettings.Configuration.SfxVolume -= VOLUME_STEP;
+					if (CurrentSettings.Configuration.SfxVolume < 0)
+						CurrentSettings.Configuration.SfxVolume = 0;
+
+					SetAudioConfiguration(CurrentSettings.Configuration);
+					isVolumeAdjusted = IsPulsed(In::MenuLeft, 0.1f);
+				}
+
+				break;
+			}
+		}
+
+		if (IsPulsed(In::MenuRight, 0.05f, 0.4f))
+		{
+			switch (SelectedOption)
+			{
+			case SoundSettingsOption::MusicVolume:
+				if (CurrentSettings.Configuration.MusicVolume < VOLUME_MAX)
+				{
+					CurrentSettings.Configuration.MusicVolume += VOLUME_STEP;
+					if (CurrentSettings.Configuration.MusicVolume > VOLUME_MAX)
+						CurrentSettings.Configuration.MusicVolume = VOLUME_MAX;
+
+					SetAudioConfiguration(CurrentSettings.Configuration);
+				}
+
+				break;
+
+			case SoundSettingsOption::SfxVolume:
+				if (CurrentSettings.Configuration.SfxVolume < VOLUME_MAX)
+				{
+					CurrentSettings.Configuration.SfxVolume += VOLUME_STEP;
+					if (CurrentSettings.Configuration.SfxVolume > VOLUME_MAX)
+						CurrentSettings.Configuration.SfxVolume = VOLUME_MAX;
+
+					SetAudioConfiguration(CurrentSettings.Configuration);
+					isVolumeAdjusted = IsPulsed(In::MenuRight, 0.1f);
+				}
+
+				break;
+			}
+		}
+
 		if (isVolumeAdjusted)
 			SoundEffect(SFX_TR4_MENU_ROTATE, nullptr, SoundEnvironment::Always);
 
@@ -1206,11 +1433,8 @@ namespace TEN::Gui
 
 		if (GuiIsSelected() || GuiIsDeselected())
 		{
-			if (SelectedOption == OtherSettingsOption::Apply || GuiIsDeselected())
+			if (SelectedOption == SoundSettingsOption::Apply || GuiIsDeselected())
 			{
-				// Was rumble setting changed?
-				bool indicateRumble = CurrentSettings.Configuration.EnableRumble && !g_Configuration.EnableRumble;
-				
 				// Save the new sound device
 				int oldSoundDeviceIndex = CurrentSettings.Configuration.SoundDevice;
 				int newSoundDeviceIndex = g_Configuration.SupportedSoundDevices[CurrentSettings.SelectedSoundDevice].Index;
@@ -1222,18 +1446,14 @@ namespace TEN::Gui
 				g_Configuration = CurrentSettings.Configuration;
 				SaveConfiguration();
 
-				// Rumble if setting was changed.
-				if (indicateRumble)
-					Rumble(0.5f);
-
 				// Reset the sound system
 				if (reinitSoundSystem)
 					Sound_Reset();
 		
 				MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
-				SelectedOption = 1;
+				SelectedOption = 0;
 			}
-			else if (SelectedOption == OtherSettingsOption::Cancel)
+			else if (SelectedOption == SoundSettingsOption::Cancel)
 			{
 				SetAudioConfiguration(g_Configuration);
 			}
@@ -1244,7 +1464,7 @@ namespace TEN::Gui
 			}
 
 			MenuToDisplay = Menu::Options;
-			SelectedOption = 1;
+			SelectedOption = 3;
 			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 		}
 	}
@@ -1260,7 +1480,7 @@ namespace TEN::Gui
 
 		static const int numPauseOptions	  = 2;
 		static const int numStatisticsOptions = 0;
-		static const int numOptionsOptions	  = 2;
+		static const int numOptionsOptions	  = 3;
 
 		TimeInMenu++;
 		UpdateInputActions();
@@ -1279,6 +1499,10 @@ namespace TEN::Gui
 			OptionCount = numOptionsOptions;
 			break;
 
+		case Menu::Gameplay:
+			HandleGameplaySettingsInput(true);
+			return InventoryResult::None;
+
 		case Menu::Display:
 			HandleDisplaySettingsInput(true);
 			return InventoryResult::None;
@@ -1290,8 +1514,8 @@ namespace TEN::Gui
 			HandleControlSettingsInput(item, true);
 			return InventoryResult::None;
 
-		case Menu::OtherSettings:
-			HandleOtherSettingsInput(true);
+		case Menu::Sound:
+			HandleSoundSettingsInput(true);
 			return InventoryResult::None;
 		}
 
@@ -2210,7 +2434,9 @@ namespace TEN::Gui
 					return;
 			}
 
-			if (player.Control.HandStatus == HandStatus::Free &&
+			// Remastered controls: picking the current weapon in the inventory does not draw it; holding Draw does. -- divezzi, 12.10.26
+			if (!g_Configuration.IsUsingRemasteredControls() &&
+				player.Control.HandStatus == HandStatus::Free &&
 				player.Control.Weapon.GunType == player.Control.Weapon.RequestGunType)
 			{
 				InitializeNewWeapon(item);
@@ -2278,7 +2504,8 @@ namespace TEN::Gui
 					return;
 			}
 
-			if (player.Control.HandStatus == HandStatus::Free &&
+			if (!g_Configuration.IsUsingRemasteredControls() &&
+				player.Control.HandStatus == HandStatus::Free &&
 				player.Control.Weapon.GunType == player.Control.Weapon.RequestGunType)
 			{
 				player.Control.HandStatus = HandStatus::WeaponDraw;

@@ -35,6 +35,25 @@ constexpr auto LARA_CRAWL_MOVE_TURN_RATE_MAX  = ANGLE(1.75f);
 constexpr auto LARA_CROUCH_ROLL_TURN_RATE_MAX = ANGLE(0.75f);
 constexpr auto LARA_POLE_TURN_RATE_MAX		  = ANGLE(2.5f);
 
+// Remastered controls: states in which the player counts as stopped; they release the control-frame lock. -- divezzi, 09.10.26
+static const auto PLAYER_IDLE_STATE_IDS = std::vector<int>
+{
+	LS_IDLE,
+	LS_CROUCH_IDLE,
+	LS_CRAWL_IDLE,
+	LS_MONKEY_IDLE,
+	LS_HANG,
+	LS_LADDER_IDLE,
+	LS_POLE_IDLE,
+	LS_ROPE_IDLE,
+	LS_TIGHTROPE_IDLE,
+	LS_ONWATER_IDLE,
+	LS_UNDERWATER_IDLE,
+
+	// The fly cheat has no idle state; listed so a frame locked by Look is released once the stick is centered.
+	LS_FLY_CHEAT
+};
+
 // Flex rates
 constexpr auto LARA_CRAWL_FLEX_RATE = ANGLE(2.25f);
 constexpr auto LARA_CRAWL_FLEX_MAX	= ANGLE(50.0f) / 2; // 2 = hardcoded number of bones to flex (head and torso).

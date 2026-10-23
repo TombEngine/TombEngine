@@ -13,6 +13,7 @@
 #include "Game/Lara/lara_tests.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Sound/sound.h"
+#include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
@@ -238,7 +239,7 @@ void lara_as_horizontal_bar_swing(ItemInfo* item, CollisionInfo* coll)
 {
 	ModulateLaraTurnRateY(item, 0, 0, 0);
 
-	if (IsHeld(In::Action))
+	if (IsRemasteredGrabHeld())
 	{
 		if (IsHeld(In::Jump))
 		{
@@ -307,6 +308,10 @@ void lara_as_tightrope_idle(ItemInfo* item, CollisionInfo* coll)
 	DoLaraTightropeBalanceRegen(item);
 	DoLaraTightropeLean(item);
 
+	// Remastered controls: a held push back turns the player once; held on after the turn, she walks. -- divezzi, 11.10.26
+	if (g_Configuration.IsUsingRemasteredControls() && HandleRemasteredTightropeIdle(*item))
+		return;
+
 	if (IsHeld(In::Forward))
 	{
 		item->Animation.TargetState = LS_TIGHTROPE_WALK;
@@ -372,7 +377,10 @@ void lara_as_tightrope_walk(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Forward))
+	// Remastered controls: after the turn, a held push back keeps the player walking. -- divezzi, 11.10.26
+	if (IsHeld(In::Forward) ||
+		(g_Configuration.IsUsingRemasteredControls() && lara->Control.Remastered.IsTightropeTurnLatched &&
+		 IsHeld(In::Back) && !IsHeld(In::Roll)))
 	{
 		item->Animation.TargetState = LS_TIGHTROPE_WALK;
 		return;
@@ -913,7 +921,7 @@ void lara_as_zip_line(ItemInfo* item, CollisionInfo* coll)
 	lara->Control.Look.Mode = LookMode::Free;
 	Camera.targetAngle = ANGLE(70.0f);
 
-	if (!IsHeld(In::Action))
+	if (!IsRemasteredGrabHeld())
 	{
 		item->Animation.TargetState = LS_JUMP_FORWARD;
 		AnimateItem(item);
