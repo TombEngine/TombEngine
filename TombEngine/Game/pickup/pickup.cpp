@@ -29,6 +29,8 @@
 #include "Objects/Generic/Object/burning_torch.h"
 #include "Objects/TR4/Object/tr4_clockwork_beetle.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
@@ -143,6 +145,18 @@ static void DispatchPrePickupCallback(short itemNumber)
 		g_GameScript->OnPickup(itemNumber, false);
 }
 
+static void RegisterSecretForGoldRosePickup(const ItemInfo& item)
+{
+	auto goldRoseSecret = PropertyHandler::Get(item, PropName_GenericBool, false);
+
+	if (!goldRoseSecret)
+		return;
+
+	PlaySecretTrack();
+	SaveGame::Statistics.Level.Secrets++;
+	SaveGame::Statistics.Game.Secrets++;
+}
+
 bool SetInventoryCount(GAME_OBJECT_ID objectID, int count)
 {
 	if (!TryModifyWeapon(Lara, objectID, count, ModificationType::Set) &&
@@ -164,7 +178,7 @@ bool PickedUpObject(GAME_OBJECT_ID objectID, std::optional<int> count)
 		!TryAddingAmmo(Lara, objectID, count) &&
 		!TryAddingKeyItem(Lara, objectID, count) &&
 		!TryAddingConsumable(Lara, objectID, count) &&
-		!TryAddMiscItem(Lara, objectID))
+        !TryAddMiscItem(Lara, objectID))
 	{
 		// Item isn't any of the above; do nothing.
 		return false;
@@ -180,7 +194,10 @@ bool PickedUpObject(GAME_OBJECT_ID objectID, std::optional<int> count)
 void PickedUpObject(ItemInfo& item)
 {
 	if (PickedUpObject(item.ObjectNumber, item.HitPoints > 0 ? std::optional<int>(item.HitPoints) : std::nullopt))
+   {
+		RegisterSecretForGoldRosePickup(item);
 		g_GameScript->OnPickup(item.Index, true);
+   }
 }
 
 int GetInventoryCount(GAME_OBJECT_ID objectID)
@@ -200,6 +217,9 @@ int GetInventoryCount(GAME_OBJECT_ID objectID)
 	intResult = GetConsumableCount(Lara, objectID);
 	if (intResult.has_value())
 		return intResult.value();
+
+   if (objectID == ID_HAMMER_ITEM)
+		return int{ Lara.Inventory.HasHammer };
 
 	boolResult = HasMiscItem(Lara, objectID);
 	if (boolResult.has_value())

@@ -58,6 +58,8 @@
 #define STRING_CROSSBOW_AMMO_2			"crossbow_poison_ammo"
 #define STRING_CROSSBOW_AMMO_3			"crossbow_explosive_ammo"
 #define STRING_DIARY					"diary"
+#define STRING_GOLDROSE					"goldrose"
+#define STRING_HAMMER					"hammer"
 #define STRING_ENABLED					"enabled"
 #define STRING_DISABLED					"disabled"
 #define STRING_MUSIC_VOLUME				"music_volume"
