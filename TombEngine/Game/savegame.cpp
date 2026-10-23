@@ -368,6 +368,121 @@ static std::vector<SavedVar> DeserializeScriptVars(const flatbuffers::Vector<fla
 	return loadedVars;
 }
 
+static flatbuffers::Offset<Save::SoundProperties> BuildSoundProperties(FlatBufferBuilder& fbb, const SoundProperties& properties)
+{
+	Save::SoundPropertiesBuilder builder{ fbb };
+
+	if (properties.Volume.has_value())
+		builder.add_volume((int)properties.Volume.value());
+
+	if (properties.Radius.has_value())
+		builder.add_radius((int)properties.Radius.value());
+
+	if (properties.Randomness.has_value())
+		builder.add_randomness((int)properties.Randomness.value());
+
+	if (properties.Pitch.has_value())
+		builder.add_pitch((int)properties.Pitch.value());
+
+	if (properties.PlayMode.has_value())
+		builder.add_play_mode((int)properties.PlayMode.value());
+
+	if (properties.RandomPitch.has_value())
+		builder.add_random_pitch(properties.RandomPitch.value() ? 1 : 0);
+
+	if (properties.RandomGain.has_value())
+		builder.add_random_gain(properties.RandomGain.value() ? 1 : 0);
+
+	return builder.Finish();
+}
+
+static std::vector<flatbuffers::Offset<Save::SoundSource>> BuildSoundSources(FlatBufferBuilder& fbb)
+{
+	auto soundSources = std::vector<flatbuffers::Offset<Save::SoundSource>>{};
+	soundSources.reserve(g_Level.SoundSources.size());
+
+	for (int i = 0; i < (int)g_Level.SoundSources.size(); i++)
+	{
+		const auto& soundSource = g_Level.SoundSources[i];
+		auto nameOffset = fbb.CreateString(soundSource.Name);
+
+		Save::SoundSourceBuilder builder{ fbb };
+		builder.add_index(i);
+		builder.add_position(&FromVector3i(soundSource.Position));
+		builder.add_sound_id(soundSource.SoundID);
+		builder.add_flags(soundSource.Flags);
+		builder.add_enabled(soundSource.Enabled);
+		builder.add_name(nameOffset);
+
+		if (!soundSource.Properties.IsEmpty())
+			builder.add_properties(BuildSoundProperties(fbb, soundSource.Properties));
+
+		soundSources.push_back(builder.Finish());
+	}
+
+	return soundSources;
+}
+
+static SoundProperties ParseSoundProperties(const Save::SoundProperties* savedProperties)
+{
+	auto properties = SoundProperties{};
+	if (savedProperties == nullptr)
+		return properties;
+
+	if (savedProperties->volume() >= 0)
+		properties.Volume = (unsigned char)savedProperties->volume();
+
+	if (savedProperties->radius() >= 0)
+		properties.Radius = (unsigned char)savedProperties->radius();
+
+	if (savedProperties->randomness() >= 0)
+		properties.Randomness = (unsigned char)savedProperties->randomness();
+
+	if (savedProperties->pitch() >= -127)
+		properties.Pitch = (signed char)savedProperties->pitch();
+
+	if (savedProperties->play_mode() >= 0)
+		properties.PlayMode = (SoundPlayMode)savedProperties->play_mode();
+
+	if (savedProperties->random_pitch() >= 0)
+		properties.RandomPitch = savedProperties->random_pitch() != 0;
+
+	if (savedProperties->random_gain() >= 0)
+		properties.RandomGain = savedProperties->random_gain() != 0;
+
+	return properties;
+}
+
+static void ParseSoundSources(const Save::SaveGame* s)
+{
+	const auto* savedSoundSources = s->sound_sources();
+	if (savedSoundSources == nullptr)
+		return;
+
+	for (int i = 0; i < (int)savedSoundSources->size(); i++)
+	{
+		const auto* savedSource = savedSoundSources->Get(i);
+		int index = savedSource->index();
+		if (index < 0 || index >= (int)g_Level.SoundSources.size())
+			continue;
+
+		auto& soundSource = g_Level.SoundSources[index];
+		if (savedSource->position() != nullptr)
+			soundSource.Position = ToVector3i(savedSource->position());
+
+		soundSource.SoundID = savedSource->sound_id();
+		soundSource.Flags = savedSource->flags();
+		soundSource.Enabled = savedSource->enabled();
+		soundSource.Properties = ParseSoundProperties(savedSource->properties());
+
+		if (savedSource->name() != nullptr)
+		{
+			soundSource.Name = savedSource->name()->str();
+			g_GameScriptEntities->AddName(soundSource.Name, soundSource);
+		}
+	}
+}
+
 void SaveGame::Init(const std::string& gameDirectory)
 {
 	FullSaveDirectory = gameDirectory + SAVEGAME_PATH;
@@ -1263,6 +1378,10 @@ const std::vector<unsigned char> SaveGame::Build()
 	}
 	auto sinksOffset = fbb.CreateVector(sinks);
 
+	// Sound sources
+	auto soundSources = BuildSoundSources(fbb);
+	auto soundSourcesOffset = fbb.CreateVector(soundSources);
+
 	// Flyby cameras
 	std::vector<flatbuffers::Offset<Save::FlyByCamera>> flybyCameras;
 	for (int i = 0; i < (int)g_Level.SpotCams.size(); i++)
@@ -1726,6 +1845,7 @@ const std::vector<unsigned char> SaveGame::Build()
 	sgb.add_spiders(spidersOffset);
 	sgb.add_scarabs(scarabsOffset);
 	sgb.add_sinks(sinksOffset);
+	sgb.add_sound_sources(soundSourcesOffset);
 	sgb.add_flyby_cameras(flybyCamerasOffset);
 	sgb.add_global_event_sets(globalEventSetsOffset);
 	sgb.add_volume_event_sets(volumeEventSetsOffset);
@@ -2674,6 +2794,9 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		if (i < g_Level.Sinks.size())
 			g_Level.Sinks[i].Strength = s->sinks()->Get(i)->flags();
 	}
+
+	// Sound sources
+	ParseSoundSources(s);
 
 	// Flyby cameras 
 	for (int i = 0; i < s->flyby_cameras()->size(); i++)

@@ -137,6 +137,14 @@ struct Sink;
 struct SinkBuilder;
 struct SinkT;
 
+struct SoundProperties;
+struct SoundPropertiesBuilder;
+struct SoundPropertiesT;
+
+struct SoundSource;
+struct SoundSourceBuilder;
+struct SoundSourceT;
+
 struct StaticMeshInfo;
 struct StaticMeshInfoBuilder;
 struct StaticMeshInfoT;
@@ -5856,6 +5864,277 @@ struct Sink::Traits {
 
 flatbuffers::Offset<Sink> CreateSink(flatbuffers::FlatBufferBuilder &_fbb, const SinkT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct SoundPropertiesT : public flatbuffers::NativeTable {
+  typedef SoundProperties TableType;
+  int32_t volume = -1;
+  int32_t radius = -1;
+  int32_t randomness = -1;
+  int32_t pitch = -128;
+  int32_t play_mode = -1;
+  int32_t random_pitch = -1;
+  int32_t random_gain = -1;
+};
+
+struct SoundProperties FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef SoundPropertiesT NativeTableType;
+  typedef SoundPropertiesBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_VOLUME = 4,
+    VT_RADIUS = 6,
+    VT_RANDOMNESS = 8,
+    VT_PITCH = 10,
+    VT_PLAY_MODE = 12,
+    VT_RANDOM_PITCH = 14,
+    VT_RANDOM_GAIN = 16
+  };
+  int32_t volume() const {
+    return GetField<int32_t>(VT_VOLUME, -1);
+  }
+  int32_t radius() const {
+    return GetField<int32_t>(VT_RADIUS, -1);
+  }
+  int32_t randomness() const {
+    return GetField<int32_t>(VT_RANDOMNESS, -1);
+  }
+  int32_t pitch() const {
+    return GetField<int32_t>(VT_PITCH, -128);
+  }
+  int32_t play_mode() const {
+    return GetField<int32_t>(VT_PLAY_MODE, -1);
+  }
+  int32_t random_pitch() const {
+    return GetField<int32_t>(VT_RANDOM_PITCH, -1);
+  }
+  int32_t random_gain() const {
+    return GetField<int32_t>(VT_RANDOM_GAIN, -1);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int32_t>(verifier, VT_VOLUME) &&
+           VerifyField<int32_t>(verifier, VT_RADIUS) &&
+           VerifyField<int32_t>(verifier, VT_RANDOMNESS) &&
+           VerifyField<int32_t>(verifier, VT_PITCH) &&
+           VerifyField<int32_t>(verifier, VT_PLAY_MODE) &&
+           VerifyField<int32_t>(verifier, VT_RANDOM_PITCH) &&
+           VerifyField<int32_t>(verifier, VT_RANDOM_GAIN) &&
+           verifier.EndTable();
+  }
+  SoundPropertiesT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(SoundPropertiesT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<SoundProperties> Pack(flatbuffers::FlatBufferBuilder &_fbb, const SoundPropertiesT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct SoundPropertiesBuilder {
+  typedef SoundProperties Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_volume(int32_t volume) {
+    fbb_.AddElement<int32_t>(SoundProperties::VT_VOLUME, volume, -1);
+  }
+  void add_radius(int32_t radius) {
+    fbb_.AddElement<int32_t>(SoundProperties::VT_RADIUS, radius, -1);
+  }
+  void add_randomness(int32_t randomness) {
+    fbb_.AddElement<int32_t>(SoundProperties::VT_RANDOMNESS, randomness, -1);
+  }
+  void add_pitch(int32_t pitch) {
+    fbb_.AddElement<int32_t>(SoundProperties::VT_PITCH, pitch, -128);
+  }
+  void add_play_mode(int32_t play_mode) {
+    fbb_.AddElement<int32_t>(SoundProperties::VT_PLAY_MODE, play_mode, -1);
+  }
+  void add_random_pitch(int32_t random_pitch) {
+    fbb_.AddElement<int32_t>(SoundProperties::VT_RANDOM_PITCH, random_pitch, -1);
+  }
+  void add_random_gain(int32_t random_gain) {
+    fbb_.AddElement<int32_t>(SoundProperties::VT_RANDOM_GAIN, random_gain, -1);
+  }
+  explicit SoundPropertiesBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<SoundProperties> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<SoundProperties>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<SoundProperties> CreateSoundProperties(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t volume = -1,
+    int32_t radius = -1,
+    int32_t randomness = -1,
+    int32_t pitch = -128,
+    int32_t play_mode = -1,
+    int32_t random_pitch = -1,
+    int32_t random_gain = -1) {
+  SoundPropertiesBuilder builder_(_fbb);
+  builder_.add_random_gain(random_gain);
+  builder_.add_random_pitch(random_pitch);
+  builder_.add_play_mode(play_mode);
+  builder_.add_pitch(pitch);
+  builder_.add_randomness(randomness);
+  builder_.add_radius(radius);
+  builder_.add_volume(volume);
+  return builder_.Finish();
+}
+
+struct SoundProperties::Traits {
+  using type = SoundProperties;
+  static auto constexpr Create = CreateSoundProperties;
+};
+
+flatbuffers::Offset<SoundProperties> CreateSoundProperties(flatbuffers::FlatBufferBuilder &_fbb, const SoundPropertiesT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct SoundSourceT : public flatbuffers::NativeTable {
+  typedef SoundSource TableType;
+  int32_t index = 0;
+  std::unique_ptr<TEN::Serialization::Common::Vector3> position{};
+  int32_t sound_id = 0;
+  int32_t flags = 0;
+  bool enabled = true;
+  std::string name{};
+  std::unique_ptr<TEN::Serialization::Save::SoundPropertiesT> properties{};
+};
+
+struct SoundSource FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef SoundSourceT NativeTableType;
+  typedef SoundSourceBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_INDEX = 4,
+    VT_POSITION = 6,
+    VT_SOUND_ID = 8,
+    VT_FLAGS = 10,
+    VT_ENABLED = 12,
+    VT_NAME = 14,
+    VT_PROPERTIES = 16
+  };
+  int32_t index() const {
+    return GetField<int32_t>(VT_INDEX, 0);
+  }
+  const TEN::Serialization::Common::Vector3 *position() const {
+    return GetStruct<const TEN::Serialization::Common::Vector3 *>(VT_POSITION);
+  }
+  int32_t sound_id() const {
+    return GetField<int32_t>(VT_SOUND_ID, 0);
+  }
+  int32_t flags() const {
+    return GetField<int32_t>(VT_FLAGS, 0);
+  }
+  bool enabled() const {
+    return GetField<uint8_t>(VT_ENABLED, 1) != 0;
+  }
+  const flatbuffers::String *name() const {
+    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  }
+  const TEN::Serialization::Save::SoundProperties *properties() const {
+    return GetPointer<const TEN::Serialization::Save::SoundProperties *>(VT_PROPERTIES);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int32_t>(verifier, VT_INDEX) &&
+           VerifyField<TEN::Serialization::Common::Vector3>(verifier, VT_POSITION) &&
+           VerifyField<int32_t>(verifier, VT_SOUND_ID) &&
+           VerifyField<int32_t>(verifier, VT_FLAGS) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLED) &&
+           VerifyOffset(verifier, VT_NAME) &&
+           verifier.VerifyString(name()) &&
+           VerifyOffset(verifier, VT_PROPERTIES) &&
+           verifier.VerifyTable(properties()) &&
+           verifier.EndTable();
+  }
+  SoundSourceT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(SoundSourceT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<SoundSource> Pack(flatbuffers::FlatBufferBuilder &_fbb, const SoundSourceT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct SoundSourceBuilder {
+  typedef SoundSource Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_index(int32_t index) {
+    fbb_.AddElement<int32_t>(SoundSource::VT_INDEX, index, 0);
+  }
+  void add_position(const TEN::Serialization::Common::Vector3 *position) {
+    fbb_.AddStruct(SoundSource::VT_POSITION, position);
+  }
+  void add_sound_id(int32_t sound_id) {
+    fbb_.AddElement<int32_t>(SoundSource::VT_SOUND_ID, sound_id, 0);
+  }
+  void add_flags(int32_t flags) {
+    fbb_.AddElement<int32_t>(SoundSource::VT_FLAGS, flags, 0);
+  }
+  void add_enabled(bool enabled) {
+    fbb_.AddElement<uint8_t>(SoundSource::VT_ENABLED, static_cast<uint8_t>(enabled), 1);
+  }
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(SoundSource::VT_NAME, name);
+  }
+  void add_properties(flatbuffers::Offset<TEN::Serialization::Save::SoundProperties> properties) {
+    fbb_.AddOffset(SoundSource::VT_PROPERTIES, properties);
+  }
+  explicit SoundSourceBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<SoundSource> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<SoundSource>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<SoundSource> CreateSoundSource(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t index = 0,
+    const TEN::Serialization::Common::Vector3 *position = 0,
+    int32_t sound_id = 0,
+    int32_t flags = 0,
+    bool enabled = true,
+    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<TEN::Serialization::Save::SoundProperties> properties = 0) {
+  SoundSourceBuilder builder_(_fbb);
+  builder_.add_properties(properties);
+  builder_.add_name(name);
+  builder_.add_flags(flags);
+  builder_.add_sound_id(sound_id);
+  builder_.add_position(position);
+  builder_.add_index(index);
+  builder_.add_enabled(enabled);
+  return builder_.Finish();
+}
+
+struct SoundSource::Traits {
+  using type = SoundSource;
+  static auto constexpr Create = CreateSoundSource;
+};
+
+inline flatbuffers::Offset<SoundSource> CreateSoundSourceDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t index = 0,
+    const TEN::Serialization::Common::Vector3 *position = 0,
+    int32_t sound_id = 0,
+    int32_t flags = 0,
+    bool enabled = true,
+    const char *name = nullptr,
+    flatbuffers::Offset<TEN::Serialization::Save::SoundProperties> properties = 0) {
+  auto name__ = name ? _fbb.CreateString(name) : 0;
+  return TEN::Serialization::Save::CreateSoundSource(
+      _fbb,
+      index,
+      position,
+      sound_id,
+      flags,
+      enabled,
+      name__,
+      properties);
+}
+
+flatbuffers::Offset<SoundSource> CreateSoundSource(flatbuffers::FlatBufferBuilder &_fbb, const SoundSourceT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct StaticMeshInfoT : public flatbuffers::NativeTable {
   typedef StaticMeshInfo TableType;
   int32_t number = 0;
@@ -10197,6 +10476,7 @@ struct SaveGameT : public flatbuffers::NativeTable {
   std::vector<int32_t> free_item_slots{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>> moveable_type_properties{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>> static_type_properties{};
+  std::vector<std::unique_ptr<TEN::Serialization::Save::SoundSourceT>> sound_sources{};
 };
 
 struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -10261,7 +10541,8 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_ACTIVE_ITEMS = 112,
     VT_FREE_ITEM_SLOTS = 114,
     VT_MOVEABLE_TYPE_PROPERTIES = 116,
-    VT_STATIC_TYPE_PROPERTIES = 118
+    VT_STATIC_TYPE_PROPERTIES = 118,
+    VT_SOUND_SOURCES = 120
   };
   const TEN::Serialization::Save::SaveGameHeader *header() const {
     return GetPointer<const TEN::Serialization::Save::SaveGameHeader *>(VT_HEADER);
@@ -10437,6 +10718,9 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *static_type_properties() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *>(VT_STATIC_TYPE_PROPERTIES);
   }
+  const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SoundSource>> *sound_sources() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SoundSource>> *>(VT_SOUND_SOURCES);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_HEADER) &&
@@ -10561,6 +10845,9 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_STATIC_TYPE_PROPERTIES) &&
            verifier.VerifyVector(static_type_properties()) &&
            verifier.VerifyVectorOfTables(static_type_properties()) &&
+           VerifyOffset(verifier, VT_SOUND_SOURCES) &&
+           verifier.VerifyVector(sound_sources()) &&
+           verifier.VerifyVectorOfTables(sound_sources()) &&
            verifier.EndTable();
   }
   SaveGameT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -10746,6 +11033,9 @@ struct SaveGameBuilder {
   void add_static_type_properties(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>> static_type_properties) {
     fbb_.AddOffset(SaveGame::VT_STATIC_TYPE_PROPERTIES, static_type_properties);
   }
+  void add_sound_sources(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SoundSource>>> sound_sources) {
+    fbb_.AddOffset(SaveGame::VT_SOUND_SOURCES, sound_sources);
+  }
   explicit SaveGameBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -10816,8 +11106,10 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_items = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> free_item_slots = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>> moveable_type_properties = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>> static_type_properties = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>> static_type_properties = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SoundSource>>> sound_sources = 0) {
   SaveGameBuilder builder_(_fbb);
+  builder_.add_sound_sources(sound_sources);
   builder_.add_static_type_properties(static_type_properties);
   builder_.add_moveable_type_properties(moveable_type_properties);
   builder_.add_free_item_slots(free_item_slots);
@@ -10943,7 +11235,8 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     const std::vector<int32_t> *active_items = nullptr,
     const std::vector<int32_t> *free_item_slots = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *moveable_type_properties = nullptr,
-    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *static_type_properties = nullptr) {
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *static_type_properties = nullptr,
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::SoundSource>> *sound_sources = nullptr) {
   auto rooms__ = rooms ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::Room>>(*rooms) : 0;
   auto box_flags__ = box_flags ? _fbb.CreateVector<int32_t>(*box_flags) : 0;
   auto items__ = items ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::Item>>(*items) : 0;
@@ -10974,6 +11267,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
   auto free_item_slots__ = free_item_slots ? _fbb.CreateVector<int32_t>(*free_item_slots) : 0;
   auto moveable_type_properties__ = moveable_type_properties ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>(*moveable_type_properties) : 0;
   auto static_type_properties__ = static_type_properties ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>(*static_type_properties) : 0;
+  auto sound_sources__ = sound_sources ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::SoundSource>>(*sound_sources) : 0;
   return TEN::Serialization::Save::CreateSaveGame(
       _fbb,
       header,
@@ -11033,7 +11327,8 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       active_items__,
       free_item_slots__,
       moveable_type_properties__,
-      static_type_properties__);
+      static_type_properties__,
+      sound_sources__);
 }
 
 flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuilder &_fbb, const SaveGameT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -12551,6 +12846,94 @@ inline flatbuffers::Offset<Sink> CreateSink(flatbuffers::FlatBufferBuilder &_fbb
   return TEN::Serialization::Save::CreateSink(
       _fbb,
       _flags);
+}
+
+inline SoundPropertiesT *SoundProperties::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<SoundPropertiesT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void SoundProperties::UnPackTo(SoundPropertiesT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = volume(); _o->volume = _e; }
+  { auto _e = radius(); _o->radius = _e; }
+  { auto _e = randomness(); _o->randomness = _e; }
+  { auto _e = pitch(); _o->pitch = _e; }
+  { auto _e = play_mode(); _o->play_mode = _e; }
+  { auto _e = random_pitch(); _o->random_pitch = _e; }
+  { auto _e = random_gain(); _o->random_gain = _e; }
+}
+
+inline flatbuffers::Offset<SoundProperties> SoundProperties::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SoundPropertiesT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateSoundProperties(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<SoundProperties> CreateSoundProperties(flatbuffers::FlatBufferBuilder &_fbb, const SoundPropertiesT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const SoundPropertiesT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _volume = _o->volume;
+  auto _radius = _o->radius;
+  auto _randomness = _o->randomness;
+  auto _pitch = _o->pitch;
+  auto _play_mode = _o->play_mode;
+  auto _random_pitch = _o->random_pitch;
+  auto _random_gain = _o->random_gain;
+  return TEN::Serialization::Save::CreateSoundProperties(
+      _fbb,
+      _volume,
+      _radius,
+      _randomness,
+      _pitch,
+      _play_mode,
+      _random_pitch,
+      _random_gain);
+}
+
+inline SoundSourceT *SoundSource::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<SoundSourceT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void SoundSource::UnPackTo(SoundSourceT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = index(); _o->index = _e; }
+  { auto _e = position(); if (_e) _o->position = std::unique_ptr<TEN::Serialization::Common::Vector3>(new TEN::Serialization::Common::Vector3(*_e)); }
+  { auto _e = sound_id(); _o->sound_id = _e; }
+  { auto _e = flags(); _o->flags = _e; }
+  { auto _e = enabled(); _o->enabled = _e; }
+  { auto _e = name(); if (_e) _o->name = _e->str(); }
+  { auto _e = properties(); if (_e) _o->properties = std::unique_ptr<TEN::Serialization::Save::SoundPropertiesT>(_e->UnPack(_resolver)); }
+}
+
+inline flatbuffers::Offset<SoundSource> SoundSource::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SoundSourceT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateSoundSource(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<SoundSource> CreateSoundSource(flatbuffers::FlatBufferBuilder &_fbb, const SoundSourceT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const SoundSourceT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _index = _o->index;
+  auto _position = _o->position ? _o->position.get() : 0;
+  auto _sound_id = _o->sound_id;
+  auto _flags = _o->flags;
+  auto _enabled = _o->enabled;
+  auto _name = _o->name.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->name);
+  auto _properties = _o->properties ? CreateSoundProperties(_fbb, _o->properties.get(), _rehasher) : 0;
+  return TEN::Serialization::Save::CreateSoundSource(
+      _fbb,
+      _index,
+      _position,
+      _sound_id,
+      _flags,
+      _enabled,
+      _name,
+      _properties);
 }
 
 inline StaticMeshInfoT *StaticMeshInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -14104,6 +14487,7 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = free_item_slots(); if (_e) { _o->free_item_slots.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->free_item_slots[_i] = _e->Get(_i); } } }
   { auto _e = moveable_type_properties(); if (_e) { _o->moveable_type_properties.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->moveable_type_properties[_i] = std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = static_type_properties(); if (_e) { _o->static_type_properties.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->static_type_properties[_i] = std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = sound_sources(); if (_e) { _o->sound_sources.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->sound_sources[_i] = std::unique_ptr<TEN::Serialization::Save::SoundSourceT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
 inline flatbuffers::Offset<SaveGame> SaveGame::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SaveGameT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -14172,6 +14556,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _free_item_slots = _fbb.CreateVector(_o->free_item_slots);
   auto _moveable_type_properties = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> (_o->moveable_type_properties.size(), [](size_t i, _VectorArgs *__va) { return CreateTypePropertyMap(*__va->__fbb, __va->__o->moveable_type_properties[i].get(), __va->__rehasher); }, &_va );
   auto _static_type_properties = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> (_o->static_type_properties.size(), [](size_t i, _VectorArgs *__va) { return CreateTypePropertyMap(*__va->__fbb, __va->__o->static_type_properties[i].get(), __va->__rehasher); }, &_va );
+  auto _sound_sources = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::SoundSource>> (_o->sound_sources.size(), [](size_t i, _VectorArgs *__va) { return CreateSoundSource(*__va->__fbb, __va->__o->sound_sources[i].get(), __va->__rehasher); }, &_va );
   return TEN::Serialization::Save::CreateSaveGame(
       _fbb,
       _header,
@@ -14231,7 +14616,8 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _active_items,
       _free_item_slots,
       _moveable_type_properties,
-      _static_type_properties);
+      _static_type_properties,
+      _sound_sources);
 }
 
 inline bool VerifyPropertyValueUnion(flatbuffers::Verifier &verifier, const void *obj, PropertyValueUnion type) {

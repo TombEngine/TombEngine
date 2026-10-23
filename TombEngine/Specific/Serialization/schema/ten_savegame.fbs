@@ -396,6 +396,26 @@ table Sink {
 	flags: int32;
 }
 
+table SoundProperties {
+	volume: int32 = -1;
+	radius: int32 = -1;
+	randomness: int32 = -1;
+	pitch: int32 = -128;
+	play_mode: int32 = -1;
+	random_pitch: int32 = -1;
+	random_gain: int32 = -1;
+}
+
+table SoundSource {
+	index: int32;
+	position: TEN.Serialization.Common.Vector3;
+	sound_id: int32;
+	flags: int32;
+	enabled: bool = true;
+	name: string;
+	properties: SoundProperties;
+}
+
 table StaticMeshInfo {
 	number: int32;
 	pose: TEN.Serialization.Common.Pose;
@@ -767,6 +787,7 @@ table SaveGame {
 	free_item_slots: [int32];
 	moveable_type_properties: [TypePropertyMap];
 	static_type_properties: [TypePropertyMap];
+	sound_sources: [SoundSource];
 }
 
 root_type TEN.Serialization.Save.SaveGame;

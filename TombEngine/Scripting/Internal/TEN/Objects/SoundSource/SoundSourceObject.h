@@ -1,14 +1,12 @@
 #pragma once
 
-#include "Scripting/Internal/TEN/Objects/NamedBase.h"
+#include <sol/sol.hpp>
+
 #include "Math/Math.h"
+#include "Scripting/Internal/TEN/Objects/NamedBase.h"
 
 struct SoundSourceInfo;
 
-namespace sol
-{
-	class state;
-}
 class Vec3;
 
 class SoundSource : public NamedBase<SoundSource, SoundSourceInfo &>
@@ -27,6 +25,12 @@ public:
 
 	int GetSoundID() const;
 	void SetSoundID(int soundID);
+
+	bool GetEnabled() const;
+	void SetEnabled(bool enabled);
+
+	sol::table GetProperties(sol::this_state state) const;
+	void SetProperties(sol::optional<sol::table> properties);
 
 	std::string GetName() const;
 	void SetName(std::string const &);
