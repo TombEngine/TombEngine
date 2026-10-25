@@ -180,7 +180,7 @@ namespace TEN::Renderer::Backend
         {
             { rawTarget, _pointClampSampler.get() },
             { _aoHistory[_aoHistoryIndex].get(), _linearClampSampler.get() },
-            { _velocityTarget.get(), _pointClampSampler.get() },
+            { _isVelocityActive ? _velocityTarget.get() : _blackTexture.get(), _pointClampSampler.get() },
             { _sceneDepthCopy.get(), _pointClampSampler.get() }
         };
         RenderFullscreenPass(commandBuffer, _aoTemporalPipeline.get(), _aoHistory[nextHistory].get(), temporalBindings, 4, "Temporal accumulation");

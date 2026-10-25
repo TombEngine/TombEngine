@@ -189,7 +189,6 @@ namespace TEN::Renderer::Backend
         _sceneTarget = nullptr;
         _sceneDepthCopy = nullptr;
         _distortionTarget = nullptr;
-        _antialiasingSource = nullptr;
         _upscaleSource = nullptr;
         _easuPipeline = nullptr;
         _rcasPipeline = nullptr;
@@ -811,7 +810,7 @@ namespace TEN::Renderer::Backend
         ITexture* targets[] =
         {
             _distortionTarget.get(), _emissiveTarget.get(), _glowTarget.get(), _reflectionTarget.get(), _dofTargets[0].get(), _dofTargets[1].get(),
-            _antialiasingSource.get(), includeFrameTargets ? _colorTarget.get() : nullptr, _skyReflectionTarget.get(),
+            includeFrameTargets ? _colorTarget.get() : nullptr, _skyReflectionTarget.get(),
             _velocityTarget.get(), _taaHistory[0].get(), _taaHistory[1].get(), _aoHistory[0].get(), _aoHistory[1].get()
         };
 
@@ -869,14 +868,17 @@ namespace TEN::Renderer::Backend
         auto edgesDesc = TextureDesc{};
         auto weightsDesc = TextureDesc{};
         auto stencilDesc = TextureDesc{};
-        GetSMAATargetDescs((_isUpscaleActive ? _upscaleSource : _colorTarget)->GetDesc(), edgesDesc, weightsDesc, stencilDesc);
+        GetSMAATargetDescs(_isUpscaleActive ? GetPostProcessTargetDesc() : _colorTarget->GetDesc(), edgesDesc, weightsDesc, stencilDesc);
         _targetPool.Reserve(edgesDesc);
         _targetPool.Reserve(weightsDesc);
         if (_smaaStencilFormat != PixelFormat::Unknown)
             _targetPool.Reserve(stencilDesc);
 
         _targetPool.Reserve(_sceneTarget->GetDesc());
-        _targetPool.Reserve(_dofTargets[0]->GetDesc());
+        _targetPool.Reserve(GetPostProcessTargetDesc());
+        if (_dofTargets[0] != nullptr)
+            _targetPool.Reserve(_dofTargets[0]->GetDesc());
+
         _targetPool.Reserve(_aoHistory[0]->GetDesc());
         _targetPool.Reserve(_glowTarget->GetDesc());
     }
@@ -918,13 +920,8 @@ namespace TEN::Renderer::Backend
         distortionDesc.Name = "Scene.Distortion";
         _distortionTarget = _device->CreateTexture(distortionDesc);
 
-        colorDesc.Name = "PostProcess.Result";
-        _antialiasingSource = _device->CreateTexture(colorDesc);
-
-        // Below the window resolution, the post-processed and antialiased scene waits here for the upscale pass.
+        // The SMAA source and, below the window resolution, the upscale source are pooled (GetPostProcessTargetDesc).
         _isUpscaleActive = (width != windowWidth);
-        colorDesc.Name = "FSR.Source";
-        _upscaleSource = _isUpscaleActive ? _device->CreateTexture(colorDesc) : nullptr;
 
         colorDesc.Format = PixelFormat::R32Float;
         colorDesc.Name = "Scene.DepthCopy";
@@ -939,14 +936,14 @@ namespace TEN::Renderer::Backend
         depthDesc.Name = "Scene.Depth";
         _depthTarget = _device->CreateTexture(depthDesc);
 
-        if (_sceneTarget == nullptr || _sceneDepthCopy == nullptr || _distortionTarget == nullptr || _antialiasingSource == nullptr ||
-            _depthTarget == nullptr || (_isUpscaleActive && _upscaleSource == nullptr))
-        {
+        if (_sceneTarget == nullptr || _sceneDepthCopy == nullptr || _distortionTarget == nullptr || _depthTarget == nullptr)
             return false;
-        }
 
-        if (!EnsureAmbientOcclusionTargets(width, height) || !EnsureGlowTargets(width, height) || !EnsureDOFTargets(width, height) || !EnsureTemporalTargets(width, height))
+        if (!EnsureAmbientOcclusionTargets(width, height) || !EnsureGlowTargets(width, height))
             return false;
+
+        // Feature targets are created at the new size when their feature is next active.
+        ReleaseFeatureTargets();
 
         // Texture mips are biased by the scale, so the scene keeps the texture detail of the window resolution.
         float lodBias = _isUpscaleActive ? std::log2((float)width / (float)windowWidth) : 0.0f;
@@ -955,6 +952,17 @@ namespace TEN::Renderer::Backend
 
         _materialLodBias = lodBias;
         return CreateMaterialSampler();
+    }
+
+    // Targets of optional features, created by their Ensure functions while the feature is active.
+    void SceneRenderer::ReleaseFeatureTargets()
+    {
+        _velocityTarget = nullptr;
+        for (auto& history : _taaHistory)
+            history = nullptr;
+
+        for (auto& target : _dofTargets)
+            target = nullptr;
     }
 
     // Synchronous buffer upload with its own command buffer and a full device wait: load time only. Per-frame data
@@ -2940,6 +2948,7 @@ namespace TEN::Renderer::Backend
 
         // Temporal passes jitter the projection; the motion vectors use the unjittered one.
         PrepareTemporalFrame(view, environment, projection);
+        EnsureTemporalTargets(*commandBuffer);
         _nearPlane = view.Camera.NearPlane;
         _farPlane = view.Camera.FarPlane;
         _time = (float)environment.Frame;
@@ -3022,6 +3031,7 @@ namespace TEN::Renderer::Backend
         _isWaterSkyReflected = !_waterDraws.empty() && IsSkyVisible(view);
         _isSkyReflectionActive = _hasSkyReflectiveMaterials || _isWaterSkyReflected;
         _isDofActive = IsDOFActive(environment);
+        EnsureDOFTargets(*commandBuffer);
         _hasVisibleEmissive = false;
 
         // The shadow uniforms are the largest block of pixel slot 2, so they also cover the passes before the scene.

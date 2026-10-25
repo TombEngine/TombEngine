@@ -528,7 +528,6 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::IShader>           _postProcessPixelShader  = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _postProcessPipeline     = nullptr;
         std::unique_ptr<RHI::ITexture>          _sceneTarget             = nullptr;
-        std::unique_ptr<RHI::ITexture>          _antialiasingSource      = nullptr; // Post-processed image before SMAA.
         std::unique_ptr<RHI::ITexture>          _sceneDepthCopy          = nullptr; // R32 float copy of the prepass depth.
         std::unique_ptr<RHI::ITexture>          _distortionTarget        = nullptr;
         std::unique_ptr<RHI::ITexture>          _emissiveTarget          = nullptr; // Prepass emissive, source of the glow.
@@ -548,7 +547,7 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::IGraphicsPipeline> _easuPipeline    = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _rcasPipeline    = nullptr;
         bool                                    _isColorTargetSharpened = false; // EASU or TAA output, sharpened by RCAS when the overlay draws it.
-        std::unique_ptr<RHI::ITexture>          _upscaleSource   = nullptr;
+        RHI::ITexture*                          _upscaleSource   = nullptr; // Pooled, from the post-process to the upscale pass.
         float                                   _renderScale     = 1.0f;
 
         // Dynamic resolution (SceneRendererDynamicResolution.cpp).
@@ -1155,7 +1154,7 @@ namespace TEN::Renderer::Backend
 
         // Temporal antialiasing and motion vectors (SceneRendererTAA.cpp).
         bool CreateTemporalResources();
-        bool EnsureTemporalTargets(int width, int height);
+        void EnsureTemporalTargets(RHI::ICommandBuffer& commandBuffer);
         void PrepareTemporalFrame(const RenderView& view, const FrameEnvironment& environment, Matrix& projection);
         Matrix GetPrevViewProjection() const;
         RHI::ITexture* GetResolvedSceneTarget() const;
@@ -1236,6 +1235,7 @@ namespace TEN::Renderer::Backend
         static RHI::GraphicsPipelineDesc GetFullscreenPipelineDesc(RHI::IShader* vertexShader, RHI::IShader* pixelShader, RHI::PixelFormat format, const char* name);
         std::unique_ptr<RHI::IGraphicsPipeline> CreateFullscreenPipeline(RHI::IShader* vertexShader, RHI::IShader* pixelShader, RHI::PixelFormat format, const char* name);
         bool CreatePostProcessResources();
+        RHI::TextureDesc GetPostProcessTargetDesc() const;
         void RenderPostProcess(RHI::ICommandBuffer& commandBuffer);
         bool HasDistortionDraws(const RenderView& view) const;
         void RenderDistortion(RHI::ICommandBuffer& commandBuffer);
@@ -1256,7 +1256,7 @@ namespace TEN::Renderer::Backend
 
         // Depth of field (SceneRendererDOF.cpp).
         bool  CreateDOFResources();
-        bool  EnsureDOFTargets(int width, int height);
+        void  EnsureDOFTargets(RHI::ICommandBuffer& commandBuffer);
         static bool IsDOFActive(const FrameEnvironment& environment);
         static int  GetDOFLayers(const FrameEnvironment& environment); // Bit 0 far blur, bit 1 near blur.
         void  RenderDOF(RHI::ICommandBuffer& commandBuffer);
@@ -1274,6 +1274,7 @@ namespace TEN::Renderer::Backend
         RHI::TextureDesc GetGlowTargetDesc(int width, int height) const;
         void  CopyReflectionSource(RHI::ICommandBuffer& commandBuffer);
         void  ClearSampledTargets(bool includeFrameTargets);
+        void  ReleaseFeatureTargets();
         void  DownscaleTexture(RHI::ICommandBuffer& commandBuffer, RHI::ITexture* source, RHI::ITexture* target, const char* name);
 
         // Prepass, ambient occlusion and fullscreen pass helpers (SceneRendererAmbientOcclusion.cpp).

@@ -93,8 +93,10 @@ namespace TEN::Renderer::Backend
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &uniforms, sizeof(uniforms));
 
         // EASU gathers the source with bilinear coordinates. RCAS runs when the overlay draws the result.
-        auto easuBinding = TextureSamplerBinding{ _upscaleSource.get(), _linearClampSampler.get() };
+        auto easuBinding = TextureSamplerBinding{ _upscaleSource, _linearClampSampler.get() };
         RenderFullscreenPass(commandBuffer, _easuPipeline.get(), _colorTarget.get(), &easuBinding, 1, "EASU");
+        _targetPool.Release(_upscaleSource);
+        _upscaleSource = nullptr;
         _isColorTargetSharpened = true;
     }
 
@@ -103,16 +105,17 @@ namespace TEN::Renderer::Backend
     void SceneRenderer::PushRcasUniforms(ICommandBuffer& commandBuffer)
     {
         // At native scale RCAS sharpens the temporal antialiasing; its constants do not depend on the source size.
-        auto uniforms = GetFsrUniforms((_upscaleSource != nullptr) ? *_upscaleSource : *_colorTarget, *_colorTarget);
+        auto uniforms = GetFsrUniforms(*_colorTarget, *_colorTarget);
         for (int slot = 0; slot <= 2; slot++)
             commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, slot, &uniforms, sizeof(uniforms));
     }
 
     // Overlay objects and the menu post-process draw at window resolution. At native scale they share the scene
-    // targets; below it, they use pooled targets of the window size, which the pool keeps across frames.
+    // targets; below it, they use pooled targets of the window size, which the pool keeps across frames. The menu
+    // post-process acquires its antialiasing source itself.
     void SceneRenderer::AcquireOverlayTargets()
     {
-        _overlayTargets = OverlayTargets{ _emissiveTarget.get(), _depthTarget.get(), _glowTarget.get(), _antialiasingSource.get() };
+        _overlayTargets = OverlayTargets{ _emissiveTarget.get(), _depthTarget.get(), _glowTarget.get(), nullptr };
         if (!_isUpscaleActive)
             return;
 
@@ -128,7 +131,6 @@ namespace TEN::Renderer::Backend
         _overlayTargets.Emissive = _targetPool.Acquire(getWindowDesc(_emissiveTarget.get()));
         _overlayTargets.Depth = _targetPool.Acquire(getWindowDesc(_depthTarget.get()));
         _overlayTargets.Glow = _targetPool.Acquire(GetGlowTargetDesc(frameDesc.Width, frameDesc.Height));
-        _overlayTargets.AntialiasingSource = _targetPool.Acquire(getWindowDesc(_antialiasingSource.get()));
     }
 
     // Returns the window sized overlay targets to the pool; at native scale they were the scene targets themselves.
@@ -139,8 +141,10 @@ namespace TEN::Renderer::Backend
             _targetPool.Release(_overlayTargets.Emissive);
             _targetPool.Release(_overlayTargets.Depth);
             _targetPool.Release(_overlayTargets.Glow);
-            _targetPool.Release(_overlayTargets.AntialiasingSource);
         }
+
+        if (_overlayTargets.AntialiasingSource != nullptr)
+            _targetPool.Release(_overlayTargets.AntialiasingSource);
 
         _overlayTargets = {};
     }

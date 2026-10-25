@@ -68,13 +68,27 @@ namespace TEN::Renderer::Backend
         return (_taaPipeline != nullptr);
     }
 
-    // Motion vectors and the two history targets the resolve alternates between, written by the compute shader. The
-    // history has 8 bits per channel, as the scene, and the resolve rounds it stochastically so slow blends converge.
-    bool SceneRenderer::EnsureTemporalTargets(int width, int height)
+    // Motion vectors and the two history targets the resolve alternates between, written by the compute shader. They exist
+    // only while TAA is active and are cleared when created; TAA stays off when they cannot be created. The history has
+    // 8 bits per channel, as the scene, and the resolve rounds it stochastically so slow blends converge.
+    void SceneRenderer::EnsureTemporalTargets(ICommandBuffer& commandBuffer)
     {
+        if (!_isTaaActive)
+        {
+            _velocityTarget = nullptr;
+            for (auto& history : _taaHistory)
+                history = nullptr;
+
+            return;
+        }
+
+        if (_velocityTarget != nullptr)
+            return;
+
+        const auto& sceneDesc = _sceneTarget->GetDesc();
         auto desc = TextureDesc{};
-        desc.Width = width;
-        desc.Height = height;
+        desc.Width = sceneDesc.Width;
+        desc.Height = sceneDesc.Height;
         desc.Format = PixelFormat::RG16Float;
         desc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler;
         desc.Name = "Prepass.Velocity";
@@ -86,12 +100,20 @@ namespace TEN::Renderer::Backend
         {
             desc.Name = "TAA.History[" + std::to_string(i) + "]";
             _taaHistory[i] = _device->CreateTexture(desc);
-            if (_taaHistory[i] == nullptr)
-                return false;
         }
 
         _isTaaHistoryValid = false;
-        return (_velocityTarget != nullptr);
+        if (_velocityTarget == nullptr || _taaHistory[0] == nullptr || _taaHistory[1] == nullptr)
+        {
+            _isTaaActive = false;
+            _isVelocityActive = false;
+            _velocityTarget = nullptr;
+            return;
+        }
+
+        ClearColorTarget(commandBuffer, _velocityTarget.get());
+        for (auto& history : _taaHistory)
+            ClearColorTarget(commandBuffer, history.get());
     }
 
     // Decides the temporal passes of the frame and offsets the projection by the sub-pixel jitter of the frame when TAA

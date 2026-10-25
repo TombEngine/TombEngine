@@ -738,6 +738,7 @@ namespace TEN::Renderer::Backend
             return;
 
         commandBuffer.PushDebugGroup("Menu post-process");
+        _overlayTargets.AntialiasingSource = _targetPool.Acquire(_finalTarget->GetDesc());
 
         // Every uniform slot of the fullscreen shaders holds data before their draws, as in RenderFrame.
         auto framePixelUniforms = FramePixelUniforms{};

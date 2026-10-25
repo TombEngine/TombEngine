@@ -122,6 +122,16 @@ namespace TEN::Renderer::Backend
         commandBuffer.EndRenderPass();
     }
 
+    // Scene sized target in the frame format written by the post-process: the SMAA source and the upscale source, both
+    // pooled.
+    TextureDesc SceneRenderer::GetPostProcessTargetDesc() const
+    {
+        auto desc = _sceneTarget->GetDesc();
+        desc.Format = _device->GetSwapchainFormat();
+        desc.Name = "PostProcess";
+        return desc;
+    }
+
     // Single fullscreen pass from the scene target to the frame target, or to the upscale source below native scale.
     // With SMAA it writes the antialiasing source, which SMAA then resolves into that output.
     void SceneRenderer::RenderPostProcess(ICommandBuffer& commandBuffer)
@@ -160,10 +170,12 @@ namespace TEN::Renderer::Backend
 
         // The temporal antialiasing already resolved the scene after the scene pass.
         bool isAntialiased = (environment.AntialiasingMode != 0 && environment.AntialiasingMode != ANTIALIASING_MODE_TEMPORAL);
-        auto* outputTarget = _isUpscaleActive ? _upscaleSource.get() : _colorTarget.get();
+        _upscaleSource = _isUpscaleActive ? _targetPool.Acquire(GetPostProcessTargetDesc()) : nullptr;
+        auto* outputTarget = _isUpscaleActive ? _upscaleSource : _colorTarget.get();
+        auto* antialiasingSource = isAntialiased ? _targetPool.Acquire(GetPostProcessTargetDesc()) : nullptr;
 
         auto colorTarget = ColorTargetInfo{};
-        colorTarget.Texture = isAntialiased ? _antialiasingSource.get() : outputTarget;
+        colorTarget.Texture = isAntialiased ? antialiasingSource : outputTarget;
         colorTarget.Load = LoadOp::DontCare;
 
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
@@ -176,8 +188,8 @@ namespace TEN::Renderer::Backend
             { _distortionTarget.get(), _linearClampSampler.get() },
             { _sceneDepthCopy.get(), _pointClampSampler.get() },
             { _glowTarget.get(), _linearClampSampler.get() },
-            { _dofTargets[0].get(), _linearClampSampler.get() },
-            { _dofTargets[1].get(), _linearClampSampler.get() }
+            { (_dofTargets[0] != nullptr) ? _dofTargets[0].get() : _blackTexture.get(), _linearClampSampler.get() },
+            { (_dofTargets[1] != nullptr) ? _dofTargets[1].get() : _blackTexture.get(), _linearClampSampler.get() }
         };
         renderPass->BindPixelSamplers(0, bindings, 6);
 
@@ -186,7 +198,10 @@ namespace TEN::Renderer::Backend
         commandBuffer.EndRenderPass();
 
         if (isAntialiased)
-            RenderAntialiasing(commandBuffer, _antialiasingSource.get(), outputTarget);
+        {
+            RenderAntialiasing(commandBuffer, antialiasingSource, outputTarget);
+            _targetPool.Release(antialiasingSource);
+        }
 
         // The temporal antialiasing softens the image; at native scale RCAS sharpens it while the overlay draws it, as
         // it does for the FSR upscale.
