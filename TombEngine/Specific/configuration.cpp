@@ -124,6 +124,7 @@ static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 	int backend = config->graphics_backend();
 	g_Configuration.GraphicsBackend = (backend >= (int)GraphicsBackend::Vulkan && backend <= (int)GraphicsBackend::OpenGL) ? (GraphicsBackend)backend : GraphicsBackend::Vulkan;
 	g_Configuration.RenderScale = GetRenderScaleMode(config->render_scale());
+	g_Configuration.EnableHdr = config->enable_hdr();
 
 	if (config->adapter_name() != nullptr)
 		g_Configuration.AdapterName = config->adapter_name()->str();
@@ -224,6 +225,7 @@ void InitDefaultConfiguration()
 	g_Configuration.AtmosphericSkyQuality = AtmosphericSkyQuality::Medium;
 	g_Configuration.GraphicsBackend = GraphicsBackend::Vulkan;
 	g_Configuration.RenderScale = RenderScaleMode::Automatic;
+	g_Configuration.EnableHdr = false;
 
 	g_Configuration.SoundDevice = 1;
 	g_Configuration.EnableSound = true;
@@ -299,6 +301,7 @@ static std::vector<unsigned char> BuildConfigurationBuffer()
 	builder.add_atmospheric_sky_quality((int)g_Configuration.AtmosphericSkyQuality);
 	builder.add_graphics_backend((int)g_Configuration.GraphicsBackend);
 	builder.add_render_scale((int)g_Configuration.RenderScale);
+	builder.add_enable_hdr(g_Configuration.EnableHdr);
 	builder.add_adapter_name(adapterNameOffset);
 	builder.add_sound_device(g_Configuration.SoundDevice);
 	builder.add_enable_reverb(g_Configuration.EnableReverb);

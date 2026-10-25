@@ -1,9 +1,10 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=0
-// TEN_SHADER: Pixel PS samplers=6 storage_textures=0 storage_buffers=0 uniform_buffers=3
+// TEN_SHADER: Pixel PS samplers=7 storage_textures=0 storage_buffers=0 uniform_buffers=3
 
 // Distortion, depth of field, glow, lens flares, color scheme (monochrome, negative, exclusion), screen fade,
 // cinematic bars, tint and gamma in a single pass (SceneRendererPostProcess.cpp). PS reads the scene, the
-// distortion payload, the depth copy and the glow and depth of field targets.
+// distortion payload, the depth copy and the glow, depth of field and bloom targets. With the HDR scene target, the
+// bloom and the exposure are applied and the result is tonemapped before the color scheme.
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -34,9 +35,9 @@ TEN_PS_UNIFORMS(PostProcessUniforms, 2)
     uint   LensFlareCount;
     uint   IsGlowActive;
     uint   IsDofActive; // Bit 0 far blur, bit 1 near blur.
-    float  PostProcessPadding1;
-    float  PostProcessPadding2;
-    float  PostProcessPadding3;
+    uint   IsHdrActive;
+    float  Exposure;
+    float  BloomIntensity;
     float4 LensFlarePositions[LENS_FLARES_MAX]; // Normalized device xy, depth.
     float4 LensFlareColors[LENS_FLARES_MAX];
 };
@@ -47,6 +48,7 @@ TEN_PS_TEXTURE(Texture2D, DepthMap, 2);
 TEN_PS_TEXTURE(Texture2D, GlowMap, 3);
 TEN_PS_TEXTURE(Texture2D, NearBlurMap, 4); // Depth of field, half resolution, alpha is the circle of confusion.
 TEN_PS_TEXTURE(Texture2D, FarBlurMap, 5);
+TEN_PS_TEXTURE(Texture2D, BloomMap, 6);    // Half resolution, HDR only.
 
 #define DISTORTION_MIN_WEIGHT                       0.001f
 #define DISTORTION_REFERENCE_DEPTH                  1024.0f
@@ -65,6 +67,8 @@ TEN_PS_TEXTURE(Texture2D, FarBlurMap, 5);
 #define DISTORTION_NOISE_SPEED_SURFACE              0.05f
 #define DISTORTION_DISTANCE_FADE_START              4096.0f
 #define DISTORTION_DISTANCE_FADE_END                10240.0f
+
+#define TONEMAP_KNEE 0.8f
 
 // Depth buffer value mapped back to view space distance in world units.
 float GetSceneViewDepth(float2 uv)
@@ -135,6 +139,14 @@ float3 ApplyColorScheme(float3 color)
         schemeColor = color + (1.0f - color) - 2.0f * color * (1.0f - color);
 
     return lerp(color, schemeColor, ColorSchemeStrength);
+}
+
+// Identity up to the knee, then an exponential shoulder that approaches white: colors of the 8 bit range keep their look
+// and brighter ones roll off instead of clipping.
+float3 Tonemap(float3 color)
+{
+    float3 over = max(color - TONEMAP_KNEE, 0.0f);
+    return min(max(color, 0.0f), TONEMAP_KNEE) + (1.0f - TONEMAP_KNEE) * (1.0f - exp(-over / (1.0f - TONEMAP_KNEE)));
 }
 
 // Lens flare in normalized device coordinates.
@@ -232,7 +244,8 @@ float3 ApplyLensFlares(float3 color, float2 uv)
     return lerp(color, color + totalColor, saturate(dot(totalColor, 0.5f)));
 }
 
-// Steps: cinematic bars, distortion, depth of field, glow, lens flares, color scheme and fade, tint and gamma.
+// Steps: cinematic bars, distortion, depth of field, glow, lens flares, HDR bloom and tonemap, color scheme and fade,
+// tint and gamma.
 float4 PS(FullscreenPixelInput input) : SV_Target
 {
     float y = input.Position.y / ViewportHeight;
@@ -255,12 +268,18 @@ float4 PS(FullscreenPixelInput input) : SV_Target
         color = lerp(color, nearBlur.rgb, saturate(nearBlur.a));
     }
 
-    // Glow combine with soft add.
+    // Glow combine with soft add, or plain add for the HDR scene, whose colors may exceed 1.
     if (IsGlowActive)
-        color = 1.0f - (1.0f - color) * (1.0f - GlowMap.SampleLevel(GlowMapSampler, input.UV, 0.0f).rgb);
+    {
+        float3 glow = GlowMap.SampleLevel(GlowMapSampler, input.UV, 0.0f).rgb;
+        color = IsHdrActive ? (color + glow) : (1.0f - (1.0f - color) * (1.0f - glow));
+    }
 
     if (LensFlareCount > 0)
         color = ApplyLensFlares(color, input.UV);
+
+    if (IsHdrActive)
+        color = Tonemap((color + BloomMap.SampleLevel(BloomMapSampler, input.UV, 0.0f).rgb * BloomIntensity) * Exposure);
 
     color = ApplyColorScheme(color) * ScreenFade;
 

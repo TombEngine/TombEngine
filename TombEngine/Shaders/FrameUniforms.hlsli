@@ -22,6 +22,12 @@ TEN_PS_UNIFORMS(FramePixelUniforms, 0)
     TEN_FRAME_PIXEL_UNIFORMS
 };
 
+// Scene colors are clamped to [0, 1] for the 8 bit scene target; the HDR target keeps the range above 1.
+float3 ClampSceneColor(float3 color)
+{
+    return clamp(color, 0.0f, SceneColorMax);
+}
+
 TEN_PS_UNIFORMS(DrawPixelUniforms, 1)
 {
     TEN_DRAW_PIXEL_UNIFORMS

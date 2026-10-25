@@ -44,6 +44,7 @@ namespace TEN::Renderer::Backend
 {
     constexpr auto INITIAL_INSTANCE_CAPACITY = 4096;
     constexpr auto UPLOAD_RING_INITIAL_SIZE  = 4 * 1024 * 1024;
+    constexpr auto HDR_SCENE_COLOR_MAX       = 64.0f; // Clamp of the scene colors with HDR, far below the half float maximum.
 
     SceneRenderer g_SceneRenderer;
 
@@ -259,6 +260,16 @@ namespace TEN::Renderer::Backend
         _glowBlurShader = nullptr;
         _glowCombinePipeline = nullptr;
         _glowCombineShader = nullptr;
+        _sceneColorPipelines.clear();
+        _isHdrActive = false;
+        _bloomPrefilterPipeline = nullptr;
+        _bloomDownsamplePipeline = nullptr;
+        _bloomUpsamplePipeline = nullptr;
+        _bloomVertexShader = nullptr;
+        _bloomPrefilterShader = nullptr;
+        _bloomDownsampleShader = nullptr;
+        _bloomUpsampleShader = nullptr;
+        _bloomTarget = nullptr;
         for (int i = 0; i < DOF_PASS_COUNT; i++)
         {
             _dofPipelines[i] = nullptr;
@@ -275,6 +286,8 @@ namespace TEN::Renderer::Backend
         _smaaSearchTexture = nullptr;
         _taaPipeline = nullptr;
         _taaShader = nullptr;
+        _taaHdrPipeline = nullptr;
+        _taaHdrShader = nullptr;
         _roomsVelocityVertexShader = nullptr;
         _objectsVelocityVertexShader = nullptr;
         _roomsVelocityPixelShader = nullptr;
@@ -491,7 +504,7 @@ namespace TEN::Renderer::Backend
         if (!CreateSpriteResources() || !CreateAmbientOcclusionResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources() || !CreateDOFResources() || !CreateSMAAResources() || !CreateUpscaleResources() ||
             !CreateSkyReflectionResources() || !CreateAtmosphereResources() || !CreateOverlayResources(TEN::Renderer::Utils::GetAssetPath("Textures/Font.spritefont")) ||
             !CreateDebugPrimitiveResources() || !CreateCloudResources() || !CreateGodRayResources() || !CreateDustStormResources() || !CreateWaterResources() ||
-            !CreateTemporalResources())
+            !CreateTemporalResources() || !CreateBloomResources())
             return false;
 
         if (!LoadPixelShaderVariants())
@@ -763,19 +776,20 @@ namespace TEN::Renderer::Backend
         }
 
         // The prepass writes view normals, emissive, a copy of the depth and with temporal passes the motion vectors; the
-        // inventory writes color and emissive.
+        // inventory writes color and emissive into the 2D layer. Distortion accumulates in a half resolution target without
+        // depth; the post-process rejects occluded texels.
+        bool isDistortion = (modeIndex == (int)BlendMode::Distortion);
+        auto colorFormat = (isInventory || isDistortion) ? _device->GetSwapchainFormat() : GetSceneColorFormat();
         desc.NumColorTargets = isPrepass ? (isVelocity ? 4 : 3) : (isInventory ? 2 : 1);
         desc.ColorTargets[3].Format = PixelFormat::RG16Float;
         desc.ColorTargets[3].Blend = GetBlendState(BlendMode::Opaque);
         desc.ColorTargets[0].Format = (isPrepass || isParaboloid) ? PixelFormat::RGBA8Unorm :
-            (isShadow ? PixelFormat::R32Float : (isHorizonMask ? PixelFormat::R11G11B10Float : _device->GetSwapchainFormat()));
+            (isShadow ? PixelFormat::R32Float : (isHorizonMask ? PixelFormat::R11G11B10Float : colorFormat));
         desc.ColorTargets[0].Blend = GetBlendState((isPrepass || isShadow) ? BlendMode::Opaque : (isAlphaEdge ? BlendMode::AlphaBlend : (BlendMode)modeIndex));
         desc.ColorTargets[1].Format = PixelFormat::RGBA8Unorm;
         desc.ColorTargets[1].Blend = GetBlendState(BlendMode::Opaque);
         desc.ColorTargets[2].Format = PixelFormat::R32Float;
         desc.ColorTargets[2].Blend = GetBlendState(BlendMode::Opaque);
-        // Distortion accumulates in a half resolution target without depth; the post-process rejects occluded texels.
-        bool isDistortion = (modeIndex == (int)BlendMode::Distortion);
         desc.DepthStencil.EnableDepthWrite = ((modeIndex == (int)BlendMode::Opaque) && !isSky) || isInventory;
         // The sky is on the far plane and tested against the prepass depth; its reflection targets have no depth.
         desc.DepthStencil.EnableDepthTest = (!isSky || shader == SceneShader::Sky) && !isDistortion;
@@ -844,7 +858,8 @@ namespace TEN::Renderer::Backend
         int renderWidth = GetRenderSize(width);
         int renderHeight = GetRenderSize(height);
         bool isFrameCurrent = (_colorTarget != nullptr && _colorTarget->GetDesc().Width == width && _colorTarget->GetDesc().Height == height);
-        bool isSceneCurrent = (_sceneTarget != nullptr && _sceneTarget->GetDesc().Width == renderWidth && _sceneTarget->GetDesc().Height == renderHeight);
+        bool isSceneCurrent = (_sceneTarget != nullptr && _sceneTarget->GetDesc().Width == renderWidth && _sceneTarget->GetDesc().Height == renderHeight &&
+                               _sceneTarget->GetDesc().Format == GetSceneColorFormat());
         if (isFrameCurrent && isSceneCurrent)
             return true;
 
@@ -881,6 +896,11 @@ namespace TEN::Renderer::Backend
 
         _targetPool.Reserve(_aoHistory[0]->GetDesc());
         _targetPool.Reserve(_glowTarget->GetDesc());
+        if (_isHdrActive)
+        {
+            for (int i = 0; i < BLOOM_STEP_COUNT; i++)
+                _targetPool.Reserve(GetBloomStepDesc(i));
+        }
     }
 
     // Window resolution targets: the scene frame after post-process (_colorTarget) and the frame with the 2D layer
@@ -908,13 +928,14 @@ namespace TEN::Renderer::Backend
         auto colorDesc = TextureDesc{};
         colorDesc.Width = width;
         colorDesc.Height = height;
-        colorDesc.Format = _device->GetSwapchainFormat();
+        colorDesc.Format = GetSceneColorFormat();
         colorDesc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler;
         colorDesc.Name = "Scene.Color";
         _sceneTarget = _device->CreateTexture(colorDesc);
 
-        // Distortion is low frequency: half resolution and no depth.
+        // Distortion is low frequency: half resolution and no depth. Its payload is 8 bit in both modes.
         auto distortionDesc = colorDesc;
+        distortionDesc.Format = _device->GetSwapchainFormat();
         distortionDesc.Width = std::max(width / 2, 1);
         distortionDesc.Height = std::max(height / 2, 1);
         distortionDesc.Name = "Scene.Distortion";
@@ -2840,6 +2861,7 @@ namespace TEN::Renderer::Backend
         { "DOF", &SceneRenderer::_isDofActive, &SceneRenderer::RenderDOF },
         { "Reflections", &SceneRenderer::_hasReflectiveMaterials, &SceneRenderer::CopyReflectionSource },
         { "Glow", &SceneRenderer::_hasVisibleEmissive, &SceneRenderer::RenderGlow },
+        { "Bloom", &SceneRenderer::_isBloomActive, &SceneRenderer::RenderBloom },
         { "Post-process", nullptr, &SceneRenderer::RenderPostProcess },
         { "Upscale", &SceneRenderer::_isUpscaleActive, &SceneRenderer::RenderUpscale }
     };
@@ -2928,6 +2950,7 @@ namespace TEN::Renderer::Backend
         _isRenderScaleDynamic = isRenderScaleDynamic;
         _renderScale = isRenderScaleDynamic ? UpdateDynamicResolution(environment.TargetFrameTime) : environment.RenderScale;
         _targetPool.CollectUnused();
+        ApplyHdrMode(environment.IsHdrEnabled);
         if (!EnsureRenderTargets(width, height))
             return;
 
@@ -2984,6 +3007,7 @@ namespace TEN::Renderer::Backend
         framePixelUniforms.AmbientOcclusionExponent = GetAmbientOcclusionExponent();
         framePixelUniforms.View = view.Camera.View;
         framePixelUniforms.InverseViewportSize = Vector2(1.0f / _sceneTarget->GetDesc().Width, 1.0f / _sceneTarget->GetDesc().Height);
+        framePixelUniforms.SceneColorMax = _isHdrActive ? HDR_SCENE_COLOR_MAX : 1.0f;
         PrepareCaustics(framePixelUniforms);
 
         auto fogBulbUniforms = GetFogBulbUniforms(view);
@@ -3032,6 +3056,7 @@ namespace TEN::Renderer::Backend
         _isSkyReflectionActive = _hasSkyReflectiveMaterials || _isWaterSkyReflected;
         _isDofActive = IsDOFActive(environment);
         EnsureDOFTargets(*commandBuffer);
+        _isBloomActive = _isHdrActive && (environment.BloomIntensity > 0.0f);
         _hasVisibleEmissive = false;
 
         // The shadow uniforms are the largest block of pixel slot 2, so they also cover the passes before the scene.

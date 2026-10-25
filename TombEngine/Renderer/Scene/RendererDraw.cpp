@@ -1129,6 +1129,12 @@ namespace TEN::Renderer
 		environment.CinematicBarsHeight = CinematicBarsHeight;
 		environment.AntialiasingMode = (int)g_Configuration.AntialiasingMode;
 
+		const auto& graphics = g_GameFlow->GetSettings()->Graphics;
+		environment.IsHdrEnabled = (graphics.Hdr && g_Configuration.EnableHdr);
+		environment.Exposure = graphics.Exposure;
+		environment.BloomIntensity = graphics.BloomIntensity;
+		environment.BloomThreshold = graphics.BloomThreshold;
+
 		// 0 is the dynamic scale, which holds the refresh rate with high framerate and 30 frames per second without.
 		constexpr auto PERFORMANCE_RENDER_SCALE = 1.0f / 1.5f;
 		environment.RenderScale = (g_Configuration.RenderScale == RenderScaleMode::Automatic) ? 0.0f :

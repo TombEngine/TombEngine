@@ -73,6 +73,7 @@
 #define STRING_VOLUMETRIC_FOG			"volumetric_fog"
 #define STRING_ANTIALIASING				"antialiasing"
 #define STRING_AMBIENT_OCCLUSION		"ambient_occlusion"
+#define STRING_HDR						"hdr"
 #define STRING_HIGH_FRAMERATE			"high_framerate"
 #define STRING_ATMOSPHERIC_SKY_QUALITY	"atmospheric_sky_quality"
 #define STRING_QUALITY_LOW				"low"

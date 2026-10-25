@@ -7,7 +7,7 @@ transparent pass described in `TransparentSorting.md`; it supersedes the transpa
 `ModernizationPlan.md` (Italian), which remains the reference for memory and asset goals.
 
 > Implemented and described in `RendererArchitecture.md`: R2 motion vectors and TAA, R3 dynamic resolution, R6 clustered
-> lights for objects and sprites, R7 temporal GTAO.
+> lights for objects and sprites, R7 temporal GTAO, R1 HDR (optional, with bloom and tonemapping).
 
 Item prefixes: **S** for the sorted (transparent) faces, **R** for the rest of the renderer. Unless stated otherwise,
 paths are relative to `TombEngine/Renderer`.
@@ -17,9 +17,9 @@ Facts that several items build on:
 - The RHI (`RHI/RHIDevice.h`) has `IComputePass`, `ComputePassDesc` and `CreateComputePipeline`, but no backend code
   records a compute pass yet.
 - `IRenderPass` has `Draw` and `DrawIndexed` only: no indirect draws.
-- No pass writes motion vectors.
-- The scene target and the scene pipelines use `IDevice::GetSwapchainFormat()` (`Backend/SceneRenderer.cpp`), so the
-  scene is rendered in LDR.
+- The prepass writes motion vectors only while TAA is active.
+- Without HDR, the scene target and the scene pipelines use `IDevice::GetSwapchainFormat()`; with HDR, RGBA16F
+  (`Backend/SceneRendererBloom.cpp`).
 - Transparent faces are collected, clustered (union-find) and radix sorted on the CPU every frame, and the sorted
   indices are uploaded every frame (`Frame.SortedIndices`).
 - Sprites never join a cluster, so they are not interleaved with mesh clusters.
@@ -157,7 +157,7 @@ scenes on integrated GPUs.
 **Cost / risks.** Halo artifacts at depth edges if the upscale is too simple; particles in front of transparent
 geometry lose correct ordering with it (composited after the sorted pass or before, a fixed choice).
 
-**Dependencies.** None. Benefits from R1 (HDR target for accumulation).
+**Dependencies.** None. Benefits from the HDR target of R1 for accumulation when HDR is on.
 
 ### S6 - Weighted blended OIT for particles (option)
 
@@ -232,33 +232,6 @@ the merge costs one copy.
 
 ## Rest of the renderer
 
-### R1 - HDR pipeline
-
-**Goal.** Render the scene in a floating point target, tonemap it, and derive bloom from the HDR image.
-
-**Current state.** The scene target and the scene pipelines use `GetSwapchainFormat()` (`Backend/SceneRenderer.cpp`).
-Glow (`Backend/SceneRendererGlow.cpp`) blurs only the emissive target written by the prepass, so bright lights and
-additive effects do not bloom.
-
-**Proposal.**
-
-1. Scene target in RGBA16F (R11G11B10F when alpha is not needed and memory is short); scene, sky and water pipelines
-   created for that format.
-2. Tonemapping at the start of the post-process, before color scheme, gamma and AA; exposure fixed or from a level
-   setting first, automatic later.
-3. Bloom from a bright pass of the HDR image (downsample chain, upsample with a tent filter), replacing the
-   emissive-only glow; the emissive target stays for the prepass if other passes need it.
-4. A "classic" preset (identity-like tonemap, no bloom) that keeps today's image within the parity threshold of
-   `RendererParity.ps1`.
-
-**Expected gain.** No clipping of strong lights and additive stacks; physically plausible bloom; base for TAA
-resolve and S5/S6 accumulation.
-
-**Cost / risks.** Twice the bandwidth of the scene target; every blend mode must behave the same in float (subtractive
-and exclude can go negative and need a clamp); look changes outside the classic preset.
-
-**Dependencies.** None. Interacts with R2 (TAA resolve before tonemapping).
-
 ### R4 - Indirect draws and GPU culling
 
 **Goal.** Cull and submit room and object geometry on the GPU, with draw counts independent of the level size.
@@ -330,7 +303,7 @@ same time); fewer pass flags and manual resource handling.
 **Cost / risks.** A rewrite of `RenderFrame` pass by pass; aliasing on SDL GPU must respect cycling and the frames in
 flight.
 
-**Dependencies.** None. Useful before adding the targets of R1, S5 and S6.
+**Dependencies.** None. Useful before adding the targets of S5 and S6.
 
 ### R9 - Render thread
 
@@ -445,16 +418,15 @@ mask misses; its cost at window resolution on integrated GPUs must be measured a
 | 5 | S3 Convex meshes | - | Closed convex transparent meshes draw as two passes without sort keys; no visual difference on the benchmark levels. |
 | 6 | S5 Reduced resolution particles | - | Smoke, fire and dust draw at half or quarter resolution with a depth-aware composite and no visible halos; particle GPU time lower. |
 | 7 | S4 Sprites in clusters | S1 | Particles behind and in front of glass sort correctly; draw count within the cluster switch limit. |
-| 8 | R1 HDR | - | Scene in RGBA16F or R11G11B10F with tonemapping and HDR bloom; classic preset passes the parity test. |
-| 9 | R4 Indirect draws and GPU culling | - | Indirect draws on every backend; GPU culling with Hi-Z on Vulkan and Direct3D 12; constant draws per pipeline on large levels. |
-| 10 | S7 GPU sort | R4 | Sorted faces sorted and indexed on the GPU on Vulkan and Direct3D 12; no per-frame sorted index upload. |
-| 11 | R5 Cached shadow maps | - | Rooms and statics cast from a cached map; per-frame shadow cost limited to moving casters. |
-| 12 | R8 Frame graph | - | Passes declare resources; transient targets alias; render target memory lower in the log. |
-| 13 | R9 Render thread | S8, R11 | Frontend and backend overlap on every backend, OpenGL included; no frame data shared between the threads without a copy or a fence. |
-| 14 | S6 Weighted blended OIT | S5 | Option for selected particles with accumulation and revealage targets; measured against S5 on the benchmark levels. |
-| 15 | R10 Tomb Editor assets | Format decision | Water surfaces, quantized optimized vertices and LODs come from the level file; old levels still load. |
-| 16 | R12 FSR 3.1 upscaler | - | FSR 3.1 replaces TAA on every backend, with a reactive mask for sorted faces and sprites; better than TAA plus FSR 1 at 67% on the benchmark levels at a measured cost. |
+| 8 | R4 Indirect draws and GPU culling | - | Indirect draws on every backend; GPU culling with Hi-Z on Vulkan and Direct3D 12; constant draws per pipeline on large levels. |
+| 9 | S7 GPU sort | R4 | Sorted faces sorted and indexed on the GPU on Vulkan and Direct3D 12; no per-frame sorted index upload. |
+| 10 | R5 Cached shadow maps | - | Rooms and statics cast from a cached map; per-frame shadow cost limited to moving casters. |
+| 11 | R8 Frame graph | - | Passes declare resources; transient targets alias; render target memory lower in the log. |
+| 12 | R9 Render thread | S8, R11 | Frontend and backend overlap on every backend, OpenGL included; no frame data shared between the threads without a copy or a fence. |
+| 13 | S6 Weighted blended OIT | S5 | Option for selected particles with accumulation and revealage targets; measured against S5 on the benchmark levels. |
+| 14 | R10 Tomb Editor assets | Format decision | Water surfaces, quantized optimized vertices and LODs come from the level file; old levels still load. |
+| 15 | R12 FSR 3.1 upscaler | - | FSR 3.1 replaces TAA on every backend, with a reactive mask for sorted faces and sprites; better than TAA plus FSR 1 at 67% on the benchmark levels at a measured cost. |
 
 S1, S2, S8 and R11 are cheap and do not change the look: they go first. S3, S5 and S4 then improve the transparent
-pass and particles. R1 is the main visual change and precedes the targets of S5 and S6 where possible. R4 opens the
+pass and particles. R4 opens the
 GPU-driven path and S7 builds on it. S6 is an option to evaluate after S5. R5, R8, R9 and R10 follow as needed.

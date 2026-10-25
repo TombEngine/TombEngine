@@ -97,6 +97,37 @@ TAAU reverted: below native the TAA resolve runs at render resolution and FSR 1 
 
 p99 with the automatic scale on the integrated GPU: 16.1-17.3 ms. The DX11 runs on the discrete GPU had noisy p99 values (3.4-5.1 ms in every configuration, base included), so the Vulkan column is the reference for the discrete GPU.
 
+## Run 6 - 2026-10-25, video memory and HDR
+
+Single runs of 12 seconds at 1920x1080, without the three level average of the earlier runs. Render target memory is the
+total the scene renderer logs at exit.
+
+Video memory: TAA and DOF targets created only while active, SMAA and upscale sources pooled (commit 62d845bc5).
+`Benchmark_karnak`, discrete GPU, Vulkan:
+
+| Config | Render targets before | Render targets after | Saved |
+|---|---|---|---|
+| No antialiasing, native | 130.7 MB | 99.1 MB | 31.6 MB |
+| SMAA, native | 150.5 MB | 126.7 MB | 23.8 MB |
+| TAA, native | 130.7 MB | 122.8 MB | 7.9 MB |
+| SMAA, performance | 120.3 MB | 101.8 MB | 18.5 MB |
+| TAA, performance | 111.5 MB | 100.0 MB | 11.5 MB |
+
+Screenshots of the new build differ from the old one no more than two runs of the old build differ from each other
+(0.5% of the pixels without TAA, animated effects; up to 17% with TAA, whose history depends on the frame timing).
+
+HDR, frame avg in ms and render target memory, HDR off / on:
+
+| Config | Discrete Vulkan, karnak | Integrated Vulkan, coastal | Integrated DX11, coastal |
+|---|---|---|---|
+| SMAA, native | 2.49 / 2.86 | 22.8 / 25.2 | 27.6 / 29.6 |
+| TAA, performance | 1.74 / 1.95 | 15.1 / 16.1 | 16.0 / 16.9 |
+| TAA, automatic | - | 14.4 / 12.4 | 11.6 / 12.1 |
+| Render targets, SMAA native | 126.7 / 137.3 MB | 136.6 / 165.0 MB | 128.7 / 157.1 MB |
+
+On the integrated GPU at native resolution, HDR costs about 2 ms: the bloom 1.0 ms, the scene pass 0.5 ms (half float
+target) and the post-process 0.35 ms. The automatic scale absorbs it. With HDR off, the images match the 8 bit build.
+
 ## Conclusions
 
 | Feature | Cost | Decision |
@@ -106,6 +137,7 @@ p99 with the automatic scale on the integrated GPU: 16.1-17.3 ms. The DX11 runs 
 | TAA at native | +0.3 ms discrete, +2.4-2.6 ms (about 10%) integrated | Kept as an option |
 | TAA compute resolve | Saves 0.3-0.7 ms integrated | Kept |
 | TAAU | 0.8-1.8 ms slower than TAA + FSR 1 at 67% on the integrated GPU | Removed |
+| HDR | About 2 ms on the integrated GPU at native, 0.4 ms on the discrete GPU | Kept as an option, off by default |
 
 Below native, TAA followed by FSR 1 costs only 0.8-0.9 ms more than SMAA on the integrated GPU. With the automatic scale, each scale change resets the TAA history, which can cause brief shimmering. A higher quality temporal upscaler is planned as FSR 3.1 (roadmap item R12).
 

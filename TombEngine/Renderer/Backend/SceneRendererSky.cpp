@@ -48,9 +48,9 @@ namespace TEN::Renderer::Backend
         _cloudRaymarchPipeline = _device->CreateGraphicsPipeline(desc);
 
         desc.PixelShader = _cloudCompositePixelShader.get();
-        desc.ColorTargets[0].Format = _device->GetSwapchainFormat();
+        desc.ColorTargets[0].Format = GetSceneColorFormat();
         desc.Name = "Clouds.Composite";
-        _cloudCompositePipeline = _device->CreateGraphicsPipeline(desc);
+        CreateSceneColorPipeline(_cloudCompositePipeline, desc);
 
         desc.PixelShader = _cloudOcclusionPixelShader.get();
         desc.ColorTargets[0].Format = PixelFormat::R32Float;
@@ -330,10 +330,10 @@ namespace TEN::Renderer::Backend
         _godRayPipeline = _device->CreateGraphicsPipeline(desc);
 
         desc.PixelShader = _godRayCompositePixelShader.get();
-        desc.ColorTargets[0].Format = _device->GetSwapchainFormat();
+        desc.ColorTargets[0].Format = GetSceneColorFormat();
         desc.ColorTargets[0].Blend = GetBlendState(BlendMode::Additive);
         desc.Name = "GodRays.Composite";
-        _godRayCompositePipeline = _device->CreateGraphicsPipeline(desc);
+        CreateSceneColorPipeline(_godRayCompositePipeline, desc);
 
         return (_godRayPipeline != nullptr && _godRayCompositePipeline != nullptr);
     }
@@ -421,10 +421,10 @@ namespace TEN::Renderer::Backend
         desc.DepthStencil.EnableDepthWrite = false;
         desc.DepthFormat = PixelFormat::D32Float;
         desc.NumColorTargets = 1;
-        desc.ColorTargets[0].Format = _device->GetSwapchainFormat();
+        desc.ColorTargets[0].Format = GetSceneColorFormat();
         desc.ColorTargets[0].Blend = GetBlendState(BlendMode::AlphaBlend);
         desc.Name = "DustStorm";
-        _dustStormPipeline = _device->CreateGraphicsPipeline(desc);
+        CreateSceneColorPipeline(_dustStormPipeline, desc);
         return (_dustStormPipeline != nullptr);
     }
 

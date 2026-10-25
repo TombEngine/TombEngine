@@ -45,6 +45,7 @@ struct GameConfiguration
 	bool	   EnableDecals		  = true;
 	bool	   EnableAmbientOcclusion = false;
 	bool	   EnableHighFramerate    = true;
+	bool	   EnableHdr              = false;
 	AntialiasingMode AntialiasingMode = AntialiasingMode::None;
 	RenderScaleMode RenderScale = RenderScaleMode::Native;
 	AtmosphericSkyQuality AtmosphericSkyQuality = AtmosphericSkyQuality::Medium;

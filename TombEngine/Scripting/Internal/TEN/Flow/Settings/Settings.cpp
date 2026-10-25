@@ -353,7 +353,24 @@ namespace TEN::Scripting
 
 		/// Enable skinning.
 		// @tfield[opt=true] bool skinning If enabled, skinning will be used for animated objects with skinned mesh. Disable to force classic TR workflow.
-		"skinning", &GraphicsSettings::Skinning);
+		"skinning", &GraphicsSettings::Skinning,
+
+		/// Enable HDR rendering.
+		// @tfield[opt=true] bool hdr If disabled, HDR setting will be forced to off, and corresponding menu entry in the Display Settings dialog will be grayed out.
+		// With HDR, colors brighter than white are kept, bloom and roll off smoothly to white instead of clipping.
+		"hdr", &GraphicsSettings::Hdr,
+
+		/// HDR exposure.
+		// @tfield[opt=1.0] float exposure Brightness multiplier applied before tonemapping when HDR is enabled. Values below 1 darken the image and reveal more detail in bright areas.
+		"exposure", &GraphicsSettings::Exposure,
+
+		/// HDR bloom intensity.
+		// @tfield[opt=0.5] float bloomIntensity Strength of the glow around colors brighter than the bloom threshold when HDR is enabled. 0 disables bloom.
+		"bloomIntensity", &GraphicsSettings::BloomIntensity,
+
+		/// HDR bloom threshold.
+		// @tfield[opt=1.0] float bloomThreshold Brightness above which colors bloom when HDR is enabled. 1 is white; lower values make more of the scene bloom.
+		"bloomThreshold", &GraphicsSettings::BloomThreshold);
 	}
 
 	/* @fieldtype HairSettings[] */

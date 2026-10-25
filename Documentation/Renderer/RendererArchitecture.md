@@ -49,7 +49,7 @@ Design rules:
 | `Renderer/Sky/` | CPU state of the sky effects: atmospheric dome, sun, moon, aurora, underwater sky, volumetric clouds, god rays, dust storm, their settings and quality levels. |
 | `Renderer/Structures/` | Frontend data: rooms, buckets, polygons, meshes, objects, items, statics, lights, sprites, sortable objects, the level vertex. |
 | `Renderer/ConstantBuffers/` | Uniform blocks of the sky effects (atmospheric sky, god rays, dust storm, volumetric clouds), filled by the frontend and pushed by the backend as pixel uniforms. |
-| `Renderer/Backend/` | `SceneRenderer`, one file per area: `SceneRenderer.cpp` (initialization, frame, scene pass, objects, sorted faces), `SceneRendererGeometry.cpp`, `SceneRendererTextures.cpp`, `SceneRendererPipelines.cpp`, `SceneRendererShadows.cpp`, `SceneRendererAmbientOcclusion.cpp` (prepass and GTAO), `SceneRendererTAA.cpp` (motion vectors and temporal antialiasing), `SceneRendererDynamicResolution.cpp`, `SceneRendererSky*.cpp`, `SceneRendererAtmosphere.cpp`, `SceneRendererWater.cpp`, `SceneRendererLightClusters.cpp`, `SceneRendererMirrors.cpp`, `SceneRendererSprites.cpp`, `SceneRendererEffects.cpp`, `SceneRendererDebris.cpp`, `SceneRendererDOF.cpp`, `SceneRendererGlow.cpp`, `SceneRendererPostProcess.cpp`, `SceneRendererSMAA.cpp`, `SceneRendererUpscale.cpp`, `SceneRendererOverlay.cpp`, `SceneRendererImGui.cpp`, `SceneRendererVideo.cpp`, `SceneRendererDebug.cpp`, `SceneRendererStats.cpp`; `GpuTypes.h`, `OverlayTypes.h`, `SkyTypes.h`, `DrawSort.*`, `TextureLoader.*`. |
+| `Renderer/Backend/` | `SceneRenderer`, one file per area: `SceneRenderer.cpp` (initialization, frame, scene pass, objects, sorted faces), `SceneRendererGeometry.cpp`, `SceneRendererTextures.cpp`, `SceneRendererPipelines.cpp`, `SceneRendererShadows.cpp`, `SceneRendererAmbientOcclusion.cpp` (prepass and GTAO), `SceneRendererTAA.cpp` (motion vectors and temporal antialiasing), `SceneRendererDynamicResolution.cpp`, `SceneRendererSky*.cpp`, `SceneRendererAtmosphere.cpp`, `SceneRendererWater.cpp`, `SceneRendererLightClusters.cpp`, `SceneRendererMirrors.cpp`, `SceneRendererSprites.cpp`, `SceneRendererEffects.cpp`, `SceneRendererDebris.cpp`, `SceneRendererDOF.cpp`, `SceneRendererGlow.cpp`, `SceneRendererBloom.cpp` (HDR mode and bloom), `SceneRendererPostProcess.cpp`, `SceneRendererSMAA.cpp`, `SceneRendererUpscale.cpp`, `SceneRendererOverlay.cpp`, `SceneRendererImGui.cpp`, `SceneRendererVideo.cpp`, `SceneRendererDebug.cpp`, `SceneRendererStats.cpp`; `GpuTypes.h`, `OverlayTypes.h`, `SkyTypes.h`, `DrawSort.*`, `TextureLoader.*`. |
 | `Renderer/RHI/` | `RHIDevice.h` (interfaces), `RHITypes.h` (descriptions and enums), `DirectX11/`, `SDLGPU/`, `OpenGL/` devices, and helpers: `ShaderLibrary` (loading compiled shaders), `UploadRing`, `RenderTargetPool`, `TextureCapture` (readback and screenshots), `MemoryTracker`. `Test/` holds a standalone device test. |
 | `Shaders/` | HLSL sources and `CompileShaders.ps1`. `GpuShared.hlsli` holds the structures shared with C++, `ShaderInterop.hlsli` the binding macros of each backend. |
 | `Specific/Benchmark.*` | Benchmark mode: CSV recording, warmup, screenshots, automatic exit. |
@@ -179,12 +179,13 @@ skipped when the flag is false for the frame.
 | 5 | Distortion | Distortion draws in the view | Distortion target | Applied by the post-process. |
 | 6 | Sky | Always | Scene target | Classic sky layers, atmospheric dome, sun, moon, aurora, stars, volumetric clouds, horizon meshes, god rays. Occluded sky is not shaded. |
 | 7 | Scene | Always | Scene target | Opaque rooms (portal scissors, per-chunk culling) and objects, alpha edges, water surfaces and underwater fog, additive draws, debris, gun flashes, mirrors, sorted transparent faces, dust storm, debug primitives. |
-| 8 | TAA | Antialiasing set to temporal | RGBA8 history | Compute shader (16x16 groups): gathers the scene, depth and motion of each tile into group shared memory, then blends the jittered scene with the reprojected history (motion of the nearest texel, Catmull-Rom history, variance clipping in YCoCg) into the next history, with stochastic rounding. The later passes read the history as the scene; RCAS sharpens the result at native scale. |
+| 8 | TAA | Antialiasing set to temporal | RGBA8 history (RGBA16F with HDR) | Compute shader (16x16 groups): gathers the scene, depth and motion of each tile into group shared memory, then blends the jittered scene with the reprojected history (motion of the nearest texel, Catmull-Rom history, variance clipping in YCoCg) into the next history, with stochastic rounding (the `TAA_HDR` variant keeps the range above 1 without rounding). The later passes read the history as the scene; RCAS sharpens the result at native scale. |
 | 9 | DOF | Depth of field active | Near and far blur layers | Unused layers are skipped. |
 | 10 | Reflections | Reflective materials | Half resolution copy of the scene | Read by reflective materials in the next frame. |
 | 11 | Glow | A visible emissive material | Downscaled, blurred emissive | Added by the post-process. |
-| 12 | Post-process | Always | Color target | Distortion, glow, tint, color scheme, gamma, fade, cinematic bars, lens flares; then SMAA (ultra preset) when the SMAA mode is set. |
-| 13 | Upscale | Render scale below native, fixed or dynamic | Window resolution color target | AMD FSR 1 EASU, with RCAS applied while the overlay draws the scene. With TAA, the TAA resolve runs at the render resolution before it. |
+| 12 | Bloom | HDR on and a bloom intensity above 0 | Five pooled steps from half resolution down (R11G11B10F) | The first step keeps the colors above the bloom threshold (soft knee, 13 tap downsample); each next step halves the previous one, then each step is upsampled with a tent filter and added onto the next larger one. The post-process adds the half resolution step. |
+| 13 | Post-process | Always | Color target | Distortion, glow, lens flares; with HDR, bloom, exposure and tonemapping; then color scheme, fade, tint, gamma, cinematic bars; then SMAA (ultra preset) when the SMAA mode is set. |
+| 14 | Upscale | Render scale below native, fixed or dynamic | Window resolution color target | AMD FSR 1 EASU, with RCAS applied while the overlay draws the scene. With TAA, the TAA resolve runs at the render resolution before it. |
 
 `FinishFrame` then draws the 2D layer (quads, text, bars, 3D menu objects with their own post-process) over the scene
 into the final target, and ImGui on top in debug mode.
@@ -194,7 +195,18 @@ into the final target, and ImGui on top in debug mode.
 Scene targets (scene color, depth, normals, depth copy, emissive) have the render resolution, the window size times the
 render scale; the color and final targets, the overlay and the upscale output have the window size. Intermediate
 targets come from `RHI::RenderTargetPool` and are reserved with the frame targets, so they are allocated before the
-level fills the video memory (on Vulkan, late allocations can land in system memory).
+level fills the video memory (on Vulkan, late allocations can land in system memory). The SMAA source and the upscale
+source are pooled too, so they share memory with the scene copies of the sky and water passes. Targets of optional
+features exist only while the feature is active: the motion vectors and TAA histories while TAA is set, the DOF layers
+once DOF is used at the current resolution.
+
+Without HDR, the scene target has the 8 bit swapchain format and the scene shaders clamp their colors to 1. With HDR
+(`SceneRendererBloom.cpp`) it is RGBA16F: the scene shaders clamp to 64 instead (`SceneColorMax` of the frame uniforms,
+so the 8 bit mode runs the same shaders with the same results), the TAA history is half float, and the post-process
+adds the bloom, applies the exposure and tonemaps with an identity curve up to 0.8 and an exponential shoulder above,
+so the colors of the 8 bit range keep their look. The distortion target, the DOF layers and the reflection copy stay
+8 bit. Switching the mode waits for the GPU, creates the pipelines that draw into the scene target again and empties
+the scene pipeline caches; the scene targets are then created in the new format.
 
 ### 5.5 Presentation and pacing
 
@@ -380,12 +392,13 @@ Arguments are case insensitive and may start with `-`, `--` or `/`.
 | `renderscale <0|2|5>` | 0 native, 2 performance (1/1.5), 5 automatic; 1, 3 and 4 (fixed scales of older versions) run as 2 | Render scale for this run; below native, FSR 1 upscales the scene. |
 | `ssao <0-1>` | | Ambient occlusion off or on for this run. |
 | `antialiasing <0|3|4>` | 0 none, 3 SMAA, 4 TAA; 1 and 2 (FXAA and SMAA medium of older versions) run as 3 | Antialiasing for this run. The values are the codes stored in the configuration. |
+| `hdr <0-1>` | | HDR off or on for this run. |
 | `resolution <width> <height>` | pixels | Windowed resolution for this run. |
 | `lowpower` | | Runs on the integrated GPU of hybrid systems. |
 | `rhitest <backend>` | as `backend` | Runs the RHI device test instead of the game (9.5). |
 | `hash <number>` | | System name hash used by the level checks. |
 
-The overrides (`renderscale`, `ssao`, `antialiasing`, `resolution`) apply to the run only, but the game writes its
+The overrides (`renderscale`, `ssao`, `antialiasing`, `hdr`, `resolution`) apply to the run only, but the game writes its
 configuration on exit, so back up `ten.conf` (or restore the options in the menu) after a benchmark session.
 
 ### 10.2 Benchmark mode
@@ -486,6 +499,7 @@ fps, so menu animations differ more with high framerate on.
 | Render scale | Native, automatic, performance (67%) | FSR 1 below native, after the TAA resolve when TAA is set. Older configurations with fixed scales load as performance; the material mip bias keeps the texture detail of the window resolution. Automatic holds the refresh rate (high framerate) or 30 fps between 50% and 100% (section 5.6). |
 | Antialiasing | None, SMAA, TAA | Older configurations with FXAA or SMAA medium load as SMAA. Menu frames use SMAA in place of TAA, which needs a history. |
 | Ambient occlusion | On, off | Half resolution GTAO with temporal accumulation; also requires the level setting. |
+| HDR | On, off | Half float scene target with bloom and tonemapping (section 5.4); also requires the level setting `Graphics.hdr`. The level settings `Graphics.exposure`, `Graphics.bloomIntensity` and `Graphics.bloomThreshold` tune it. Off by default. |
 | Shadows | None, player, all | Cube shadow map of one light, map size in the configuration; blob shadows otherwise. |
 | Caustics, decals | On, off | |
 | High framerate | On, off | Interpolates frames between game ticks up to the refresh rate. |

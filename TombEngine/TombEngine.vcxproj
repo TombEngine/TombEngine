@@ -1432,6 +1432,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\RHI\UploadRing.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRenderer.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererAtmosphere.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererBloom.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererDebug.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererDebris.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererDOF.cpp" />
@@ -1576,6 +1577,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <None Include="Shaders\AtmosphericSky.hlsl" />
     <None Include="Shaders\AtmosphericSkyCore.hlsli" />
     <None Include="Shaders\AtmosphericSkyUniforms.hlsli" />
+    <None Include="Shaders\Bloom.hlsl" />
     <None Include="Shaders\CBAtmosphericSky.hlsli" />
     <None Include="Shaders\CBDustStorm.hlsli" />
     <None Include="Shaders\CBGodRay.hlsli" />

@@ -84,6 +84,10 @@ namespace TEN::Scripting
 		bool AmbientOcclusion = true;
 		bool FlameHeatHaze = true;
 		bool Skinning = true;
+		bool Hdr = true;
+		float Exposure = 1.0f;
+		float BloomIntensity = 0.5f;
+		float BloomThreshold = 1.0f;
 
 		static void Register(sol::table& parent);
 	};

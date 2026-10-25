@@ -139,7 +139,7 @@ float3 CombineLights(float3 ambient, float3 vertexLight, float3 position, Surfac
     shadow = saturate(shadow * COLOR_MODULATION_SCALE);
     float3 texel = surface.Color.rgb;
     float3 combined = (ambient - shadow) * texel + diffuse * COLOR_MODULATION_SCALE * texel + specular * COLOR_MODULATION_SCALE + surface.Emissive;
-    return saturate((combined - fogDensity) * vertexLight);
+    return ClampSceneColor((combined - fogDensity) * vertexLight);
 }
 
 PixelInput VS(VertexInput input)
@@ -212,7 +212,7 @@ float4 PS(PixelInput input) : SV_TARGET
     float3 vertexLight = input.Color.rgb * COLOR_MODULATION_SCALE;
     float3 color = ((input.LightMode & INSTANCE_LIGHT_MODE_MASK) == LIGHT_MODE_DYNAMIC) ?
         CombineLights(input.AmbientLight * COLOR_MODULATION_SCALE, vertexLight, input.WorldPosition, surface, input.Sheen, input.LightSlice, input.LightMode, input.FogBulbs.w) :
-        saturate(surface.Color.rgb * vertexLight + surface.Emissive - input.FogBulbs.w);
+        ClampSceneColor(surface.Color.rgb * vertexLight + surface.Emissive - input.FogBulbs.w);
 
     // Only instances that do not cast shadows receive them.
     if (input.LightSlice.y & SHADOWABLE_MASK)
@@ -222,7 +222,7 @@ float4 PS(PixelInput input) : SV_TARGET
     }
 
     float occlusion = surface.Occlusion * GetAmbientOcclusion(material, input.Position.xy * InverseViewportSize, AmbientOcclusionExponent, BlendMode, surface.Color.a);
-    float4 result = ApplyFogBulbs(float4(saturate(color * occlusion), surface.Color.a), input.FogBulbs.rgb, BlendMode);
+    float4 result = ApplyFogBulbs(float4(ClampSceneColor(color * occlusion), surface.Color.a), input.FogBulbs.rgb, BlendMode);
     result = ApplyDistanceFog(result, FogColor, input.Fog, BlendMode);
     result.a *= input.Color.a;
     if (BlendMode == BLENDMODE_DISTORTION)

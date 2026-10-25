@@ -43,24 +43,24 @@ namespace TEN::Renderer::Backend
         desc.DepthStencil.EnableDepthWrite = false;
         desc.DepthFormat = PixelFormat::D32Float;
         desc.NumColorTargets = 1;
-        desc.ColorTargets[0].Format = _device->GetSwapchainFormat();
+        desc.ColorTargets[0].Format = GetSceneColorFormat();
         desc.Name = "AtmosphericSky";
-        _atmosphericSkyPipeline = _device->CreateGraphicsPipeline(desc);
+        CreateSceneColorPipeline(_atmosphericSkyPipeline, desc);
 
         // Sun and moon discs and aurora add to the sky in passes without depth, after the clouds.
         desc.DepthFormat = PixelFormat::Unknown;
         desc.ColorTargets[0].Blend = GetBlendState(BlendMode::Additive);
         desc.PixelShader = _skyDiscPixelShader.get();
         desc.Name = "AtmosphericSky.SunMoonDisc";
-        _skyDiscPipeline = _device->CreateGraphicsPipeline(desc);
+        CreateSceneColorPipeline(_skyDiscPipeline, desc);
 
         desc.PixelShader = _auroraPixelShader.get();
         desc.Name = "AtmosphericSky.Aurora";
-        _auroraPipeline = _device->CreateGraphicsPipeline(desc);
+        CreateSceneColorPipeline(_auroraPipeline, desc);
 
         desc.PixelShader = _skyCopyPixelShader.get();
         desc.Name = "AtmosphericSky.AuroraUpscale";
-        _auroraUpscalePipeline = _device->CreateGraphicsPipeline(desc);
+        CreateSceneColorPipeline(_auroraUpscalePipeline, desc);
 
         desc.PixelShader = _auroraPixelShader.get();
         desc.ColorTargets[0].Format = PixelFormat::RGBA16Float;

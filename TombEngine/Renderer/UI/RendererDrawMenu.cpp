@@ -57,7 +57,7 @@ namespace TEN::Renderer
 
 	// Vertical menu positioning templates
 	constexpr auto MenuVerticalControls = 30;
-	constexpr auto MenuVerticalDisplaySettings = 80;
+	constexpr auto MenuVerticalDisplaySettings = 50;
 	constexpr auto MenuVerticalOtherSettings = 50;
 	constexpr auto MenuVerticalBottomCenter = 400;
 	constexpr auto MenuVerticalStatisticsTitle = 150;
@@ -246,14 +246,20 @@ namespace TEN::Renderer
 				g_GameFlow->GetSettings()->Graphics.AmbientOcclusion ? plainColor : disabledColor, SF(titleOption == 6));
 			GetNextLinePosition(&y);
 
+			// HDR rendering
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_HDR), optionColor, SF(titleOption == 7));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_GameFlow->GetSettings()->Graphics.Hdr && g_Gui.GetCurrentSettings().Configuration.EnableHdr),
+				g_GameFlow->GetSettings()->Graphics.Hdr ? plainColor : disabledColor, SF(titleOption == 7));
+			GetNextLinePosition(&y);
+
 			// Enable high framerate
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_HIGH_FRAMERATE), optionColor, SF(titleOption == 7));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableHighFramerate), plainColor, SF(titleOption == 7));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_HIGH_FRAMERATE), optionColor, SF(titleOption == 8));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableHighFramerate), plainColor, SF(titleOption == 8));
 			GetNextLinePosition(&y);
 
 			// Gamma correction
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_GAMMA), optionColor, SF(titleOption == 8));
-			AddString(MenuRightSideEntry, y, fmt::format("{:.1f}", g_Gui.GetCurrentSettings().Configuration.Gamma).c_str(), plainColor, SF(titleOption == 8));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_GAMMA), optionColor, SF(titleOption == 9));
+			AddString(MenuRightSideEntry, y, fmt::format("{:.1f}", g_Gui.GetCurrentSettings().Configuration.Gamma).c_str(), plainColor, SF(titleOption == 9));
 			GetNextLinePosition(&y);
 
 			// Atmospheric Sky Quality
@@ -263,8 +269,8 @@ namespace TEN::Renderer
 					(q == AtmosphericSkyQuality::Low)    ? STRING_QUALITY_LOW :
 					(q == AtmosphericSkyQuality::Medium) ? STRING_QUALITY_MEDIUM :
 					                                       STRING_QUALITY_HIGH;
-				AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_ATMOSPHERIC_SKY_QUALITY), optionColor, SF(titleOption == 9));
-				AddString(MenuRightSideEntry, y, g_GameFlow->GetString(qStr), plainColor, SF(titleOption == 9));
+				AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_ATMOSPHERIC_SKY_QUALITY), optionColor, SF(titleOption == 10));
+				AddString(MenuRightSideEntry, y, g_GameFlow->GetString(qStr), plainColor, SF(titleOption == 10));
 			}
 			GetNextLinePosition(&y);
 
@@ -273,8 +279,8 @@ namespace TEN::Renderer
 				constexpr const char* BACKEND_STRINGS[] = { STRING_RENDERER_VULKAN, STRING_RENDERER_DX11, STRING_RENDERER_D3D12, STRING_RENDERER_OPENGL };
 
 				int backend = (int)g_Gui.GetCurrentSettings().Configuration.GraphicsBackend - (int)GraphicsBackend::Vulkan;
-				AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RENDERER), optionColor, SF(titleOption == 10));
-				AddString(MenuRightSideEntry, y, g_GameFlow->GetString(BACKEND_STRINGS[backend]), plainColor, SF(titleOption == 10));
+				AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RENDERER), optionColor, SF(titleOption == 11));
+				AddString(MenuRightSideEntry, y, g_GameFlow->GetString(BACKEND_STRINGS[backend]), plainColor, SF(titleOption == 11));
 			}
 			GetNextLinePosition(&y);
 
@@ -283,17 +289,17 @@ namespace TEN::Renderer
 				auto renderScale = g_Gui.GetCurrentSettings().Configuration.RenderScale;
 				const char* renderScaleString = (renderScale == RenderScaleMode::Automatic) ? STRING_RENDER_SCALE_AUTOMATIC :
 					((renderScale == RenderScaleMode::Performance) ? STRING_RENDER_SCALE_PERFORMANCE : STRING_RENDER_SCALE_NATIVE);
-				AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RENDER_SCALE), optionColor, SF(titleOption == 11));
-				AddString(MenuRightSideEntry, y, g_GameFlow->GetString(renderScaleString), plainColor, SF(titleOption == 11));
+				AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RENDER_SCALE), optionColor, SF(titleOption == 12));
+				AddString(MenuRightSideEntry, y, g_GameFlow->GetString(renderScaleString), plainColor, SF(titleOption == 12));
 			}
 			GetNextBlockPosition(&y);
 
 			// Apply
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 12));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 13));
 			GetNextLinePosition(&y);
 
 			// Cancel
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 13));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 14));
 			break;
 
 		case Menu::OtherSettings:

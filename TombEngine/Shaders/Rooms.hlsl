@@ -200,7 +200,7 @@ float4 PS(PixelInput input) : SV_TARGET
 
     float occlusion = surface.Occlusion * GetAmbientOcclusion(material, input.Position.xy * InverseViewportSize, AmbientOcclusionExponent, BlendMode, surface.Color.a);
     float3 lighting = GetRoomLighting(input.Color.rgb, input.WorldPosition, surface, input.Tangent, input.Binormal) - input.FogBulbs.w;
-    float4 color = float4(saturate(surface.Color.rgb * lighting * occlusion), surface.Color.a);
+    float4 color = float4(ClampSceneColor(surface.Color.rgb * lighting * occlusion), surface.Color.a);
     color = ApplyFogBulbs(color, input.FogBulbs.rgb, BlendMode);
     float4 result = ApplyDistanceFog(color, FogColor, input.Fog, BlendMode);
     if (BlendMode == BLENDMODE_DISTORTION)

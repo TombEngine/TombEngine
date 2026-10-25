@@ -1,12 +1,13 @@
-// TEN_SHADER: Compute CS samplers=4 storage_textures=0 storage_buffers=0 uniform_buffers=1 rw_storage_textures=1 threads=16,16,1
+// TEN_SHADER: Compute CS samplers=4 storage_textures=0 storage_buffers=0 uniform_buffers=1 rw_storage_textures=1 threads=16,16,1 permutations=TAA_HDR
 
 // Temporal antialiasing resolve (SceneRendererTAA.cpp), the "TAA" pass after the scene pass. The scene is rendered with
 // a sub-pixel jitter that changes every frame; this pass blends it with the history of the previous frames, fetched
 // where the prepass motion vectors (or the camera motion, for texels without geometry) say the texel was. The history
 // is clamped to the color range of the current neighborhood, so stale history (disocclusions, transparent and
 // animated surfaces without motion vectors) cannot ghost. Writes the next history, which the later passes read as the
-// scene. A compute shader: each group gathers the colors, depths and motions of its tile and a one texel border once
-// into group shared memory, so the 3x3 neighborhoods cost no texture fetches.
+// scene. The TAA_HDR variant keeps the range above 1 in a half float history for the HDR scene target. A compute
+// shader: each group gathers the colors, depths and motions of its tile and a one texel border once into group shared
+// memory, so the 3x3 neighborhoods cost no texture fetches.
 
 #include "./ShaderInterop.hlsli"
 
@@ -30,9 +31,13 @@ TEN_CS_TEXTURE(Texture2D, VelocityMap, 2); // Prepass motion in UV units.
 TEN_CS_TEXTURE(Texture2D, DepthMap, 3);    // Prepass depth copy, 1 where no geometry was drawn.
 
 #ifdef __spirv__
+#ifdef TAA_HDR
+[[vk::image_format("rgba16f")]]
+#else
 [[vk::image_format("rgba8")]]
 #endif
-TEN_CS_RW_TEXTURE(RWTexture2D<float4>, OutputMap, 0); // Next history, 8 bits per channel.
+#endif
+TEN_CS_RW_TEXTURE(RWTexture2D<float4>, OutputMap, 0); // Next history, 8 bits per channel or half float with TAA_HDR.
 
 groupshared float3 TileColors[TILE_SIZE * TILE_SIZE]; // YCoCg.
 groupshared float  TileDepths[TILE_SIZE * TILE_SIZE];
@@ -203,7 +208,11 @@ void CS(uint3 groupId : SV_GroupID, uint3 threadId : SV_GroupThreadID)
         result = (current * currentWeight + history * historyWeight) / (currentWeight + historyWeight);
     }
 
+#ifdef TAA_HDR
+    OutputMap[pixel] = float4(max(YCoCgToRGB(result), 0.0f), 1.0f);
+#else
     // The 8 bit history is rounded stochastically: plain rounding would stop a slow blend short of its target, since the
     // current share of a small difference rounds to nothing. The noise averages out over frames.
     OutputMap[pixel] = float4(saturate(YCoCgToRGB(result) + (GetRoundingNoise(pixel) - 0.5f) / 255.0f), 1.0f);
+#endif
 }

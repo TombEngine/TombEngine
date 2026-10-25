@@ -36,7 +36,9 @@ namespace TEN::Renderer::Backend
         unsigned int LensFlareCount      = 0;
         unsigned int IsGlowActive        = 0;
         unsigned int IsDofActive         = 0;
-        float        Padding[3]          = {};
+        unsigned int IsHdrActive         = 0;
+        float        Exposure            = 1.0f;
+        float        BloomIntensity      = 0.0f; // Divided by the bloom step count, whose sum the bloom target holds.
         Vector4      LensFlarePositions[LENS_FLARES_MAX] = {}; // Normalized device xy, depth.
         Vector4      LensFlareColors[LENS_FLARES_MAX]    = {};
     };
@@ -154,6 +156,9 @@ namespace TEN::Renderer::Backend
         uniforms.Time = _time;
         uniforms.IsGlowActive = _hasVisibleEmissive ? 1 : 0;
         uniforms.IsDofActive = _isDofActive ? (unsigned int)GetDOFLayers(environment) : 0;
+        uniforms.IsHdrActive = _isHdrActive ? 1 : 0;
+        uniforms.Exposure = environment.Exposure;
+        uniforms.BloomIntensity = _isBloomActive ? (environment.BloomIntensity / BLOOM_STEP_COUNT) : 0.0f;
 
         // Flares are projected here; the frontend collection already dropped those behind the camera.
         for (int i = 0; i < environment.LensFlareCount; i++)
@@ -182,20 +187,27 @@ namespace TEN::Renderer::Backend
         renderPass->BindPipeline(_postProcessPipeline.get());
 
         // The depth target is never sampled: occlusion tests of the distortion and lens flares read the prepass copy.
-        TextureSamplerBinding bindings[6] =
+        TextureSamplerBinding bindings[7] =
         {
             { GetResolvedSceneTarget(), _linearClampSampler.get() },
             { _distortionTarget.get(), _linearClampSampler.get() },
             { _sceneDepthCopy.get(), _pointClampSampler.get() },
             { _glowTarget.get(), _linearClampSampler.get() },
             { (_dofTargets[0] != nullptr) ? _dofTargets[0].get() : _blackTexture.get(), _linearClampSampler.get() },
-            { (_dofTargets[1] != nullptr) ? _dofTargets[1].get() : _blackTexture.get(), _linearClampSampler.get() }
+            { (_dofTargets[1] != nullptr) ? _dofTargets[1].get() : _blackTexture.get(), _linearClampSampler.get() },
+            { _isBloomActive ? _bloomTarget : _blackTexture.get(), _linearClampSampler.get() }
         };
-        renderPass->BindPixelSamplers(0, bindings, 6);
+        renderPass->BindPixelSamplers(0, bindings, 7);
 
         CountDraw(DrawCategory::Fullscreen, 1);
         renderPass->Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
+
+        if (_isBloomActive)
+        {
+            _targetPool.Release(_bloomTarget);
+            _bloomTarget = nullptr;
+        }
 
         if (isAntialiased)
         {

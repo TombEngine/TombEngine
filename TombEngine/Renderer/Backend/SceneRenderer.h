@@ -97,6 +97,12 @@ namespace TEN::Renderer::Backend
         float        RenderScale         = 1.0f; // Scene resolution relative to the window; below 1, FSR 1 upscales the scene. 0 is dynamic.
         float        TargetFrameTime     = 0.0f; // Milliseconds per frame the dynamic render scale aims at.
 
+        // HDR scene target, with bloom from the colors above 1 and tonemapping in the post-process.
+        bool         IsHdrEnabled        = false;
+        float        Exposure            = 1.0f;
+        float        BloomIntensity      = 0.5f;
+        float        BloomThreshold      = 1.0f;
+
         // Background video of the video handler: BGRA8 frame, null when no background video plays.
         const unsigned char*                 VideoFrame  = nullptr;
         int                                  VideoWidth  = 0;
@@ -540,6 +546,31 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::IShader>           _glowCombineShader       = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _glowCombinePipeline     = nullptr; // Menu frames only.
 
+        // HDR and bloom (SceneRendererBloom.cpp). With HDR, the scene target is half float and the scene shaders keep colors
+        // above 1; the bloom pass blurs the bright part, which the post-process adds before tonemapping. The pipelines that
+        // draw into the scene target are listed here, to be created again for the format of the other mode.
+        static constexpr int BLOOM_STEP_COUNT = 5;
+
+        struct SceneColorPipeline
+        {
+            std::unique_ptr<RHI::IGraphicsPipeline>* Pipeline = nullptr;
+            RHI::GraphicsPipelineDesc                Desc     = {};
+        };
+
+        std::vector<SceneColorPipeline>         _sceneColorPipelines     = {};
+        bool                                    _isHdrSupported          = false; // Half float scene and TAA history targets.
+        bool                                    _isHdrActive             = false;
+        bool                                    _isBloomActive           = false;
+        RHI::PixelFormat                        _bloomFormat             = RHI::PixelFormat::R11G11B10Float;
+        std::unique_ptr<RHI::IShader>           _bloomVertexShader       = nullptr;
+        std::unique_ptr<RHI::IShader>           _bloomPrefilterShader    = nullptr;
+        std::unique_ptr<RHI::IShader>           _bloomDownsampleShader   = nullptr;
+        std::unique_ptr<RHI::IShader>           _bloomUpsampleShader     = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _bloomPrefilterPipeline  = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _bloomDownsamplePipeline = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _bloomUpsamplePipeline   = nullptr;
+        RHI::ITexture*                          _bloomTarget             = nullptr; // Pooled, from the bloom pass to the post-process.
+
         // FSR 1 upscaling (SceneRendererUpscale.cpp). Below native scale, the post-process writes _upscaleSource at render
         // resolution and the upscale pass writes _colorTarget at window resolution.
         std::unique_ptr<RHI::IShader>           _easuPixelShader = nullptr;
@@ -565,7 +596,8 @@ namespace TEN::Renderer::Backend
         bool                                    _isUpscaleActive = false;
 
         // Targets of the overlay objects and the menu post-process, which draw at window resolution: the scene targets
-        // at native scale, pooled targets of the window size below it.
+        // at native scale, pooled targets of the window size below it. The menu post-process acquires its antialiasing
+        // source from the pool.
         struct OverlayTargets
         {
             RHI::ITexture* Emissive           = nullptr;
@@ -621,6 +653,8 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::IShader>           _objectsVelocityPixelShader  = nullptr;
         std::unique_ptr<RHI::IShader>           _taaShader                   = nullptr;
         std::unique_ptr<RHI::IComputePipeline>  _taaPipeline                 = nullptr;
+        std::unique_ptr<RHI::IShader>           _taaHdrShader                = nullptr;
+        std::unique_ptr<RHI::IComputePipeline>  _taaHdrPipeline              = nullptr; // Half float history of the HDR scene.
         std::unique_ptr<RHI::ITexture>          _velocityTarget              = nullptr; // Prepass motion in UV units, RG16F.
         std::unique_ptr<RHI::ITexture>          _taaHistory[TAA_HISTORY_COUNT] = {};    // Antialiased scenes, read and written in turn.
         int                                     _taaHistoryIndex             = 0;       // History written by the last frame.
@@ -1239,6 +1273,14 @@ namespace TEN::Renderer::Backend
         void RenderPostProcess(RHI::ICommandBuffer& commandBuffer);
         bool HasDistortionDraws(const RenderView& view) const;
         void RenderDistortion(RHI::ICommandBuffer& commandBuffer);
+
+        // HDR and bloom (SceneRendererBloom.cpp).
+        bool             CreateBloomResources();
+        RHI::PixelFormat GetSceneColorFormat() const;
+        void             CreateSceneColorPipeline(std::unique_ptr<RHI::IGraphicsPipeline>& pipeline, const RHI::GraphicsPipelineDesc& desc);
+        void             ApplyHdrMode(bool isEnabled);
+        RHI::TextureDesc GetBloomStepDesc(int step) const;
+        void             RenderBloom(RHI::ICommandBuffer& commandBuffer);
 
         // Shadow map (SceneRendererShadows.cpp).
         bool         CreateShadowResources();

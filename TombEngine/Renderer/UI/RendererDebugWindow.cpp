@@ -116,6 +116,7 @@ namespace TEN::Renderer
 		AddStatRow("Shadows", "%s", SHADOW_NAMES[std::clamp((int)g_Configuration.ShadowType, 0, 2)]);
 		AddStatRow("Shadow map size", "%d", g_Configuration.ShadowMapSize);
 		AddStatRow("Ambient occlusion", YesNo(g_Configuration.EnableAmbientOcclusion));
+		AddStatRow("HDR", YesNo(g_Configuration.EnableHdr));
 		AddStatRow("Caustics", YesNo(g_Configuration.EnableCaustics));
 		AddStatRow("Decals", YesNo(g_Configuration.EnableDecals));
 		AddStatRow("High framerate", YesNo(g_Configuration.EnableHighFramerate));

@@ -555,6 +555,7 @@ namespace TEN::Gui
 			Decals,
 			Antialiasing,
 			AmbientOcclusion,
+			Hdr,
 			HighFramerate,
 			Gamma,
 			SkyQuality,
@@ -626,6 +627,17 @@ namespace TEN::Gui
 				{
 					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 					CurrentSettings.Configuration.EnableAmbientOcclusion = !CurrentSettings.Configuration.EnableAmbientOcclusion;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+
+				break;
+
+			case DisplaySettingsOption::Hdr:
+				if (g_GameFlow->GetSettings()->Graphics.Hdr)
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableHdr = !CurrentSettings.Configuration.EnableHdr;
 				}
 				else
 					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
@@ -721,6 +733,17 @@ namespace TEN::Gui
 				{
 					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 					CurrentSettings.Configuration.EnableAmbientOcclusion = !CurrentSettings.Configuration.EnableAmbientOcclusion;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+
+				break;
+
+			case DisplaySettingsOption::Hdr:
+				if (g_GameFlow->GetSettings()->Graphics.Hdr)
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableHdr = !CurrentSettings.Configuration.EnableHdr;
 				}
 				else
 					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
