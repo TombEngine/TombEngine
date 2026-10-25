@@ -95,7 +95,7 @@ namespace TEN::Renderer::Backend
     {
         const auto& environment = *_frameEnvironment;
         const auto& targetDesc = _dofTargets[0]->GetDesc();
-        const auto& sceneDesc = GetResolvedSceneTarget()->GetDesc();
+        const auto& sceneDesc = _sceneTarget->GetDesc();
 
         auto uniforms = DofUniforms{};
         uniforms.FocusDistance = environment.DofDistance;

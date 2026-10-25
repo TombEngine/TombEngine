@@ -179,12 +179,12 @@ skipped when the flag is false for the frame.
 | 5 | Distortion | Distortion draws in the view | Distortion target | Applied by the post-process. |
 | 6 | Sky | Always | Scene target | Classic sky layers, atmospheric dome, sun, moon, aurora, stars, volumetric clouds, horizon meshes, god rays. Occluded sky is not shaded. |
 | 7 | Scene | Always | Scene target | Opaque rooms (portal scissors, per-chunk culling) and objects, alpha edges, water surfaces and underwater fog, additive draws, debris, gun flashes, mirrors, sorted transparent faces, dust storm, debug primitives. |
-| 8 | TAA | Antialiasing set to temporal | RGBA8 history at window resolution | Compute shader (16x16 groups): gathers the scene, depth and motion of each tile into group shared memory, then blends the jittered scene with the reprojected history (motion of the nearest texel, Catmull-Rom history, variance clipping in YCoCg) into the next history, with stochastic rounding. Below native scale the `TAA_UPSCALE` permutation reconstructs each window texel from the nearest jittered samples (temporal upscaling). The later passes read the history as the scene; RCAS sharpens the result. |
+| 8 | TAA | Antialiasing set to temporal | RGBA8 history | Compute shader (16x16 groups): gathers the scene, depth and motion of each tile into group shared memory, then blends the jittered scene with the reprojected history (motion of the nearest texel, Catmull-Rom history, variance clipping in YCoCg) into the next history, with stochastic rounding. The later passes read the history as the scene; RCAS sharpens the result at native scale. |
 | 9 | DOF | Depth of field active | Near and far blur layers | Unused layers are skipped. |
 | 10 | Reflections | Reflective materials | Half resolution copy of the scene | Read by reflective materials in the next frame. |
 | 11 | Glow | A visible emissive material | Downscaled, blurred emissive | Added by the post-process. |
 | 12 | Post-process | Always | Color target | Distortion, glow, tint, color scheme, gamma, fade, cinematic bars, lens flares; then SMAA (ultra preset) when the SMAA mode is set. |
-| 13 | Upscale | Render scale below native, fixed or dynamic, without TAA | Window resolution color target | AMD FSR 1 EASU, with RCAS applied while the overlay draws the scene. With TAA the resolve upscales instead, and the post-process writes the window resolution directly. |
+| 13 | Upscale | Render scale below native, fixed or dynamic | Window resolution color target | AMD FSR 1 EASU, with RCAS applied while the overlay draws the scene. With TAA, the TAA resolve runs at the render resolution before it. |
 
 `FinishFrame` then draws the 2D layer (quads, text, bars, 3D menu objects with their own post-process) over the scene
 into the final target, and ImGui on top in debug mode.
@@ -192,7 +192,7 @@ into the final target, and ImGui on top in debug mode.
 ### 5.4 Render targets
 
 Scene targets (scene color, depth, normals, depth copy, emissive) have the render resolution, the window size times the
-render scale; the color and final targets, the TAA history, the overlay and the upscale output have the window size. Intermediate
+render scale; the color and final targets, the overlay and the upscale output have the window size. Intermediate
 targets come from `RHI::RenderTargetPool` and are reserved with the frame targets, so they are allocated before the
 level fills the video memory (on Vulkan, late allocations can land in system memory).
 
@@ -210,21 +210,13 @@ objects use the transforms of the previous frame, which `SceneRendererTAA.cpp` c
 world matrix and bones), so skinned and animated meshes move correctly. Vertex effects (wibble, refraction) are not part
 of the motion. Texels without geometry reproject with the camera matrices alone.
 
-With TAA, the projection of the frame is offset by a Halton(2, 3) sub-pixel jitter: 8 samples at native scale, more
-below it (8 times the ratio of window to render texels, at most 32), so the samples cover every window texel. The TAA
-pass blends the scene with the history into the next history, which DOF, the reflection source and the post-process then
-read in place of the scene target (`GetResolvedSceneTarget`), so the pass needs no copy of the scene and writes one 8 bit
-target; camera cuts (a jump longer than two sectors) and window size changes discard the history.
-
-The history has the window resolution. Below native scale, the `TAA_UPSCALE` permutation of the resolve finds for each
-window texel the nearest jittered render sample, reconstructs the current color from the 3x3 samples around it with a
-separable Gaussian (close to Blackman-Harris) and lowers its share in the blend when no sample falls within half a window
-texel; over the frames the jitter moves the samples across the window texels, and the history gathers them into the full
-resolution (temporal upscaling, in place of FSR 1). The post-process then runs at the window resolution and the upscale
-pass is skipped. The history survives render scale changes, so the dynamic render scale does not reset it. GTAO accumulates through the same motion vectors (or, without TAA, the camera reprojection) in its own half float
+With TAA, the projection of the frame is offset by an 8 sample Halton(2, 3) sub-pixel jitter. The TAA pass blends the
+scene with the history into the next history, which DOF, the reflection source and the post-process then read in place of
+the scene target (`GetResolvedSceneTarget`), so the pass needs no copy of the scene and writes one 8 bit target; camera cuts (a jump longer than two
+sectors) and target changes discard the history. GTAO accumulates through the same motion vectors (or, without TAA, the camera reprojection) in its own half float
 history.
 
-The dynamic render scale measures the frame interval and the time the game thread waits for its frame fence over 30
+The automatic render scale measures the frame interval and the time the game thread waits for its frame fence over 30
 frames. Late frames with a fence wait of more than 0.5 ms lower the scale by 10% (at most every 0.5 s); frames on time
 with almost no wait raise it by 5% after 2 s, a delay that doubles (up to 32 s) when a rise is undone within 3 s. Each
 change recreates the scene targets and is logged.
@@ -385,7 +377,7 @@ Arguments are case insensitive and may start with `-`, `--` or `/`.
 | `backend <name>` | `vulkan`, `dx11`, `d3d12`, `opengl` | Renderer backend for this run, overriding the configuration. Falls back to the others if it cannot start. |
 | `novsync` | | Presents without vertical sync (immediate mode), to measure uncapped frame times. |
 | `nogputiming` | | Disables GPU pass timings during the benchmark. On SDL GPU (Vulkan, Direct3D 12) timings split the command buffers and cost GPU time. |
-| `renderscale <0|2|5>` | 0 native, 2 performance (1/1.5), 5 dynamic; 1, 3 and 4 (fixed scales of older versions) run as 2 | Render scale for this run; below native, TAA upscales the scene temporally, the other modes with FSR 1. |
+| `renderscale <0|2|5>` | 0 native, 2 performance (1/1.5), 5 automatic; 1, 3 and 4 (fixed scales of older versions) run as 2 | Render scale for this run; below native, FSR 1 upscales the scene. |
 | `ssao <0-1>` | | Ambient occlusion off or on for this run. |
 | `antialiasing <0|3|4>` | 0 none, 3 SMAA, 4 TAA; 1 and 2 (FXAA and SMAA medium of older versions) run as 3 | Antialiasing for this run. The values are the codes stored in the configuration. |
 | `resolution <width> <height>` | pixels | Windowed resolution for this run. |
@@ -491,7 +483,7 @@ fps, so menu animations differ more with high framerate on.
 |---|---|---|
 | Renderer | Vulkan, DirectX 11, Direct3D 12, OpenGL | Applied at the next start. |
 | Screen resolution, windowed mode | | |
-| Render scale | Native, dynamic, performance (67%) | The upscaler follows the antialiasing: below native, TAA upscales temporally, the other modes use FSR 1. Older configurations with fixed scales load as performance; the material mip bias keeps the texture detail of the window resolution. Dynamic holds the refresh rate (high framerate) or 30 fps between 50% and 100% (section 5.6). |
+| Render scale | Native, automatic, performance (67%) | FSR 1 below native, after the TAA resolve when TAA is set. Older configurations with fixed scales load as performance; the material mip bias keeps the texture detail of the window resolution. Automatic holds the refresh rate (high framerate) or 30 fps between 50% and 100% (section 5.6). |
 | Antialiasing | None, SMAA, TAA | Older configurations with FXAA or SMAA medium load as SMAA. Menu frames use SMAA in place of TAA, which needs a history. |
 | Ambient occlusion | On, off | Half resolution GTAO with temporal accumulation; also requires the level setting. |
 | Shadows | None, player, all | Cube shadow map of one light, map size in the configuration; blob shadows otherwise. |

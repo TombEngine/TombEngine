@@ -564,7 +564,6 @@ namespace TEN::Renderer::Backend
         float                                   _fenceWaitTime        = 0.0f;  // Milliseconds the last scene frame waited for its frame slot.
         float                                   _materialLodBias = 0.0f; // Keeps the texture detail of the window resolution.
         bool                                    _isUpscaleActive = false;
-        bool                                    _isSpatialUpscaleActive = false; // Upscaled by FSR 1: below native scale without TAA.
 
         // Targets of the overlay objects and the menu post-process, which draw at window resolution: the scene targets
         // at native scale, pooled targets of the window size below it.
@@ -622,15 +621,12 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::IShader>           _roomsVelocityPixelShader    = nullptr;
         std::unique_ptr<RHI::IShader>           _objectsVelocityPixelShader  = nullptr;
         std::unique_ptr<RHI::IShader>           _taaShader                   = nullptr;
-        std::unique_ptr<RHI::IShader>           _taauShader                  = nullptr; // TAA_UPSCALE permutation, below native scale.
         std::unique_ptr<RHI::IComputePipeline>  _taaPipeline                 = nullptr;
-        std::unique_ptr<RHI::IComputePipeline>  _taauPipeline                = nullptr;
         std::unique_ptr<RHI::ITexture>          _velocityTarget              = nullptr; // Prepass motion in UV units, RG16F.
         std::unique_ptr<RHI::ITexture>          _taaHistory[TAA_HISTORY_COUNT] = {};    // Antialiased scenes, read and written in turn.
         int                                     _taaHistoryIndex             = 0;       // History written by the last frame.
         bool                                    _isTaaHistoryValid           = false;
         bool                                    _isTaaActive                 = false;
-        Vector2                                 _taaSampleOffset             = Vector2::Zero; // Jittered sample position in render texels.
         bool                                    _isVelocityActive            = false;   // The prepass writes motion vectors.
         int                                     _motionFrame                 = 0;       // Frame counter of the motion data.
         Matrix                                  _unjitteredViewProjection    = Matrix::Identity;
@@ -1160,7 +1156,6 @@ namespace TEN::Renderer::Backend
         // Temporal antialiasing and motion vectors (SceneRendererTAA.cpp).
         bool CreateTemporalResources();
         bool EnsureTemporalTargets(int width, int height);
-        bool EnsureTemporalHistory(int width, int height);
         void PrepareTemporalFrame(const RenderView& view, const FrameEnvironment& environment, Matrix& projection);
         Matrix GetPrevViewProjection() const;
         RHI::ITexture* GetResolvedSceneTarget() const;

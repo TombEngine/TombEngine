@@ -403,6 +403,35 @@ individual timing.
 
 **Dependencies.** None.
 
+### R12 - FSR 3.1 temporal upscaler
+
+**Goal.** Replace TAA and the FSR 1 upscale below native scale with one temporal upscaler of better quality, so lower
+render scales (down to 50%) stay sharp on integrated GPUs.
+
+**Current state.** TAA (`Backend/SceneRendererTAA.cpp`) resolves at the render resolution; below native scale FSR 1
+(EASU and RCAS) upscales its result. A temporal upscale inside the TAA resolve, with the history at the window
+resolution, was measured and removed: at 67% it cost 2.5 ms more than FSR 1 on the integrated GPU (17.3 against
+14.5 ms per frame on DirectX 11), for a modest quality gain.
+
+**Proposal.**
+
+1. Port the FidelityFX FSR 3.1 upscaler passes (HLSL compute, MIT) to RHI compute pipelines, so they run on every
+   backend; the FidelityFX SDK backends need native Vulkan handles that SDL GPU does not expose, and have no DirectX 11
+   or OpenGL backend.
+2. Feed it the prepass depth, motion vectors and jitter of the current TAA path.
+3. Write a reactive mask from the sorted pass and the sprites (alpha blended faces, particles, scrolling and animated
+   textures, caustics), which have no correct motion vectors.
+4. Offer it as the temporal antialiasing setting: at native scale it antialiases, below it upscales; SMAA and no
+   antialiasing keep FSR 1.
+
+**Expected gain.** Clearly better image than FSR 1 at 67% and 50%, so the automatic scale can drop further for the same
+look.
+
+**Cost / risks.** Around ten compute passes to port and keep in sync with upstream; ghosting on effects the reactive
+mask misses; its cost at window resolution on integrated GPUs must be measured against TAA plus FSR 1.
+
+**Dependencies.** None. Interacts with R1 (resolve before tonemapping).
+
 ---
 
 ## Recommended order
@@ -424,6 +453,7 @@ individual timing.
 | 13 | R9 Render thread | S8, R11 | Frontend and backend overlap on every backend, OpenGL included; no frame data shared between the threads without a copy or a fence. |
 | 14 | S6 Weighted blended OIT | S5 | Option for selected particles with accumulation and revealage targets; measured against S5 on the benchmark levels. |
 | 15 | R10 Tomb Editor assets | Format decision | Water surfaces, quantized optimized vertices and LODs come from the level file; old levels still load. |
+| 16 | R12 FSR 3.1 upscaler | - | FSR 3.1 replaces TAA on every backend, with a reactive mask for sorted faces and sprites; better than TAA plus FSR 1 at 67% on the benchmark levels at a measured cost. |
 
 S1, S2, S8 and R11 are cheap and do not change the look: they go first. S3, S5 and S4 then improve the transparent
 pass and particles. R1 is the main visual change and precedes the targets of S5 and S6 where possible. R4 opens the

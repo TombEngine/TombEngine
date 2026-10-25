@@ -1131,7 +1131,7 @@ namespace TEN::Renderer
 
 		// 0 is the dynamic scale, which holds the refresh rate with high framerate and 30 frames per second without.
 		constexpr auto PERFORMANCE_RENDER_SCALE = 1.0f / 1.5f;
-		environment.RenderScale = (g_Configuration.RenderScale == RenderScaleMode::Dynamic) ? 0.0f :
+		environment.RenderScale = (g_Configuration.RenderScale == RenderScaleMode::Automatic) ? 0.0f :
 			((g_Configuration.RenderScale == RenderScaleMode::Performance) ? PERFORMANCE_RENDER_SCALE : 1.0f);
 		environment.TargetFrameTime = 1000.0f / (float)(g_Configuration.EnableHighFramerate ? GetScreenRefreshRate() : FPS);
 

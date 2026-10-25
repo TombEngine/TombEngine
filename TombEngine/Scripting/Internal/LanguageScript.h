@@ -86,7 +86,7 @@
 #define STRING_RENDER_SCALE				"render_scale"
 #define STRING_RENDER_SCALE_NATIVE		"render_scale_native"
 #define STRING_RENDER_SCALE_PERFORMANCE	"render_scale_performance"
-#define STRING_RENDER_SCALE_DYNAMIC		"render_scale_dynamic"
+#define STRING_RENDER_SCALE_AUTOMATIC		"render_scale_automatic"
 #define STRING_ANTIALIASING_NONE		"none"
 #define STRING_ANTIALIASING_SMAA		"antialiasing_smaa"
 #define STRING_ANTIALIASING_TEMPORAL	"antialiasing_temporal"

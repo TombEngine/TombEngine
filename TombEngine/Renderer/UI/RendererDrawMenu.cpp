@@ -281,7 +281,7 @@ namespace TEN::Renderer
 			// Render scale of the 3D scene, upscaled by TAA or FSR 1.
 			{
 				auto renderScale = g_Gui.GetCurrentSettings().Configuration.RenderScale;
-				const char* renderScaleString = (renderScale == RenderScaleMode::Dynamic) ? STRING_RENDER_SCALE_DYNAMIC :
+				const char* renderScaleString = (renderScale == RenderScaleMode::Automatic) ? STRING_RENDER_SCALE_AUTOMATIC :
 					((renderScale == RenderScaleMode::Performance) ? STRING_RENDER_SCALE_PERFORMANCE : STRING_RENDER_SCALE_NATIVE);
 				AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RENDER_SCALE), optionColor, SF(titleOption == 11));
 				AddString(MenuRightSideEntry, y, g_GameFlow->GetString(renderScaleString), plainColor, SF(titleOption == 11));

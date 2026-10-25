@@ -112,7 +112,7 @@ namespace TEN::Renderer
 		auto antialiasing = g_Configuration.AntialiasingMode;
 		AddStatRow("Antialiasing", "%s", (antialiasing == AntialiasingMode::Temporal) ? "TAA" : ((antialiasing == AntialiasingMode::Smaa) ? "SMAA" : "none"));
 		auto renderScale = g_Configuration.RenderScale;
-		AddStatRow("Render scale", "%s", (renderScale == RenderScaleMode::Dynamic) ? "dynamic" : ((renderScale == RenderScaleMode::Performance) ? "performance (67%)" : "native"));
+		AddStatRow("Render scale", "%s", (renderScale == RenderScaleMode::Automatic) ? "automatic" : ((renderScale == RenderScaleMode::Performance) ? "performance (67%)" : "native"));
 		AddStatRow("Shadows", "%s", SHADOW_NAMES[std::clamp((int)g_Configuration.ShadowType, 0, 2)]);
 		AddStatRow("Shadow map size", "%d", g_Configuration.ShadowMapSize);
 		AddStatRow("Ambient occlusion", YesNo(g_Configuration.EnableAmbientOcclusion));

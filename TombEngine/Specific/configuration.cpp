@@ -199,7 +199,7 @@ RenderScaleMode GetRenderScaleMode(int value)
 	if (value >= 1 && value <= 4)
 		return RenderScaleMode::Performance;
 
-	return (value == (int)RenderScaleMode::Dynamic) ? RenderScaleMode::Dynamic : RenderScaleMode::Native;
+	return (value == (int)RenderScaleMode::Automatic) ? RenderScaleMode::Automatic : RenderScaleMode::Native;
 }
 
 void InitDefaultConfiguration()
@@ -223,7 +223,7 @@ void InitDefaultConfiguration()
 	g_Configuration.Gamma = 1.0f;
 	g_Configuration.AtmosphericSkyQuality = AtmosphericSkyQuality::Medium;
 	g_Configuration.GraphicsBackend = GraphicsBackend::Vulkan;
-	g_Configuration.RenderScale = RenderScaleMode::Native;
+	g_Configuration.RenderScale = RenderScaleMode::Automatic;
 
 	g_Configuration.SoundDevice = 1;
 	g_Configuration.EnableSound = true;
