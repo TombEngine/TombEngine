@@ -136,40 +136,10 @@
       <StackReserveSize>8388608</StackReserveSize>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)Tools\BuildEvents\PostBuild.ps1" -Configuration $(Configuration) -Platform $(Platform) -BuildDir "$(SolutionDir)Build\$(Configuration)" -TargetDir "$(OutDir)."</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>powershell -ExecutionPolicy Bypass -File "$(SolutionDir)\Documentation\generate_objectlist.ps1"
-    powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Specific\serialization\schema\generate_code.ps1"
-
-CD "$(ProjectDir)..\Documentation\"
-CALL compile.bat .
-
-SET BuildDir=$(SolutionDir)Build\$(Configuration)
-SET ShaderDir=%BuildDir%\Shaders
-SET ScriptsDir=%BuildDir%\Scripts
-SET EngineDir=%ScriptsDir%\Engine
-
-if not exist %ShaderDir% mkdir %ShaderDir%
-if not exist %ScriptsDir% mkdir %ScriptsDir%
-if not exist %EngineDir% mkdir %EngineDir%
-
-xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
-powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin" -DebugInfo
-if errorlevel 1 exit 1
-
-xcopy /Y "$(SolutionDir)Libs\bass\x86\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\lua\x86\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\sdl3\x86\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\vlc\x86\*.dll" "$(TargetDir)"
-
-xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
-xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
-
-if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" %ScriptsDir%</Command>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)Tools\BuildEvents\PreBuild.ps1" -Configuration $(Configuration) -Platform $(Platform) -BuildDir "$(SolutionDir)Build\$(Configuration)" -TargetDir "$(OutDir)."</Command>
       <Message>Generating documentation, FlatBuffers code and copying needed files...</Message>
     </PreBuildEvent>
   </ItemDefinitionGroup>
@@ -205,40 +175,10 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <StackReserveSize>8388608</StackReserveSize>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)Tools\BuildEvents\PostBuild.ps1" -Configuration $(Configuration) -Platform $(Platform) -BuildDir "$(SolutionDir)Build\$(Configuration)" -TargetDir "$(OutDir)."</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>powershell -ExecutionPolicy Bypass -File "$(SolutionDir)\Documentation\generate_objectlist.ps1"
-    powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Specific\serialization\schema\generate_code.ps1"
-
-CD "$(ProjectDir)..\Documentation\"
-CALL compile.bat .
-
-SET BuildDir=$(SolutionDir)Build\$(Configuration)
-SET ShaderDir=%BuildDir%\Shaders
-SET ScriptsDir=%BuildDir%\Scripts
-SET EngineDir=%ScriptsDir%\Engine
-
-if not exist %ShaderDir% mkdir %ShaderDir%
-if not exist %ScriptsDir% mkdir %ScriptsDir%
-if not exist %EngineDir% mkdir %EngineDir%
-
-xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
-powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin" -DebugInfo
-if errorlevel 1 exit 1
-
-xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\lua\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\sdl3\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\vlc\x64\*.dll" "$(TargetDir)"
-
-xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
-xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
-
-if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" %ScriptsDir%</Command>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)Tools\BuildEvents\PreBuild.ps1" -Configuration $(Configuration) -Platform $(Platform) -BuildDir "$(SolutionDir)Build\$(Configuration)" -TargetDir "$(OutDir)."</Command>
       <Message>Generating documentation, FlatBuffers code and copying needed files...</Message>
     </PreBuildEvent>
   </ItemDefinitionGroup>
@@ -284,43 +224,10 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <StackReserveSize>8388608</StackReserveSize>
     </Link>
     <PostBuildEvent>
-      <Command>del "$(TargetDir)*.pdb" /q
-del "$(TargetDir)*.lib" /q
-del "$(TargetDir)*.exp" /q</Command>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)Tools\BuildEvents\PostBuild.ps1" -Configuration $(Configuration) -Platform $(Platform) -BuildDir "$(SolutionDir)Build\$(Configuration)" -TargetDir "$(OutDir)."</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>powershell -ExecutionPolicy Bypass -File "$(SolutionDir)\Documentation\generate_objectlist.ps1"
-
-CD "$(ProjectDir)..\Documentation\"
-CALL compile.bat .
-
-CD "$(ProjectDir)Specific\serialization\schema\"
-CALL gen.bat
-
-SET BuildDir=$(SolutionDir)Build\$(Configuration)
-SET ShaderDir=%BuildDir%\Shaders
-SET ScriptsDir=%BuildDir%\Scripts
-SET EngineDir=%ScriptsDir%\Engine
-
-if not exist %ShaderDir% mkdir %ShaderDir%
-if not exist %ScriptsDir% mkdir %ScriptsDir%
-if not exist %EngineDir% mkdir %EngineDir%
-
-xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
-powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin"
-if errorlevel 1 exit 1
-
-xcopy /Y "$(SolutionDir)Libs\bass\x86\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\lua\x86\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\sdl3\x86\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\vlc\x86\*.dll" "$(TargetDir)"
-
-xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
-xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
-
-if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" %ScriptsDir%</Command>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)Tools\BuildEvents\PreBuild.ps1" -Configuration $(Configuration) -Platform $(Platform) -BuildDir "$(SolutionDir)Build\$(Configuration)" -TargetDir "$(OutDir)."</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating documentation, FlatBuffers code and copying needed files...</Message>
@@ -367,43 +274,10 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <StackReserveSize>8388608</StackReserveSize>
     </Link>
     <PostBuildEvent>
-      <Command>del "$(TargetDir)*.pdb" /q
-del "$(TargetDir)*.lib" /q
-del "$(TargetDir)*.exp" /q</Command>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)Tools\BuildEvents\PostBuild.ps1" -Configuration $(Configuration) -Platform $(Platform) -BuildDir "$(SolutionDir)Build\$(Configuration)" -TargetDir "$(OutDir)."</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>powershell -ExecutionPolicy Bypass -File "$(SolutionDir)\Documentation\generate_objectlist.ps1"
-
-CD "$(ProjectDir)..\Documentation\"
-CALL compile.bat .
-
-CD "$(ProjectDir)Specific\serialization\schema\"
-CALL gen.bat
-
-SET "BuildDir=$(SolutionDir)Build\$(Configuration)"
-SET "ShaderDir=%BuildDir%\Shaders"
-SET "ScriptsDir=%BuildDir%\Scripts"
-SET "EngineDir=%ScriptsDir%\Engine"
-
-if not exist "%ShaderDir%" mkdir "%ShaderDir%"
-if not exist "%ScriptsDir%" mkdir "%ScriptsDir%"
-if not exist "%EngineDir%" mkdir "%EngineDir%"
-
-xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" "%ShaderDir%"
-powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin"
-if errorlevel 1 exit 1
-
-xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\lua\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\sdl3\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\vlc\x64\*.dll" "$(TargetDir)"
-
-xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" "%EngineDir%"
-xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" "%ScriptsDir%"
-
-if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" "%ScriptsDir%"
-if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" "%ScriptsDir%"
-if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" "%ScriptsDir%"</Command>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)Tools\BuildEvents\PreBuild.ps1" -Configuration $(Configuration) -Platform $(Platform) -BuildDir "$(SolutionDir)Build\$(Configuration)" -TargetDir "$(OutDir)."</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating documentation, FlatBuffers code and copying needed files...</Message>

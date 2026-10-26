@@ -33,14 +33,23 @@ foreach ($file in $fbsFiles)
     }
 }
 
+# The bundled flatc.exe on Windows, the flatc of the PATH on Linux and macOS (same version as Libs/flatbuffers).
+$flatc = if ($IsWindows -ne $false) { Join-Path $PSScriptRoot "flatc.exe" } else { (Get-Command flatc -ErrorAction SilentlyContinue).Source }
+
 # If any .fbs file is newer, run the generation process.
-if ($shouldGenerate) 
+if ($shouldGenerate -and -not $flatc)
+{
+    Write-Host "flatc not found on the PATH: cannot regenerate the FlatBuffers code."
+    exit 1
+}
+
+if ($shouldGenerate)
 {
     Write-Host "Generating FlatBuffers code from schema..."
-    
+
     foreach ($file in $fbsFiles)
     {
-        & "$PSScriptRoot\flatc.exe" --cpp --strict-json --unknown-json --gen-object-api --force-empty --force-empty-vectors --cpp-std c++17 --scoped-enums -o $file.out $file.fbs
+        & $flatc --cpp --strict-json --unknown-json --gen-object-api --force-empty --force-empty-vectors --cpp-std c++17 --scoped-enums -o $file.out $file.fbs
 
         if ($LASTEXITCODE -ne 0)
         {

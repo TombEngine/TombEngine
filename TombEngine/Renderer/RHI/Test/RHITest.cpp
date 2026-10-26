@@ -61,6 +61,7 @@ namespace TEN::Renderer::RHI
         case GraphicsApi::Vulkan:     return "Vulkan";
         case GraphicsApi::Direct3D12: return "Direct3D12";
         case GraphicsApi::OpenGL:     return "OpenGL";
+        case GraphicsApi::Metal:      return "Metal";
         default:                  return "None";
         }
     }

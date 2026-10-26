@@ -466,38 +466,84 @@ function Get-ScalarSetting($config, [string]$name, [hashtable]$map)
     return $map[$value]
 }
 
-# Build event scripts, with the MSBuild macros replaced by variables set from the script arguments.
+# Build events must be PowerShell script calls, so the same scripts run on Windows, Linux and macOS. Each line becomes
+# a CMake COMMAND run by the PowerShell found at configure time, with the MSBuild macros mapped to CMake values.
 
-function Convert-EventScript([string]$command, $config)
+function Convert-EventArgument([string]$token)
 {
-    if ($null -eq $command -or $command.Trim() -eq "")
+    $value = $token.Trim('"')
+    $isPath = $value -match '\$\((SolutionDir|ProjectDir|OutDir|TargetDir)\)'
+
+    $value = $value.Replace('$(SolutionDir)Build\', '${TEN_BUILD_ROOT}/')
+    $value = $value.Replace('$(SolutionDir)', '${TEN_SOLUTION_DIR}/')
+    $value = $value.Replace('$(ProjectDir)', '${TEN_PROJECT_DIR}/')
+    $value = $value.Replace('$(OutDir)', '${TEN_TARGET_DIR}/').Replace('$(TargetDir)', '${TEN_TARGET_DIR}/')
+    $value = $value.Replace('$(Configuration)', '$<CONFIG>').Replace('$(Platform)', '${TEN_PLATFORM}')
+    $value = $value.Replace('$(ProjectName)', $projectName)
+
+    if ($value -match '\$\([^)]+\)')
     {
-        return $null
+        throw "Build event macro $($Matches[0]) is not supported."
     }
 
-    $script = $command.Replace('$(SolutionDir)Build\', '%TEN_BUILD_ROOT%\')
-    $script = $script.Replace('$(SolutionDir)', '%TEN_SOLUTION_DIR%\')
-    $script = $script.Replace('$(ProjectDir)', '%TEN_PROJECT_DIR%\')
-    $script = $script.Replace('$(TargetDir)', '%TEN_TARGET_DIR%\').Replace('$(OutDir)', '%TEN_TARGET_DIR%\')
-    $script = $script.Replace('$(Configuration)', $config.Config).Replace('$(Platform)', $config.Platform)
-    $script = $script.Replace('$(ProjectName)', $projectName)
-
-    foreach ($match in [regex]::Matches($script, '\$\([^)]+\)'))
+    if ($isPath)
     {
-        Add-Warning "Build event macro $($match.Value) is not translated."
+        $value = $value.Replace('\', '/')
+        while ($value.Contains("//"))
+        {
+            $value = $value.Replace("//", "/")
+        }
     }
 
-    $lines = @(
-        "@echo off",
-        "setlocal",
-        "set `"TEN_SOLUTION_DIR=%~1`"",
-        "set `"TEN_PROJECT_DIR=%~2`"",
-        "set `"TEN_TARGET_DIR=%~3`"",
-        "set `"TEN_BUILD_ROOT=%~4`"",
-        "cd /d `"%TEN_PROJECT_DIR%`""
-    )
-    $body = ($script -replace "`r", "").Split("`n")
-    return @($lines + $body)
+    return Format-Item $value
+}
+
+function Convert-EventCommands([string]$command)
+{
+    $result = @()
+    if ($null -eq $command)
+    {
+        return $result
+    }
+
+    foreach ($line in ($command -replace "`r", "").Split("`n"))
+    {
+        if ($line.Trim() -eq "")
+        {
+            continue
+        }
+
+        $tokens = @([regex]::Matches($line.Trim(), '"[^"]*"|\S+') | ForEach-Object { $_.Value })
+        if ($tokens[0] -notmatch '^(powershell|pwsh)(\.exe)?$')
+        {
+            throw "Build event line '$($line.Trim())' is not a PowerShell call; move it into a script under Tools/BuildEvents."
+        }
+
+        $arguments = @($tokens | Select-Object -Skip 1 | Where-Object { $_ -ne "-NoProfile" } | ForEach-Object { Convert-EventArgument $_ })
+        $result += "COMMAND `"`${TEN_POWERSHELL}`" -NoProfile " + ($arguments -join " ")
+    }
+
+    return $result
+}
+
+# The event commands use $<CONFIG> and ${TEN_PLATFORM}, so every configuration must give the same commands.
+function Get-EventCommands([string]$name)
+{
+    $commands = $null
+    foreach ($config in $configs)
+    {
+        $configCommands = @(Convert-EventCommands $settings[$config.Key]["$name.Command"])
+        if ($null -eq $commands)
+        {
+            $commands = $configCommands
+        }
+        elseif (($commands -join "`n") -ne ($configCommands -join "`n"))
+        {
+            throw "$name differs between configurations; pass the configuration to the script instead."
+        }
+    }
+
+    return $commands
 }
 
 # Emission helpers.
@@ -747,32 +793,6 @@ foreach ($platform in $platformNames)
 
         Emit "    set(TEN_OUTPUT_DIR_$($config.Config.ToUpper()) `"$outDir`")"
     }
-
-    foreach ($config in $platformConfigs)
-    {
-        $s = $settings[$config.Key]
-        $events = [ordered]@{
-            "PreBuild"  = $s["PreBuildEvent.Command"]
-            "PostBuild" = $s["PostBuildEvent.Command"]
-        }
-
-        foreach ($eventName in $events.Keys)
-        {
-            $script = Convert-EventScript $events[$eventName] $config
-            if ($null -eq $script)
-            {
-                $script = @("@echo off")
-            }
-
-            Emit "    file(WRITE `"`${CMAKE_CURRENT_BINARY_DIR}/$eventName-$($config.Config)-$platform.cmd`" [==["
-            foreach ($line in $script)
-            {
-                Emit $line
-            }
-
-            Emit "]==])"
-        }
-    }
 }
 
 Emit "else()"
@@ -819,38 +839,51 @@ if ($usesPch -and $null -ne $pchHeader)
     Emit
 }
 
-Emit "# Build events run as scripts written above, with the paths passed as arguments."
-Emit "file(TO_NATIVE_PATH `"`${CMAKE_CURRENT_BINARY_DIR}`" TEN_BINARY_DIR_NATIVE)"
-Emit "file(TO_NATIVE_PATH `"`${TEN_SOLUTION_DIR}`" TEN_SOLUTION_DIR_NATIVE)"
-Emit "file(TO_NATIVE_PATH `"`${TEN_PROJECT_DIR}`" TEN_PROJECT_DIR_NATIVE)"
-Emit "file(TO_NATIVE_PATH `"`${TEN_BUILD_ROOT}`" TEN_BUILD_ROOT_NATIVE)"
-Emit "set(TEN_TARGET_DIR_NATIVE `"`")"
+$preBuildCommands = @(Get-EventCommands "PreBuildEvent")
+$postBuildCommands = @(Get-EventCommands "PostBuildEvent")
+
+Emit "# Build events: PowerShell scripts shared with the Visual Studio project (Windows PowerShell or PowerShell 7)."
+Emit "find_program(TEN_POWERSHELL NAMES pwsh powershell REQUIRED)"
+Emit "set(TEN_TARGET_DIR `"`")"
 Emit "foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES)"
 Emit "    string(TOUPPER `"`${config}`" configUpper)"
-Emit "    file(TO_NATIVE_PATH `"`${TEN_OUTPUT_DIR_`${configUpper}}`" outputDir)"
-Emit "    string(APPEND TEN_TARGET_DIR_NATIVE `"$<`$<CONFIG:`${config}>:`${outputDir}>`")"
+Emit "    string(APPEND TEN_TARGET_DIR `"`$<`$<CONFIG:`${config}>:`${TEN_OUTPUT_DIR_`${configUpper}}>`")"
 Emit "endforeach()"
-Emit "set(TEN_EVENT_ARGUMENTS `"`${TEN_SOLUTION_DIR_NATIVE}`" `"`${TEN_PROJECT_DIR_NATIVE}`" `"`${TEN_TARGET_DIR_NATIVE}`" `"`${TEN_BUILD_ROOT_NATIVE}`")"
 Emit
 
-$message = $settings[$configs[0].Key]["PreBuildEvent.Message"]
-if ($null -eq $message -or $message -eq "")
+if ($preBuildCommands.Count -gt 0)
 {
-    $message = "Running the pre-build event..."
+    $message = $settings[$configs[0].Key]["PreBuildEvent.Message"]
+    if ($null -eq $message -or $message -eq "")
+    {
+        $message = "Running the pre-build event..."
+    }
+
+    Emit "add_custom_target($($projectName)PreBuild"
+    foreach ($command in $preBuildCommands)
+    {
+        Emit "    $command"
+    }
+
+    Emit "    COMMENT `"$message`""
+    Emit "    VERBATIM"
+    Emit ")"
+    Emit "add_dependencies($projectName $($projectName)PreBuild)"
+    Emit
 }
 
-Emit "add_custom_target($($projectName)PreBuild"
-Emit "    COMMAND cmd /c `"`${TEN_BINARY_DIR_NATIVE}\\PreBuild-`$<CONFIG>-`${TEN_PLATFORM}.cmd`" `${TEN_EVENT_ARGUMENTS}"
-Emit "    COMMENT `"$message`""
-Emit "    VERBATIM"
-Emit ")"
-Emit "add_dependencies($projectName $($projectName)PreBuild)"
-Emit
-Emit "add_custom_command(TARGET $projectName POST_BUILD"
-Emit "    COMMAND cmd /c `"`${TEN_BINARY_DIR_NATIVE}\\PostBuild-`$<CONFIG>-`${TEN_PLATFORM}.cmd`" `${TEN_EVENT_ARGUMENTS}"
-Emit "    VERBATIM"
-Emit ")"
-Emit
+if ($postBuildCommands.Count -gt 0)
+{
+    Emit "add_custom_command(TARGET $projectName POST_BUILD"
+    foreach ($command in $postBuildCommands)
+    {
+        Emit "    $command"
+    }
+
+    Emit "    VERBATIM"
+    Emit ")"
+    Emit
+}
 
 Emit "source_group(TREE `"`${TEN_SOLUTION_DIR}`" FILES `${TEN_SOURCES} `${TEN_HEADERS})"
 Emit "set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT $projectName)"

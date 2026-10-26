@@ -1305,101 +1305,6 @@ if(TEN_PLATFORM STREQUAL "Win32")
     )
     set(TEN_OUTPUT_DIR_DEBUG "${TEN_BUILD_ROOT}/Debug/Bin/x86")
     set(TEN_OUTPUT_DIR_RELEASE "${TEN_BUILD_ROOT}/Release/Bin/x86")
-    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/PreBuild-Debug-Win32.cmd" [==[
-@echo off
-setlocal
-set "TEN_SOLUTION_DIR=%~1"
-set "TEN_PROJECT_DIR=%~2"
-set "TEN_TARGET_DIR=%~3"
-set "TEN_BUILD_ROOT=%~4"
-cd /d "%TEN_PROJECT_DIR%"
-powershell -ExecutionPolicy Bypass -File "%TEN_SOLUTION_DIR%\\Documentation\generate_objectlist.ps1"
-    powershell -ExecutionPolicy Bypass -File "%TEN_PROJECT_DIR%\Specific\serialization\schema\generate_code.ps1"
-
-CD "%TEN_PROJECT_DIR%\..\Documentation\"
-CALL compile.bat .
-
-SET BuildDir=%TEN_BUILD_ROOT%\Debug
-SET ShaderDir=%BuildDir%\Shaders
-SET ScriptsDir=%BuildDir%\Scripts
-SET EngineDir=%ScriptsDir%\Engine
-
-if not exist %ShaderDir% mkdir %ShaderDir%
-if not exist %ScriptsDir% mkdir %ScriptsDir%
-if not exist %EngineDir% mkdir %EngineDir%
-
-xcopy /D /Y /I /E "%TEN_PROJECT_DIR%\Shaders\*.*" %ShaderDir%
-powershell -ExecutionPolicy Bypass -File "%TEN_PROJECT_DIR%\Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin" -DebugInfo
-if errorlevel 1 exit 1
-
-xcopy /Y "%TEN_SOLUTION_DIR%\Libs\bass\x86\*.dll" "%TEN_TARGET_DIR%\"
-xcopy /Y "%TEN_SOLUTION_DIR%\Libs\lua\x86\*.dll" "%TEN_TARGET_DIR%\"
-xcopy /Y "%TEN_SOLUTION_DIR%\Libs\sdl3\x86\*.dll" "%TEN_TARGET_DIR%\"
-xcopy /Y "%TEN_SOLUTION_DIR%\Libs\vlc\x86\*.dll" "%TEN_TARGET_DIR%\"
-
-xcopy /D /Y /I /E "%TEN_SOLUTION_DIR%\Scripts\Engine\*.*" %EngineDir%
-xcopy /D /Y "%TEN_SOLUTION_DIR%\Scripts\SystemStrings.lua" %ScriptsDir%
-
-if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "%TEN_SOLUTION_DIR%\Scripts\Gameflow.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "%TEN_SOLUTION_DIR%\Scripts\Settings.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "%TEN_SOLUTION_DIR%\Scripts\Strings.lua" %ScriptsDir%
-]==])
-    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/PostBuild-Debug-Win32.cmd" [==[
-@echo off
-]==])
-    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/PreBuild-Release-Win32.cmd" [==[
-@echo off
-setlocal
-set "TEN_SOLUTION_DIR=%~1"
-set "TEN_PROJECT_DIR=%~2"
-set "TEN_TARGET_DIR=%~3"
-set "TEN_BUILD_ROOT=%~4"
-cd /d "%TEN_PROJECT_DIR%"
-powershell -ExecutionPolicy Bypass -File "%TEN_SOLUTION_DIR%\\Documentation\generate_objectlist.ps1"
-
-CD "%TEN_PROJECT_DIR%\..\Documentation\"
-CALL compile.bat .
-
-CD "%TEN_PROJECT_DIR%\Specific\serialization\schema\"
-CALL gen.bat
-
-SET BuildDir=%TEN_BUILD_ROOT%\Release
-SET ShaderDir=%BuildDir%\Shaders
-SET ScriptsDir=%BuildDir%\Scripts
-SET EngineDir=%ScriptsDir%\Engine
-
-if not exist %ShaderDir% mkdir %ShaderDir%
-if not exist %ScriptsDir% mkdir %ScriptsDir%
-if not exist %EngineDir% mkdir %EngineDir%
-
-xcopy /D /Y /I /E "%TEN_PROJECT_DIR%\Shaders\*.*" %ShaderDir%
-powershell -ExecutionPolicy Bypass -File "%TEN_PROJECT_DIR%\Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin"
-if errorlevel 1 exit 1
-
-xcopy /Y "%TEN_SOLUTION_DIR%\Libs\bass\x86\*.dll" "%TEN_TARGET_DIR%\"
-xcopy /Y "%TEN_SOLUTION_DIR%\Libs\lua\x86\*.dll" "%TEN_TARGET_DIR%\"
-xcopy /Y "%TEN_SOLUTION_DIR%\Libs\sdl3\x86\*.dll" "%TEN_TARGET_DIR%\"
-xcopy /Y "%TEN_SOLUTION_DIR%\Libs\vlc\x86\*.dll" "%TEN_TARGET_DIR%\"
-
-xcopy /D /Y /I /E "%TEN_SOLUTION_DIR%\Scripts\Engine\*.*" %EngineDir%
-xcopy /D /Y "%TEN_SOLUTION_DIR%\Scripts\SystemStrings.lua" %ScriptsDir%
-
-if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "%TEN_SOLUTION_DIR%\Scripts\Gameflow.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "%TEN_SOLUTION_DIR%\Scripts\Settings.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "%TEN_SOLUTION_DIR%\Scripts\Strings.lua" %ScriptsDir%
-]==])
-    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/PostBuild-Release-Win32.cmd" [==[
-@echo off
-setlocal
-set "TEN_SOLUTION_DIR=%~1"
-set "TEN_PROJECT_DIR=%~2"
-set "TEN_TARGET_DIR=%~3"
-set "TEN_BUILD_ROOT=%~4"
-cd /d "%TEN_PROJECT_DIR%"
-del "%TEN_TARGET_DIR%\*.pdb" /q
-del "%TEN_TARGET_DIR%\*.lib" /q
-del "%TEN_TARGET_DIR%\*.exp" /q
-]==])
 elseif(TEN_PLATFORM STREQUAL "x64")
     set(TEN_DEFINITIONS_DEBUG
         "CREATURE_AI_PRIORITY_OPTIMIZATION"
@@ -1455,101 +1360,6 @@ elseif(TEN_PLATFORM STREQUAL "x64")
     )
     set(TEN_OUTPUT_DIR_DEBUG "${TEN_BUILD_ROOT}/Debug/Bin/x64")
     set(TEN_OUTPUT_DIR_RELEASE "${TEN_BUILD_ROOT}/Release/Bin/x64")
-    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/PreBuild-Debug-x64.cmd" [==[
-@echo off
-setlocal
-set "TEN_SOLUTION_DIR=%~1"
-set "TEN_PROJECT_DIR=%~2"
-set "TEN_TARGET_DIR=%~3"
-set "TEN_BUILD_ROOT=%~4"
-cd /d "%TEN_PROJECT_DIR%"
-powershell -ExecutionPolicy Bypass -File "%TEN_SOLUTION_DIR%\\Documentation\generate_objectlist.ps1"
-    powershell -ExecutionPolicy Bypass -File "%TEN_PROJECT_DIR%\Specific\serialization\schema\generate_code.ps1"
-
-CD "%TEN_PROJECT_DIR%\..\Documentation\"
-CALL compile.bat .
-
-SET BuildDir=%TEN_BUILD_ROOT%\Debug
-SET ShaderDir=%BuildDir%\Shaders
-SET ScriptsDir=%BuildDir%\Scripts
-SET EngineDir=%ScriptsDir%\Engine
-
-if not exist %ShaderDir% mkdir %ShaderDir%
-if not exist %ScriptsDir% mkdir %ScriptsDir%
-if not exist %EngineDir% mkdir %EngineDir%
-
-xcopy /D /Y /I /E "%TEN_PROJECT_DIR%\Shaders\*.*" %ShaderDir%
-powershell -ExecutionPolicy Bypass -File "%TEN_PROJECT_DIR%\Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin" -DebugInfo
-if errorlevel 1 exit 1
-
-xcopy /Y "%TEN_SOLUTION_DIR%\Libs\bass\x64\*.dll" "%TEN_TARGET_DIR%\"
-xcopy /Y "%TEN_SOLUTION_DIR%\Libs\lua\x64\*.dll" "%TEN_TARGET_DIR%\"
-xcopy /Y "%TEN_SOLUTION_DIR%\Libs\sdl3\x64\*.dll" "%TEN_TARGET_DIR%\"
-xcopy /Y "%TEN_SOLUTION_DIR%\Libs\vlc\x64\*.dll" "%TEN_TARGET_DIR%\"
-
-xcopy /D /Y /I /E "%TEN_SOLUTION_DIR%\Scripts\Engine\*.*" %EngineDir%
-xcopy /D /Y "%TEN_SOLUTION_DIR%\Scripts\SystemStrings.lua" %ScriptsDir%
-
-if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "%TEN_SOLUTION_DIR%\Scripts\Gameflow.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "%TEN_SOLUTION_DIR%\Scripts\Settings.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "%TEN_SOLUTION_DIR%\Scripts\Strings.lua" %ScriptsDir%
-]==])
-    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/PostBuild-Debug-x64.cmd" [==[
-@echo off
-]==])
-    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/PreBuild-Release-x64.cmd" [==[
-@echo off
-setlocal
-set "TEN_SOLUTION_DIR=%~1"
-set "TEN_PROJECT_DIR=%~2"
-set "TEN_TARGET_DIR=%~3"
-set "TEN_BUILD_ROOT=%~4"
-cd /d "%TEN_PROJECT_DIR%"
-powershell -ExecutionPolicy Bypass -File "%TEN_SOLUTION_DIR%\\Documentation\generate_objectlist.ps1"
-
-CD "%TEN_PROJECT_DIR%\..\Documentation\"
-CALL compile.bat .
-
-CD "%TEN_PROJECT_DIR%\Specific\serialization\schema\"
-CALL gen.bat
-
-SET "BuildDir=%TEN_BUILD_ROOT%\Release"
-SET "ShaderDir=%BuildDir%\Shaders"
-SET "ScriptsDir=%BuildDir%\Scripts"
-SET "EngineDir=%ScriptsDir%\Engine"
-
-if not exist "%ShaderDir%" mkdir "%ShaderDir%"
-if not exist "%ScriptsDir%" mkdir "%ScriptsDir%"
-if not exist "%EngineDir%" mkdir "%EngineDir%"
-
-xcopy /D /Y /I /E "%TEN_PROJECT_DIR%\Shaders\*.*" "%ShaderDir%"
-powershell -ExecutionPolicy Bypass -File "%TEN_PROJECT_DIR%\Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin"
-if errorlevel 1 exit 1
-
-xcopy /Y "%TEN_SOLUTION_DIR%\Libs\bass\x64\*.dll" "%TEN_TARGET_DIR%\"
-xcopy /Y "%TEN_SOLUTION_DIR%\Libs\lua\x64\*.dll" "%TEN_TARGET_DIR%\"
-xcopy /Y "%TEN_SOLUTION_DIR%\Libs\sdl3\x64\*.dll" "%TEN_TARGET_DIR%\"
-xcopy /Y "%TEN_SOLUTION_DIR%\Libs\vlc\x64\*.dll" "%TEN_TARGET_DIR%\"
-
-xcopy /D /Y /I /E "%TEN_SOLUTION_DIR%\Scripts\Engine\*.*" "%EngineDir%"
-xcopy /D /Y "%TEN_SOLUTION_DIR%\Scripts\SystemStrings.lua" "%ScriptsDir%"
-
-if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "%TEN_SOLUTION_DIR%\Scripts\Gameflow.lua" "%ScriptsDir%"
-if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "%TEN_SOLUTION_DIR%\Scripts\Settings.lua" "%ScriptsDir%"
-if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "%TEN_SOLUTION_DIR%\Scripts\Strings.lua" "%ScriptsDir%"
-]==])
-    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/PostBuild-Release-x64.cmd" [==[
-@echo off
-setlocal
-set "TEN_SOLUTION_DIR=%~1"
-set "TEN_PROJECT_DIR=%~2"
-set "TEN_TARGET_DIR=%~3"
-set "TEN_BUILD_ROOT=%~4"
-cd /d "%TEN_PROJECT_DIR%"
-del "%TEN_TARGET_DIR%\*.pdb" /q
-del "%TEN_TARGET_DIR%\*.lib" /q
-del "%TEN_TARGET_DIR%\*.exp" /q
-]==])
 else()
     message(FATAL_ERROR "Platform ${TEN_PLATFORM} is not configured in the Visual Studio project.")
 endif()
@@ -1577,28 +1387,23 @@ target_link_libraries(TombEngine PRIVATE ${TEN_LINK_LIBRARIES} "$<$<CONFIG:Debug
 target_precompile_headers(TombEngine PRIVATE "${TEN_PROJECT_DIR}/framework.h")
 set_source_files_properties(${TEN_NO_PCH_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 
-# Build events run as scripts written above, with the paths passed as arguments.
-file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}" TEN_BINARY_DIR_NATIVE)
-file(TO_NATIVE_PATH "${TEN_SOLUTION_DIR}" TEN_SOLUTION_DIR_NATIVE)
-file(TO_NATIVE_PATH "${TEN_PROJECT_DIR}" TEN_PROJECT_DIR_NATIVE)
-file(TO_NATIVE_PATH "${TEN_BUILD_ROOT}" TEN_BUILD_ROOT_NATIVE)
-set(TEN_TARGET_DIR_NATIVE "")
+# Build events: PowerShell scripts shared with the Visual Studio project (Windows PowerShell or PowerShell 7).
+find_program(TEN_POWERSHELL NAMES pwsh powershell REQUIRED)
+set(TEN_TARGET_DIR "")
 foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES)
     string(TOUPPER "${config}" configUpper)
-    file(TO_NATIVE_PATH "${TEN_OUTPUT_DIR_${configUpper}}" outputDir)
-    string(APPEND TEN_TARGET_DIR_NATIVE "$<$<CONFIG:${config}>:${outputDir}>")
+    string(APPEND TEN_TARGET_DIR "$<$<CONFIG:${config}>:${TEN_OUTPUT_DIR_${configUpper}}>")
 endforeach()
-set(TEN_EVENT_ARGUMENTS "${TEN_SOLUTION_DIR_NATIVE}" "${TEN_PROJECT_DIR_NATIVE}" "${TEN_TARGET_DIR_NATIVE}" "${TEN_BUILD_ROOT_NATIVE}")
 
 add_custom_target(TombEnginePreBuild
-    COMMAND cmd /c "${TEN_BINARY_DIR_NATIVE}\\PreBuild-$<CONFIG>-${TEN_PLATFORM}.cmd" ${TEN_EVENT_ARGUMENTS}
+    COMMAND "${TEN_POWERSHELL}" -NoProfile "-ExecutionPolicy" "Bypass" "-File" "${TEN_SOLUTION_DIR}/Tools/BuildEvents/PreBuild.ps1" "-Configuration" "$<CONFIG>" "-Platform" "${TEN_PLATFORM}" "-BuildDir" "${TEN_BUILD_ROOT}/$<CONFIG>" "-TargetDir" "${TEN_TARGET_DIR}/."
     COMMENT "Generating documentation, FlatBuffers code and copying needed files..."
     VERBATIM
 )
 add_dependencies(TombEngine TombEnginePreBuild)
 
 add_custom_command(TARGET TombEngine POST_BUILD
-    COMMAND cmd /c "${TEN_BINARY_DIR_NATIVE}\\PostBuild-$<CONFIG>-${TEN_PLATFORM}.cmd" ${TEN_EVENT_ARGUMENTS}
+    COMMAND "${TEN_POWERSHELL}" -NoProfile "-ExecutionPolicy" "Bypass" "-File" "${TEN_SOLUTION_DIR}/Tools/BuildEvents/PostBuild.ps1" "-Configuration" "$<CONFIG>" "-Platform" "${TEN_PLATFORM}" "-BuildDir" "${TEN_BUILD_ROOT}/$<CONFIG>" "-TargetDir" "${TEN_TARGET_DIR}/."
     VERBATIM
 )
 

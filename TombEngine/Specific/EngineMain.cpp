@@ -75,13 +75,16 @@ TEN::Renderer::RHI::GraphicsApi ParseRHIBackend(const std::string& name)
 	if (name == "opengl")
 		return TEN::Renderer::RHI::GraphicsApi::OpenGL;
 
+	if (name == "metal")
+		return TEN::Renderer::RHI::GraphicsApi::Metal;
+
 	return TEN::Renderer::RHI::GraphicsApi::Vulkan;
 }
 
 // Tries the requested scene renderer backend, then the others in order. Returns false when none starts.
 bool StartSceneRenderer(SDL_Window* window, const std::string& requestedBackend, bool preferLowPowerGpu)
 {
-	const std::string backends[] = { requestedBackend, "vulkan", "d3d12", "dx11", "opengl" };
+	const std::string backends[] = { requestedBackend, "vulkan", "d3d12", "metal", "dx11", "opengl" };
 	for (int i = 0; i < (int)std::size(backends); i++)
 	{
 		if (std::find(backends, backends + i, backends[i]) != backends + i)

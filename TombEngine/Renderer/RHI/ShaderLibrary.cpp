@@ -82,6 +82,11 @@ namespace TEN::Renderer::RHI
             extension = ".glsl";
             break;
 
+        case ShaderFormat::Msl:
+            formatDirectory = "msl";
+            extension = ".msl";
+            break;
+
         default:
             return nullptr;
         }

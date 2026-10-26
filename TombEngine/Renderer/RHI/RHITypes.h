@@ -22,25 +22,27 @@ namespace TEN::Renderer::RHI
     constexpr auto MAX_SAMPLER_SLOTS      = 16; // Texture and sampler pairs per stage.
     constexpr auto MAX_STORAGE_SLOTS      = 8;  // Storage buffers per stage, and read-write resources per compute pass.
 
-    // Vulkan and Direct3D12 run through SDL GPU.
+    // Vulkan, Direct3D12 and Metal run through SDL GPU.
     enum class GraphicsApi
     {
         None,
         DirectX11,
         Vulkan,
         Direct3D12,
-        OpenGL
+        OpenGL,
+        Metal
     };
 
     // Shader binary formats written by CompileShaders.ps1: DXBC (FXC) for DX11, SPIR-V for Vulkan,
-    // DXIL for Direct3D 12 and GLSL (SPIRV-Cross) for OpenGL.
+    // DXIL for Direct3D 12, GLSL (SPIRV-Cross) for OpenGL and MSL source (SPIRV-Cross) for Metal.
     enum class ShaderFormat
     {
         None,
         Dxbc,
         Spirv,
         Dxil,
-        Glsl
+        Glsl,
+        Msl
     };
 
     // Pixel is the fragment stage of SDL GPU and OpenGL.

@@ -89,8 +89,8 @@ namespace TEN::Renderer::RHI
 
     std::unique_ptr<IDevice> CreateDevice(GraphicsApi preferredBackend, SDL_Window* window, bool debugMode, bool preferLowPower)
     {
-        // Try the requested backend first, then fall back in order of preference: Vulkan, D3D12, DX11, OpenGL.
-        GraphicsApi order[] = { preferredBackend, GraphicsApi::Vulkan, GraphicsApi::Direct3D12, GraphicsApi::DirectX11, GraphicsApi::OpenGL };
+        // Try the requested backend first, then fall back in order of preference: Vulkan, D3D12, Metal, DX11, OpenGL.
+        GraphicsApi order[] = { preferredBackend, GraphicsApi::Vulkan, GraphicsApi::Direct3D12, GraphicsApi::Metal, GraphicsApi::DirectX11, GraphicsApi::OpenGL };
 
         for (auto backend : order)
         {
@@ -104,6 +104,10 @@ namespace TEN::Renderer::RHI
 
             case GraphicsApi::Direct3D12:
                 device = SDLGPU::CreateSDLGPUDevice(window, "direct3d12", debugMode, preferLowPower);
+                break;
+
+            case GraphicsApi::Metal:
+                device = SDLGPU::CreateSDLGPUDevice(window, "metal", debugMode, preferLowPower);
                 break;
 
             case GraphicsApi::DirectX11:

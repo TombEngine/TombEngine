@@ -250,7 +250,7 @@ svg.diagram .head-after { fill: #127E73; }
   <li><b>One renderer, four APIs.</b> Vulkan is the default and the main optimization target; DirectX 11, Direct3D 12 and OpenGL 4.5 run the same backend code through the same RHI.</li>
   <li><b>Persistent GPU data.</b> Level geometry and textures are uploaded once. Per frame only instances, lights, light clusters, bones, materials (when changed), sprites, decals, sorted indices, debris and debug vertices are uploaded, all through one upload ring in one copy pass.</li>
   <li><b>Instanced, state sorted draws.</b> Objects are drawn by instance index; identical rigid meshes share instanced draws; opaque, additive and distortion draws are sorted by alpha test, texture array group, layer and material.</li>
-  <li><b>Offline shaders.</b> Shaders are compiled at build time into four binary formats. The pipelines a level can bind are created at load; anything missed is created on first use.</li>
+  <li><b>Offline shaders.</b> Shaders are compiled at build time into five binary formats. The pipelines a level can bind are created at load; anything missed is created on first use.</li>
   <li><b>No branches for missing maps.</b> Room and object pixel shaders exist in variants without the normal, ORSH and emissive reads and without alpha test, chosen per draw.</li>
   <li><b>Everything named.</b> Every pass is a debug group and every resource and pipeline has a readable name for RenderDoc, Nsight and Radeon GPU Profiler.</li>
   <li><b>Classic look by default.</b> Ambient occlusion, TAA, HDR, glow, reflections, shadows and the volumetric sky are additive; with them off the image matches the classic renderer (verified against reference images of the retired legacy renderer).</li>
@@ -1628,6 +1628,7 @@ svg.diagram .head-after { fill: #127E73; }
 <tr><td>DXIL (register spaces)</td><td>space0 / space1</td><td>space2 / space3</td><td>space0 / space1 / space2</td></tr>
 <tr><td>DXBC</td><td colspan="3">Flat registers.</td></tr>
 <tr><td>GLSL</td><td colspan="3">Bindings offset per stage after linking (pixel textures from unit 16, pixel uniforms from 4, compute uniforms from 8, pixel storage from 24).</td></tr>
+<tr><td>MSL</td><td colspan="3">SPIRV-Cross writes the indices SDL GPU expects on Metal, from a SPIR-V copy with rewritten bindings: textures and samplers keep their slots with storage textures after them; buffers are the uniforms, then the storage buffers (read-only, then read-write for compute).</td></tr>
 </table></div>
 <p>DXIL reads storage buffers as <code>ByteAddressBuffer</code>, since structured loads misread on AMD Direct3D 12.</p>
 <h3>Helpers</h3>
@@ -1645,19 +1646,20 @@ svg.diagram .head-after { fill: #127E73; }
 <tr><th>API</th><th>Device</th><th>Shaders</th><th>Specifics</th></tr>
 <tr><td>Vulkan (default)</td><td><code>SDLGPU/SDLGPUDevice.cpp</code> (SDL3 GPU)</td><td>SPIR-V</td><td>Three frames in flight; swapchain acquired and presented on the window thread; mailbox or immediate present; uniforms through SDL uniform pushes (a CPU copy restores them after splits and blits); pool of 8 command buffers; names passed at creation. No timestamp queries (see <a href="#debug">18</a>).</td></tr>
 <tr><td>Direct3D 12</td><td><code>SDLGPU/SDLGPUDevice.cpp</code></td><td>DXIL</td><td>Same device code as Vulkan.</td></tr>
+<tr><td>Metal</td><td><code>SDLGPU/SDLGPUDevice.cpp</code></td><td>MSL (from SPIR-V)</td><td>Same device code as Vulkan; the driver compiles the MSL source when the shader is created. Not tested on macOS yet.</td></tr>
 <tr><td>DirectX 11</td><td><code>DirectX11/DX11Device.cpp</code></td><td>DXBC</td><td>Feature level 11_1 or 11_0; flip discard swapchain with tearing allowed; adapter by GPU preference; uniforms in a 4 MiB ring bound by offset with D3D11.1, one buffer per slot otherwise (forced with the environment variable <code>TEN_DX11_SLOT_UNIFORMS</code>); event query fences; timestamp queries; presents on the game thread.</td></tr>
 <tr><td>OpenGL 4.5</td><td><code>OpenGL/GLDevice.cpp</code></td><td>GLSL (from SPIR-V)</td><td>Core context; separable programs and program pipelines; upper-left clip origin and 0..1 depth, the image flipped only when blitted to the window; persistently mapped uniform ring (4 x 4 MiB segments with fences); timestamp queries; vsync or immediate only; context current on one thread (<code>ReleaseThread</code>).</td></tr>
 </table></div>
 <ul>
-  <li><b>Selection</b>: the <code>backend</code> command line argument (<code>vulkan</code>, <code>dx11</code>, <code>d3d12</code>, <code>opengl</code>, lowercase) or the configured backend (cycled in the graphics menu, applied at the next start; the value 0 of older configurations, the retired legacy renderer, reads as Vulkan).</li>
-  <li><b>Fallback</b>: if the backend cannot start the others are tried in the order Vulkan, Direct3D 12, DirectX 11, OpenGL. OpenGL needs a window created for OpenGL, which happens only when OpenGL is requested, so it works as a first choice but not as a fallback.</li>
+  <li><b>Selection</b>: the <code>backend</code> command line argument (<code>vulkan</code>, <code>dx11</code>, <code>d3d12</code>, <code>metal</code>, <code>opengl</code>, lowercase) or the configured backend (cycled in the graphics menu, applied at the next start; the value 0 of older configurations, the retired legacy renderer, reads as Vulkan).</li>
+  <li><b>Fallback</b>: if the backend cannot start the others are tried in the order Vulkan, Direct3D 12, Metal, DirectX 11, OpenGL. OpenGL needs a window created for OpenGL, which happens only when OpenGL is requested, so it works as a first choice but not as a fallback.</li>
   <li>On hybrid laptops the high performance GPU is requested; <code>lowpower</code> selects the integrated one (ignored by OpenGL).</li>
 </ul>
 
 <h2 id="shaders">16. Shaders</h2>
 <figure>
-<svg class="diagram" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" role="img" aria-label="Shader build: each HLSL source declares its entry points in TEN_SHADER header lines. CompileShaders.ps1, a pre-build step, compiles them with FXC into DXBC for DirectX 11, with the DXC of the Vulkan SDK into SPIR-V for Vulkan, with the DXC of the Windows SDK into DXIL for Direct3D 12, and converts the SPIR-V with SPIRV-Cross into GLSL for OpenGL. A meta file per shader holds the resource counts. At run time ShaderLibrary loads the binary of the active backend.">
-  <title>Shader build: one HLSL source, four binary formats, loaded by ShaderLibrary.</title>
+<svg class="diagram" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" role="img" aria-label="Shader build: each HLSL source declares its entry points in TEN_SHADER header lines. CompileShaders.ps1, a pre-build step, compiles them with FXC into DXBC for DirectX 11, with the DXC of the Vulkan SDK into SPIR-V for Vulkan, with the DXC of the Windows SDK into DXIL for Direct3D 12, and converts the SPIR-V with SPIRV-Cross into GLSL for OpenGL and MSL for Metal. A meta file per shader holds the resource counts. At run time ShaderLibrary loads the binary of the active backend.">
+  <title>Shader build: one HLSL source, five binary formats, loaded by ShaderLibrary.</title>
   <rect x="20" y="96" width="190" height="96" rx="8" class="a"/>
   <text x="115" y="120" text-anchor="middle" class="label t-a">Shaders/*.hlsl</text>
   <text x="115" y="140" text-anchor="middle" class="small mono">// TEN_SHADER: Pixel PS</text>
@@ -1688,19 +1690,19 @@ svg.diagram .head-after { fill: #127E73; }
 
   <rect x="692" y="20" width="190" height="40" rx="6" class="c"/><text x="787" y="44" text-anchor="middle" class="small"><tspan class="label">DXBC</tspan> - DirectX 11</text>
   <rect x="692" y="80" width="190" height="40" rx="6" class="b"/><text x="787" y="104" text-anchor="middle" class="small"><tspan class="label">SPIR-V</tspan> - Vulkan</text>
-  <rect x="692" y="124" width="190" height="40" rx="6" class="d"/><text x="787" y="148" text-anchor="middle" class="small"><tspan class="label">GLSL</tspan> - OpenGL 4.5</text>
+  <rect x="692" y="124" width="190" height="40" rx="6" class="d"/><text x="787" y="148" text-anchor="middle" class="small"><tspan class="label">GLSL, MSL</tspan> - OpenGL, Metal</text>
   <rect x="692" y="170" width="190" height="40" rx="6" class="a"/><text x="787" y="194" text-anchor="middle" class="small"><tspan class="label">DXIL</tspan> - Direct3D 12</text>
   <text x="787" y="236" text-anchor="middle" class="small muted">ShaderLibrary loads the format</text>
   <text x="787" y="252" text-anchor="middle" class="small muted">of the active backend at run time</text>
 </svg>
-<figcaption>One HLSL source, four binary formats.</figcaption>
+<figcaption>One HLSL source, five binary formats.</figcaption>
 </figure>
 <ul>
   <li>Each <code>.hlsl</code> declares its entry points in header lines:
 <pre><code>// TEN_SHADER: &lt;Vertex|Pixel|Compute&gt; &lt;Entry&gt; samplers=N storage_textures=N storage_buffers=N uniform_buffers=N
 //     [rw_storage_textures=N rw_storage_buffers=N threads=X,Y,Z permutations=A,B options=A,B hlsl=YEAR]</code></pre>
   <code>permutations=</code> adds one variant per define (for example <code>TAA.CS.TAA_HDR</code>); <code>options=</code> adds a variant for every combination (the map variants of rooms and objects, named like <code>NO_ALPHA_TEST.NO_ORSH_MAP</code>).</li>
-  <li><code>CompileShaders.ps1</code> runs as a pre-build step and writes <code>Build/&lt;Config&gt;/Shaders/Bin</code>: DXBC with FXC (<code>*_5_0</code>), SPIR-V with the DXC of the Vulkan SDK (<code>*_6_0</code>, Vulkan 1.0, DX layout), DXIL with the DXC of the Windows SDK (signed by its <code>dxil.dll</code>), GLSL 450 with SPIRV-Cross from a patched copy of the SPIR-V. A missing compiler disables only its backend; FXC or the Vulkan DXC is required. Builds are incremental (sources, includes and the script); Debug builds add debug info.</li>
+  <li><code>CompileShaders.ps1</code> runs as a pre-build step and writes <code>Build/&lt;Config&gt;/Shaders/Bin</code>: DXBC with FXC (<code>*_5_0</code>), SPIR-V with the DXC of the Vulkan SDK (<code>*_6_0</code>, Vulkan 1.0, DX layout), DXIL with the DXC of the Windows SDK (signed by its <code>dxil.dll</code>), GLSL 450 with SPIRV-Cross from a patched copy of the SPIR-V, MSL 2.1 with SPIRV-Cross from a copy with the Metal bindings. A missing compiler disables only its backend; with PowerShell 7 on Linux and macOS only SPIR-V, GLSL and MSL are built; FXC or the Vulkan DXC is required. Builds are incremental (sources, includes and the script); Debug builds add debug info.</li>
   <li><code>GpuShared.hlsli</code> declares the structures shared with C++ (included by <code>Backend/GpuTypes.h</code>), so layouts are written once; <code>ShaderInterop.hlsli</code> maps uniform blocks, storage buffers and texture sampler pairs (<code>TEN_PS_UNIFORMS</code>, <code>TEN_PS_TEXTURE</code> and similar) to each API.</li>
   <li>Graphics shaders are Shader Model 5.0 compatible; FSR uses the HLSL 2018 language version.</li>
   <li><b>Hot reload</b>: in a Debug build started with <code>debug</code>, F9 runs <code>CompileShaders.ps1</code> from the repository on the shader directory, then recreates the pipelines; on failure the previous shaders stay.</li>

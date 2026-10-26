@@ -1,9 +1,10 @@
 # Compiles the RHI shaders offline into DXBC (FXC, for DX11), SPIR-V (DXC, for SDL GPU on Vulkan), DXIL (DXC, for SDL GPU
-# on Direct3D 12) and GLSL (SPIRV-Cross from the SPIR-V, for OpenGL).
+# on Direct3D 12), GLSL (SPIRV-Cross from the SPIR-V, for OpenGL) and MSL (SPIRV-Cross, for SDL GPU on Metal).
+# Runs with Windows PowerShell and with PowerShell 7 on Linux and macOS, where only SPIR-V, GLSL and MSL are produced.
 # Each .hlsl declares its entry points and resource counts in header lines:
 #   // TEN_SHADER: <Vertex|Pixel|Compute> <Entry> samplers=N storage_textures=N storage_buffers=N uniform_buffers=N [rw_storage_textures=N rw_storage_buffers=N threads=X,Y,Z permutations=DEFINE,... options=DEFINE,... hlsl=YEAR]
 # Outputs: <OutputDir>\dxbc\<Name>.<Entry>.dxbc, <OutputDir>\spirv\<Name>.<Entry>.spv, <OutputDir>\dxil\<Name>.<Entry>.dxil,
-# <OutputDir>\glsl\<Name>.<Entry>.glsl, <OutputDir>\<Name>.<Entry>.meta
+# <OutputDir>\glsl\<Name>.<Entry>.glsl, <OutputDir>\msl\<Name>.<Entry>.msl, <OutputDir>\<Name>.<Entry>.meta
 # Each permutation adds a variant compiled with DEFINE=1, named <Name>.<Entry>.<DEFINE>.
 # Options add a variant for every combination of them, compiled with each DEFINE=1 and named with the chosen
 # DEFINEs joined by dots in the declared order, such as <Name>.<Entry>.<DEFINE1>.<DEFINE3>.
@@ -11,7 +12,8 @@
 # DXBC needs FXC from the Windows SDK; without it only SPIR-V is produced and the DirectX 11 backend is unavailable.
 # SPIR-V needs DXC from the Vulkan SDK (VULKAN_SDK) or the PATH; without it only DXBC is produced. At least one is required.
 # DXIL needs the DXC of the Windows SDK, which signs the code with the dxil.dll next to it; without it Direct3D 12 is unavailable.
-# GLSL needs SPIRV-Cross from the Vulkan SDK and the SPIR-V output; without it OpenGL is unavailable.
+# GLSL and MSL need SPIRV-Cross from the Vulkan SDK or the PATH and the SPIR-V output; without it OpenGL and Metal are
+# unavailable.
 
 param(
     [Parameter(Mandatory = $true)][string]$OutputDir,
@@ -21,8 +23,16 @@ param(
 $ErrorActionPreference = "Stop"
 $sourceDir = $PSScriptRoot
 
+# Windows PowerShell 5 has no $IsWindows; there it is always Windows.
+$isWindowsHost = ($IsWindows -ne $false)
+
 function Find-Fxc
 {
+    if (-not $isWindowsHost)
+    {
+        return $null
+    }
+
     $kits = "${env:ProgramFiles(x86)}\Windows Kits\10\bin"
     $candidates = Get-ChildItem -Path $kits -Filter fxc.exe -Recurse -ErrorAction SilentlyContinue |
         Where-Object { $_.FullName -match '\\x64\\fxc\.exe$' } |
@@ -49,7 +59,7 @@ function Test-SpirvSupport([string]$dxc)
 function Find-VulkanSdkTool([string]$name)
 {
     $sdkPaths = @($env:VULKAN_SDK)
-    if ($IsWindows -ne $false)
+    if ($isWindowsHost)
     {
         $sdkPaths += [Environment]::GetEnvironmentVariable("VULKAN_SDK", "User")
         $sdkPaths += [Environment]::GetEnvironmentVariable("VULKAN_SDK", "Machine")
@@ -70,6 +80,17 @@ function Find-VulkanSdkTool([string]$name)
     return $null
 }
 
+# Vulkan SDK tool, or the one on the PATH (Linux distributions package spirv-cross separately).
+function Find-Tool([string]$name)
+{
+    $path = Find-VulkanSdkTool $name
+    if ($path) { return $path }
+
+    $command = Get-Command $name -ErrorAction SilentlyContinue
+    if ($command) { return $command.Source }
+    return $null
+}
+
 # DXC of the Vulkan SDK, named dxc.exe on Windows and dxc elsewhere, or one with SPIR-V support on the PATH.
 function Find-Dxc
 {
@@ -84,6 +105,11 @@ function Find-Dxc
 # DXC of the newest Windows SDK: the Vulkan SDK one has no dxil.dll to sign DXIL, and Direct3D 12 rejects unsigned code.
 function Find-DxilCompiler
 {
+    if (-not $isWindowsHost)
+    {
+        return $null
+    }
+
     $kits = "${env:ProgramFiles(x86)}\Windows Kits\10\bin"
     $candidates = Get-ChildItem -Path $kits -Filter dxc.exe -Recurse -ErrorAction SilentlyContinue |
         Where-Object { $_.FullName -match '\\x64\\dxc\.exe$' -and (Test-Path (Join-Path $_.DirectoryName "dxil.dll")) } |
@@ -120,6 +146,71 @@ function Convert-NanMinMax([string]$source, [string]$destination)
         }
 
         $index += $count
+    }
+
+    [Buffer]::BlockCopy($words, 0, $bytes, 0, $bytes.Length)
+    [IO.File]::WriteAllBytes($destination, $bytes)
+}
+
+# SDL GPU on Metal expects [[texture]] and [[sampler]] indices of sampled textures followed by storage textures, and
+# [[buffer]] indices of uniform buffers followed by storage buffers (read-only, then read-write for compute). The copy
+# given to SPIRV-Cross gets these indices as binding decorations, which --msl-decoration-binding then uses directly.
+# Graphics stages keep resources in one set and uniforms in another; compute uses set 0 for read-only resources, set 1
+# for read-write resources and set 2 for uniforms (see ShaderInterop.hlsli).
+function Convert-MslBindings([string]$source, [string]$destination, [string]$stage, [hashtable]$meta)
+{
+    $bytes = [IO.File]::ReadAllBytes($source)
+    $words = New-Object uint32[] ($bytes.Length / 4)
+    [Buffer]::BlockCopy($bytes, 0, $words, 0, $bytes.Length)
+
+    $samplers = [int]$meta["samplers"]
+    $storageTextures = [int]$meta["storage_textures"]
+    $storageBuffers = [int]$meta["storage_buffers"]
+    $uniformBuffers = [int]$meta["uniform_buffers"]
+    $rwStorageTextures = [int]$meta["rw_storage_textures"]
+    $isCompute = ($stage -eq "Compute")
+
+    # OpDecorate (71) with DescriptorSet (34) or Binding (33): the set of each id and the word holding its binding.
+    $sets = @{}
+    $bindingWords = @{}
+    $index = 5
+    while ($index -lt $words.Length)
+    {
+        $count = $words[$index] -shr 16
+        $opcode = $words[$index] -band 0xFFFF
+        if ($count -eq 0) { break }
+
+        if ($opcode -eq 71 -and $count -ge 4)
+        {
+            $id = [int]$words[$index + 1]
+            switch ([int]$words[$index + 2])
+            {
+                34 { $sets[$id] = [int]$words[$index + 3] }
+                33 { $bindingWords[$id] = $index + 3 }
+            }
+        }
+
+        $index += $count
+    }
+
+    $textureCount = $samplers + $storageTextures
+    foreach ($id in $bindingWords.Keys)
+    {
+        $wordIndex = $bindingWords[$id]
+        $binding = [int]$words[$wordIndex]
+        $set = if ($sets.ContainsKey($id)) { $sets[$id] } else { 0 }
+
+        $isResourceSet = if ($isCompute) { $set -eq 0 } else { $set -eq 0 -or $set -eq 2 }
+        if ($isResourceSet -and $binding -ge $textureCount)
+        {
+            $binding = $uniformBuffers + ($binding - $textureCount)
+        }
+        elseif ($isCompute -and $set -eq 1)
+        {
+            $binding = if ($binding -lt $rwStorageTextures) { $textureCount + $binding } else { $uniformBuffers + $storageBuffers + ($binding - $rwStorageTextures) }
+        }
+
+        $words[$wordIndex] = [uint32]$binding
     }
 
     [Buffer]::BlockCopy($words, 0, $bytes, 0, $bytes.Length)
@@ -196,17 +287,18 @@ if (-not $dxilCompiler)
     Write-Warning "dxc with dxil.dll not found in the Windows SDK: DXIL shaders are not compiled, the Direct3D 12 backend will be unavailable."
 }
 
-$spirvCross = if ($dxc) { Find-VulkanSdkTool "spirv-cross" } else { $null }
+$spirvCross = if ($dxc) { Find-Tool "spirv-cross" } else { $null }
 if (-not $spirvCross)
 {
-    Write-Warning "spirv-cross not found: GLSL shaders are not generated, the OpenGL backend will be unavailable."
+    Write-Warning "spirv-cross not found: GLSL and MSL shaders are not generated, the OpenGL and Metal backends will be unavailable."
 }
 
 $dxbcDir = Join-Path $OutputDir "dxbc"
 $spirvDir = Join-Path $OutputDir "spirv"
 $dxilDir = Join-Path $OutputDir "dxil"
 $glslDir = Join-Path $OutputDir "glsl"
-New-Item -ItemType Directory -Force -Path $dxbcDir, $spirvDir, $dxilDir, $glslDir | Out-Null
+$mslDir = Join-Path $OutputDir "msl"
+New-Item -ItemType Directory -Force -Path $dxbcDir, $spirvDir, $dxilDir, $glslDir, $mslDir | Out-Null
 
 # Editing this script recompiles every shader.
 $scriptTime = (Get-Item $PSCommandPath).LastWriteTime
@@ -260,11 +352,12 @@ foreach ($file in Get-ChildItem -Path $sourceDir -Filter *.hlsl)
             $spirvFile = Join-Path $spirvDir "$base.spv"
             $dxilFile = Join-Path $dxilDir "$base.dxil"
             $glslFile = Join-Path $glslDir "$base.glsl"
+            $mslFile = Join-Path $mslDir "$base.msl"
             $metaFile = Join-Path $OutputDir "$base.meta"
 
             if ((-not $fxc -or (Test-UpToDate $dxbcFile $newestInput)) -and (Test-UpToDate $metaFile $newestInput) -and
                 (-not $dxc -or (Test-UpToDate $spirvFile $newestInput)) -and (-not $dxilCompiler -or (Test-UpToDate $dxilFile $newestInput)) -and
-                (-not $spirvCross -or (Test-UpToDate $glslFile $newestInput)))
+                (-not $spirvCross -or ((Test-UpToDate $glslFile $newestInput) -and (Test-UpToDate $mslFile $newestInput))))
             {
                 continue
             }
@@ -332,6 +425,19 @@ foreach ($file in Get-ChildItem -Path $sourceDir -Filter *.hlsl)
                 if ($exitCode -ne 0)
                 {
                     Write-Error "SPIRV-Cross failed for $base" -ErrorAction Continue
+                    $failed = $true
+                    continue
+                }
+
+                # MSL 2.1 is the version SDL GPU requires on macOS.
+                $mslSpirvFile = "$mslFile.spv"
+                Convert-MslBindings $spirvFile $mslSpirvFile $stage $meta
+                & $spirvCross $mslSpirvFile --msl --msl-version 20100 --msl-decoration-binding --output $mslFile
+                $exitCode = $LASTEXITCODE
+                Remove-Item $mslSpirvFile
+                if ($exitCode -ne 0)
+                {
+                    Write-Error "SPIRV-Cross failed for the MSL of $base" -ErrorAction Continue
                     $failed = $true
                     continue
                 }

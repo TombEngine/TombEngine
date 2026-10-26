@@ -177,6 +177,16 @@ namespace TEN::Renderer::RHI::SDLGPU
         }
     }
 
+    static SDL_GPUShaderFormat ToSDL(ShaderFormat format)
+    {
+        switch (format)
+        {
+        case ShaderFormat::Dxil: return SDL_GPU_SHADERFORMAT_DXIL;
+        case ShaderFormat::Msl:  return SDL_GPU_SHADERFORMAT_MSL;
+        default:                 return SDL_GPU_SHADERFORMAT_SPIRV;
+        }
+    }
+
     static SDL_GPUPrimitiveType ToSDL(PrimitiveType type)
     {
         switch (type)
@@ -1326,7 +1336,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             createInfo.code_size = desc.CodeSize;
             createInfo.code = desc.Code;
             createInfo.entrypoint = desc.EntryPoint.c_str();
-            createInfo.format = (_shaderFormat == ShaderFormat::Dxil) ? SDL_GPU_SHADERFORMAT_DXIL : SDL_GPU_SHADERFORMAT_SPIRV;
+            createInfo.format = ToSDL(_shaderFormat);
             createInfo.stage = (desc.Stage == ShaderStage::Vertex) ? SDL_GPU_SHADERSTAGE_VERTEX : SDL_GPU_SHADERSTAGE_FRAGMENT;
             createInfo.num_samplers = desc.NumSamplers;
             createInfo.num_storage_textures = desc.NumStorageTextures;
@@ -1441,7 +1451,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             createInfo.code_size = shaderDesc.CodeSize;
             createInfo.code = shaderDesc.Code;
             createInfo.entrypoint = shaderDesc.EntryPoint.c_str();
-            createInfo.format = (_shaderFormat == ShaderFormat::Dxil) ? SDL_GPU_SHADERFORMAT_DXIL : SDL_GPU_SHADERFORMAT_SPIRV;
+            createInfo.format = ToSDL(_shaderFormat);
             createInfo.num_samplers = shaderDesc.NumSamplers;
             createInfo.num_readonly_storage_textures = shaderDesc.NumStorageTextures;
             createInfo.num_readonly_storage_buffers = shaderDesc.NumStorageBuffers;
@@ -1617,11 +1627,26 @@ namespace TEN::Renderer::RHI::SDLGPU
     // Checks that the driver accepts the shader format, creates the device and claims the window for its swapchain.
     std::unique_ptr<IDevice> CreateSDLGPUDevice(SDL_Window* window, const char* driverName, bool debugMode, bool preferLowPower)
     {
-        bool isDirect3D12 = (std::string(driverName) == "direct3d12");
-        auto shaderFormat = isDirect3D12 ? ShaderFormat::Dxil : ShaderFormat::Spirv;
-        auto sdlShaderFormat = isDirect3D12 ? SDL_GPU_SHADERFORMAT_DXIL : SDL_GPU_SHADERFORMAT_SPIRV;
+        // Each driver takes one shader format: DXIL on Direct3D 12, MSL on Metal, SPIR-V on Vulkan.
+        auto driver = std::string(driverName);
+        auto backend = GraphicsApi::Vulkan;
+        auto shaderFormat = ShaderFormat::Spirv;
+        const char* shaderProperty = SDL_PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN;
 
-        if (!SDL_GPUSupportsShaderFormats(sdlShaderFormat, driverName))
+        if (driver == "direct3d12")
+        {
+            backend = GraphicsApi::Direct3D12;
+            shaderFormat = ShaderFormat::Dxil;
+            shaderProperty = SDL_PROP_GPU_DEVICE_CREATE_SHADERS_DXIL_BOOLEAN;
+        }
+        else if (driver == "metal")
+        {
+            backend = GraphicsApi::Metal;
+            shaderFormat = ShaderFormat::Msl;
+            shaderProperty = SDL_PROP_GPU_DEVICE_CREATE_SHADERS_MSL_BOOLEAN;
+        }
+
+        if (!SDL_GPUSupportsShaderFormats(ToSDL(shaderFormat), driverName))
         {
             TENLog(std::string("SDL GPU: driver ") + driverName + " is not available.", LogLevel::Warning);
             return nullptr;
@@ -1630,7 +1655,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         auto props = SDL_CreateProperties();
         SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_DEBUGMODE_BOOLEAN, debugMode);
         SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_PREFERLOWPOWER_BOOLEAN, preferLowPower);
-        SDL_SetBooleanProperty(props, isDirect3D12 ? SDL_PROP_GPU_DEVICE_CREATE_SHADERS_DXIL_BOOLEAN : SDL_PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, true);
+        SDL_SetBooleanProperty(props, shaderProperty, true);
         SDL_SetStringProperty(props, SDL_PROP_GPU_DEVICE_CREATE_NAME_STRING, driverName);
 
         auto* device = SDL_CreateGPUDeviceWithProperties(props);
@@ -1653,7 +1678,6 @@ namespace TEN::Renderer::RHI::SDLGPU
             return nullptr;
         }
 
-        auto backend = isDirect3D12 ? GraphicsApi::Direct3D12 : GraphicsApi::Vulkan;
         auto result = std::make_unique<SDLGPUDevice>(device, window, backend, shaderFormat);
         TENLog("SDL GPU device created: " + result->GetDeviceName(), LogLevel::Info);
         return result;
