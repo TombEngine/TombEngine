@@ -1,6 +1,8 @@
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
 
+#include <glm/gtc/packing.hpp>
+
 #include "Renderer/RHI/ShaderLibrary.h"
 
 using namespace TEN::Renderer::RHI;
@@ -55,7 +57,10 @@ namespace TEN::Renderer::Backend
         constants[3][0] = GetFloatBits(0.0f);
         constants[3][1] = GetFloatBits(4.0f * texelHeight);
 
-        uniforms.RcasConstants[0] = GetFloatBits(std::exp2(-RCAS_SHARPNESS));
+        // The full precision RCAS reads the sharpness as a float, the half precision one as a pair of halves.
+        float sharpness = std::exp2(-RCAS_SHARPNESS);
+        uniforms.RcasConstants[0] = GetFloatBits(sharpness);
+        uniforms.RcasConstants[1] = glm::packHalf2x16(glm::vec2(sharpness, sharpness));
         return uniforms;
     }
 
