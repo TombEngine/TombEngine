@@ -87,9 +87,9 @@ float3 DoShadow(float3 position, float3 normal, float3 lighting, float bias, uin
 
     float lightFactor = 0.0f;
     if (ShadowLight.Type == LT_POINT)
-        lightFactor = Luma(DoPointLight(position, normal, ShadowLight));
+        lightFactor = saturate(ShadowLight.Intensity * GetPointLightFalloff(position, normal, ShadowLight));
     else if (ShadowLight.Type == LT_SPOT)
-        lightFactor = Luma(DoSpotLight(position, normal, ShadowLight));
+        lightFactor = saturate(ShadowLight.Intensity * GetSpotLightFalloff(position, normal, ShadowLight));
     else
         return lighting;
 

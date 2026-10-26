@@ -23,7 +23,7 @@
 #define ROOM_LIGHT_COEFF 0.7f
 #define SPEC_FACTOR      64.0f
 
-float3 DoPointLight(float3 position, float3 normal, GpuLight light)
+float GetPointLightFalloff(float3 position, float3 normal, GpuLight light)
 {
     float3 lightVector = light.Position - position;
     float  distance = length(lightVector);
@@ -31,8 +31,12 @@ float3 DoPointLight(float3 position, float3 normal, GpuLight light)
 
     float attenuation = saturate((light.Out - distance) / (light.Out - light.In));
     float d = saturate(dot(normal, lightDirection));
+    return attenuation * d;
+}
 
-    return saturate(light.Color * light.Intensity * attenuation * d);
+float3 DoPointLight(float3 position, float3 normal, GpuLight light)
+{
+    return saturate(light.Color * light.Intensity * GetPointLightFalloff(position, normal, light));
 }
 
 // Shadow lights darken the ambient term (see CombineLights in Objects.hlsl): one third uniform and two thirds
@@ -53,7 +57,7 @@ float3 DoShadowLight(float3 position, float3 normal, GpuLight light)
 }
 
 // Angular falloff between the cosines of the outer and inner cone angles.
-float3 DoSpotLight(float3 position, float3 normal, GpuLight light)
+float GetSpotLightFalloff(float3 position, float3 normal, GpuLight light)
 {
     float3 lightVector = position - light.Position;
     float  distance = length(lightVector);
@@ -64,7 +68,12 @@ float3 DoSpotLight(float3 position, float3 normal, GpuLight light)
     float distanceAttenuation = saturate((light.Out - distance) / (light.Out - light.In));
 
     float d = saturate(dot(normal, -lightDirection));
-    return saturate(light.Color * light.Intensity * angleAttenuation * distanceAttenuation * d);
+    return angleAttenuation * distanceAttenuation * d;
+}
+
+float3 DoSpotLight(float3 position, float3 normal, GpuLight light)
+{
+    return saturate(light.Color * light.Intensity * GetSpotLightFalloff(position, normal, light));
 }
 
 float3 DoDirectionalLight(float3 normal, GpuLight light)
