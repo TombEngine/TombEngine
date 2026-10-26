@@ -6,6 +6,7 @@
 #include "Game/collision/Point.h"
 #include "Game/control/control.h"
 #include "Game/effects/weather.h"
+#include "Game/savegame.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -363,8 +364,15 @@ namespace TEN::Effects::Hair
 		}
 	}
 
-	void HairEffectController::Update(ItemInfo& item)
+	void HairEffectController::Update(ItemInfo& item, bool recursive)
 	{
+		// Settle freshly re-initialized hair before the world is revealed on level start.
+		if (!recursive && (JustLoaded || SaveGame::Statistics.Level.TimeTaken.GetFrameCount() == 0))
+		{
+			for (int i = 0; i < FPS; i++)
+				Update(item, true);
+		}
+
 		for (int i = 0; i < Units.size(); i++)
 		{
 			auto& unit = Units[i];

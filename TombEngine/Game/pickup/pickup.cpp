@@ -41,6 +41,10 @@ using namespace TEN::Entities::Generic;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 
+constexpr auto MIRROR_ROOM_PICKUP_OCB = 0x100;
+constexpr auto REGENERATED_PICKUP_OCB = 0x80;
+constexpr auto REGENERATED_PICKUP_FADE_SPEED = 3.0f / FPS;
+
 static auto PickUpPosition = Vector3i(0, 0, -100);
 const ObjectCollisionBounds PickUpBounds =
 {
@@ -134,8 +138,7 @@ const ObjectCollisionBounds MSBounds =
 		EulerAngles(ANGLE(10.0f), ANGLE(30.0f), ANGLE(10.0f)))
 };
 
-int NumRPickups;
-short RPickups[16];
+std::vector<short> RPickups;
 
 static void DispatchPrePickupCallback(short itemNumber)
 {
@@ -281,7 +284,7 @@ void CollectMultiplePickups(int itemNumber)
 		PickedUpObject(*itemPtr);
 		g_Hud.PickupSummary.AddDisplayPickup(*itemPtr);
 
-		if (itemPtr->TriggerFlags & (1 << 8))
+		if (itemPtr->TriggerFlags & MIRROR_ROOM_PICKUP_OCB)
 		{
 			for (int i = 0; i < g_Level.NumItems; i++)
 			{
@@ -817,9 +820,9 @@ void RegeneratePickups()
 {
 	auto* lara = GetLaraInfo(LaraItem);
 
-	for (int i = 0; i < NumRPickups; i++)
+	for (auto itemNumber : RPickups)
 	{
-		auto& item = g_Level.Items[RPickups[i]];
+		auto& item = g_Level.Items[itemNumber];
 
 		if (item.Status == ITEM_INVISIBLE)
 		{
@@ -883,8 +886,14 @@ void RegeneratePickups()
 			}
 
 			if (ammo == 0)
+			{
 				item.Status = ITEM_NOT_ACTIVE;
+				item.Model.Color.w = 0.0f;
+			}
 		}
+
+		if (item.Status != ITEM_INVISIBLE && item.Model.Color.w < 1.0f)
+			item.Model.Color.w = std::min(item.Model.Color.w + REGENERATED_PICKUP_FADE_SPEED, 1.0f);
 	}
 }
 
@@ -1147,13 +1156,10 @@ void InitializePickup(short itemNumber)
 			}
 		}
 		
-		if ((item->TriggerFlags & 0x80) != 0)
-		{
-			RPickups[NumRPickups] = itemNumber;
-			NumRPickups++;
-		}
+		if (item->TriggerFlags & REGENERATED_PICKUP_OCB)
+			RPickups.push_back(itemNumber);
 		
-		if (item->TriggerFlags & 0x100)
+		if (item->TriggerFlags & MIRROR_ROOM_PICKUP_OCB)
 			item->MeshBits = 0;
 		
 		if (item->Status == ITEM_INVISIBLE)
