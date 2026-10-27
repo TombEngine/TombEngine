@@ -52,6 +52,16 @@ namespace TEN::Video
 #endif
 	}
 
+	// libVLC 3 copies whole decoded planes, whose height is aligned and padded with extra lines, so the frame buffer
+	// reserves those lines below the visible frame.
+	static unsigned int GetFrameLineCount(unsigned int height)
+	{
+		constexpr auto LINE_ALIGNMENT = 32;
+		constexpr auto EXTRA_LINES	  = 64;
+
+		return (((height + LINE_ALIGNMENT - 1) / LINE_ALIGNMENT) * LINE_ALIGNMENT) + EXTRA_LINES;
+	}
+
 	static void StopVlcPlayer(libvlc_media_player_t* player)
 	{
 #if LIBVLC_VERSION_MAJOR >= 4
@@ -545,7 +555,7 @@ namespace TEN::Video
 		}
 
 		// Called from the VLC thread; the renderer uploads the frames on the main thread.
-		_frameBuffer.resize(_size.x * _size.y * 4);
+		_frameBuffer.resize(_size.x * GetFrameLineCount(_size.y) * 4);
 
 		return true;
 	}
@@ -637,7 +647,7 @@ namespace TEN::Video
 		strncpy(chroma, "BGRA", 4);
 
 		*pitches = *width * 4;
-		*lines = *height;
+		*lines = GetFrameLineCount(*height);
 
 		auto* player = static_cast<VideoHandler*>(*data);
 

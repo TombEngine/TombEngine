@@ -467,22 +467,26 @@ void FlowHandler::SetSettings(Settings const& src)
 
 void FlowHandler::AddLevel(Level const& level)
 {
-	Levels.push_back(new Level{ level });
+	auto* newLevel = new Level{ level };
+	newLevel->FileName = TEN::Utils::ToPortablePath(newLevel->FileName);
+	newLevel->ScriptFileName = TEN::Utils::ToPortablePath(newLevel->ScriptFileName);
+	newLevel->LoadScreenFileName = TEN::Utils::ToPortablePath(newLevel->LoadScreenFileName);
+	Levels.push_back(newLevel);
 }
 
 void FlowHandler::SetIntroImagePath(const std::string& path)
 {
-	IntroImagePath = path;
+	IntroImagePath = TEN::Utils::ToPortablePath(path);
 }
 
 void FlowHandler::SetIntroVideoPath(const std::string& path)
 {
-	IntroVideoPath = path;
+	IntroVideoPath = TEN::Utils::ToPortablePath(path);
 }
 
 void FlowHandler::SetTitleScreenImagePath(const std::string& path)
 {
-	TitleScreenImagePath = path;
+	TitleScreenImagePath = TEN::Utils::ToPortablePath(path);
 }
 
 int FlowHandler::GetTotalSecretCount()

@@ -95,6 +95,13 @@ namespace TEN::Utils
 		return string;
 	}
 
+	// Scripts often separate folders with backslashes, which only Windows accepts; slashes work everywhere.
+	std::string ToPortablePath(std::string path)
+	{
+		std::replace(path.begin(), path.end(), '\\', '/');
+		return path;
+	}
+
 	std::string Trim(std::string string)
 	{
 		auto isNotSpace = [](unsigned char ch)

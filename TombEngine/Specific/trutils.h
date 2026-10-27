@@ -18,7 +18,8 @@ namespace TEN::Utils
 	std::wstring ToWString(const std::string& string);
 	std::wstring ToWString(const char* cString);
 	std::string  Trim(std::string string);
-	bool         StartsWith(const std::string& string, const char* pref);
+	std::string  ToPortablePath(std::string path);
+	bool       StartsWith(const std::string& string, const char* pref);
 	int          ToInt(const std::string& string, int fallback);
 	float        ToFloat(const std::string& string, float fallback);
 	bool         ToBool(const std::string& string, bool fallback);

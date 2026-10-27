@@ -67,6 +67,12 @@ foreach ($library in Get-ChildItem -Path (Join-Path $rootDir "Libs") -Directory)
     }
 }
 
+# The Windows executable embeds the dummy title level as a resource; other platforms load it from the executable folder.
+if (-not $script:IsWindowsHost)
+{
+    Copy-Item (Join-Path (Join-Path $projectDir "Resources") "title.bin") (Join-Path $TargetDir "dummy.ten") -Force
+}
+
 # Scripts: engine scripts and system strings are refreshed, level scripts are copied only once.
 $scriptSourceDir = Join-Path $rootDir "Scripts"
 $scriptDir = Join-Path $BuildDir "Scripts"
