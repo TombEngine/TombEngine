@@ -1,4 +1,4 @@
-# libVLC 3.0.21 plugins bundled on every platform, in the plugins folder next to the executable.
+# libVLC 3 plugins bundled on every platform, in the plugins folder next to the executable.
 # Paths are relative to the plugins folder, without the platform suffix (.dll, .so, .dylib).
 access/libfilesystem_plugin
 audio_filter/libaudio_format_plugin
