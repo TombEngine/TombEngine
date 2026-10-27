@@ -4,6 +4,8 @@
 #include "Game/control/control.h"
 #include "Game/savegame.h"
 #include "Renderer/Renderer.h"
+#include "Renderer/RHI/RHIDevice.h"
+#include "Renderer/RHI/Test/RHITest.h"
 #include "resource.h"
 #include "Sound/sound.h"
 #include "Specific/configuration.h"
@@ -58,6 +60,23 @@ bool ArgEquals(const char* incomingArg, const std::string& name)
 	}
 
 	return arg == lowerName;
+}
+
+TEN::Renderer::RHI::GraphicsApi ParseRHIBackend(const std::string& name)
+{
+	if (name == "dx11")
+		return TEN::Renderer::RHI::GraphicsApi::DirectX11;
+
+	if (name == "d3d12")
+		return TEN::Renderer::RHI::GraphicsApi::Direct3D12;
+
+	if (name == "opengl")
+		return TEN::Renderer::RHI::GraphicsApi::OpenGL;
+
+	if (name == "metal")
+		return TEN::Renderer::RHI::GraphicsApi::Metal;
+
+	return TEN::Renderer::RHI::GraphicsApi::Vulkan;
 }
 
 Vector2i GetScreenResolution()
@@ -257,6 +276,7 @@ int main(int argc, char* argv[])
 	// Process command line arguments.
 	auto levelFile = std::string();
 	auto gameDir = std::string();
+	auto rhiTestBackend = std::string();
 
 	for (int i = 1; i < argc; ++i)
 	{
@@ -277,6 +297,10 @@ int main(int argc, char* argv[])
 		else if (ArgEquals(arg.c_str(), "gamedir") && i + 1 < argc)
 		{
 			gameDir = argv[++i];
+		}
+		else if (ArgEquals(arg.c_str(), "rhitest") && i + 1 < argc)
+		{
+			rhiTestBackend = argv[++i];
 		}
 	}
 
@@ -389,6 +413,9 @@ int main(int argc, char* argv[])
 	int height = g_Configuration.ScreenHeight;
 
 	unsigned int windowFlags = SDL_WINDOW_RESIZABLE;
+	if (!rhiTestBackend.empty())
+		windowFlags |= TEN::Renderer::RHI::GetWindowFlags(ParseRHIBackend(rhiTestBackend)); // OpenGL needs its flag at creation.
+
 	if (!g_Configuration.EnableWindowedMode)
 		windowFlags |= SDL_WINDOW_FULLSCREEN;
 
@@ -408,6 +435,19 @@ int main(int argc, char* argv[])
 	}
 
 	g_Platform->SetSDL3Window(sdlWindow);
+
+	// Backend validation run: render the RHI test scene, save a screenshot and quit.
+	if (!rhiTestBackend.empty())
+	{
+		auto backend = ParseRHIBackend(rhiTestBackend);
+
+		SDL_ShowWindow(sdlWindow);
+		bool result = TEN::Renderer::RHI::RunRHITest(sdlWindow, backend, GameDirectory, 120);
+
+		SDL_DestroyWindow(sdlWindow);
+		ShutdownTENLog();
+		exit(result ? EXIT_SUCCESS : EXIT_FAILURE);
+	}
 
 	try
 	{
