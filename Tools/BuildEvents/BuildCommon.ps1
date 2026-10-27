@@ -36,8 +36,9 @@ function Get-LibraryDirectoryName([string]$platform)
     return $platform
 }
 
-# Copies the files matching the filter that are missing or older in the destination, like xcopy /D.
-function Copy-Newer([string]$source, [string]$destination, [string]$filter, [bool]$recurse = $true)
+# Copies the files matching the filter that are missing or different in the destination. Copies keep the time of their
+# source, so a library replaced by an older release is copied too.
+function Copy-Changed([string]$source, [string]$destination, [string]$filter, [bool]$recurse = $true)
 {
     if (-not (Test-Path $source))
     {
@@ -49,9 +50,13 @@ function Copy-Newer([string]$source, [string]$destination, [string]$filter, [boo
     {
         $relativePath = $file.FullName.Substring($sourceRoot.Length).TrimStart('\', '/')
         $target = Join-Path $destination $relativePath
-        if ((Test-Path $target) -and ((Get-Item $target).LastWriteTimeUtc -ge $file.LastWriteTimeUtc))
+        if (Test-Path $target)
         {
-            continue
+            $targetFile = Get-Item $target
+            if ($targetFile.LastWriteTimeUtc -eq $file.LastWriteTimeUtc -and $targetFile.Length -eq $file.Length)
+            {
+                continue
+            }
         }
 
         New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null

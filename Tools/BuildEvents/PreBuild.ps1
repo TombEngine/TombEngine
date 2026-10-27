@@ -42,7 +42,7 @@ catch
 # Shaders: sources next to the binaries for the hot reload, then the binaries of every available backend.
 $shaderSourceDir = Join-Path $projectDir "Shaders"
 $shaderDir = Join-Path $BuildDir "Shaders"
-Copy-Newer $shaderSourceDir $shaderDir "*"
+Copy-Changed $shaderSourceDir $shaderDir "*"
 
 $shaderArgs = @{ OutputDir = (Join-Path $shaderDir "Bin") }
 if ($Configuration -eq "Debug")
@@ -62,11 +62,11 @@ foreach ($library in Get-ChildItem -Path (Join-Path $rootDir "Libs") -Directory)
     {
         foreach ($pattern in @("*.dll", "*.so", "*.so.*", "*.dylib"))
         {
-            Copy-Newer $platformDir $TargetDir $pattern $false
+            Copy-Changed $platformDir $TargetDir $pattern $false
         }
 
         # Libraries loading their own modules (libVLC) keep them in a plugins folder next to the executable.
-        Copy-Newer (Join-Path $platformDir "plugins") (Join-Path $TargetDir "plugins") "*"
+        Copy-Changed (Join-Path $platformDir "plugins") (Join-Path $TargetDir "plugins") "*"
     }
 }
 
@@ -79,8 +79,8 @@ if (-not $script:IsWindowsHost)
 # Scripts: engine scripts and system strings are refreshed, level scripts are copied only once.
 $scriptSourceDir = Join-Path $rootDir "Scripts"
 $scriptDir = Join-Path $BuildDir "Scripts"
-Copy-Newer (Join-Path $scriptSourceDir "Engine") (Join-Path $scriptDir "Engine") "*"
-Copy-Newer $scriptSourceDir $scriptDir "SystemStrings.lua" $false
+Copy-Changed (Join-Path $scriptSourceDir "Engine") (Join-Path $scriptDir "Engine") "*"
+Copy-Changed $scriptSourceDir $scriptDir "SystemStrings.lua" $false
 
 foreach ($name in @("Gameflow.lua", "Settings.lua", "Strings.lua"))
 {
