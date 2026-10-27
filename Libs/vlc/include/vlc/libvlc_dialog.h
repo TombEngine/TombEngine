@@ -46,15 +46,19 @@ typedef enum libvlc_dialog_question_type
 
 /**
  * Dialog callbacks to be implemented
- *
- * @attention starting with vlc 4.0.0 the error callback (pf_display_error) is
- *            no longer part of this struct and need to be registered separately
- *            using @a libvlc_dialog_set_error_callback
- *
- * @see libvlc_dialog_set_error_callback
  */
 typedef struct libvlc_dialog_cbs
 {
+    /**
+     * Called when an error message needs to be displayed
+     *
+     * @param p_data opaque pointer for the callback
+     * @param psz_title title of the dialog
+     * @param psz_text text of the dialog
+     */
+    void (*pf_display_error)(void *p_data, const char *psz_title,
+                             const char *psz_text);
+
     /**
      * Called when a login dialog needs to be displayed
      *
@@ -150,40 +154,17 @@ typedef struct libvlc_dialog_cbs
                                float f_position, const char *psz_text);
 } libvlc_dialog_cbs;
 
-
-/**
- * Called when an error message needs to be displayed
- *
- * @param p_data opaque pointer for the callback
- * @param psz_title title of the dialog
- * @param psz_text text of the dialog
- */
-typedef void (*libvlc_dialog_error_cbs)(void *p_data, const char *psz_title, const char *psz_text);
-
 /**
  * Register callbacks in order to handle VLC dialogs
  *
  * @version LibVLC 3.0.0 and later.
  *
- * @param p_instance the libvlc instance to attach the dialog callbacks to
  * @param p_cbs a pointer to callbacks, or NULL to unregister callbacks.
  * @param p_data opaque pointer for the callback
  */
 LIBVLC_API void
 libvlc_dialog_set_callbacks(libvlc_instance_t *p_instance,
                             const libvlc_dialog_cbs *p_cbs, void *p_data);
-
-/*
-* Register callback in order to handle VLC error messages
-*
-* @version LibVLC 4.0.0 and later.
-*
-* @param p_cbs a pointer to callback, or NULL to unregister callback.
-* @param p_data opaque pointer for the callback
-*/
-LIBVLC_API void
-libvlc_dialog_set_error_callback(libvlc_instance_t *p_instance,
-                                 libvlc_dialog_error_cbs p_cbs, void *p_data);
 
 /**
  * Associate an opaque pointer with the dialog id
@@ -195,7 +176,7 @@ libvlc_dialog_set_context(libvlc_dialog_id *p_id, void *p_context);
 
 /**
  * Return the opaque pointer associated with the dialog id
- * \see libvlc_dialog_set_context
+ *
  * @version LibVLC 3.0.0 and later.
  */
 LIBVLC_API void *

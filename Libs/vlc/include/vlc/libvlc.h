@@ -2,6 +2,7 @@
  * libvlc.h:  libvlc external API
  *****************************************************************************
  * Copyright (C) 1998-2009 VLC authors and VideoLAN
+ * $Id$
  *
  * Authors: Clément Stenac <zorglub@videolan.org>
  *          Jean-Paul Saman <jpsaman@videolan.org>
@@ -34,7 +35,7 @@
 #ifndef VLC_LIBVLC_H
 #define VLC_LIBVLC_H 1
 
-#if defined (_WIN32) && defined (LIBVLC_DLL_EXPORT)
+#if defined (_WIN32) && defined (DLL_EXPORT)
 # define LIBVLC_API __declspec(dllexport)
 #elif defined (__GNUC__) && (__GNUC__ >= 4)
 # define LIBVLC_API __attribute__((visibility("default")))
@@ -42,7 +43,7 @@
 # define LIBVLC_API
 #endif
 
-#ifdef LIBVLC_INTERNAL_
+#ifdef __LIBVLC__
 /* Avoid unhelpful warnings from libvlc with our deprecated APIs */
 #   define LIBVLC_DEPRECATED
 #elif defined(__GNUC__) && \
@@ -102,10 +103,19 @@ LIBVLC_API void libvlc_clearerr (void);
  * Sets the LibVLC error status and message for the current thread.
  * Any previous error is overridden.
  * \param fmt the format string
- * \param ...  the arguments for the format string
+ * \param ap the arguments
  * \return a nul terminated string in any case
  */
-const char *libvlc_printerr (const char *fmt, ...);
+LIBVLC_API const char *libvlc_vprinterr (const char *fmt, va_list ap);
+
+/**
+ * Sets the LibVLC error status and message for the current thread.
+ * Any previous error is overridden.
+ * \param fmt the format string
+ * \param args the arguments
+ * \return a nul terminated string in any case
+ */
+LIBVLC_API const char *libvlc_printerr (const char *fmt, ...);
 
 /**@} */
 
@@ -142,9 +152,14 @@ const char *libvlc_printerr (const char *fmt, ...);
    pthread_sigmask(SIG_BLOCK, &set, NULL);
  * @endcode
  *
- * On Microsoft Windows, setting the default DLL directories to SYSTEM32
- * exclusively is strongly recommended for security reasons:
+ * On Microsoft Windows Vista/2008, the process error mode
+ * SEM_FAILCRITICALERRORS flag <b>must</b> be set before using LibVLC.
+ * On later versions, that is optional and unnecessary.
+ * Also on Microsoft Windows (Vista and any later version), setting the default
+ * DLL directories to SYSTEM32 exclusively is strongly recommended for
+ * security reasons:
  * @code
+   SetErrorMode(SEM_FAILCRITICALERRORS);
    SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32);
  * @endcode
  *
@@ -181,26 +196,39 @@ LIBVLC_API void libvlc_release( libvlc_instance_t *p_instance );
  * The initial reference count is 1 after libvlc_new() returns.
  *
  * \param p_instance the instance to reference
- * \return the same object
  */
-LIBVLC_API libvlc_instance_t *libvlc_retain( libvlc_instance_t *p_instance );
+LIBVLC_API void libvlc_retain( libvlc_instance_t *p_instance );
 
 /**
- * Get the ABI version of the libvlc library.
+ * Try to start a user interface for the libvlc instance.
  *
- * This is different than the VLC version, which is the version of the whole
- * VLC package. The value is the same as LIBVLC_ABI_VERSION_INT used when
- * compiling.
- *
- * \return a value with the following mask in hexadecimal
- *  0xFF000000: major VLC version, similar to VLC major version,
- *  0x00FF0000: major ABI version, incremented incompatible changes are added,
- *  0x0000FF00: minor ABI version, incremented when new functions are added
- *  0x000000FF: micro ABI version, incremented with new release/builds
- *
- * \note This the same value as the .so version but cross platform.
+ * \param p_instance the instance
+ * \param name interface name, or NULL for default
+ * \return 0 on success, -1 on error.
  */
-LIBVLC_API int libvlc_abi_version(void);
+LIBVLC_API
+int libvlc_add_intf( libvlc_instance_t *p_instance, const char *name );
+
+/**
+ * Registers a callback for the LibVLC exit event. This is mostly useful if
+ * the VLC playlist and/or at least one interface are started with
+ * libvlc_playlist_play() or libvlc_add_intf() respectively.
+ * Typically, this function will wake up your application main loop (from
+ * another thread).
+ *
+ * \note This function should be called before the playlist or interface are
+ * started. Otherwise, there is a small race condition: the exit event could
+ * be raised before the handler is registered.
+ *
+ * \param p_instance LibVLC instance
+ * \param cb callback to invoke when LibVLC wants to exit,
+ *           or NULL to disable the exit handler (as by default)
+ * \param opaque data pointer for the callback
+ * \warning This function and libvlc_wait() cannot be used at the same time.
+ */
+LIBVLC_API
+void libvlc_set_exit_handler( libvlc_instance_t *p_instance,
+                              void (*cb) (void *), void *opaque );
 
 /**
  * Sets the application name. LibVLC passes this as the user agent string
@@ -324,6 +352,13 @@ LIBVLC_API void libvlc_event_detach( libvlc_event_manager_t *p_event_manager,
                                          libvlc_callback_t f_callback,
                                          void *p_user_data );
 
+/**
+ * Get an event's type name.
+ *
+ * \param event_type the desired event
+ */
+LIBVLC_API const char * libvlc_event_type_name( libvlc_event_type_t event_type );
+
 /** @} */
 
 /** \defgroup libvlc_log LibVLC logging
@@ -388,7 +423,7 @@ LIBVLC_API void libvlc_log_get_context(const libvlc_log_t *ctx,
  * \param ctx message context (as passed to the @ref libvlc_log_cb callback)
  * \param name object name storage (or NULL) [OUT]
  * \param header object header (or NULL) [OUT]
- * \param id temporarily-unique object identifier (or 0) [OUT]
+ * \param line source code file line number storage (or NULL) [OUT]
  * \warning The returned module name and source code file name, if non-NULL,
  * are only valid until the logging callback returns.
  *
@@ -468,7 +503,6 @@ typedef struct libvlc_module_description_t
     char *psz_shortname;
     char *psz_longname;
     char *psz_help;
-    char *psz_help_html;
     struct libvlc_module_description_t *p_next;
 } libvlc_module_description_t;
 
@@ -518,9 +552,9 @@ libvlc_module_description_t *libvlc_video_filter_list_get( libvlc_instance_t *p_
 /**
  * Return the current time as defined by LibVLC. The unit is the microsecond.
  * Time increases monotonically (regardless of time zone changes and RTC
- * adjustments).
+ * adjustements).
  * The origin is arbitrary but consistent across the whole system
- * (e.g. the system uptime, the time since the system was booted).
+ * (e.g. the system uptim, the time since the system was booted).
  * \note On systems that support it, the POSIX monotonic clock is used.
  */
 LIBVLC_API
