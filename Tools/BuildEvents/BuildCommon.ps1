@@ -20,7 +20,8 @@ function Get-LibraryDirectoryName([string]$platform)
 {
     if ($IsLinux)
     {
-        return "linux"
+        $architecture = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+        return Join-Path "linux" $(if ($architecture -eq [Runtime.InteropServices.Architecture]::Arm64) { "aarch64" } else { "x86_64" })
     }
 
     if ($IsMacOS)

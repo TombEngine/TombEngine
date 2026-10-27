@@ -1,7 +1,7 @@
 # Libraries and compiler settings of the Linux and macOS builds, included by the generated CMakeLists.txt in place of the
 # MSVC settings of the Visual Studio project. Libraries with sources are fetched at configure time, at the versions whose
-# headers are bundled in Libs. BASS has no sources, so its binaries are kept in Libs/bass/linux and Libs/bass/macos.
-# libVLC comes from the system: the libvlc-dev package on Linux, VLC.app or Homebrew on macOS.
+# headers are bundled in Libs. BASS and libVLC are bundled as binaries in Libs/<library>/macos and
+# Libs/<library>/linux/<architecture>, with the libVLC plugins, so players need no system packages.
 
 include(FetchContent)
 enable_language(C)
@@ -9,9 +9,15 @@ enable_language(C)
 if(APPLE)
     set(TEN_LIBRARY_PLATFORM macos)
     set(TEN_LIBRARY_SUFFIX .dylib)
+    set(TEN_VLC_LIBRARY_NAME libvlc.dylib)
 else()
-    set(TEN_LIBRARY_PLATFORM linux)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)$")
+        set(TEN_LIBRARY_PLATFORM linux/aarch64)
+    else()
+        set(TEN_LIBRARY_PLATFORM linux/x86_64)
+    endif()
     set(TEN_LIBRARY_SUFFIX .so)
+    set(TEN_VLC_LIBRARY_NAME libvlc.so.5)
 endif()
 
 # Definitions of the Visual Studio project that only make sense on Windows.
@@ -75,15 +81,7 @@ add_library(TombEngineLua STATIC ${TEN_LUA_SOURCES})
 target_compile_definitions(TombEngineLua PRIVATE "$<IF:$<BOOL:${APPLE}>,LUA_USE_MACOSX,LUA_USE_LINUX>")
 
 set(TEN_BASS_DIR "${TEN_SOLUTION_DIR}/Libs/bass/${TEN_LIBRARY_PLATFORM}")
-
-# The libVLC headers in Libs belong to the Windows libraries (libVLC 4); other platforms use the headers of the
-# installed libVLC, which Video.cpp supports from version 3.
-get_target_property(TEN_TARGET_INCLUDES TombEngine INCLUDE_DIRECTORIES)
-list(REMOVE_ITEM TEN_TARGET_INCLUDES "${TEN_SOLUTION_DIR}/Libs/vlc/include")
-set_property(TARGET TombEngine PROPERTY INCLUDE_DIRECTORIES ${TEN_TARGET_INCLUDES})
-find_path(TEN_VLC_INCLUDE_DIR vlc/vlc.h HINTS /Applications/VLC.app/Contents/MacOS/include REQUIRED)
-find_library(TEN_VLC_LIBRARY NAMES vlc HINTS /Applications/VLC.app/Contents/MacOS/lib REQUIRED)
-target_include_directories(TombEngine PRIVATE "${TEN_VLC_INCLUDE_DIR}")
+set(TEN_VLC_LIBRARY "${TEN_SOLUTION_DIR}/Libs/vlc/${TEN_LIBRARY_PLATFORM}/${TEN_VLC_LIBRARY_NAME}")
 find_package(Threads REQUIRED)
 
 target_link_libraries(TombEngine PRIVATE
@@ -99,10 +97,12 @@ target_link_libraries(TombEngine PRIVATE
     ${CMAKE_DL_LIBS}
 )
 
-# The pre-build step copies BASS next to the executable, which loads it from its own folder; CMake adds the folder of
-# the SDL it builds to the build tree search path.
+# The pre-build step copies BASS, libVLC and the plugins next to the executable, which loads them from its own folder;
+# CMake adds the folder of the SDL it builds to the build tree search path. On Linux the search path is an RPATH rather
+# than a RUNPATH, because only an RPATH of the executable also applies to the libraries of plugins loaded by libVLC.
 if(APPLE)
     set_target_properties(TombEngine PROPERTIES BUILD_RPATH "@executable_path" INSTALL_RPATH "@executable_path")
 else()
     set_target_properties(TombEngine PROPERTIES BUILD_RPATH "$ORIGIN" INSTALL_RPATH "$ORIGIN")
+    target_link_options(TombEngine PRIVATE "-Wl,--disable-new-dtags")
 endif()
