@@ -111,8 +111,10 @@ Vector2i GetScreenResolution()
 	if (mode == nullptr)
 		return screenRes;
 
-	screenRes.x = mode->w;
-	screenRes.y = mode->h;
+	// Physical pixels, also where the desktop scale makes the platform report logical ones.
+	float scale = g_Platform->GetDisplayScale();
+	screenRes.x = (int)(mode->w * scale);
+	screenRes.y = (int)(mode->h * scale);
 
 	return screenRes;
 }
@@ -133,6 +135,40 @@ int GetCurrentScreenRefreshRate()
 	return (int)(mode->refresh_rate + 0.5f);
 }
 
+static void AddScreenResolution(std::vector<Vector2i>& screenResolutions, const Vector2i& screenResolution)
+{
+	for (const auto& screenRes : screenResolutions)
+	{
+		if (screenRes.x == screenResolution.x && screenRes.y == screenResolution.y)
+			return;
+	}
+
+	screenResolutions.push_back(screenResolution);
+}
+
+// Common resolutions up to the desktop one, for X11, which often lists only the current display mode.
+static void AddCommonScreenResolutions(std::vector<Vector2i>& screenResolutions)
+{
+	static const auto COMMON_SCREEN_RESOLUTIONS = std::vector<Vector2i>
+	{
+		{ 1024, 768 }, { 1152, 864 }, { 1280, 720 }, { 1280, 800 }, { 1280, 1024 }, { 1360, 768 }, { 1366, 768 },
+		{ 1440, 900 }, { 1600, 900 }, { 1600, 1200 }, { 1680, 1050 }, { 1920, 1080 }, { 1920, 1200 }, { 2560, 1440 },
+		{ 2560, 1600 }, { 3440, 1440 }, { 3840, 2160 }
+	};
+
+	auto desktopRes = GetScreenResolution();
+	if (desktopRes == Vector2i::Zero)
+		return;
+
+	for (const auto& screenRes : COMMON_SCREEN_RESOLUTIONS)
+	{
+		if (screenRes.x <= desktopRes.x && screenRes.y <= desktopRes.y)
+			AddScreenResolution(screenResolutions, screenRes);
+	}
+
+	AddScreenResolution(screenResolutions, desktopRes);
+}
+
 std::vector<Vector2i> GetAllSupportedScreenResolutions()
 {
 	auto screenResolutions = std::vector<Vector2i>{};
@@ -143,35 +179,19 @@ std::vector<Vector2i> GetAllSupportedScreenResolutions()
 
 	int count = 0;
 	auto modes = SDL_GetFullscreenDisplayModes(display, &count);
-	if (modes == nullptr || count <= 0)
-		return screenResolutions;
-
-	screenResolutions.reserve(count);
-
-	for (int i = 0; i < count; ++i)
+	if (modes != nullptr)
 	{
-		const auto* mode = modes[i];
-		if (mode == nullptr)
-			continue;
-
-		auto screenResolution = Vector2i(mode->w, mode->h);
-
-		bool add = true;
-		for (const auto& screenRes : screenResolutions)
+		for (int i = 0; i < count; ++i)
 		{
-			if (screenRes.x == screenResolution.x &&
-				screenRes.y == screenResolution.y)
-			{
-				add = false;
-				break;
-			}
+			if (modes[i] != nullptr)
+				AddScreenResolution(screenResolutions, Vector2i(modes[i]->w, modes[i]->h));
 		}
 
-		if (add)
-			screenResolutions.push_back(screenResolution);
+		SDL_free(modes);
 	}
 
-	SDL_free(modes);
+	if (screenResolutions.size() <= 1)
+		AddCommonScreenResolutions(screenResolutions);
 
 	std::sort(
 		screenResolutions.begin(), screenResolutions.end(),
@@ -516,9 +536,12 @@ int main(int argc, char* argv[])
 	if (rendererBackend.empty())
 		rendererBackend = GetGraphicsBackendName(g_Configuration.GraphicsBackend);
 
-	// Initialize main window.
-	int width = g_Configuration.ScreenWidth;
-	int height = g_Configuration.ScreenHeight;
+	// Initialize main window. Its size is in reported pixels, which the desktop scale enlarges on screen.
+	float displayScale = g_Platform->GetDisplayScale();
+	int width = (int)(g_Configuration.ScreenWidth / displayScale);
+	int height = (int)(g_Configuration.ScreenHeight / displayScale);
+	if (displayScale > 1.0f)
+		TENLog("Display scale " + std::to_string(displayScale) + ": window created at " + std::to_string(width) + "x" + std::to_string(height) + ".", LogLevel::Info);
 
 	// OpenGL needs its window flag at creation, so a fallback from it to the other backends keeps an OpenGL window.
 	auto windowBackend = ParseRHIBackend(rhiTestBackend.empty() ? rendererBackend : rhiTestBackend);
@@ -671,8 +694,10 @@ int main(int argc, char* argv[])
 				int w = 0, h = 0;
 				SDL_GetWindowSizeInPixels(sdlWindow, &w, &h);
 
+				// The configured resolution is in physical pixels.
+				float scale = g_Platform->GetDisplayScale();
 				SDL_LockMutex(NextResolutionMutex);
-				NextResolution = Vector2i(w, h);
+				NextResolution = Vector2i((int)(w * scale), (int)(h * scale));
 				SDL_UnlockMutex(NextResolutionMutex);
 				break;
 			}

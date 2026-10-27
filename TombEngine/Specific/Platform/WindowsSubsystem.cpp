@@ -402,6 +402,12 @@ namespace TEN::Platform
 	}
 
 	// DXGI describes the adapters of every backend; the adapter is found by the name the device reports.
+	float WindowsSubsystem::GetDisplayScale()
+	{
+		// SDL reports physical pixels.
+		return 1.0f;
+	}
+
 	VideoMemoryInfo WindowsSubsystem::GetVideoMemoryInfo(const std::string& adapterName)
 	{
 		using Microsoft::WRL::ComPtr;

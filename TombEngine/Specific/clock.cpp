@@ -86,7 +86,7 @@ unsigned int HighFramerateSynchronizer::GetStepCount() const
 
 float HighFramerateSynchronizer::GetInterpolationFactor()
 {
-	return std::min((float)(_controlDelay / CONTROL_FRAME_TIME), 1.0f);
+	return std::clamp((float)(_controlDelay / CONTROL_FRAME_TIME), 0.0f, 1.0f);
 }
 
 int TimeSync()

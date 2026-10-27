@@ -4,6 +4,8 @@
 #ifdef SDL_PLATFORM_MACOS
 
 #include <csignal>
+#include <cstring>
+#include <execinfo.h>
 #include <filesystem>
 #include <fstream>
 #include <mach-o/dyld.h>
@@ -72,10 +74,22 @@ namespace TEN::Platform
 		return {};
 	}
 
+	float MacOSSubsystem::GetDisplayScale()
+	{
+		// SDL reports physical pixels.
+		return 1.0f;
+	}
+
 	VideoMemoryInfo MacOSSubsystem::GetVideoMemoryInfo(const std::string& adapterName)
 	{
 		// Not reported yet.
 		return {};
+	}
+
+	static void WriteSignalText(const char* text)
+	{
+		if (write(STDERR_FILENO, text, strlen(text)) < 0)
+			return;
 	}
 
 	void MacOSSubsystem::InstallCrashHandler()
@@ -93,6 +107,17 @@ namespace TEN::Platform
 			case SIGILL:  sigName = "Illegal instruction (SIGILL)"; break;
 			}
 
+			// Only async-signal-safe calls until the stack trace is written.
+			constexpr auto MAX_FRAME_COUNT = 32;
+
+			void* frames[MAX_FRAME_COUNT];
+			int frameCount = backtrace(frames, MAX_FRAME_COUNT);
+			WriteSignalText("\nUnhandled signal: ");
+			WriteSignalText(sigName);
+			WriteSignalText("\nStack trace:\n");
+			backtrace_symbols_fd(frames, frameCount, STDERR_FILENO);
+
+			// The heap may be corrupted, so logging can fail.
 			auto errorMessage = "Unhandled signal: " + std::string(sigName) + ".";
 			TENLog(errorMessage, LogLevel::Error);
 

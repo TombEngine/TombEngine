@@ -21,6 +21,7 @@ namespace TEN::Platform
 		std::string                 GetBinaryPath(bool includeExeName) override;
 		std::vector<unsigned short> GetProductOrFileVersion(bool productVersion) override;
 		VideoMemoryInfo             GetVideoMemoryInfo(const std::string& adapterName) override;
+		float                       GetDisplayScale() override;
 
 		// Setters
 

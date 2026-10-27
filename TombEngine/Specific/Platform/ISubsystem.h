@@ -32,6 +32,7 @@ namespace TEN::Platform
 		virtual std::string                 GetBinaryPath(bool includeExeName) = 0;
 		virtual std::vector<unsigned short> GetProductOrFileVersion(bool productVersion) = 0;
 		virtual VideoMemoryInfo             GetVideoMemoryInfo(const std::string& adapterName) = 0;
+		virtual float                       GetDisplayScale() = 0; // Physical pixels per reported window pixel.
 
 		// Setters
 

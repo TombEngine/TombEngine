@@ -106,7 +106,9 @@ namespace TEN::Renderer
 			SDL_SetWindowAlwaysOnTop(window, false);
 			SDL_SetWindowBordered(window, true);
 
-			SDL_SetWindowSize(window, _screenWidth, _screenHeight);
+			// The window size is in reported pixels, the screen resolution in physical ones.
+			float displayScale = g_Platform->GetDisplayScale();
+			SDL_SetWindowSize(window, (int)(_screenWidth / displayScale), (int)(_screenHeight / displayScale));
 			SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
 			SDL_RestoreWindow(window);

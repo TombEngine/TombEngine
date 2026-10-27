@@ -52,6 +52,16 @@ namespace TEN::Video
 #endif
 	}
 
+	// libVLC 3 may not start the audio callbacks after a format callback, so the format is set directly.
+	static void SetVlcAudioFormat(libvlc_media_player_t* player, libvlc_audio_setup_cb setupCallback)
+	{
+#if LIBVLC_VERSION_MAJOR >= 4
+		libvlc_audio_set_format_callbacks(player, setupCallback, nullptr);
+#else
+		libvlc_audio_set_format(player, "FL32", SOUND_SAMPLE_RATE, SOUND_CHANNEL_COUNT);
+#endif
+	}
+
 	// libVLC 3 copies whole decoded planes, whose height is aligned and padded with extra lines, so the frame buffer
 	// reserves those lines below the visible frame.
 	static unsigned int GetFrameLineCount(unsigned int height)
@@ -361,7 +371,7 @@ namespace TEN::Video
 		// Route sound data to BASS when not in silent mode.
 		if (!_silent)
 		{
-			libvlc_audio_set_format_callbacks(_player, OnAudioSetup, nullptr);
+			SetVlcAudioFormat(_player, OnAudioSetup);
 			libvlc_audio_set_callbacks(_player, Sound_VideoPlayCallback, nullptr, nullptr, Sound_VideoFlushCallback, nullptr, this);
 		}
 
