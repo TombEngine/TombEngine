@@ -155,6 +155,18 @@ class ItemData
 			data);
 	}
 
+	template<typename ... Funcs>
+	void apply(Funcs&&... funcs) const
+	{
+		std::visit(
+			visitor
+			{
+				[](auto const&) {},
+				std::forward<Funcs>(funcs)...
+			},
+			data);
+	}
+
 	template<typename T>
 	bool is() const
 	{

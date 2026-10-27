@@ -2,6 +2,7 @@
 #include "Game/items.h"
 
 #include "Game/Animation/Animation.h"
+#include "Game/Animation/Skeleton.h"
 #include "Game/collision/floordata.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -93,9 +94,28 @@ BoundingOrientedBox ItemInfo::GetObb() const
 	return BoundingOrientedBox(Pose.Position.ToVector3() + offset, extents, orient.ToQuaternion());
 }
 
+// Mesh spheres in the current pose. The player is drawn with its skin meshes when they are present, and objects
+// without meshes of their own, such as body parts, with the meshes the item borrows.
 std::vector<BoundingSphere> ItemInfo::GetSpheres() const
 {
-	return g_Renderer.GetSpheres(Index);
+	auto objectID = (ObjectNumber == ID_LARA && Objects[ID_LARA_SKIN].loaded) ? ID_LARA_SKIN : ObjectNumber;
+	const auto& object = Objects[objectID];
+	int meshCount = std::min((object.nmeshes > 0) ? object.nmeshes : (int)Model.MeshIndex.size(), BONE_COUNT_MAX);
+
+	auto pose = SkeletonPose{};
+	GetItemPose(*this, pose);
+	auto worldMatrix = GetItemWorldMatrix(*this);
+
+	auto spheres = std::vector<BoundingSphere>{};
+	spheres.reserve(meshCount);
+	for (int i = 0; i < meshCount; i++)
+	{
+		int meshIndex = (object.nmeshes > 0) ? (object.meshIndex + i) : Model.MeshIndex[i];
+		const auto& sphere = g_Level.Meshes[meshIndex].sphere;
+		spheres.push_back(BoundingSphere(Vector3::Transform(sphere.Center, pose.Transforms[i] * worldMatrix), sphere.Radius));
+	}
+
+	return spheres;
 }
 
 bool ItemInfo::TestOcb(short ocbFlags) const
@@ -252,15 +272,9 @@ void ItemInfo::SetAnimBlend(int frameCount, const BezierCurve2& curve)
 	const auto& rootPos = anim.Frames[Animation.FrameNumber].RootPosition;
 	auto boneRot = rootMotionCounteract.Rotation.ToQuaternion();
 
-	// HACK: Update bone orientations in renderer if blend is engaged to prevent blending from default pose.
-	if (IsLara())
-	{
-		g_Renderer.UpdateLaraAnimations(true);
-	}
-	else
-	{
-		g_Renderer.UpdateItemAnimations(Index, true);
-	}
+	// The blend starts from the current pose.
+	auto pose = SkeletonPose{};
+	GetItemPose(*this, pose);
 
 	Animation.Blend.FrameNumber = 0;
 	Animation.Blend.FrameCount = frameCount;
@@ -268,11 +282,8 @@ void ItemInfo::SetAnimBlend(int frameCount, const BezierCurve2& curve)
 	Animation.Blend.Velocity = Animation.Velocity;
 	Animation.Blend.RootPosition = rootPos + rootMotionCounteract.Translation;
 
-	for (int i = 0; i < object.nmeshes; i++)
-	{
-		auto boneOrient = GetBoneOrientation(*this, i);
-		Animation.Blend.BoneOrientations[i] = boneOrient * boneRot;
-	}
+	for (int i = 0; i < object.nmeshes && i < BONE_COUNT_MAX; i++)
+		Animation.Blend.BoneOrientations[i] = pose.Orientations[i] * boneRot;
 }
 
 void ItemInfo::DisableAnimBlend()

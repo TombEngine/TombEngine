@@ -271,7 +271,6 @@ void DrawFlare(ItemInfo& laraItem)
 					TestEnvironment(ENV_FLAG_WATER, &laraItem) ? SoundEnvironment::Underwater : SoundEnvironment::Land);
 			}
 
-			g_Renderer.UpdateLaraAnimations(true);
 			DoFlareInHand(laraItem, player.Flare.Life);
 		}
 		else
@@ -280,7 +279,6 @@ void DrawFlare(ItemInfo& laraItem)
 			{
 				ReadyFlare(laraItem);
 				armFrame = 0;
-				g_Renderer.UpdateLaraAnimations(true);
 				DoFlareInHand(laraItem, player.Flare.Life);
 			}
 		}

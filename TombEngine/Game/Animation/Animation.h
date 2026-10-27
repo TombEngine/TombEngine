@@ -134,6 +134,7 @@ namespace TEN::Animation
 	Vector3i   GetJointPosition(ItemInfo* item, int boneID, const Vector3i& relOffset = Vector3i::Zero);
 	Vector3i   GetJointPosition(ItemInfo* item, const CreatureBiteInfo& bite);
 	Vector3i   GetJointPosition(const ItemInfo& item, const CreatureBiteInfo& bite);
+	Matrix	   GetJointMatrix(const ItemInfo& item, int boneID);
 	Vector3    GetJointOffset(GAME_OBJECT_ID objectID, int boneID, bool discardZSign);
 	Quaternion GetBoneOrientation(const ItemInfo& item, int boneID);
 
