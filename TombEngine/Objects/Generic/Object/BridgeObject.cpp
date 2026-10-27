@@ -152,7 +152,7 @@ namespace TEN::Entities::Generic
 		}
 
 		// Get local AABB corners.
-		const auto& aabb = GetAnimData(item, 0).Keyframes[0].Aabb;
+		const auto& aabb = GetAnimData(item, 0).Frames[0].LocalAabb;
 		auto corners = std::array<Vector3, BoundingBox::CORNER_COUNT>{};
 		aabb.GetCorners(corners.data());
 

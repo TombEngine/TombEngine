@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Specific/RGBAColor8Byte.h"
+#include "Specific/Structures/RGBAColor8Byte.h"
 
 enum class WeatherType
 {

@@ -8,6 +8,7 @@
 #include "./AnimatedTextures.hlsli"
 #include "./Shadows.hlsli"
 #include "./ShaderLight.hlsli"
+#include "./Samplers.hlsli"
 
 struct PixelShaderInput
 {
@@ -18,7 +19,6 @@ struct PixelShaderInput
 };
 
 Texture2D Texture : register(t0);
-SamplerState Sampler : register(s0);
 
 // DPDepth-vertex-shader
 PixelShaderInput VS(VertexShaderInput input)
@@ -85,7 +85,7 @@ float4 PS(PixelShaderInput input) : SV_TARGET0
     if (Animated && Type == 1)
         input.UV = CalculateUVRotate(input.UV, 0);
 	
-    float4 output = Texture.Sample(Sampler, input.UV);
+	float4 output = Texture.Sample(AnisotropicClampSampler, input.UV);
 
     clip(input.ClipDepth);
 
@@ -102,7 +102,7 @@ float4 PSSky(PixelShaderInput input) : SV_TARGET
     if (Animated && Type == 1)
         input.UV = CalculateUVRotate(input.UV, 0);
 	
-    float4 output = Texture.Sample(Sampler, input.UV);
+	float4 output = Texture.Sample(AnisotropicClampSampler, input.UV);
 	
     clip(input.ClipDepth);
 

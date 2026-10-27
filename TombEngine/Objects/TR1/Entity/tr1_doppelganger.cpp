@@ -81,7 +81,7 @@ namespace TEN::Entities::Creatures::TR1
 			item.Floor = GetPointCollision(pos, item.RoomNumber).GetFloorHeight();
 
 			// Mirror player.
-			SetAnimation(item, LaraItem->Animation.AnimObjectID, LaraItem->Animation.AnimNumber, LaraItem->Animation.FrameNumber);
+			SetAnimationFromSlot(item, LaraItem->Animation.AnimObjectID, LaraItem->Animation.AnimNumber, LaraItem->Animation.FrameNumber);
 			item.Animation.IsAirborne = LaraItem->Animation.IsAirborne;
 			item.Pose.Position = pos;
 			item.Pose.Orientation = orient;
@@ -91,7 +91,7 @@ namespace TEN::Entities::Creatures::TR1
 			{
 				item.Pose.Position.y += CLICK(0.5f);
 
-				SetAnimation(item, LaraItem->Animation.AnimObjectID, LA_FREEFALL);
+				SetAnimationFromSlot(item, LaraItem->Animation.AnimObjectID, LA_FREEFALL);
 				item.Animation.IsAirborne = true;
 				item.Animation.Velocity = Vector3::Zero;
 				item.ItemFlags[7] = (short)DoppelgangerFallState::Fall;
@@ -143,7 +143,7 @@ namespace TEN::Entities::Creatures::TR1
 					if (pointColl.GetBottomSector().Flags.Death)
 						item.Effect.Type = EffectType::Fire;
 
-					SetAnimation(item, LaraItem->Animation.AnimObjectID, LA_FREEFALL_DEATH);
+					SetAnimationFromSlot(item, LaraItem->Animation.AnimObjectID, LA_FREEFALL_DEATH);
 					item.Animation.IsAirborne = false;
 					item.Animation.Velocity.y = 0.0f;
 				}

@@ -149,7 +149,7 @@ namespace TEN::Entities::Creatures::TR5
 		SoundEffect(SFX_TR5_UNDERWATER_TORPEDO, &torpedoItem->Pose, SoundEnvironment::Always);
 
 		torpedoItem->ObjectNumber = ID_TORPEDO;
-		torpedoItem->Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+		torpedoItem->Model.Color = NEUTRAL_COLOR;
 
 		auto pos1 = Vector3i::Zero;
 		auto pos2 = Vector3i::Zero;
@@ -250,7 +250,7 @@ namespace TEN::Entities::Creatures::TR5
 		if (creature->Flags < item->TriggerFlags)
 			creature->Flags++;
 
-		auto* enemy = creature->Enemy;
+		auto* enemy = creature->Enemy.Get();
 		creature->Enemy = LaraItem;
 
 		if (Targetable(item, &laraAI))
@@ -326,7 +326,7 @@ namespace TEN::Entities::Creatures::TR5
 			if (distance < BLOCK(16))
 			{
 				distance = BLOCK(16) - distance;
-				byte color = (GetRandomControl() & 0xF) + (distance / 128) + 64;
+				unsigned char color = (GetRandomControl() & 0xF) + (distance / 128) + 64;
 				SpawnDynamicLight(target.x, target.y, target.z, (GetRandomControl() & 1) + (distance / 2048) + 12, color / 2, color, color / 2);
 			}
 		}

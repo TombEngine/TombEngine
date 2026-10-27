@@ -21,5 +21,6 @@ namespace TEN::Renderer::ConstantBuffers
 		float MaxSearchStepsDiag = 0.0f;
 		//--
 		float CornerRounding = 0.0f;
+		Vector3 CSMAABuffer_Padding0;
 	};
 }

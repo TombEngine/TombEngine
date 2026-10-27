@@ -2,6 +2,10 @@
 
 namespace TEN::Effects::Ripple
 {
+	constexpr auto RIPPLE_COUNT_MAX = 1024;
+	constexpr auto RIPPLE_OPACITY_MAX = 0.5f;
+	constexpr auto RIPPLE_DEFAULT_COLOR = Vector4(1.0f, 1.0f, 1.0f, RIPPLE_OPACITY_MAX);
+
 	enum class RippleFlags
 	{
 		SlowFade		  = (1 << 0),
@@ -38,7 +42,7 @@ namespace TEN::Effects::Ripple
 
 	extern std::vector<Ripple> Ripples;
 
-	void SpawnRipple(const Vector3& pos, int roomNumber, float size, int flags = 0, const Vector3& normal = Vector3::Down);
+	void SpawnRipple(const Vector3& pos, int roomNumber, float size, int flags = 0, const Vector3& normal = Vector3::Down, const Vector4& color = RIPPLE_DEFAULT_COLOR);
 
 	void UpdateRipples();
 	void ClearRipples();

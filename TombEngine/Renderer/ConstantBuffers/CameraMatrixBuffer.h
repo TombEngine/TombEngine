@@ -6,7 +6,7 @@
 
 namespace TEN::Renderer::ConstantBuffers
 {
-	struct CCameraMatrixBuffer
+	struct alignas(16) CCameraMatrixBuffer
 	{
 		Matrix ViewProjection;
 		//--
@@ -47,7 +47,7 @@ namespace TEN::Renderer::ConstantBuffers
 		int RefreshRate;
 		int NumFogBulbs;
 		float InterpolatedFrame;
-		float Padding2;
+		float Gamma;
 		//--
 		ShaderFogBulb FogBulbs[MAX_FOG_BULBS_DRAW];
 	};

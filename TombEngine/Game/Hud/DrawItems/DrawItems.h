@@ -14,14 +14,15 @@ namespace TEN::Hud
 		// Constants
 
 		static constexpr int DRAW_ITEM_COUNT_MAX = 128;
+		static constexpr auto AMBIENT_COLOR = Vector4(0.5f, 0.5f, 0.25f, 1.0f);
 
 		// Fields
 
 		std::vector<DisplayItem> _displayItems = {};
-		Vector4                  _ambientLight = Vector4(1.0f, 1.0f, 0.5f, 1.0f);
+		Vector4                  _ambientLight = AMBIENT_COLOR;
 		
-		float _fov = ANGLE(80.0f);
-		float _prevFov = ANGLE(80.0f);
+		float _fov = DEG_TO_RAD(25.0f);
+		float _prevFov = DEG_TO_RAD(25.0f);
 
 		Vector3 _cameraPosition     = Vector3(0.0f, 0.0f, -BLOCK(1));
 		Vector3 _targetPosition     = Vector3::Zero;

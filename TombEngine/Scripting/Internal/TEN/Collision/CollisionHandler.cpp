@@ -19,7 +19,10 @@ namespace TEN::Scripting::Collision
 		Ray::Register(collTable);
 
 		auto handler = LuaHandler(state);
-		handler.MakeReadOnlyTable(collTable, ScriptReserved_MaterialType, MATERIAL_TYPES);
+		handler.MakeReadOnlyTable(collTable, ScriptReserved_FloorMaterialType, FLOOR_MATERIAL_TYPES);
+
+		// COMPATIBILITY
+		handler.MakeReadOnlyTable(collTable, ScriptReserved_MaterialType, FLOOR_MATERIAL_TYPES);
 		handler.MakeReadOnlyTable(collTable, ScriptReserved_IntersectionType, INTERSECTION_TYPE);
 	}
 }

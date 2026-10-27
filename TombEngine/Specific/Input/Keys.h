@@ -1,30 +1,33 @@
 #pragma once
 
-// TODO: Refactor this entire system. Valid input "events" should be collected and
-// boilerplated to make hardware input to game input translation library-agnostic.
-// I already did this for another project using SDL, will be easy to adapt. -- Sezz 2025.05.03
+#include <SDL3/SDL_scancode.h>
+#include <SDL3/SDL_gamepad.h>
 
 namespace TEN::Input
 {
-	constexpr auto KEYBOARD_KEY_COUNT	  = 256;
-	constexpr auto MOUSE_BUTTON_COUNT	  = 8;
-	constexpr auto MOUSE_AXIS_COUNT		  = 3;
-	constexpr auto GAMEPAD_BUTTON_COUNT	  = 16;
-	constexpr auto GAMEPAD_AXIS_COUNT	  = 6;
-	constexpr auto GAMEPAD_POV_AXIS_COUNT = 4;
-	
-	constexpr auto KEY_COUNT = KEYBOARD_KEY_COUNT +
-							   MOUSE_BUTTON_COUNT + (MOUSE_AXIS_COUNT * 2) +
-							   GAMEPAD_BUTTON_COUNT + (GAMEPAD_AXIS_COUNT * 2) + GAMEPAD_POV_AXIS_COUNT;
+	// Internal key ID layout. A single integer addresses every input event in
+	// the engine. Ranges are laid out so each device occupies a disjoint slice:
+	//
+	//   [ 0 .. SDL_SCANCODE_COUNT )                        keyboard scancodes
+	//   [ KEY_OFFSET_MOUSE   .. KEY_OFFSET_GAMEPAD )       mouse buttons + axes
+	//   [ KEY_OFFSET_GAMEPAD .. KEY_COUNT )                gamepad buttons + axes
 
-	constexpr auto KEY_OFFSET_MOUSE	  = KEYBOARD_KEY_COUNT;
-	constexpr auto KEY_OFFSET_GAMEPAD = KEY_OFFSET_MOUSE + (MOUSE_BUTTON_COUNT + (MOUSE_AXIS_COUNT * 2));
+	constexpr auto KEYBOARD_KEY_COUNT   = (int)SDL_SCANCODE_COUNT;
+	constexpr auto MOUSE_BUTTON_COUNT   = 8;
+	constexpr auto MOUSE_AXIS_COUNT     = 3; // X, Y, Wheel
+	constexpr auto GAMEPAD_BUTTON_COUNT = (int)SDL_GAMEPAD_BUTTON_COUNT;
+	constexpr auto GAMEPAD_AXIS_COUNT   = (int)SDL_GAMEPAD_AXIS_COUNT;
 
-	// Mouse
-	// 8 buttons + (3 * 2) axes.
+	constexpr auto KEY_OFFSET_MOUSE   = KEYBOARD_KEY_COUNT;
+	constexpr auto KEY_OFFSET_GAMEPAD = KEY_OFFSET_MOUSE + MOUSE_BUTTON_COUNT + (MOUSE_AXIS_COUNT * 2);
+
+	constexpr auto KEY_COUNT = KEY_OFFSET_GAMEPAD + GAMEPAD_BUTTON_COUNT + (GAMEPAD_AXIS_COUNT * 2);
+
+	constexpr auto KEY_UNASSIGNED = -1;
+
+	// Mouse: 8 buttons + 3 axes (each axis split into negative and positive direction slots).
 	enum MouseKey
 	{
-		// Buttons
 		MK_LCLICK = KEY_OFFSET_MOUSE,
 		MK_RCLICK,
 		MK_MCLICK,
@@ -34,97 +37,61 @@ namespace TEN::Input
 		MK_BUTTON_7,
 		MK_BUTTON_8,
 
-		// Axes
 		MK_AXIS_X_NEG,
 		MK_AXIS_X_POS,
 		MK_AXIS_Y_NEG,
 		MK_AXIS_Y_POS,
-		MK_AXIS_Z_NEG,
-		MK_AXIS_Z_POS
+		MK_AXIS_Z_NEG, // Wheel up.
+		MK_AXIS_Z_POS  // Wheel down.
 	};
 
-	// TODO: Don't need this one at all. -- Sezz 2025.03.05
-	// Gamepad
-	// 16 buttons + (6 * 2) axes + 4 POV axes.
+	// Gamepad button keyIDs follow SDL_GamepadButton order (south, east, west, north, ...).
+	// Axis keyIDs occupy 2 slots each (negative direction, positive direction) ordered by SDL_GamepadAxis.
+	constexpr auto KEY_OFFSET_GAMEPAD_AXIS = KEY_OFFSET_GAMEPAD + GAMEPAD_BUTTON_COUNT;
+
 	enum GamepadKey
 	{
-		// Buttons
-		GK_BUTTON_1 = KEY_OFFSET_GAMEPAD,
-		GK_BUTTON_2,
-		GK_BUTTON_3,
-		GK_BUTTON_4,
-		GK_BUTTON_5,
-		GK_BUTTON_6,
-		GK_BUTTON_7,
-		GK_BUTTON_8,
-		GK_BUTTON_9,
-		GK_BUTTON_10,
-		GK_BUTTON_11,
-		GK_BUTTON_12,
-		GK_BUTTON_13,
-		GK_BUTTON_14,
-		GK_BUTTON_15,
-		GK_BUTTON_16,
-		
-		// Axes
-		GK_AXIS_X_NEG,
-		GK_AXIS_X_POS,
-		GK_AXIS_Y_NEG,
-		GK_AXIS_Y_POS,
-		GK_AXIS_Z_NEG,
-		GK_AXIS_Z_POS,
-		GK_AXIS_W_NEG,
-		GK_AXIS_W_POS,
-		GK_AXIS_L_TRIGGER_1,
-		GK_AXIS_L_TRIGGER_2,
-		GK_AXIS_R_TRIGGER_1,
-		GK_AXIS_R_TRIGGER_2,
+		// Buttons (Xbox-style nomenclature; SDL_GAMEPAD_BUTTON_SOUTH == A, etc.).
+		GK_SOUTH        = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_SOUTH,
+		GK_EAST         = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_EAST,
+		GK_WEST         = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_WEST,
+		GK_NORTH        = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_NORTH,
+		GK_BACK         = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_BACK,
+		GK_GUIDE        = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_GUIDE,
+		GK_START        = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_START,
+		GK_LSTICK       = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_LEFT_STICK,
+		GK_RSTICK       = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_RIGHT_STICK,
+		GK_LSHOULDER    = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_LEFT_SHOULDER,
+		GK_RSHOULDER    = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER,
+		GK_DPAD_UP      = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_DPAD_UP,
+		GK_DPAD_DOWN    = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_DPAD_DOWN,
+		GK_DPAD_LEFT    = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_DPAD_LEFT,
+		GK_DPAD_RIGHT   = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_DPAD_RIGHT,
+		GK_MISC1        = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_MISC1,
+		GK_RPADDLE1     = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_RIGHT_PADDLE1,
+		GK_LPADDLE1     = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_LEFT_PADDLE1,
+		GK_RPADDLE2     = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_RIGHT_PADDLE2,
+		GK_LPADDLE2     = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_LEFT_PADDLE2,
+		GK_TOUCHPAD     = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_TOUCHPAD,
+		GK_MISC2        = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_MISC2,
+		GK_MISC3        = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_MISC3,
+		GK_MISC4        = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_MISC4,
+		GK_MISC5        = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_MISC5,
+		GK_MISC6        = KEY_OFFSET_GAMEPAD + (int)SDL_GAMEPAD_BUTTON_MISC6,
 
-		// POV axes
-		GK_DPAD_UP,
-		GK_DPAD_DOWN,
-		GK_DPAD_LEFT,
-		GK_DPAD_RIGHT
-	};
-
-	// XBox Controller (GamepadKey mirror).
-	// 11 buttons + (6 * 2) axes + 4 POV axes.
-	enum XInputKey
-	{
-		// Buttons
-		XK_START = GK_BUTTON_1,
-		XK_SELECT,
-		XK_L_STICK,
-		XK_R_STICK,
-		XK_L_SHIFT,
-		XK_R_SHIFT,
-		XK_UNUSED_1,
-		XK_UNUSED_2,
-		XK_A,
-		XK_B,
-		XK_X,
-		XK_Y,
-		XK_LOGO,
-
-		// Axes
-		XK_AXIS_X_POS = GK_AXIS_X_NEG,
-		XK_AXIS_X_NEG,
-		XK_AXIS_Y_POS,
-		XK_AXIS_Y_NEG,
-		XK_AXIS_Z_POS,
-		XK_AXIS_Z_NEG,
-		XK_AXIS_W_POS,
-		XK_AXIS_W_NEG,
-		XK_AXIS_L_TRIGGER_NEG,
-		XK_AXIS_L_TRIGGER_POS,
-		XK_AXIS_R_TRIGGER_NEG,
-		XK_AXIS_R_TRIGGER_POS,
-
-		// POV axes
-		XK_DPAD_UP,
-		XK_DPAD_DOWN,
-		XK_DPAD_LEFT,
-		XK_DPAD_RIGHT
+		// Axes: 2 slots per SDL_GamepadAxis (negative, positive direction).
+		GK_LSTICK_X_NEG = KEY_OFFSET_GAMEPAD_AXIS + (int)SDL_GAMEPAD_AXIS_LEFTX        * 2,
+		GK_LSTICK_X_POS,
+		GK_LSTICK_Y_NEG = KEY_OFFSET_GAMEPAD_AXIS + (int)SDL_GAMEPAD_AXIS_LEFTY        * 2,
+		GK_LSTICK_Y_POS,
+		GK_RSTICK_X_NEG = KEY_OFFSET_GAMEPAD_AXIS + (int)SDL_GAMEPAD_AXIS_RIGHTX       * 2,
+		GK_RSTICK_X_POS,
+		GK_RSTICK_Y_NEG = KEY_OFFSET_GAMEPAD_AXIS + (int)SDL_GAMEPAD_AXIS_RIGHTY       * 2,
+		GK_RSTICK_Y_POS,
+		GK_LTRIGGER_NEG = KEY_OFFSET_GAMEPAD_AXIS + (int)SDL_GAMEPAD_AXIS_LEFT_TRIGGER  * 2,
+		GK_LTRIGGER_POS,
+		GK_RTRIGGER_NEG = KEY_OFFSET_GAMEPAD_AXIS + (int)SDL_GAMEPAD_AXIS_RIGHT_TRIGGER * 2,
+		GK_RTRIGGER_POS
 	};
 
 	const std::string& GetKeyName(int keyID);

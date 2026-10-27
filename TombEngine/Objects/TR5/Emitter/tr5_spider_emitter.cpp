@@ -46,7 +46,7 @@ void ClearSpiders()
 {
 	if (Objects[ID_SPIDERS_EMITTER].loaded)
 	{
-		ZeroMemory(Spiders, NUM_SPIDERS * sizeof(SpiderData));
+		memset(Spiders, 0, NUM_SPIDERS * sizeof(SpiderData));
 		NextSpider = 0;
 		FlipEffect = NO_VALUE;
 	}

@@ -1,0 +1,34 @@
+#pragma once
+#include <array>
+#include <SimpleMath.h>
+#include <cstdint>
+
+namespace TEN::Renderer::ConstantBuffers
+{
+	using namespace DirectX::SimpleMath;
+
+	// Combined per-draw constant buffer (was CMaterialBuffer + CBlendingBuffer + CAnimatedBuffer
+	// metadata). All three updated at the same per-draw frequency, so folding them halves the
+	// Map/Unmap traffic on the hot draw path. The 256-entry animated frames array now lives in
+	// a dedicated structured buffer; only its scalar metadata stays here. Layout matches HLSL
+	// CBPerDraw — keep them in sync.
+	struct alignas(16) CPerDrawBuffer
+	{
+		std::array<Vector4, MaterialData::PropertyCount> MaterialProperties;
+		//--
+		unsigned int MaterialTypeAndFlags;
+		unsigned int BlendMode;
+		int          AlphaTest;
+		float        AlphaThreshold;
+		//--
+		unsigned int NumAnimFrames;
+		unsigned int AnimFps;
+		unsigned int AnimType;
+		unsigned int Animated;
+		//--
+		float        UVRotateDirection;
+		float        UVRotateSpeed;
+		int          IsWaterfall;
+		int          PerDrawBuffer_Padding0;
+	};
+}

@@ -95,7 +95,7 @@ void ClearRats()
 {
 	if (Objects[ID_RATS_EMITTER].loaded)
 	{
-		ZeroMemory(Rats, NUM_RATS * sizeof(RatData));
+		memset(Rats, 0, NUM_RATS * sizeof(RatData));
 		NextRat = 0;
 		FlipEffect = NO_VALUE;
 	}

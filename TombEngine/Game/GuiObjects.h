@@ -71,6 +71,9 @@ namespace TEN::Gui
 		INV_OBJECT_BIG_WATERSKIN_4L,
 		INV_OBJECT_BIG_WATERSKIN_5L,
 		INV_OBJECT_OPEN_DIARY,
+		INV_OBJECT_GOLDROSE_ITEM,
+		INV_OBJECT_FLARE_ITEM,
+		INV_OBJECT_HAMMER_ITEM,
 
 		// Puzzle, keys, pickups, examines
 		INV_OBJECT_PUZZLE1,
@@ -252,7 +255,7 @@ namespace TEN::Gui
 		INVENTORY_TABLE_SIZE
 	};
 	
-	enum ItemOptions : uint64_t
+	enum ItemOptions : unsigned long long
 	{
 		OPT_ALWAYS_COMBINE		   = (1 << 0),
 		OPT_EQUIP				   = (1 << 1),
@@ -294,7 +297,7 @@ namespace TEN::Gui
 		short YOffset;
 		float Scale1;
 		EulerAngles Orientation;
-		unsigned __int64 Options;
+		unsigned long long Options;
 		const char* ObjectName;
 		unsigned int MeshBits;
 		short RotFlags;

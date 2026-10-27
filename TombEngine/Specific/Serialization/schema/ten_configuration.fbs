@@ -1,0 +1,42 @@
+namespace TEN.Serialization.Config;
+
+table Binding {
+	action_id: int32;
+	key_id: int32;
+}
+
+table Configuration {
+	screen_width: int32;
+	screen_height: int32;
+	gamma: float;
+	enable_windowed_mode: bool;
+	shadow_type: int32;
+	shadow_map_size: int32;
+	shadow_blobs_max: int32;
+	enable_caustics: bool;
+	enable_decals: bool;
+	antialiasing_mode: int32;
+	enable_ambient_occlusion: bool;
+	enable_high_framerate: bool;
+	adapter_name: string;
+
+	sound_device: int32;
+	enable_reverb: bool;
+	music_volume: int32;
+	sfx_volume: int32;
+
+	enable_subtitles: bool;
+	enable_auto_monkey_swing_jump: bool;
+	enable_auto_targeting: bool;
+	enable_target_highlighter: bool;
+	enable_interaction_highlighter: bool;
+	enable_rumble: bool;
+	enable_thumbstick_camera: bool;
+
+	mouse_sensitivity: int32;
+	menu_option_looping_mode: int32;
+	last_gamepad_type: int32;
+	bindings: [Binding];
+}
+
+root_type Configuration;

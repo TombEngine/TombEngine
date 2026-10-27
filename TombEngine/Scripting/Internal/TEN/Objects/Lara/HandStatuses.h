@@ -5,7 +5,7 @@
 namespace TEN::Scripting
 {
 	/// Constants for player hand statuses.
-	// To be used with @{Objects.LaraObject.GetAmmoType} function.
+	// To be used with @{Objects.LaraObject.GetHandStatus} and @{Objects.LaraObject.SetHandStatus} functions.
 	// @enum Objects.HandStatus
 	// @pragma nostrip
 

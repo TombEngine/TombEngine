@@ -114,6 +114,7 @@ namespace TEN::Gui
 		int	 SelectedScreenResolution = 0;
 		bool IgnoreInput			  = false; // Ignore input until all actions are inactive.
 		int	 NewKeyWaitTimer		  = 0;
+		int	 SelectedSoundDevice	  = 0;
 	};
 
 	class GuiController
@@ -133,6 +134,7 @@ namespace TEN::Gui
 		int SelectedSaveSlot;
 
 		int TimeInMenu = NO_VALUE;
+		float BackupGamma = 1.0f;
 		SettingsData CurrentSettings;
 
 		// Inventory variables
@@ -182,6 +184,7 @@ namespace TEN::Gui
 		void CancelInventorySelection();
 		void UseItem(ItemInfo& item, int objectNumber);
 		void UseBinoculars(ItemInfo& item);
+
 		// Getters
 
 		const InventoryRing& GetRing(RingTypes ringType);
@@ -210,9 +213,11 @@ namespace TEN::Gui
 		void HandleOtherSettingsInput(bool fromPauseMenu);
 		void HandleOptionsInput();
 		void BackupOptions();
+		void RebuildDisplayResolutions();
 		bool DoObjectsCombine(int objectNumber1, int objectNumber2);
 		void InitializeInventory(ItemInfo* item);
 		void FillDisplayOptions();
+		void FillOtherOptions();
 		bool IsItemCurrentlyCombinable(int objectNumber);
 		bool IsItemInInventory(int objectNumber);
 		void CombineObjects(ItemInfo* item, int objectNumber1, int objectNumber2);

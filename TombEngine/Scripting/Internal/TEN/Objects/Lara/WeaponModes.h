@@ -3,7 +3,7 @@
 #include "Game/Lara/lara_struct.h"
 
 /// Constants for Weapon modes.
-// To be used with @{Objects.LaraObject.SetWeaponMode} function. Currently only works for HK Weapon.
+// To be used with @{Objects.LaraObject.GetWeaponMode} and @{Objects.LaraObject.SetWeaponMode} functions. Currently only works for HK Weapon.
 // @enum Objects.WeaponMode
 // @pragma nostrip
 

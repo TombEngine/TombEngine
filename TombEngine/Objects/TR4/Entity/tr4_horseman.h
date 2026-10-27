@@ -1,6 +1,5 @@
 #pragma once
 
-#include <optional>
 #include "Game/collision/collide_room.h"
 
 struct ItemInfo;

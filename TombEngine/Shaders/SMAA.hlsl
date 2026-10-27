@@ -47,7 +47,9 @@ cbuffer SMAABuffer : register(b13)
     float threshld;
     float maxSearchSteps;
     float maxSearchStepsDiag;
+    //--
     float cornerRounding;
+    float3 SMAABuffer_Padding0;
 };
 
 // Use a real macro here for maximum performance!

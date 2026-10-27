@@ -22,6 +22,18 @@
 	constexpr auto BOX_EDGE_COUNT	= 12;
 	constexpr auto BOX_FACE_COUNT	= 6;
 
+	// Graphics constants
+
+	constexpr auto NEUTRAL_COLOR = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+	constexpr auto GAMMA_MIN     = 0.5f;
+	constexpr auto GAMMA_MAX     = 1.5f;
+	constexpr auto GAMMA_STEP    = 0.1f;
+
+	// Sound constants
+
+	constexpr auto VOLUME_MAX	= 100;
+	constexpr auto VOLUME_STEP	= VOLUME_MAX / 20;
+
 	// World constants
 
 	constexpr auto BLOCK_UNIT = 1024;
@@ -34,4 +46,6 @@
 
 	constexpr auto WALL_MASK	  = BLOCK(1) - 1;
 	constexpr auto GRID_SNAP_SIZE = (int)BLOCK(1 / 8.0f);
+
+	constexpr auto BIG_DISTANCE_THRESHOLD = BLOCK(1);
 //}

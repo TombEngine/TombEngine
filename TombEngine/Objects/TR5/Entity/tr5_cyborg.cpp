@@ -256,7 +256,7 @@ namespace TEN::Entities::Creatures::TR5
 		if (item.HitPoints > 0)
 		{
 			AI_INFO laraAI;
-			if (creature.Enemy->IsLara())
+			if (creature.Enemy.IsLara())
 			{
 				laraAI.angle = AI.angle;
 				laraAI.distance = AI.distance;
@@ -269,7 +269,7 @@ namespace TEN::Entities::Creatures::TR5
 				laraAI.distance = SQUARE(dx) + SQUARE(dz);
 			}
 			
-			GetCreatureMood(&item, &AI, !creature.Enemy->IsLara());
+			GetCreatureMood(&item, &AI, !creature.Enemy.IsLara());
 
 			if (TestEnvironment(ENV_FLAG_NO_LENSFLARE, &item))
 			{
@@ -288,7 +288,7 @@ namespace TEN::Entities::Creatures::TR5
 				item.HitPoints = CYBORG_HEALTH_MAX;
 			}
 
-			CreatureMood(&item, &AI, !creature.Enemy->IsLara());
+			CreatureMood(&item, &AI, !creature.Enemy.IsLara());
 
 			headingAngle = CreatureTurn(&item, creature.MaxTurn);
 

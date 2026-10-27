@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Renderer/Structures/RendererSprite.h"
 #include "Renderer/RendererEnums.h"
 

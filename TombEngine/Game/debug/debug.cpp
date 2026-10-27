@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Game/Debug/Debug.h"
+#include "Game/debug/debug.h"
 
 #include "Renderer/Renderer.h"
 
@@ -18,7 +18,12 @@ namespace TEN::Debug
 		auto t = std::chrono::system_clock::to_time_t(now);
 
 		std::tm tmBuf{};
+
+#ifdef SDL_PLATFORM_WIN32
 		localtime_s(&tmBuf, &t);
+#else
+		localtime_r(&t, &tmBuf);
+#endif
 
 		std::ostringstream oss;
 		oss << std::put_time(&tmBuf, "%Y-%m-%d_%H-%M-%S");
@@ -136,9 +141,9 @@ namespace TEN::Debug
 		PrintDebugMessage("Execution (microseconds): %d", duration);
 	}
 
-	void PrintDebugMessage(LPCSTR msg, ...)
+	void PrintDebugMessage(const char* msg, ...)
 	{
-		auto args = va_list{};
+		va_list args;
 		va_start(args, msg);
 		g_Renderer.PrintDebugMessage(msg, args);
 		va_end(args);

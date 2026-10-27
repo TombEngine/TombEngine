@@ -142,7 +142,7 @@ namespace TEN::Hud
 
 	void DisplayItem::SetPosition(const Vector3& pos, bool disableInterpolation)
 	{
-		constexpr auto DELTA_TOLERANCE = 100.0f;
+		constexpr auto DELTA_TOLERANCE = 1000.0f;
 
 		if (!_wasInterpolated || disableInterpolation || Vector3::Distance(pos, _position) > DELTA_TOLERANCE)
 			_prevPosition = pos;
@@ -152,7 +152,7 @@ namespace TEN::Hud
 
 	void DisplayItem::SetOrientation(const EulerAngles& orient, bool disableInterpolation)
 	{
-		constexpr auto DELTA_TOLERANCE = ANGLE(45);
+		constexpr auto DELTA_TOLERANCE = ANGLE(90);
 
 		if (!_wasInterpolated || disableInterpolation || !EulerAngles::Compare(orient, _orientation, DELTA_TOLERANCE))
 			_prevOrientation = orient;

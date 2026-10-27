@@ -9,9 +9,9 @@
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/control/los.h"
-#include "Game/effects/Bubble.h"
+#include "Game/effects/bubble.h"
 #include "Game/effects/debris.h"
-#include "Game/effects/Drip.h"
+#include "Game/effects/drip.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/Ripple.h"
@@ -31,6 +31,7 @@
 #include "Objects/Generic/Object/objects.h"
 #include "Objects/Generic/Switches/generic_switch.h"
 #include "Objects/Generic/Switches/switch.h"
+#include "Renderer/Renderer.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
 #include "Specific/Input/Input.h"
@@ -50,6 +51,7 @@ using namespace TEN::Effects::Splash;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Input;
 using namespace TEN::Math;
+using namespace TEN::Renderer;
 
 constexpr auto TRIGGER_TIMEOUT		 = 5;
 constexpr auto GRENADE_FRAG_TIMEOUT  = 4;
@@ -78,6 +80,9 @@ void AnimateShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 {
 	auto& player = *GetLaraInfo(&laraItem);
 	const auto& weapon = player.Weapons[(int)LaraWeaponType::HK];
+
+	// Force update of player's animations to ensure that the gun smoke particles are applied correctly.
+	g_Renderer.UpdateLaraAnimations(true);
 
 	if (player.LeftArm.GunSmoke > 0)
 	{
@@ -337,6 +342,7 @@ void AnimateShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 		player.Control.Weapon.HasFired = true;
 
 		player.RightArm.GunFlash = Weapons[(int)weaponType].FlashTime;
+		player.RightArm.GunFlashType = weaponType;
 		if (weaponType != LaraWeaponType::GrenadeLauncher && weaponType != LaraWeaponType::RocketLauncher)
 			player.LeftArm.GunSmoke = 20;
 
@@ -623,7 +629,7 @@ bool FireHarpoon(ItemInfo& laraItem, const std::optional<Pose>& pose)
 	auto& harpoonItem = g_Level.Items[itemNumber];
 
 	harpoonItem.ObjectNumber = ID_HARPOON;
-	harpoonItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+	harpoonItem.Model.Color = NEUTRAL_COLOR;
 
 	if (!ammo.HasInfinite())
 		ammo--;
@@ -729,7 +735,7 @@ bool FireGrenade(ItemInfo& laraItem)
 
 	auto& grenadeItem = g_Level.Items[itemNumber];
 		
-	grenadeItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+	grenadeItem.Model.Color = NEUTRAL_COLOR;
 	grenadeItem.ObjectNumber = ID_GRENADE;
 	grenadeItem.RoomNumber = laraItem.RoomNumber;
 
@@ -812,7 +818,7 @@ void GrenadeControl(short itemNumber)
 {
 	auto& grenadeItem = g_Level.Items[itemNumber];
 
-	grenadeItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+	grenadeItem.Model.Color = NEUTRAL_COLOR;
 
 	// Force grenade to explode if it was activated externally.
 	if ((grenadeItem.Flags & CODE_BITS) == CODE_BITS)
@@ -1006,7 +1012,7 @@ void RocketControl(short itemNumber)
 		rocketItem.Pose.Orientation.z += short((rocketItem.Animation.Velocity.z / 4) + 7.0f) * ANGLE(1.0f);
 	}
 
-	rocketItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+	rocketItem.Model.Color = NEUTRAL_COLOR;
 
 	// Calculate offset in rocket direction for fire and smoke sparks.
 	auto world = Matrix::CreateTranslation(0, 0, -64) *
@@ -1056,7 +1062,7 @@ bool FireCrossbow(ItemInfo& laraItem, const std::optional<Pose>& pose)
 
 	auto& boltItem = g_Level.Items[itemNumber];
 	boltItem.ObjectNumber = ID_CROSSBOW_BOLT;
-	boltItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+	boltItem.Model.Color = NEUTRAL_COLOR;
 
 	if (!ammo.HasInfinite())
 		ammo--;
@@ -1438,7 +1444,7 @@ bool EmitFromProjectile(ItemInfo& projectile, ProjectileType type)
 
 		auto& grenadeItem = g_Level.Items[grenadeItemNumber];
 
-		grenadeItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+		grenadeItem.Model.Color = NEUTRAL_COLOR;
 		grenadeItem.ObjectNumber = ID_GRENADE;
 		grenadeItem.RoomNumber = projectile.RoomNumber;
 		grenadeItem.Pose.Position = Vector3i(
@@ -1513,7 +1519,9 @@ void ExplodeProjectile(ItemInfo& item, const Vector3i& prevPos)
 	}
 	else
 	{
-		TriggerShockwave(&item.Pose, 48, 304, 96, 128, 96, 0, 24, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
+		if (g_GameFlow->GetSettings()->Effects.ExplosionShockwave)
+			TriggerShockwave(&item.Pose, 48, 304, 96, 128, 96, 0, 24, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
+
 		item.Pose.Position.y += CLICK(1.0f / 2);
 		TriggerExplosionSparks(prevPos.x, prevPos.y, prevPos.z, 3, -2, 0, item.RoomNumber);
 
@@ -1699,7 +1707,8 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 					}
 				}
 			}
-			else if (itemPtr->ObjectNumber >= ID_SHOOT_SWITCH1 && itemPtr->ObjectNumber <= ID_SHOOT_SWITCH4)
+			else if (itemPtr->ObjectNumber >= ID_SHOOT_SWITCH1 && itemPtr->ObjectNumber <= ID_SHOOT_SWITCH4 ||
+			         itemPtr->ObjectNumber == ID_FUSEBOX_SWITCH)
 			{
 				doShatter = hasHit = true;
 				doExplosion = isExplosive;

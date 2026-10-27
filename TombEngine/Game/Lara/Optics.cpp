@@ -188,9 +188,9 @@ static void DoOpticsHighlight(const ItemInfo& item, const Vector3i& origin, cons
 		dir.Normalize();
 		dir *= BLOCK(1);
 
-		byte r = std::max(0, color.GetR() - luma);
-		byte g = std::max(0, color.GetG() - luma);
-		byte b = std::max(0, color.GetB() - luma);
+		unsigned char r = std::max(0, color.GetR() - luma);
+		unsigned char g = std::max(0, color.GetG() - luma);
+		unsigned char b = std::max(0, color.GetB() - luma);
 		SpawnDynamicLight(target2.x + dir.x, target2.y + dir.y, target2.z + dir.z, luma + 12, r, g, b);
 	}
 }

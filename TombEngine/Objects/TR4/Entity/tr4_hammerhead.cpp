@@ -90,7 +90,7 @@ namespace TEN::Entities::TR4
 			AI_INFO AI;
 			CreatureAIInfo(item, &AI);
 
-			if (!creature->Enemy->IsLara())
+			if (!creature->Enemy.IsLara())
 				phd_atan(LaraItem->Pose.Position.z - item->Pose.Position.z, LaraItem->Pose.Position.x - item->Pose.Position.x);
 
 			GetCreatureMood(item, &AI, true);

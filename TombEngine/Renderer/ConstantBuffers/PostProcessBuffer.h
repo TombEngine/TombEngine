@@ -20,13 +20,15 @@ namespace TEN::Renderer::ConstantBuffers
 		float EffectStrength;
 		Vector3 Tint;
 		//--
+		Vector4 DofParams;
+		//--
 		Vector4 SSAOKernel[64];
 		//--
 		ShaderLensFlare LensFlares[MAX_LENS_FLARES_DRAW];
 		//--
 		int NumLensFlares; 
 		float DownscaleFactor;
-		Vector2 Padding3;
+		Vector2 CPostProcessBuffer_Padding0;
 		//--
 		Vector2 TexelSize;
 		Vector2 BlurDirection;

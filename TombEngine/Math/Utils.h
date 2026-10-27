@@ -24,14 +24,16 @@ namespace TEN::Math
 	float EaseOutSine(float alpha);
 	float EaseInOutSine(float value0, float value1, float alpha);
 	float EaseInOutSine(float alpha);
+	float Spline(float alpha, const float* knots, int knotCount);
 
 	// Color
 
-	float	Luma(const Vector3& color);
-	float	Chroma(const Vector3& color);
-	Vector3 Screen(const Vector3& ambient, const Vector3& tint);
-	Vector4 Screen(const Vector4& ambient, const Vector4& tint);
-	Vector4 VectorColorToRGBA_TempToVector4(Vector4 c);
+	float			Luma(const Vector3& color);
+	float			Chroma(const Vector3& color);
+	Vector3			Screen(const Vector3& ambient, const Vector3& tint);
+	Vector4			Screen(const Vector4& ambient, const Vector4& tint);
+	unsigned int	VectorColorToRGBA(Vector4 c);
+	
 	std::pair<std::array<int, 3>, std::array<int, 3>> GenerateColorShift(Vector3 mainColor, Vector3 secondColor);
 }
 

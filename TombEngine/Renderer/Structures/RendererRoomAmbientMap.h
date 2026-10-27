@@ -1,5 +1,5 @@
 #pragma once
-#include "Renderer/Graphics/RenderTarget2D.h"
+#include "Renderer/Graphics/IRenderTarget2D.h"
 
 namespace TEN::Renderer::Structures
 {
@@ -8,7 +8,7 @@ namespace TEN::Renderer::Structures
 	struct RendererRoomAmbientMap
 	{
 		short RoomNumber;
-		RenderTarget2D Front;
-		RenderTarget2D Back;
+		IRenderTarget2D* Front;
+		IRenderTarget2D* Back;
 	};
 }

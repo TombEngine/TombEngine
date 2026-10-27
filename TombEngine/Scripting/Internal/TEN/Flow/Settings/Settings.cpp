@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Scripting/Internal/TEN/Flow/Settings/Settings.h"
 
-#include "Game/effects/Hair.h"
+#include "Game/effects/hair.h"
 #include "Scripting/Internal/TEN/Objects/Lara/WeaponTypes.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/ScriptUtil.h"
@@ -45,6 +45,7 @@ namespace TEN::Scripting
 	{
 		AnimSettings::Register(parent);
 		CameraSettings::Register(parent);
+		EffectsSettings::Register(parent);
 		FlareSettings::Register(parent);
 		GameplaySettings::Register(parent);
 		GraphicsSettings::Register(parent);
@@ -62,6 +63,7 @@ namespace TEN::Scripting
 			sol::meta_function::new_index, NewIndexErrorMaker(Settings, ScriptReserved_Settings),
 			ScriptReserved_AnimSettings, &Settings::Animations,
 			ScriptReserved_CameraSettings, &Settings::Camera,
+			ScriptReserved_EffectsSettings, &Settings::Effects,
 			ScriptReserved_FlareSettings, &Settings::Flare,
 			ScriptReserved_GameplaySettings, &Settings::Gameplay,
 			ScriptReserved_GraphicsSettings, &Settings::Graphics,
@@ -94,6 +96,10 @@ namespace TEN::Scripting
 			sol::call_constructor, sol::constructors<AnimSettings()>(),
 			sol::meta_function::new_index, NewIndexErrorMaker(AnimSettings, ScriptReserved_AnimSettings),
 
+		/// Turning while jumping back.
+		// @tfield[opt=false] bool backJumpTurn When enabled, player will be able to turn while performing back jump.
+		"backJumpTurn", &AnimSettings::BackJumpTurn,
+
 		/// Extended crawl moveset.
 		// @tfield[opt=true] bool crawlExtended When enabled, player will be able to traverse across one-click steps in crawlspaces.
 		"crawlExtended", &AnimSettings::CrawlExtended,
@@ -121,6 +127,10 @@ namespace TEN::Scripting
 		/// Ledge jumps.
 		// @tfield[opt=false] bool ledgeJumps If this setting is enabled, player will be able to jump upwards while hanging on the ledge.
 		"ledgeJumps", &AnimSettings::LedgeJumps,
+
+		/// Animation blending duration for internal hardcoded animation changes.
+		// @tfield[opt=4] int internalBlendDuration Default blend duration in frames for internal hardcoded player animation transitions, such as death, slide or fall animations.
+		"internalBlendDuration", &AnimSettings::InternalBlendDuration,
 
 		/// Pose timeout.
 		// @tfield[opt=20] int poseTimeout If this setting is larger than 0, idle standing pose animation will be performed after given timeout (in seconds).
@@ -249,6 +259,14 @@ namespace TEN::Scripting
 		// @tfield[opt=true] bool enableInventory If false, inventory will not open.
 		"enableInventory", &GameplaySettings::EnableInventory,
 
+		/// Set enemies on fire with weapons.
+		// @tfield[opt=true] bool setEnemiesOnFireWithWeapons If true, enemy creatures will catch fire from explosive weapons.
+		"setEnemiesOnFireWithWeapons", &GameplaySettings::SetEnemiesOnFireWithWeapons,
+
+		/// Set enemies on fire with death sector flag.
+		// @tfield[opt=true] bool setEnemiesOnFireWithDeathFlag If true, enemy creatures will catch fire when stepping on a sector with death flag set.
+		"setEnemiesOnFireWithDeathFlag", &GameplaySettings::SetEnemiesOnFireWithDeathFlag,
+
 		/// Kill enemies which were poisoned by a crossbow poisoned ammo or by any other means. If disabled, enemy hit points will
 		// reach minimum but will never go to zero. This behaviour replicates original TR4 behaviour.
 		// @tfield[opt=true] bool killPoisonedEnemies If false, enemies won't be killed by poison.
@@ -257,6 +275,51 @@ namespace TEN::Scripting
 		/// Enable target occlusion by moveables and static meshes.
 		// @tfield[opt=true] bool targetObjectOcclusion If enabled, player won't be able to target enemies through moveables and static meshes.
 		"targetObjectOcclusion", &GameplaySettings::TargetObjectOcclusion);
+	}
+
+	/// Effects
+	// @section Effects
+	// Settings for blood and generic impact visuals.
+	// @usage
+	// -- Example of changing blood appearance and disabling generic explosion shockwaves
+	// -- In Settings.lua
+	// settings.Effects.bloodColor = TEN.Color(32, 160, 32)
+	// settings.Effects.bloodBlendMode = TEN.Effects.BlendID.ALPHA_BLEND
+	// settings.Effects.explosionShockwave = false
+
+	void EffectsSettings::Register(sol::table& parent)
+	{
+		parent.create().new_usertype<EffectsSettings>(ScriptReserved_EffectsSettings, sol::constructors<EffectsSettings()>(),
+			sol::call_constructor, sol::constructors<EffectsSettings()>(),
+			sol::meta_function::new_index, NewIndexErrorMaker(EffectsSettings, ScriptReserved_EffectsSettings),
+
+		/// Blood particle color.
+		// @tfield[opt=TEN.Color(255&#44; 0&#44; 0)] Color bloodColor Base tint used for classic and underwater blood particles.
+		"bloodColor", &EffectsSettings::BloodColor,
+
+		/// Blood particle blend mode.
+		// @tfield[opt=TEN.Effects.BlendID.ADDITIVE] Effects.BlendID bloodBlendMode Blend mode used when drawing blood particles.
+		"bloodBlendMode", &EffectsSettings::BloodBlendMode,
+
+		/// Blood particle size multiplier.
+		// @tfield[opt=1.0] float bloodSize Scale multiplier applied to classic and underwater blood particles.
+		"bloodSize", &EffectsSettings::BloodSize,
+
+		/// Ricochet particle count.
+		// @tfield[opt=8] int ricochetCount Maximum number of generated ricochet particles.
+		"ricochetCount", &EffectsSettings::RicochetCount,
+
+		// Ricochet sound effect.
+		// @tfield[opt=true] bool ricochetSound If enabled, ricochet effect will be accompanied by a sound effect. Disable for TR2-5 like behaviour.
+		"ricochetSound", &EffectsSettings::RicochetSound,
+
+		/// Ricochet spark color.
+		// @tfield[opt=TEN.Color(255&#44; 153&#44; 0)] Color ricochetColor Default tint used by ricochet sparks.
+		"ricochetColor", &EffectsSettings::RicochetColor,
+
+		/// Explosion shockwave toggle.
+		// @tfield[opt=true] bool explosionShockwave Enables shockwave generation for generic explosion effects.
+		"explosionShockwave", &EffectsSettings::ExplosionShockwave);
 	}
 
 	/// Graphics
@@ -283,6 +346,10 @@ namespace TEN::Scripting
 		/// Enable ambient occlusion.
 		// @tfield[opt=true] bool ambientOcclusion If disabled, ambient occlusion setting will be forced to off, and corresponding menu entry in the Display Settings dialog will be grayed out.
 		"ambientOcclusion", &GraphicsSettings::AmbientOcclusion,
+
+		/// Enable flame heat haze overlays for fire particles and sparks.
+		// @tfield[opt=true] bool flameHeatHaze If enabled, flame particles and fire sparks will emit an additional distortion-only heat haze overlay.
+		"flameHeatHaze", &GraphicsSettings::FlameHeatHaze,
 
 		/// Enable skinning.
 		// @tfield[opt=true] bool skinning If enabled, skinning will be used for animated objects with skinned mesh. Disable to force classic TR workflow.
@@ -360,7 +427,15 @@ namespace TEN::Scripting
 
 		/// Toggle pickup notifier visibility.
 		// @tfield[opt=true] bool pickupNotifier If disabled, pickup notifier will be invisible in game.
-		"pickupNotifier", &HudSettings::PickupNotifier);
+		"pickupNotifier", &HudSettings::PickupNotifier,
+
+		/// Toggle interaction highlighter visibility.
+		// @tfield[opt=true] bool interactionHighlighter If disabled, interaction highlighter won't be drawn and the corresponding menu entry is grayed out.
+		"interactionHighlighter", &HudSettings::InteractionHighlighter,
+
+		/// Toggle target highlighter visibility.
+		// @tfield[opt=true] bool targetHighlighter If disabled, target highlighter won't be drawn and the corresponding menu entry is grayed out.
+		"targetHighlighter", &HudSettings::TargetHighlighter);
 	}
 
 	/// Pathfinding
@@ -505,12 +580,23 @@ namespace TEN::Scripting
 		// @tfield[opt=true] bool multithreaded Determines whether to use multithreading or not.
 		"multithreaded", &SystemSettings::Multithreaded,
 
-		/// Can the game utilize the fast reload feature? <br>
+		/// Toggle fast savegame reload. <br>
 		// When set to `true`, the game will attempt to perform fast savegame reloading if current level is the same as
 		// the level loaded from the savegame. It will not work if the level timestamp or checksum has changed
 		// (i.e. level was updated). If set to `false`, this functionality is turned off.
 		// @tfield[opt=true] bool fastReload Toggles fast reload on or off.
-		"fastReload", &SystemSettings::FastReload);
+		"fastReload", &SystemSettings::FastReload,
+
+		/// Maximum number of variables in scripts created within 1 second. <br>
+		// Set to `0` to disable the per-second limit.
+		// @tfield[opt=1000] int variableFloodProtectionTimeLimit Maximum variable creations allowed per second.
+		"variableFloodProtectionTimeLimit", &SystemSettings::VariableFloodProtectionTimeLimit,
+
+		/// Maximum combined number of variables allowed in `GlobalVars`, `GameVars`, and `LevelVars`.
+		// This type of variable flood protection will only trigger in debug mode for performance reasons. <br>
+		// Set to `0` to disable the overall limit.
+		// @tfield[opt=5000] int variableFloodProtectionOverallLimit Maximum total variable count allowed.
+		"variableFloodProtectionOverallLimit", &SystemSettings::VariableFloodProtectionOverallLimit);
 	}
 
 	/// UI
@@ -554,6 +640,10 @@ namespace TEN::Scripting
 		// @tfield[opt=TEN.Color(0&#44; 0&#44; 0)] Color shadowTextColor A color used for drawing a shadow under any rendered text.
 		"shadowTextColor", &UISettings::ShadowTextColor,
 
+		/// System text size. Used in all system menus, such as linear inventory, pause menu, settings menu, etc.
+		// @tfield[opt=1.0] float systemTextScale Scale multiplier applied to system menu text.
+		"systemTextScale", &UISettings::SystemTextScale,
+
 		/// Title logo center point position.
 		// @tfield[opt=TEN.Vec2(50&#44; 20)] Vec2 titleLogoPosition Center point of a title level logo position.
 		"titleLogoPosition", &UISettings::TitleLogoPosition,
@@ -572,14 +662,18 @@ namespace TEN::Scripting
 		"titleMenuPosition", &UISettings::TitleMenuPosition,
 			
 		/// Title menu scale.
-		// @tfield[opt=1.0] float titleMenuScale Title level menu scale.
+		// @tfield[opt=1.0] float titleMenuScale Title level menu text scale.
 		"titleMenuScale", &UISettings::TitleMenuScale,
 
 		/// Title menu alignment.
 		// @tfield[opt=Strings.DisplayStringOption.CENTER] Strings.DisplayStringOption titleMenuAlignment Specifies menu alignment.
 		// Can be set to @{Strings.DisplayStringOption.CENTER} or @{Strings.DisplayStringOption.RIGHT}.
 		// If set to `nil`, or set to any other value, menu will be aligned to the left side of the screen.
-		"titleMenuAlignment", &UISettings::TitleMenuAlignment);
+		"titleMenuAlignment", &UISettings::TitleMenuAlignment,
+
+		/// Amount of blur for the inventory and pause menu backgrounds.
+		// @tfield[opt=0.15] float menuBackgroundBlur Specifies how much should the background be blurred when pause or inventory menu is open. Set to 0 to disable blurring.
+		"menuBackgroundBlur", &UISettings::MenuBackgroundBlur);
 	}
 
 	/* @fieldtype { [WeaponType]: WeaponSettings } */

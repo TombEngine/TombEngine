@@ -1,13 +1,14 @@
 #pragma once
 
-#include "Game/Items.h"
+#include "Game/items.h"
 #include "Game/effects/Light.h"
+#include "Game/itemdata/FXInfo.h"
 #include "Math/Math.h"
 #include "Renderer/RendererEnums.h"
 
 using namespace TEN::Effects::Light;
 
-enum class LaraWeaponType;
+enum class LaraWeaponType : int;
 enum GAME_OBJECT_ID : short;
 struct CollisionInfo;
 struct ItemInfo;
@@ -17,36 +18,38 @@ constexpr auto SD_UWEXPLOSION = 2;
 
 constexpr auto MAX_NODE		= 23;
 constexpr auto MAX_DYNAMICS = 64;
-
 constexpr auto MAX_PARTICLES		 = 8192;
 constexpr auto MAX_PARTICLE_DYNAMICS = 8;
 
-constexpr auto CREATURE_GUNFLASH_COLOR = Vector4(1.0f, 0.5f, 0.1f, 1.0f);
+constexpr auto CREATURE_GUNFLASH_COLOR = Vector4(0.5f, 0.25f, 0.05f, 1.0f);
+constexpr auto FLAME_HEAT_HAZE_SCALE = 2.5f;
 
 extern int Wibble;
 
 enum SpriteEnumFlag
 {
-	SP_NONE		  = 0,
-	SP_FIRE		  = (1 << 0),
-	SP_SCALE	  = (1 << 1),
-	SP_BLOOD	  = (1 << 2),
-	SP_DEF		  = (1 << 3),
-	SP_ROTATE	  = (1 << 4),
-	SP_EXPLOSION  = (1 << 5),
-	SP_FX		  = (1 << 6),
-	SP_ITEM		  = (1 << 7),
-	SP_WIND		  = (1 << 8),
-	SP_EXPDEF	  = (1 << 9),
-	SP_DAMAGE	  = (1 << 10),
-	SP_UNDERWEXP  = (1 << 11),
-	SP_NODEATTACH = (1 << 12),
-	SP_PLASMAEXP  = (1 << 13),
-	SP_POISON	  = (1 << 14),
-	SP_COLOR	  = (1 << 15),
-	SP_ANIMATED	  = (1 << 16),
-	SP_LIGHT	  = (1 << 17),
-	SP_SOUND	  = (1 << 18),
+	SP_NONE			= 0,
+	SP_FIRE			= (1 << 0),
+	SP_SCALE		= (1 << 1),
+	SP_BLOOD		= (1 << 2),
+	SP_DEF			= (1 << 3),
+	SP_ROTATE		= (1 << 4),
+	SP_EXPLOSION	= (1 << 5),
+	SP_FX			= (1 << 6),
+	SP_ITEM			= (1 << 7),
+	SP_WIND			= (1 << 8),
+	SP_EXPDEF		= (1 << 9),
+	SP_DAMAGE		= (1 << 10),
+	SP_UNDERWEXP	= (1 << 11),
+	SP_NODEATTACH	= (1 << 12),
+	SP_PLASMAEXP	= (1 << 13),
+	SP_POISON		= (1 << 14),
+	SP_COLOR		= (1 << 15),
+	SP_ANIMATED		= (1 << 16),
+	SP_LIGHT		= (1 << 17),
+	SP_SOUND		= (1 << 18),
+	SP_HAZE			= (1 << 19),
+	SP_CONSTRAINED	= (1 << 20)
 };
 
 enum ParticleAnimType
@@ -92,24 +95,6 @@ enum class FlameType
 	Pulse,
 	SmallFast,
 	Trail
-};
-
-struct FX_INFO
-{
-	Pose pos;
-	short roomNumber;
-	short objectNumber;
-	short nextFx;
-	short nextActive;
-	short speed;
-	short fallspeed;
-	int frameNumber;
-	short counter;
-	Vector4 color;
-	short flag1;
-	short flag2;
-
-	bool DisableInterpolation;
 };
 
 struct NODEOFFSET_INFO
@@ -186,14 +171,16 @@ struct Particle
 
 	int sound;
 
+	Vector3 constraint;
+
 	int PrevX;
 	int PrevY;
 	int PrevZ;
 	short PrevRotAng;
-	byte PrevR;
-	byte PrevG; 
-	byte PrevB;
-	byte PrevScalar;
+	unsigned char PrevR;
+	unsigned char PrevG; 
+	unsigned char PrevB;
+	unsigned char PrevScalar;
 
 	void StoreInterpolationData()
 	{
@@ -210,13 +197,13 @@ struct Particle
 
 struct ParticleDynamic
 {
-	byte On;
-	byte Falloff;
-	byte R;
-	byte G;
-	byte B;
-	byte Flags;
-	byte Pad[2];
+	unsigned char On;
+	unsigned char Falloff;
+	unsigned char R;
+	unsigned char G;
+	unsigned char B;
+	unsigned char Flags;
+	unsigned char Pad[2];
 };
 
 extern GameBoundingBox DeadlyBounds;
@@ -227,8 +214,6 @@ extern ParticleDynamic ParticleDynamics[MAX_PARTICLE_DYNAMICS];
 
 extern Vector3i NodeVectors[ParticleNodeOffsetIDs::NodeMax];
 extern NODEOFFSET_INFO NodeOffsets[ParticleNodeOffsetIDs::NodeMax];
-
-extern FX_INFO EffectList[MAX_SPAWNED_ITEM_COUNT];
 
 template <typename TEffect>
 TEffect& GetNewEffect(std::vector<TEffect>& effects, unsigned int countMax)
@@ -268,6 +253,7 @@ void ClearInactiveEffects(std::vector<TEffect>& effects)
 }
 
 Particle* GetFreeParticle();
+FXInfo& GetFXInfo(ItemInfo& fx);
 
 void SetSpriteSequence(Particle& particle, GAME_OBJECT_ID objectID);
 void SetAdvancedSpriteSequence(Particle& particle, GAME_OBJECT_ID objectID, ParticleAnimType animationType, float frameRate);

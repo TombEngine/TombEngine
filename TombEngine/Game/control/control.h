@@ -72,10 +72,9 @@ extern int NextLevel;
 extern bool  InItemControlLoop;
 extern short ItemNewRoomNo;
 extern short ItemNewRooms[MAX_ROOMS];
-extern short NextItemActive;
-extern short NextItemFree;
-extern short NextFxActive;
-extern short NextFxFree;
+
+extern std::vector<int> ActiveItems;
+extern std::vector<int> FreeItemSlots;
 
 extern int ControlPhaseTime;
 
@@ -96,7 +95,6 @@ int GetRandomControl();
 int GetRandomDraw();
 
 void KillMoveItems();
-void KillMoveEffects();
 void UpdateShatters();
 
 void CleanUp();
@@ -108,4 +106,4 @@ void DeInitializeScripting(int levelIndex, GameStatus reason);
 
 void SetupInterpolation();
 
-unsigned CALLBACK GameMain(void*);
+int SDLCALL GameMain(void*);

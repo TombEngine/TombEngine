@@ -5,7 +5,7 @@
 #include "Game/control/control.h"
 #include "Game/control/box.h"
 #include "Game/control/lot.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/itemdata/door_data.h"

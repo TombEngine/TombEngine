@@ -7,10 +7,10 @@ namespace TEN::Scripting::Collision
     /// Constants for material types.
     // Corresponds to Tomb Editor texture sound material types.
     // To be used with @{Collision.Probe.GetFloorMaterialType} and @{Collision.Probe.GetCeilingMaterialType}.
-    // @enum Collision.MaterialType
+    // @enum Collision.FloorMaterialType
     // @pragma nostrip
 
-    static const auto MATERIAL_TYPES = std::unordered_map<std::string, MaterialType>
+    static const auto FLOOR_MATERIAL_TYPES = std::unordered_map<std::string, MaterialType>
     {
         /// Mud material type.
         // @mem MUD

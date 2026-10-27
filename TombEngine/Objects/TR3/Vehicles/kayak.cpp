@@ -31,6 +31,10 @@ namespace TEN::Entities::Vehicles
 	constexpr auto KAYAK_MOUNT_DISTANCE = CLICK(1.5f);
 	constexpr auto KAYAK_DISMOUNT_DISTANCE = CLICK(3); // TODO: Find accurate distance.
 
+	constexpr auto KAYAK_SLOPE_ANGLE_MIN = ANGLE(45.0f);
+	constexpr auto KAYAK_SLIDE_VELOCITY_MAX = 32.0f;
+	constexpr auto KAYAK_FLOOR_HEIGHT_TOLERANCE = CLICK(0.5f);
+
 	constexpr int KAYAK_VELOCITY_FORWARD_ACCEL = 24 * VEHICLE_VELOCITY_SCALE;
 	constexpr int KAYAK_VELOCITY_LR_ACCEL = 16 * VEHICLE_VELOCITY_SCALE;
 	constexpr int KAYAK_VELOCITY_HOLD_TURN_DECEL = 0.5f * VEHICLE_VELOCITY_SCALE;
@@ -170,16 +174,16 @@ namespace TEN::Entities::Vehicles
 		switch (mountType)
 		{
 		case VehicleMountType::LevelStart:
-			SetAnimation(laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_IDLE);
+			SetAnimationFromSlot(*laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_IDLE);
 			break;
 
 		case VehicleMountType::Left:
-			SetAnimation(laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_MOUNT_LEFT);
+			SetAnimationFromSlot(*laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_MOUNT_LEFT);
 			break;
 
 		default:
 		case VehicleMountType::Right:
-			SetAnimation(laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_MOUNT_RIGHT);
+			SetAnimationFromSlot(*laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_MOUNT_RIGHT);
 			break;
 		}
 
@@ -195,6 +199,9 @@ namespace TEN::Entities::Vehicles
 		lara->Control.WaterStatus = WaterStatus::Dry;
 		kayak->WaterHeight = kayakItem->Pose.Position.y;
 		kayak->Flags = 0;
+
+		if (mountType == VehicleMountType::LevelStart)
+			KayakPaddleTake(kayak, laraItem);
 
 		AnimateItem(laraItem);
 	}
@@ -465,6 +472,30 @@ namespace TEN::Entities::Vehicles
 		return 0;
 	}
 
+	static void KayakDoSlopeSlide(ItemInfo* kayakItem)
+	{
+		auto pointColl = GetPointCollision(*kayakItem);
+
+		// In water the kayak floats and follows the surface instead.
+		if (pointColl.GetWaterTopHeight() != NO_HEIGHT)
+			return;
+
+		// An airborne kayak falls first; only a grounded one slides.
+		if ((pointColl.GetFloorHeight() - kayakItem->Pose.Position.y) > KAYAK_FLOOR_HEIGHT_TOLERANCE)
+			return;
+
+		short slopeAngle = Geometry::GetSurfaceSlopeAngle(pointColl.GetFloorNormal());
+		if (slopeAngle < KAYAK_SLOPE_ANGLE_MIN)
+			return;
+
+		// Steeper slopes carry the kayak away faster.
+		float velocity = KAYAK_SLIDE_VELOCITY_MAX * phd_sin(slopeAngle);
+		short headingAngle = Geometry::GetSurfaceAspectAngle(pointColl.GetFloorNormal());
+
+		kayakItem->Pose.Position.x += velocity * phd_sin(headingAngle);
+		kayakItem->Pose.Position.z += velocity * phd_cos(headingAngle);
+	}
+
 	void KayakToBackground(ItemInfo* kayakItem, ItemInfo* laraItem)
 	{
 		auto* kayak = GetKayakInfo(kayakItem);
@@ -495,6 +526,7 @@ namespace TEN::Entities::Vehicles
 		kayakItem->Pose.Position.z += kayakItem->Animation.Velocity.z * phd_cos(kayakItem->Pose.Orientation.y);
 		kayakItem->Pose.Orientation.y += kayak->TurnRate;
 
+		KayakDoSlopeSlide(kayakItem);
 		KayakDoCurrent(kayakItem, laraItem);
 
 		kayak->LeftVerticalVelocity = KayakDoDynamics(leftHeight, kayak->LeftVerticalVelocity, &leftPos.y);
@@ -567,13 +599,14 @@ namespace TEN::Entities::Vehicles
 			kayakPos.z = kayak->OldPose.Position.z;
 			kayakPos.RoomNumber = kayakItem->RoomNumber;
 
-			CameraCollisionBounds(&kayakPos, 256, 0);
-			{
-				kayakItem->Pose.Position.x = kayakPos.x;
-				kayakItem->Pose.Position.y = kayakPos.y;
-				kayakItem->Pose.Position.z = kayakPos.z;
-				kayakItem->RoomNumber = kayakPos.RoomNumber;
-			}
+			probe = GetPointCollision(kayak->OldPose.Position, kayakPos.RoomNumber);
+			bool isSteepSlope = Geometry::GetSurfaceSlopeAngle(probe.GetFloorNormal()) > KAYAK_SLOPE_ANGLE_MIN;
+			CameraCollisionBounds(&kayakPos, CLICK(1), isSteepSlope);
+
+			kayakItem->Pose.Position.x = kayakPos.x;
+			kayakItem->Pose.Position.y = kayakPos.y;
+			kayakItem->Pose.Position.z = kayakPos.z;
+			kayakItem->RoomNumber = kayakPos.RoomNumber;
 		}
 
 		DoVehicleCollision(kayakItem, KAYAK_Z); // FIXME: kayak is thin, what should we do about it?
@@ -615,7 +648,7 @@ namespace TEN::Entities::Vehicles
 		if (laraItem->HitPoints <= 0 &&
 			laraItem->Animation.ActiveState != KAYAK_STATE_IDLE_DEATH)
 		{
-			SetAnimation(laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_IDLE_DEATH);
+			SetAnimationFromSlot(*laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_IDLE_DEATH);
 		}
 
 		int frame = laraItem->Animation.FrameNumber;
@@ -992,17 +1025,14 @@ namespace TEN::Entities::Vehicles
 
 	void KayakToItemCollision(ItemInfo* kayakItem, ItemInfo* laraItem)
 	{
-		for (auto i : g_Level.Rooms[kayakItem->RoomNumber].NeighborRoomNumbers)
+		for (int roomNumber : g_Level.Rooms[kayakItem->RoomNumber].NeighborRoomNumbers)
 		{
-			if (!g_Level.Rooms[i].Active())
+			if (!g_Level.Rooms[roomNumber].Active())
 				continue;
 
-			short itemNum = g_Level.Rooms[i].itemNumber;
-
-			while (itemNum != NO_VALUE)
+			for (int itemNumber : g_Level.Rooms[roomNumber].itemNumbers)
 			{
-				auto* item = &g_Level.Items[itemNum];
-				short nextItem = item->NextItem;
+				auto* item = &g_Level.Items[itemNumber];
 
 				if (item->Collidable &&
 					item->Status != ITEM_INVISIBLE &&
@@ -1031,8 +1061,6 @@ namespace TEN::Entities::Vehicles
 						}
 					}
 				}
-
-				itemNum = nextItem;
 			}
 		}
 	}
@@ -1040,7 +1068,7 @@ namespace TEN::Entities::Vehicles
 	void KayakLaraRapidsDrown(ItemInfo* laraItem)
 	{
 		// Already drowning...
-		if (laraItem->HitPoints == -1)
+		if (laraItem->HitPoints == NO_VALUE)
 			return;
 
 		auto* lara = GetLaraInfo(laraItem);
@@ -1049,11 +1077,11 @@ namespace TEN::Entities::Vehicles
 		if (lara->Control.WaterStatus == WaterStatus::FlyCheat)
 			return;
 
-		SetAnimation(laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_OVERBOARD_DEATH);
+		SetAnimationFromSlot(*laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_OVERBOARD_DEATH);
 		laraItem->Animation.IsAirborne = false;
 		laraItem->Animation.Velocity.z = 0;
 		laraItem->Animation.Velocity.y = 0;
-		laraItem->HitPoints = -1;
+		laraItem->HitPoints = NO_VALUE;
 
 		AnimateItem(laraItem);
 

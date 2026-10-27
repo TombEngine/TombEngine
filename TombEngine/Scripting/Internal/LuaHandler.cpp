@@ -33,6 +33,9 @@ void LuaHandler::ExecuteScript(const std::string& luaFilename, bool isOptional)
 
 void LuaHandler::ExecuteString(const std::string& command)
 {
+	if (command.empty())
+		return;
+
 	auto result = _lua->safe_script(command, sol::environment(_lua->lua_state(), sol::create, _lua->globals()), sol::script_pass_on_error);
 	if (!result.valid())
 	{

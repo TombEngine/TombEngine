@@ -3,20 +3,11 @@
 #pragma code_page(65001)
 
 #include "resource.h"
-#include "Version.h"
-
-#define APSTUDIO_READONLY_SYMBOLS
-/////////////////////////////////////////////////////////////////////////////
-//
-// Generated from the TEXTINCLUDE 2 resource.
-//
-#include "winres.h"
+#include "version.h"
+#include <winres.h>
 
 /////////////////////////////////////////////////////////////////////////////
-#undef APSTUDIO_READONLY_SYMBOLS
-
-/////////////////////////////////////////////////////////////////////////////
-// English resources
+// English (neutral) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
@@ -28,7 +19,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION TEN_MAJOR_VERSION,TEN_MINOR_VERSION,TEN_BUILD_NUMBER,TEN_REVISION_NUMBER
- PRODUCTVERSION TEN_MAJOR_VERSION, TEN_MINOR_VERSION, TEN_BUILD_NUMBER, TEN_REVISION_NUMBER
+ PRODUCTVERSION TEN_MAJOR_VERSION,TEN_MINOR_VERSION,TEN_BUILD_NUMBER,TEN_REVISION_NUMBER
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -58,6 +49,7 @@ BEGIN
     END
 END
 
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Icon
@@ -66,77 +58,23 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_ICON1               ICON                    "Resources\\ten.ico"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// BIN
+//
+
 IDR_TITLELEVEL          BIN                     "Resources\\title.bin"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// EXE
+//
+
 IDR_CRASHMSG            EXE                     "Resources\\crashmsg.exe"
 
+#endif    // English (neutral) resources
 /////////////////////////////////////////////////////////////////////////////
-//
-// Dialog
-//
-
-IDD_SETUP DIALOGEX 0, 0, 335, 170
-STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION
-CAPTION "TombEngine"
-FONT 8, "Segoe UI", 400, 0, 0xCC
-BEGIN
-    COMBOBOX        IDC_RESOLUTION, 21, 40, 117, 84, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "TXT_Windowed", IDC_WINDOWED, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 21, 64, 115, 10
-    CONTROL         "TXT Shadows", IDC_SHADOWS, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 155, 40, 159, 10
-    CONTROL         "TXT Caustics", IDC_CAUSTICS, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 155, 55, 160, 10
-    CONTROL         "TXT Antialiasing", IDC_ANTIALIASING, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 155, 70, 160, 10
-    GROUPBOX        "Txt_Sound", IDC_GROUP_SOUND, 7, 112, 320, 33
-    CONTROL         "TXT_Enable", IDC_ENABLE_SOUNDS, "Button", BS_AUTOCHECKBOX | BS_LEFTTEXT | WS_TABSTOP, 254, 111, 67, 10
-    COMBOBOX        IDC_SNDADAPTER, 13, 125, 308, 71, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    DEFPUSHBUTTON   "OK", IDOK, 109, 150, 50, 14
-    PUSHBUTTON      "Cancel", IDCANCEL, 175, 150, 50, 14
-    GROUPBOX        "Txt_OutputSettings", IDC_GROUP_OUTPUT_SETTINGS, 7, 12, 320, 94
-    GROUPBOX        "TXT_Resolution", IDC_GROUP_RESOLUTION, 15, 27, 128, 62
-    GROUPBOX        "TXT_Render Options", IDC_GROUP_RENDER_OPTIONS, 148, 27, 173, 62
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// DESIGNINFO
-//
-
-#ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO
-BEGIN
-    IDD_SETUP, DIALOG
-    BEGIN
-        RIGHTMARGIN, 334
-        VERTGUIDE, 7
-        VERTGUIDE, 15
-        VERTGUIDE, 21
-        VERTGUIDE, 148
-        VERTGUIDE, 155
-    END
-END
-#endif    // APSTUDIO_INVOKED
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// AFX_DIALOG_LAYOUT
-//
-
-IDD_SETUP AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-#endif    // English resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-#ifndef APSTUDIO_INVOKED
-/////////////////////////////////////////////////////////////////////////////
-//
-// Generated from the TEXTINCLUDE 3 resource.
-//
-
-
-/////////////////////////////////////////////////////////////////////////////
-#endif    // not APSTUDIO_INVOKED
 

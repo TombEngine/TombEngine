@@ -8,16 +8,16 @@ namespace TEN::Scripting
 	static const auto EVENT_TYPES = std::unordered_map<std::string, EventType>
 	{
 		/// Triggered when an activator enters the volume.
-		// @mem ENTER
-		{ ScriptReserved_EventOnEnter, EventType::Enter },
+		// @mem VOLUME_ENTER
+		{ ScriptReserved_EventOnVolumeEnter, EventType::VolumeEnter },
 
 		/// Triggered while an activator is inside the volume.
-		// @mem INSIDE
-		{ ScriptReserved_EventOnInside, EventType::Inside },
+		// @mem VOLUME_INSIDE
+		{ ScriptReserved_EventOnVolumeInside, EventType::VolumeInside },
 
 		/// Triggered when an activator leaves the volume.
-		// @mem LEAVE
-		{ ScriptReserved_EventOnLeave, EventType::Leave },
+		// @mem VOLUME_LEAVE
+		{ ScriptReserved_EventOnVolumeLeave, EventType::VolumeLeave },
 
 		/// Triggered each game loop.
 		// @mem LOOP
@@ -43,11 +43,26 @@ namespace TEN::Scripting
 		// @mem USE_ITEM
 		{ ScriptReserved_EventOnUseItem, EventType::UseItem },
 
-		/// Triggered when any of the Freeze modes are activated.
+		/// Triggered when an item is picked up.
+		// @mem PICKUP
+		{ ScriptReserved_EventOnPickup, EventType::Pickup },
+
+		/// Triggered when a vehicle is entered.
+		// @mem VEHICLE_ENTER
+		{ ScriptReserved_EventOnVehicleEnter, EventType::VehicleEnter },
+
+		/// Triggered when a vehicle is left.
+		// @mem VEHICLE_LEAVE
+		{ ScriptReserved_EventOnVehicleLeave, EventType::VehicleLeave },
+
+		/// Triggered when any of the @{Flow.FreezeMode} is activated.
 		// @mem FREEZE
 		{ ScriptReserved_EventOnFreeze, EventType::Freeze },
 
 		// COMPATIBILITY
-		{ "USEITEM", EventType::UseItem }
+		{ "USEITEM", EventType::UseItem },
+		{ "ENTER", EventType::VolumeEnter },
+		{ "INSIDE", EventType::VolumeInside},
+		{ "LEAVE", EventType::VolumeLeave},
 	};
 }

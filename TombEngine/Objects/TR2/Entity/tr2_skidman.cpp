@@ -4,7 +4,7 @@
 #include "Game/Animation/Animation.h"
 #include "Game/items.h"
 #include "Game/collision/collide_item.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/control/box.h"
 #include "Game/control/lot.h"
 #include "Game/effects/smoke.h"
@@ -253,9 +253,9 @@ namespace TEN::Entities::Creatures::TR2
 
 		if (riderItem.Animation.ActiveState != SMAN_STATE_DEATH)
 		{
-			if (creature->Flags == 0 && abs(ai.angle) < SKIDOO_MAN_TARGET_ANGLE && creature->Enemy->HitPoints > 0)
+			if (creature->Flags == 0 && abs(ai.angle) < SKIDOO_MAN_TARGET_ANGLE && creature->Enemy && creature->Enemy->HitPoints > 0)
 			{
-				int damage = (creature->Enemy->IsLara() && GetLaraInfo(creature->Enemy)->Context.Vehicle != NO_VALUE) ? 10 : 50;
+				int damage = (creature->Enemy.IsLara() && GetLaraInfo(creature->Enemy)->Context.Vehicle != NO_VALUE) ? 10 : 50;
 				
 				ShotLara(skidooItem, &ai, SkidooBiteLeft, 0, damage);
 

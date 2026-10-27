@@ -51,6 +51,7 @@ public:
 	void		SetLanguageNames(sol::as_table_t<std::vector<std::string>>&& src);
 	Level*		GetLevel(int id);
 	Level*		GetCurrentLevel();
+	int			GetCurrentLevelIndex() const;
 	int			GetLevelNumber(const std::string& flieName);
 	int			GetNumLevels() const;
 	void		EndLevel(std::optional<int> nextLevel, std::optional<int> startPosIndex);

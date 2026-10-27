@@ -6,12 +6,11 @@ struct CollisionInfo;
 struct ItemInfo;
 class Vector3i;
 
-extern int NumRPickups;
-extern short RPickups[16];
+extern std::vector<short> RPickups;
 
 void InitializePickup(short itemNumber);
 bool SetInventoryCount(GAME_OBJECT_ID objectID, int count);
-void PickedUpObject(GAME_OBJECT_ID objectID, std::optional<int> count = std::nullopt);
+bool PickedUpObject(GAME_OBJECT_ID objectID, std::optional<int> count = std::nullopt);
 void PickedUpObject(ItemInfo& item);
 void RemoveObjectFromInventory(GAME_OBJECT_ID objectID, std::optional<int> count = std::nullopt);
 int GetInventoryCount(GAME_OBJECT_ID objectID);

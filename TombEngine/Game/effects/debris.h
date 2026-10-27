@@ -2,7 +2,7 @@
 #include "Renderer/Graphics/Vertices/Vertex.h"
 #include "Renderer/Renderer.h"
 #include "Specific/level.h"
-#include "Specific/newtypes.h"
+#include "Specific/Structures/newtypes.h"
 
 constexpr int MAX_DEBRIS = 2048;
 
