@@ -24,7 +24,8 @@ Steps:
 5) Once compiled, create a separate folder to serve as your main *TEN* directory (or create a test *TEN* project using *TombIDE*)
 6) Copy everything inside the `Build` folder to the main *TEN* directory.
 7) Ensure you have the necessary level data and texture files.
-8) In case Windows warns about missing DLLs (bass.dll, etc.), copy the missing DLL files found inside the `Libs` folder to your main `TEN` directory.
+
+The build copies the native libraries it needs (audio, video playback and their plugins) next to the executable in `Build/<Config>/Bin`, so nothing else has to be installed.
 
 *Visual Studio* may warn about NuGet packages. To fix:
 1) Delete the `Packages` folder.
@@ -33,6 +34,11 @@ Steps:
 4) If it doesn't help, manually install  `directxtk_desktop_2019` and `Microsoft.XAudio2.Redist` packages via NuGet Package Manager.
 
 Once done, you should be able to build a level with *Tomb Editor* and run it in *TEN*.
+
+# Linux and macOS
+*TEN* also builds and runs on Linux and macOS with CMake:
+- [Building on Windows, Linux and macOS](Documentation/Multiplatform/Development.md): requirements, build steps, WSL, bundled libraries and their update scripts.
+- [Playing and distributing games](Documentation/Multiplatform/Playing.md): game folder layout, system requirements, AppImage, macOS quarantine, settings and saves locations.
 
 # Contributions
 Contributions are welcome. If you would like to participate in development to any degree, whether that be through suggestions, bug reports, or code, join our [Discord server](https://discord.gg/h5tUYFmres).
