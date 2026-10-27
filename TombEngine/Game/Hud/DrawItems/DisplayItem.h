@@ -80,7 +80,7 @@ namespace TEN::Hud
 		void SetPosition(const Vector3& pos, bool disableInterpolation);
 		void SetOrientation(const EulerAngles& orient, bool disableInterpolation);
 		void SetScale(const Vector3& scale, bool disableInterpolation);
-		void SetColor(Color& color, bool disableInterpolation);
+		void SetColor(const Color& color, bool disableInterpolation);
 		void SetVisible(bool visible);
 		void SetDisposing(bool disposing);
 		void SetMeshBits(int meshbits);

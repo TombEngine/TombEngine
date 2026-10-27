@@ -28,7 +28,7 @@ namespace TEN::Entities::Generic
 	void InitializePushableStacks()
 	{
 		// 1) Collect all pushables in level.
-		auto& pushableItemNumbers = FindAllPushables(g_Level.Items);
+		auto pushableItemNumbers = FindAllPushables(g_Level.Items);
 		if (pushableItemNumbers.empty())
 			return;
 

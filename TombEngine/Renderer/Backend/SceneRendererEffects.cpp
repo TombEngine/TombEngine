@@ -304,7 +304,7 @@ namespace TEN::Renderer::Backend
                 auto world = player.InterpolatedAnimationTransforms[isLeft ? LM_LHAND : LM_RHAND] * player.InterpolatedWorld;
                 world = Matrix::CreateRotationZ(zRotation) * xRotation * Matrix::CreateTranslation(offset) * world;
 
-                AddGunFlash(flashObjectID, world, settings.ColorizeMuzzleFlash ? settings.FlashColor : NEUTRAL_COLOR, playerRoom.AmbientLight);
+                AddGunFlash(flashObjectID, world, settings.ColorizeMuzzleFlash ? (Vector4)settings.FlashColor : NEUTRAL_COLOR, playerRoom.AmbientLight);
             };
 
             addArmFlash(Lara.LeftArm, true);

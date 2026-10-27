@@ -4,6 +4,7 @@
 #include <mutex>
 
 #include "Specific/clock.h"
+#include "Specific/trutils.h"
 
 namespace TEN::Benchmark
 {
@@ -39,13 +40,7 @@ namespace TEN::Benchmark
     static std::string GetBenchmarkTimestamp()
     {
         auto now = std::time(nullptr);
-        auto localTime = std::tm{};
-
-#ifdef SDL_PLATFORM_WIN32
-        localtime_s(&localTime, &now);
-#else
-        localtime_r(&now, &localTime);
-#endif
+        auto localTime = TEN::Utils::GetLocalTime(now);
 
         char buffer[32];
         std::strftime(buffer, sizeof(buffer), "%Y%m%d_%H%M%S", &localTime);

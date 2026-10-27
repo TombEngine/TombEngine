@@ -66,6 +66,12 @@ namespace TEN::Platform
 		return {};
 	}
 
+	VideoMemoryInfo LinuxSubsystem::GetVideoMemoryInfo(const std::string& adapterName)
+	{
+		// Not reported yet.
+		return {};
+	}
+
 	void LinuxSubsystem::InstallCrashHandler()
 	{
 		static const auto handler = [](int sig)

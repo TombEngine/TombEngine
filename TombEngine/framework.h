@@ -26,7 +26,6 @@
 #include <ctime>
 #include <chrono>
 #include <deque>
-#include <execution>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -47,6 +46,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <thread>
 #include <tuple>
 #include <queue>
 #include <unordered_map>

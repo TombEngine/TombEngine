@@ -168,7 +168,7 @@ namespace TEN::Hud
 		_scale = scale;
 	}
 
-	void DisplayItem::SetColor(Color& color, bool disableInterpolation)
+	void DisplayItem::SetColor(const Color& color, bool disableInterpolation)
 	{
 		if (!_wasInterpolated || disableInterpolation)
 			_prevColor = color;

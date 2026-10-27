@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Renderer/RHI/RHITypes.h"
+#include "Specific/Platform/ISubsystem.h"
 
 // Estimated GPU memory of the live RHI resources, counted by backend resource objects through MemoryAllocation,
 // plus the adapter memory the operating system reports, for the debug statistics.
@@ -17,15 +18,7 @@ namespace TEN::Renderer::RHI
         Count
     };
 
-    // Memory of the adapter reported by the operating system; zero where it is not available.
-    struct AdapterMemory
-    {
-        unsigned long long DedicatedVideoMemory = 0;
-        unsigned long long SharedSystemMemory   = 0;
-        unsigned long long ProcessUsage         = 0; // Video memory used by the process, all allocations included.
-        unsigned long long ProcessBudget        = 0; // Video memory the process can use before the system evicts it.
-        unsigned long long AdapterUsage         = 0; // Dedicated video memory used by every process.
-    };
+    using AdapterMemory = TEN::Platform::VideoMemoryInfo;
 
     struct MemoryStats
     {

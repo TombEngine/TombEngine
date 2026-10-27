@@ -101,7 +101,7 @@ namespace TEN::Effects::Smoke
 		s.velocity = direction2 * Random::GenerateFloat(7, 9);
 		s.gravity = -0.2f;
 		s.friction = Random::GenerateFloat(0.7f, 0.85f);
-		s.sourceColor = g_GameFlow->GetSettings()->Flare.Color * Vector4(0.5f);
+		s.sourceColor = (Vector4)g_GameFlow->GetSettings()->Flare.Color * Vector4(0.5f);
 		s.destinationColor = Vector4(1, 1, 1, 0);
 		s.life = Random::GenerateFloat(25, 35);
 		s.angularVelocity = Random::GenerateFloat(-0.3f, 0.3f);

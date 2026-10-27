@@ -281,7 +281,7 @@ void TriggerMetalSparks(int x, int y, int z, int xv, int yv, int zv, const Vecto
 void TriggerAttackFlame(const Vector3i& pos, const Vector3& color, int scale);
 void TriggerRocketFire(int x, int y, int z);
 void TriggerExplosionBubbles(int x, int y, int z, short roomNumber, const Vector3& mainColor = Vector3::Zero, const Vector3& secondColor = Vector3::Zero);
-void Ricochet(Pose& pos);
+void Ricochet(const Pose& pos);
 void ProcessEffects(ItemInfo* item);
 void UpdateWibble();
 

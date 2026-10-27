@@ -458,9 +458,9 @@ namespace TEN::Effects
 				if (ImGui::ColorEdit3("Color A##single", col))
 				{
 					lensFlare.SetColor(ScriptColor(
-						static_cast<byte>(col[0] * 255.0f),
-						static_cast<byte>(col[1] * 255.0f),
-						static_cast<byte>(col[2] * 255.0f)));
+						(unsigned char)(col[0] * 255.0f),
+						(unsigned char)(col[1] * 255.0f),
+						(unsigned char)(col[2] * 255.0f)));
 				}
 
 				Color evalColor = lensFlare.EvaluateColor();
@@ -486,9 +486,9 @@ namespace TEN::Effects
 				if (ImGui::ColorEdit3("Color A (Horizon)", colA))
 				{
 					lensFlare.SetColor(ScriptColor(
-						static_cast<byte>(colA[0] * 255.0f),
-						static_cast<byte>(colA[1] * 255.0f),
-						static_cast<byte>(colA[2] * 255.0f)));
+						(unsigned char)(colA[0] * 255.0f),
+						(unsigned char)(colA[1] * 255.0f),
+						(unsigned char)(colA[2] * 255.0f)));
 				}
 
 				// Color B (zenith).
@@ -501,9 +501,9 @@ namespace TEN::Effects
 				if (ImGui::ColorEdit3("Color B (Zenith)", colB))
 				{
 					lensFlare.SetColorB(ScriptColor(
-						static_cast<byte>(colB[0] * 255.0f),
-						static_cast<byte>(colB[1] * 255.0f),
-						static_cast<byte>(colB[2] * 255.0f)));
+						(unsigned char)(colB[0] * 255.0f),
+						(unsigned char)(colB[1] * 255.0f),
+						(unsigned char)(colB[2] * 255.0f)));
 				}
 
 				// Show gradient preview strip.

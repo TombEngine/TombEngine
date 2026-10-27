@@ -938,11 +938,11 @@ namespace TEN::Gui
 								break;
 
 							case Menu::QuickActions:
-								baseIndex = unsigned int(GeneralActionStrings.size() + VehicleActionStrings.size());
+								baseIndex = (unsigned int)(GeneralActionStrings.size() + VehicleActionStrings.size());
 								break;
 
 							case Menu::MenuActions:
-								baseIndex = unsigned int(GeneralActionStrings.size() + VehicleActionStrings.size() + QuickActionStrings.size());
+								baseIndex = (unsigned int)(GeneralActionStrings.size() + VehicleActionStrings.size() + QuickActionStrings.size());
 								break;
 
 							default:
@@ -2919,7 +2919,7 @@ namespace TEN::Gui
 		const auto& player = GetLaraInfo(*item);
 		auto& ring = Rings[(int)ringType];
 
-		if (ring.CurrentObjectList <= 0)
+		if (ring.CurrentObjectList == nullptr)
 			return;
 
 		if (ringType == RingTypes::Ammo)

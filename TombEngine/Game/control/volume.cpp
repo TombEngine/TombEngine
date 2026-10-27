@@ -57,7 +57,7 @@ namespace TEN::Control::Volumes
 		return BoundingOrientedBox(pos, Vector3(coll.Radius, pBounds.Extents.y, coll.Radius), rot);
 	}
 
-	void HandleAllGlobalEvents(EventType type, Activator& activator)
+	void HandleAllGlobalEvents(EventType type, Activator activator)
 	{
 		// HACK: Speedhack to only process looped events which are actually existing.
 

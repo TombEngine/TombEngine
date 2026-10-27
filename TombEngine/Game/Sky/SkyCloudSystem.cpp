@@ -250,9 +250,9 @@ namespace TEN::Sky
 		return snap;
 	}
 
-	static byte LerpByte(byte a, byte b, float t)
+	static unsigned char LerpByte(unsigned char a, unsigned char b, float t)
 	{
-		return static_cast<byte>(std::clamp(
+		return (unsigned char)(std::clamp(
 			static_cast<int>(std::round(a + (b - a) * t)), 0, 255));
 	}
 

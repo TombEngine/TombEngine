@@ -6,6 +6,7 @@
 #include "Game/itemdata/creature_info.h"
 #include "Game/LevelCamera.h"
 #include "Game/room.h"
+#include "Game/Sink.h"
 #include "Game/spotcam.h"
 #include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
@@ -16,12 +17,28 @@ using namespace TEN::Animation;
 using namespace TEN::Control::Volumes;
 using namespace TEN::SpotCam;
 
+// TODO: Use DX BoundingBox class to store AABB.
+struct BOX_INFO
+{
+	unsigned int left;
+	unsigned int right;
+	unsigned int top;
+	unsigned int bottom;
+
+	int height;
+	int overlapIndex;
+	int flags;
+};
+
+struct OVERLAP
+{
+	int box;
+	int flags;
+};
+
 struct ChunkId;
 struct LEB128;
 struct SampleInfo;
-struct SinkInfo;
-struct BOX_INFO;
-struct OVERLAP;
 
 struct TEXTURE
 {

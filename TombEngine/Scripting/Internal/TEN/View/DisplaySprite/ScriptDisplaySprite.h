@@ -9,8 +9,6 @@
 using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Scripting::Types;
 
-enum BLEND_MODE;
-
 namespace TEN::Scripting::DisplaySprite
 {
 	class ScriptDisplaySprite

@@ -312,13 +312,13 @@ namespace TEN::Scripting::Effects
 		auto bMode = table.get_or("blendMode", BlendMode::AlphaBlend);
 		part.blendMode = bMode;
 
-		auto pos = (Vec3)table["pos"];
+		auto pos = table["pos"].get<Vec3>();
 		part.x = pos.x;
 		part.y = pos.y;
 		part.z = pos.z;
 		part.roomNumber = FindRoomNumber(pos.ToVector3i());
 
-		auto vel = ((Vec3)table["vel"]) / (float)FPS;
+		auto vel = table["vel"].get<Vec3>() / (float)FPS;
 		part.xVel = short(vel.x * 32);
 		part.yVel = short(vel.y * 32);
 		part.zVel = short(vel.z * 32);
@@ -337,12 +337,12 @@ namespace TEN::Scripting::Effects
 		part.friction = table.get_or("friction", 0.0f) / (float)FPS;
 		part.maxYvel = table.get_or("maxYVel", 0.0f) / (float)FPS;
 
-		auto convertedStartColor = table.get_or("startColor", ScriptColor(255, 255, 255));
+		auto convertedStartColor = table.get<sol::optional<ScriptColor>>("startColor").value_or(ScriptColor(255, 255, 255));
 		part.sR = convertedStartColor.GetR();
 		part.sG = convertedStartColor.GetG();
 		part.sB = convertedStartColor.GetB();
 
-		auto convertedEndColor = table.get_or("endColor", ScriptColor(255, 255, 255));
+		auto convertedEndColor = table.get<sol::optional<ScriptColor>>("endColor").value_or(ScriptColor(255, 255, 255));
 		part.dR = convertedEndColor.GetR();
 		part.dG = convertedEndColor.GetG();
 		part.dB = convertedEndColor.GetB();
@@ -409,7 +409,7 @@ namespace TEN::Scripting::Effects
 				part.flags |= SP_WIND;
 		}
 
-		Rotation convertedConstraint = table.get_or("constraint", Rotation(0, 0, 0));
+		Rotation convertedConstraint = table.get<sol::optional<Rotation>>("constraint").value_or(Rotation(0, 0, 0));
 		if (!(convertedConstraint == Rotation(0, 0, 0)))
 		{
 			part.flags |= SP_CONSTRAINED;
@@ -758,7 +758,7 @@ namespace TEN::Scripting::Effects
 	// @tfield[opt=Color(255&#44; 255&#44; 255)] Color baseColor Color of the particles.
 	static void EmitWeather(const sol::table& table)
 	{
-		auto pos = Vec3(table.get_or("position", Vec3(0, 0, 0)));
+		auto pos = Vec3(table.get<sol::optional<Vec3>>("position").value_or(Vec3(0, 0, 0)));
 		if (pos.ToVector3() == Vector3::Zero)
 		{
 			TENLog("EmitWeather() 'position' not specified, aborting.", LogLevel::Error);
@@ -767,14 +767,14 @@ namespace TEN::Scripting::Effects
 
 		WeatherParameters params;
 		params.Type = table.get_or("type", WeatherType::Rain);
-		params.InitialVelocity = table.get_or("initialVelocity", Vec3(0, 0, 0));
+		params.InitialVelocity = table.get<sol::optional<Vec3>>("initialVelocity").value_or(Vec3(0, 0, 0));
 		params.Life = table.get_or("life", 1.0f);
 		params.Strength = std::clamp((float)table.get_or("strength", 1.0f), 0.1f, 2.0f);
-		params.SpawnRange = table.get_or("spawnRange", Vec3(BLOCK(8), BLOCK(1), BLOCK(8)));
-		params.SpawnRotation = table.get_or("spawnRotation", Rotation(0, 0, 0)).ToEulerAngles().ToQuaternion();
+		params.SpawnRange = table.get<sol::optional<Vec3>>("spawnRange").value_or(Vec3(BLOCK(8), BLOCK(1), BLOCK(8)));
+		params.SpawnRotation = table.get<sol::optional<Rotation>>("spawnRotation").value_or(Rotation(0, 0, 0)).ToEulerAngles().ToQuaternion();
 		params.Clustering = table.get_or("enableClustering", false);
 		params.Flags = table.get_or("checkWindFlag", true) ? WeatherFlags::None : WeatherFlags::IgnoreWindRoom;
-		params.BaseColor = table.get_or("baseColor", params.Type == WeatherType::Rain ? ScriptColor(204, 255, 255, 255) : ScriptColor(255, 255, 255, 255)); // Rain default color is light blueish.
+		params.BaseColor = table.get<sol::optional<ScriptColor>>("baseColor").value_or(params.Type == WeatherType::Rain ? ScriptColor(204, 255, 255, 255) : ScriptColor(255, 255, 255, 255)); // Rain default color is light blueish.
 		Weather.SpawnWeatherParticles(pos.ToVector3i(), params);
 	}	
 	/// Emit a splash effect. Consists of a ripple effect and a splash ring.

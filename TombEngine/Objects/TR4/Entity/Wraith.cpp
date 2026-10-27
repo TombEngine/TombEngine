@@ -503,7 +503,7 @@ namespace TEN::Entities::TR4
 
 						int amplitude = Random::GenerateInt(1, 16);
 
-						SoundEffect(SFX_TR4_ELECTRIC_ARCING_LOOP, &Pose(Vector3i(arcOrigin)));
+						auto arcPose = Pose(Vector3i(arcOrigin));						SoundEffect(SFX_TR4_ELECTRIC_ARCING_LOOP, &arcPose);
 
 						SpawnElectricity(arcOrigin, arcTarget, amplitude, 255, 255, 255, 10, (int)ElectricityFlags::ThinIn, 12, 10);
 						SpawnElectricity(arcOrigin, arcTarget, amplitude, 255, 255, 255, 10, (int)ElectricityFlags::ThinIn, 4, 10);
@@ -640,9 +640,9 @@ namespace TEN::Entities::TR4
 				{
 				case Wraith4AttackType::Electric:
 					{
-						byte elecR = (byte)(wraith4Color.x * UCHAR_MAX);
-						byte elecG = (byte)(wraith4Color.y * UCHAR_MAX);
-						byte elecB = (byte)(wraith4Color.z * UCHAR_MAX);
+						unsigned char elecR = (unsigned char)(wraith4Color.x * UCHAR_MAX);
+						unsigned char elecG = (unsigned char)(wraith4Color.y * UCHAR_MAX);
+						unsigned char elecB = (unsigned char)(wraith4Color.z * UCHAR_MAX);
 
 						ItemElectricBurn(target, wraith4Damage);
 

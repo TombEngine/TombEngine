@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <execution>
 #include <filesystem>
 
 #include "Game/Animation/Animation.h"

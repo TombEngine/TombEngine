@@ -16,7 +16,7 @@ using namespace TEN::Scripting::Properties;
 class ObjectsHandler : public ScriptInterfaceObjectsHandler
 {
 public:
-	ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent);
+	ObjectsHandler(sol::state* lua, sol::table& parent);
 
 	bool NotifyKilled(ItemInfo* key) override;
 	bool AddMoveableToMap(ItemInfo* key, Moveable* mov);

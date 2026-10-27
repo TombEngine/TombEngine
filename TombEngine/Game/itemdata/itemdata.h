@@ -143,6 +143,12 @@ class ItemData
 		return !std::holds_alternative<std::nullptr_t>(data);
 	}
 
+	// Non-const overload, so a test on a non-const object does not pick the template conversion to bool&.
+	operator bool()
+	{
+		return !std::holds_alternative<std::nullptr_t>(data);
+	}
+
 	template<typename ... Funcs>
 	void apply(Funcs&&... funcs)
 	{

@@ -59,7 +59,7 @@ template<size_t N> static std::pair<int*, size_t> GetArrayInternal(LaraInfo& lar
 }
 
 // Base case for recursion
-template<> static std::pair<int*, size_t> GetArrayInternal<0>(LaraInfo& lara, GAME_OBJECT_ID objectID)
+template<> std::pair<int*, size_t> GetArrayInternal<0>(LaraInfo& lara, GAME_OBJECT_ID objectID)
 {
 	return TestAgainstRange<0>(lara, objectID);
 }

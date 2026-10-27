@@ -4,10 +4,13 @@
 #ifdef SDL_PLATFORM_WIN32
 
 #include <DbgHelp.h>
+#include <dxgi1_4.h>
+#include <pdh.h>
 #include <shellapi.h>
 #include <sstream>
 #include <iostream>
 #include <commctrl.h>
+#include <wrl/client.h>
 
 #include "Game/control/control.h"
 #include "Specific/trutils.h"
@@ -373,6 +376,70 @@ namespace TEN::Platform
 
 		auto exeName = std::filesystem::path(fileName).filename().string();
 		return result + exeName;
+	}
+
+	// The DXGI budget ignores the memory other processes hold, which the system rarely evicts for the game.
+	// The performance counters report the dedicated memory every process uses on the adapter.
+	static unsigned long long GetAdapterDedicatedUsage(const LUID& luid)
+	{
+		auto query = PDH_HQUERY{};
+		if (PdhOpenQueryW(nullptr, 0, &query) != ERROR_SUCCESS)
+			return 0;
+
+		auto path = TEN::Utils::ToWString(fmt::format("\\GPU Adapter Memory(luid_0x{:08X}_0x{:08X}_phys_0)\\Dedicated Usage",
+			(unsigned int)luid.HighPart, (unsigned int)luid.LowPart));
+		auto counter = PDH_HCOUNTER{};
+		auto value = PDH_FMT_COUNTERVALUE{};
+		unsigned long long usage = 0;
+		if (PdhAddEnglishCounterW(query, path.c_str(), 0, &counter) == ERROR_SUCCESS && PdhCollectQueryData(query) == ERROR_SUCCESS &&
+			PdhGetFormattedCounterValue(counter, PDH_FMT_LARGE, nullptr, &value) == ERROR_SUCCESS)
+		{
+			usage = (unsigned long long)value.largeValue;
+		}
+
+		PdhCloseQuery(query);
+		return usage;
+	}
+
+	// DXGI describes the adapters of every backend; the adapter is found by the name the device reports.
+	VideoMemoryInfo WindowsSubsystem::GetVideoMemoryInfo(const std::string& adapterName)
+	{
+		using Microsoft::WRL::ComPtr;
+
+		auto memory = VideoMemoryInfo{};
+		auto factory = ComPtr<IDXGIFactory1>{};
+		if (adapterName.empty() || FAILED(CreateDXGIFactory1(IID_PPV_ARGS(factory.GetAddressOf()))))
+			return memory;
+
+		auto name = TEN::Utils::ToWString(adapterName);
+		auto adapter = ComPtr<IDXGIAdapter1>{};
+		for (unsigned int i = 0; factory->EnumAdapters1(i, adapter.ReleaseAndGetAddressOf()) != DXGI_ERROR_NOT_FOUND; i++)
+		{
+			auto desc = DXGI_ADAPTER_DESC1{};
+			if (FAILED(adapter->GetDesc1(&desc)))
+				continue;
+
+			auto description = std::wstring(desc.Description);
+			if (name.find(description) == std::wstring::npos && description.find(name) == std::wstring::npos)
+				continue;
+
+			memory.DedicatedVideoMemory = desc.DedicatedVideoMemory;
+			memory.SharedSystemMemory = desc.SharedSystemMemory;
+
+			auto adapter3 = ComPtr<IDXGIAdapter3>{};
+			auto info = DXGI_QUERY_VIDEO_MEMORY_INFO{};
+			if (SUCCEEDED(adapter.As(&adapter3)) && SUCCEEDED(adapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &info)))
+			{
+				memory.ProcessUsage = info.CurrentUsage;
+				memory.ProcessBudget = info.Budget;
+			}
+
+			memory.AdapterUsage = GetAdapterDedicatedUsage(desc.AdapterLuid);
+
+			break;
+		}
+
+		return memory;
 	}
 
 	std::vector<unsigned short> WindowsSubsystem::GetProductOrFileVersion(bool productVersion)

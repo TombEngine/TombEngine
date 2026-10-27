@@ -72,6 +72,12 @@ namespace TEN::Platform
 		return {};
 	}
 
+	VideoMemoryInfo MacOSSubsystem::GetVideoMemoryInfo(const std::string& adapterName)
+	{
+		// Not reported yet.
+		return {};
+	}
+
 	void MacOSSubsystem::InstallCrashHandler()
 	{
 		static const auto handler = [](int sig)

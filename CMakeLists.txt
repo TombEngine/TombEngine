@@ -8,10 +8,16 @@ if(NOT DEFINED CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "")
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
 endif()
 
-project(TombEngine LANGUAGES CXX RC)
+project(TombEngine LANGUAGES CXX)
 
-if(NOT MSVC)
-    message(FATAL_ERROR "Only MSVC on Windows is supported for now: the libraries and build events come from the Visual Studio project.")
+# Windows builds use MSVC with the settings and libraries of the Visual Studio project; Linux and macOS builds use
+# GCC or Clang with the libraries of Tools/CMake/Dependencies.cmake.
+if(WIN32 AND NOT MSVC)
+    message(FATAL_ERROR "Windows builds need the MSVC toolchain.")
+endif()
+
+if(WIN32)
+    enable_language(RC)
 endif()
 
 get_property(TEN_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
@@ -30,12 +36,14 @@ else()
 endif()
 
 # MSBuild settings are applied explicitly, so the CMake defaults per configuration are cleared.
-foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES)
-    string(TOUPPER "${config}" config)
-    set(CMAKE_CXX_FLAGS_${config} "")
-    set(CMAKE_RC_FLAGS_${config} "")
-    set(CMAKE_EXE_LINKER_FLAGS_${config} "")
-endforeach()
+if(MSVC)
+    foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES)
+        string(TOUPPER "${config}" config)
+        set(CMAKE_CXX_FLAGS_${config} "")
+        set(CMAKE_RC_FLAGS_${config} "")
+        set(CMAKE_EXE_LINKER_FLAGS_${config} "")
+    endforeach()
+endif()
 
 set(TEN_SOURCES
     "${TEN_PROJECT_DIR}/framework.cpp"
@@ -559,6 +567,9 @@ set(TEN_SOURCES
     "${TEN_PROJECT_DIR}/Specific/trutils.cpp"
     "${TEN_PROJECT_DIR}/Specific/Video/Video.cpp"
     "${TEN_PROJECT_DIR}/Specific/EngineMain.cpp"
+)
+
+set(TEN_RESOURCES
     "${TEN_PROJECT_DIR}/Resources.rc"
 )
 
@@ -616,6 +627,7 @@ set(TEN_HEADERS
     "${TEN_PROJECT_DIR}/Game/control/los.h"
     "${TEN_PROJECT_DIR}/Game/control/lot.h"
     "${TEN_PROJECT_DIR}/Game/control/trigger.h"
+    "${TEN_PROJECT_DIR}/Game/control/TriggerVolume.h"
     "${TEN_PROJECT_DIR}/Game/control/volume.h"
     "${TEN_PROJECT_DIR}/Game/control/event.h"
     "${TEN_PROJECT_DIR}/Game/effects/Blood.h"
@@ -1208,7 +1220,7 @@ set(TEN_INCLUDE_DIRECTORIES
     "${TEN_SOLUTION_DIR}/Libs/lz4"
     "${TEN_SOLUTION_DIR}/Libs/sdl3/include"
     "${TEN_SOLUTION_DIR}/Libs/spdlog"
-    "${TEN_SOLUTION_DIR}/Libs/vlc"
+    "${TEN_SOLUTION_DIR}/Libs/vlc/include"
     "${TEN_SOLUTION_DIR}/Libs/bass"
     "${TEN_SOLUTION_DIR}/Libs/srtparser"
 )
@@ -1365,6 +1377,9 @@ else()
 endif()
 
 add_executable(TombEngine ${TEN_SOURCES} ${TEN_HEADERS})
+if(WIN32)
+    target_sources(TombEngine PRIVATE ${TEN_RESOURCES})
+endif()
 
 set_target_properties(TombEngine PROPERTIES
     OUTPUT_NAME "TombEngine"
@@ -1379,22 +1394,32 @@ set_target_properties(TombEngine PROPERTIES
 
 target_compile_definitions(TombEngine PRIVATE ${TEN_DEFINITIONS} "$<$<CONFIG:Debug>:${TEN_DEFINITIONS_DEBUG}>" "$<$<CONFIG:Release>:${TEN_DEFINITIONS_RELEASE}>")
 target_include_directories(TombEngine PRIVATE ${TEN_INCLUDE_DIRECTORIES} "$<$<CONFIG:Debug>:${TEN_INCLUDE_DIRECTORIES_DEBUG}>" "$<$<CONFIG:Release>:${TEN_INCLUDE_DIRECTORIES_RELEASE}>")
+
+if(MSVC)
 target_compile_options(TombEngine PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${TEN_CXX_OPTIONS}>" "$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:Debug>>:${TEN_CXX_OPTIONS_DEBUG}>" "$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:Release>>:${TEN_CXX_OPTIONS_RELEASE}>")
 target_link_options(TombEngine PRIVATE ${TEN_LINK_OPTIONS} "$<$<CONFIG:Debug>:${TEN_LINK_OPTIONS_DEBUG}>" "$<$<CONFIG:Release>:${TEN_LINK_OPTIONS_RELEASE}>")
 target_link_directories(TombEngine PRIVATE ${TEN_LINK_DIRECTORIES} "$<$<CONFIG:Debug>:${TEN_LINK_DIRECTORIES_DEBUG}>" "$<$<CONFIG:Release>:${TEN_LINK_DIRECTORIES_RELEASE}>")
 target_link_libraries(TombEngine PRIVATE ${TEN_LINK_LIBRARIES} "$<$<CONFIG:Debug>:${TEN_LINK_LIBRARIES_DEBUG}>" "$<$<CONFIG:Release>:${TEN_LINK_LIBRARIES_RELEASE}>")
+else()
+    include("${TEN_SOLUTION_DIR}/Tools/CMake/Dependencies.cmake")
+endif()
 
 target_precompile_headers(TombEngine PRIVATE "${TEN_PROJECT_DIR}/framework.h")
 set_source_files_properties(${TEN_NO_PCH_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 
 # Build events: PowerShell scripts shared with the Visual Studio project (Windows PowerShell or PowerShell 7).
-find_program(TEN_POWERSHELL NAMES pwsh powershell REQUIRED)
+option(TEN_BUILD_EVENTS "Run the pre-build and post-build scripts, which need PowerShell." ON)
+if(TEN_BUILD_EVENTS)
+    find_program(TEN_POWERSHELL NAMES pwsh powershell REQUIRED)
+endif()
+
 set(TEN_TARGET_DIR "")
 foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES)
     string(TOUPPER "${config}" configUpper)
     string(APPEND TEN_TARGET_DIR "$<$<CONFIG:${config}>:${TEN_OUTPUT_DIR_${configUpper}}>")
 endforeach()
 
+if(TEN_BUILD_EVENTS)
 add_custom_target(TombEnginePreBuild
     COMMAND "${TEN_POWERSHELL}" -NoProfile "-ExecutionPolicy" "Bypass" "-File" "${TEN_SOLUTION_DIR}/Tools/BuildEvents/PreBuild.ps1" "-Configuration" "$<CONFIG>" "-Platform" "${TEN_PLATFORM}" "-BuildDir" "${TEN_BUILD_ROOT}/$<CONFIG>" "-TargetDir" "${TEN_TARGET_DIR}/."
     COMMENT "Generating documentation, FlatBuffers code and copying needed files..."
@@ -1407,6 +1432,8 @@ add_custom_command(TARGET TombEngine POST_BUILD
     VERBATIM
 )
 
-source_group(TREE "${TEN_SOLUTION_DIR}" FILES ${TEN_SOURCES} ${TEN_HEADERS})
+endif()
+
+source_group(TREE "${TEN_SOLUTION_DIR}" FILES ${TEN_SOURCES} ${TEN_RESOURCES} ${TEN_HEADERS})
 set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT TombEngine)
 set_target_properties(TombEngine PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:TombEngine>")

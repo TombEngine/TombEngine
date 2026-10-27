@@ -36,7 +36,7 @@ private:
 	static int LastSaveGame;
 	static std::map<int, std::vector<unsigned char>> Hub;
 
-	static std::string SaveGame::GetSavegameFilename(int slot);
+	static std::string GetSavegameFilename(int slot);
 	static bool IsSaveGameSlotValid(int slot);
 
 	static const std::vector<unsigned char> Build();

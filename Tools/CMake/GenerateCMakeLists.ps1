@@ -717,10 +717,16 @@ Emit "if(NOT DEFINED CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL `"`")"
 Emit "    set(CMAKE_BUILD_TYPE `"$($configNames[-1])`" CACHE STRING `"`" FORCE)"
 Emit "endif()"
 Emit
-Emit "project($projectName LANGUAGES CXX RC)"
+Emit "project($projectName LANGUAGES CXX)"
 Emit
-Emit "if(NOT MSVC)"
-Emit "    message(FATAL_ERROR `"Only MSVC on Windows is supported for now: the libraries and build events come from the Visual Studio project.`")"
+Emit "# Windows builds use MSVC with the settings and libraries of the Visual Studio project; Linux and macOS builds use"
+Emit "# GCC or Clang with the libraries of Tools/CMake/Dependencies.cmake."
+Emit "if(WIN32 AND NOT MSVC)"
+Emit "    message(FATAL_ERROR `"Windows builds need the MSVC toolchain.`")"
+Emit "endif()"
+Emit
+Emit "if(WIN32)"
+Emit "    enable_language(RC)"
 Emit "endif()"
 Emit
 Emit "get_property(TEN_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)"
@@ -739,15 +745,19 @@ Emit "    set(TEN_PLATFORM Win32)"
 Emit "endif()"
 Emit
 Emit "# MSBuild settings are applied explicitly, so the CMake defaults per configuration are cleared."
-Emit "foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES)"
-Emit "    string(TOUPPER `"`${config}`" config)"
-Emit "    set(CMAKE_CXX_FLAGS_`${config} `"`")"
-Emit "    set(CMAKE_RC_FLAGS_`${config} `"`")"
-Emit "    set(CMAKE_EXE_LINKER_FLAGS_`${config} `"`")"
-Emit "endforeach()"
+Emit "if(MSVC)"
+Emit "    foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES)"
+Emit "        string(TOUPPER `"`${config}`" config)"
+Emit "        set(CMAKE_CXX_FLAGS_`${config} `"`")"
+Emit "        set(CMAKE_RC_FLAGS_`${config} `"`")"
+Emit "        set(CMAKE_EXE_LINKER_FLAGS_`${config} `"`")"
+Emit "    endforeach()"
+Emit "endif()"
 Emit
 
-Emit-Set "" "TEN_SOURCES" @($sources + $resources)
+Emit-Set "" "TEN_SOURCES" @($sources)
+Emit
+Emit-Set "" "TEN_RESOURCES" @($resources)
 Emit
 Emit-Set "" "TEN_HEADERS" @($headers)
 Emit
@@ -801,6 +811,9 @@ Emit "endif()"
 Emit
 
 Emit "add_executable($projectName `${TEN_SOURCES} `${TEN_HEADERS})"
+Emit "if(WIN32)"
+Emit "    target_sources($projectName PRIVATE `${TEN_RESOURCES})"
+Emit "endif()"
 Emit
 Emit "set_target_properties($projectName PROPERTIES"
 Emit "    OUTPUT_NAME `"$projectName`""
@@ -826,10 +839,15 @@ $cxxGenex = @($configNames | ForEach-Object { "`"`$<`$<AND:`$<COMPILE_LANGUAGE:C
 
 Emit "target_compile_definitions($projectName PRIVATE `${TEN_DEFINITIONS} $($configGenex["TEN_DEFINITIONS"]))"
 Emit "target_include_directories($projectName PRIVATE `${TEN_INCLUDE_DIRECTORIES} $($configGenex["TEN_INCLUDE_DIRECTORIES"]))"
+Emit
+Emit "if(MSVC)"
 Emit "target_compile_options($projectName PRIVATE `"`$<`$<COMPILE_LANGUAGE:CXX>:`${TEN_CXX_OPTIONS}>`" $cxxGenex)"
 Emit "target_link_options($projectName PRIVATE `${TEN_LINK_OPTIONS} $($configGenex["TEN_LINK_OPTIONS"]))"
 Emit "target_link_directories($projectName PRIVATE `${TEN_LINK_DIRECTORIES} $($configGenex["TEN_LINK_DIRECTORIES"]))"
 Emit "target_link_libraries($projectName PRIVATE `${TEN_LINK_LIBRARIES} $($configGenex["TEN_LINK_LIBRARIES"]))"
+Emit "else()"
+Emit "    include(`"`${TEN_SOLUTION_DIR}/Tools/CMake/Dependencies.cmake`")"
+Emit "endif()"
 Emit
 
 if ($usesPch -and $null -ne $pchHeader)
@@ -843,7 +861,11 @@ $preBuildCommands = @(Get-EventCommands "PreBuildEvent")
 $postBuildCommands = @(Get-EventCommands "PostBuildEvent")
 
 Emit "# Build events: PowerShell scripts shared with the Visual Studio project (Windows PowerShell or PowerShell 7)."
-Emit "find_program(TEN_POWERSHELL NAMES pwsh powershell REQUIRED)"
+Emit "option(TEN_BUILD_EVENTS `"Run the pre-build and post-build scripts, which need PowerShell.`" ON)"
+Emit "if(TEN_BUILD_EVENTS)"
+Emit "    find_program(TEN_POWERSHELL NAMES pwsh powershell REQUIRED)"
+Emit "endif()"
+Emit
 Emit "set(TEN_TARGET_DIR `"`")"
 Emit "foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES)"
 Emit "    string(TOUPPER `"`${config}`" configUpper)"
@@ -851,6 +873,7 @@ Emit "    string(APPEND TEN_TARGET_DIR `"`$<`$<CONFIG:`${config}>:`${TEN_OUTPUT_
 Emit "endforeach()"
 Emit
 
+Emit "if(TEN_BUILD_EVENTS)"
 if ($preBuildCommands.Count -gt 0)
 {
     $message = $settings[$configs[0].Key]["PreBuildEvent.Message"]
@@ -885,7 +908,9 @@ if ($postBuildCommands.Count -gt 0)
     Emit
 }
 
-Emit "source_group(TREE `"`${TEN_SOLUTION_DIR}`" FILES `${TEN_SOURCES} `${TEN_HEADERS})"
+Emit "endif()"
+Emit
+Emit "source_group(TREE `"`${TEN_SOLUTION_DIR}`" FILES `${TEN_SOURCES} `${TEN_RESOURCES} `${TEN_HEADERS})"
 Emit "set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT $projectName)"
 Emit "set_target_properties($projectName PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY `"`$<TARGET_FILE_DIR:$projectName>`")"
 

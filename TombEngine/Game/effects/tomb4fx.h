@@ -314,7 +314,7 @@ void ThrowPoison(const ItemInfo& item, const CreatureBiteInfo& bite, const Vecto
 void UpdateFireProgress();
 void ClearFires();
 void AddFire(int x, int y, int z, short roomNum, float size, short fade = 1);
-void AddFire(Vector3i& pos, int roomNumber, Vector4 color, float size, short fade = 1);
+void AddFire(const Vector3i& pos, int roomNumber, Vector4 color, float size, short fade = 1);
 void UpdateFireSparks(bool recursive = false);
 int GetFreeSmokeSpark();
 void UpdateSmoke();

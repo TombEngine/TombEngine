@@ -386,7 +386,7 @@ void AddFire(int x, int y, int z, short roomNum, float size, short fade)
 	AddFire(Vector3i(x, y, z), roomNum, NEUTRAL_COLOR, size, fade);
 }
 
-void AddFire(Vector3i& pos, int roomNumber, Vector4 color, float size, short fade)
+void AddFire(const Vector3i& pos, int roomNumber, Vector4 color, float size, short fade)
 {
 	FIRE_LIST newFire;
 	

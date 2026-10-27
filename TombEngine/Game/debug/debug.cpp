@@ -2,6 +2,7 @@
 #include "Game/debug/debug.h"
 
 #include "Renderer/Renderer.h"
+#include "Specific/trutils.h"
 
 using TEN::Renderer::g_Renderer;
 
@@ -17,13 +18,7 @@ namespace TEN::Debug
 		auto now = std::chrono::system_clock::now();
 		auto t = std::chrono::system_clock::to_time_t(now);
 
-		std::tm tmBuf{};
-
-#ifdef SDL_PLATFORM_WIN32
-		localtime_s(&tmBuf, &t);
-#else
-		localtime_r(&t, &tmBuf);
-#endif
+		auto tmBuf = TEN::Utils::GetLocalTime(t);
 
 		std::ostringstream oss;
 		oss << std::put_time(&tmBuf, "%Y-%m-%d_%H-%M-%S");

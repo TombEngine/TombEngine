@@ -3,7 +3,7 @@
 #include "Math/Math.h"
 #include "Objects/game_object_ids.h"
 
-enum RoomEnvFlags;
+enum RoomEnvFlags : int;
 class FloorInfo;
 struct ItemInfo;
 struct RoomData;

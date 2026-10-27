@@ -757,7 +757,7 @@ void TriggerExplosionSparks(int x, int y, int z, int extraTrig, int dynamic, int
 		}
 	}
 
-	spark.extras = unsigned char(extraTrig | ((EXTRAS_TABLE[extraTrig] + (GetRandomControl() & 7) + 28) << 3));
+	spark.extras = (unsigned char)(extraTrig | ((EXTRAS_TABLE[extraTrig] + (GetRandomControl() & 7) + 28) << 3));
 	spark.dynamic = (char)dynamic;
 
 	if (dynamic == -2)
@@ -1228,7 +1228,7 @@ void TriggerLaraBlood()
 	}
 }
 
-void Ricochet(Pose& pose)
+void Ricochet(const Pose& pose)
 {
 	short angle = Geometry::GetOrientToPoint(pose.Position.ToVector3(), LaraItem->Pose.Position.ToVector3()).y;
 	auto target = GameVector(pose.Position);

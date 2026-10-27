@@ -156,6 +156,20 @@ namespace TEN::Utils
 		return ToString(wString.c_str());
 	}
 
+	// Thread-safe conversion to local calendar time; the C library spells it differently on Windows.
+	std::tm GetLocalTime(std::time_t time)
+	{
+		auto result = std::tm{};
+
+#ifdef SDL_PLATFORM_WIN32
+		localtime_s(&result, &time);
+#else
+		localtime_r(&time, &result);
+#endif
+
+		return result;
+	}
+
 	std::string ToString(const wchar_t* wString)
 	{
 #ifdef SDL_PLATFORM_WIN32

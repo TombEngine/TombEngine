@@ -42,25 +42,6 @@ struct AI_INFO
 	short enemyFacing;
 };
 
-// TODO: Use DX BoundingBox class to store AABB.
-struct BOX_INFO
-{
-	unsigned int left;
-	unsigned int right;
-	unsigned int top;
-	unsigned int bottom;
-
-	int height;
-	int overlapIndex;
-	int flags;
-};
-
-struct OVERLAP
-{
-	int box;
-	int flags;
-};
-
 // Priority queue element ordered by estimated total traversal cost for Dijkstra and A* pathfinding.
 struct QueueElement
 {

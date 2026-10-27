@@ -109,7 +109,7 @@ namespace TEN::Scripting::Sound
 	// @treturn string Current subtitle string.
 	static TypeOrNil<std::string> GetCurrentVoiceTrackSubtitle()
 	{
-		auto& result = GetCurrentSubtitle();
+		auto result = GetCurrentSubtitle();
 
 		if (result.has_value())
 		{

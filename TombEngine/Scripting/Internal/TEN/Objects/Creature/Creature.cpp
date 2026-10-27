@@ -98,7 +98,7 @@ namespace TEN::Scripting::Objects
 			if (!silent)
 				TENLog(fmt::format("Item {} has a name hash mismatch to this creature. Expected: {}, Actual: {}.", item->Name, _hash, sourceHash), LogLevel::Warning);
 			
-			return false;
+			return nullptr;
 		}
 
 		return GetCreatureInfo(item);

@@ -639,7 +639,7 @@ void LogicHandler::SerializeScriptTable(const sol::table& tab, std::vector<Saved
 			{
 				bool validKey = true;
 				unsigned int keyIndex = 0;
-				std::variant<std::string, unsigned int> key{ unsigned int(0) };
+				std::variant<std::string, unsigned int> key{ (unsigned int)0 };
 
 				switch (first.get_type())
 				{

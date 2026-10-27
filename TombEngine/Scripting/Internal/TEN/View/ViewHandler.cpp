@@ -165,7 +165,7 @@ namespace TEN::Scripting::View
 
 	static ScriptColor GetVideoDominantColor()
 	{
-		return g_VideoPlayer.GetDominantColor();
+		return ScriptColor((Vector4)g_VideoPlayer.GetDominantColor());
 	}
 
 	static bool IsVideoPlaying(sol::optional<std::string> name)

@@ -398,7 +398,7 @@ int main(int argc, char* argv[])
 		TEN::Benchmark::InitializeBenchmark(benchmarkDuration, GameDirectory);
 
 	// Initialize SDL3.
-	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS))
+	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
 	{
 		auto error = std::string("Failed to initialize SDL: ") + SDL_GetError();
 		TENLog(error, LogLevel::Error);

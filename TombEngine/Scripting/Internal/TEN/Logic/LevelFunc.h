@@ -30,7 +30,7 @@ public:
 
 	static void Register(sol::table& parent)
 	{
-		parent.new_usertype<LevelFunc>(ScriptReserved_LevelFunc, sol::no_constructor, sol::meta_function::call, &Call);
+		parent.new_usertype<LevelFunc>(ScriptReserved_LevelFunc, sol::no_constructor, sol::meta_function::call, &LevelFunc::Call);
 	}
 };
 

@@ -147,9 +147,9 @@ namespace TEN::Entities::TR4
 		int fxNumber = CreateNewEffect(item.RoomNumber, ID_BODY_PART,
 			Pose(
 				Vector3(
-					(byte)GetRandomControl() + item.Pose.Position.x - 128,
+					(unsigned char)GetRandomControl() + item.Pose.Position.x - 128,
 					GetPointCollision(item).GetFloorHeight(),
-					(byte)GetRandomControl() + item.Pose.Position.z - 128),
+					(unsigned char)GetRandomControl() + item.Pose.Position.z - 128),
 				EulerAngles(0, 2 * GetRandomControl(), 0)));
 
 		if (fxNumber == NO_VALUE)

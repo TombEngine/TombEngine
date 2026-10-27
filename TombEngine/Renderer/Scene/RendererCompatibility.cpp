@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 
-#include <execution>
 #include <numeric>
 #include <stack>
 #include <tuple>
@@ -17,6 +16,7 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Specific/level.h"
+#include "Specific/Parallel.h"
 
 using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::Hair;
@@ -424,24 +424,22 @@ namespace TEN::Renderer
 		}
 
 		// Sort room buckets by blend mode, then texture.
-		std::for_each(std::execution::par_unseq,
-			_rooms.begin(),
-			_rooms.end(),
-			[](RendererRoom& room)
+		TEN::Utils::g_Parallel.AddTasks((int)_rooms.size(), [&](int start, int end)
+		{
+			for (int i = start; i < end; i++)
 			{
 				std::sort(
-					room.Buckets.begin(),
-					room.Buckets.end(),
-					[](RendererBucket& a, RendererBucket& b)
+					_rooms[i].Buckets.begin(),
+					_rooms[i].Buckets.end(),
+					[](const RendererBucket& a, const RendererBucket& b)
 					{
 						if (a.BlendMode == b.BlendMode)
 							return (a.Texture < b.Texture);
 						else
 							return (a.BlendMode < b.BlendMode);
-					}
-				);
+					});
 			}
-		);
+		}).wait();
 
 		TENLog("Preparing object data...", LogLevel::Info);
 

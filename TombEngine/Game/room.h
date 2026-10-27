@@ -2,6 +2,8 @@
 
 #include "Math/Math.h"
 #include "Physics/Physics.h"
+#include "Game/collision/floordata.h"
+#include "Game/control/TriggerVolume.h"
 #include "Game/StaticMesh.h"
 
 using namespace TEN::Math;
@@ -9,10 +11,7 @@ using namespace TEN::Physics;
 
 enum GAME_OBJECT_ID : short;
 enum class ReverbType : int;
-class FloorInfo;
 class GameBoundingBox;
-struct BUCKET;
-struct TriggerVolume;
 
 constexpr auto MAX_FLIPMAP	= 256;
 constexpr auto NUM_ROOMS	= 1024;
@@ -23,7 +22,7 @@ extern bool FlipStatus;
 extern bool FlipStats[MAX_FLIPMAP];
 extern int  FlipMap[MAX_FLIPMAP];
 
-enum RoomEnvFlags
+enum RoomEnvFlags : int
 {
 	ENV_FLAG_WATER			 = 1 << 0,
 	ENV_FLAG_SWAMP			 = 1 << 2,

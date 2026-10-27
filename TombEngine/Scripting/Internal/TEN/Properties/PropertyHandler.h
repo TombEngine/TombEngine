@@ -67,8 +67,8 @@ namespace TEN::Scripting::Properties
 		template <typename T> static T Get(const ItemInfo& item, int hash, const T& defaultValue = T{}, bool prioritizeDefaultValue = false)
 		{ return ResolveTyped<T>(GetRaw(item, hash, prioritizeDefaultValue && defaultValue != T{}), defaultValue); }
 
-		template <typename T> static T Get(const StaticMesh& staticMesh, const std::string& name, const T& defaultValue = T{}) { return ResolveTyped<T>(Get(staticMesh, name), defaultValue); }
-		template <typename T> static T Get(const StaticMesh& staticMesh, int hash, const T& defaultValue = T{})                { return ResolveTyped<T>(Get(staticMesh, hash), defaultValue); }
+		template <typename T> static T Get(const StaticMesh& staticMesh, const std::string& name, const T& defaultValue = T{}) { return ResolveTyped<T>(GetRaw(staticMesh, name), defaultValue); }
+		template <typename T> static T Get(const StaticMesh& staticMesh, int hash, const T& defaultValue = T{})                { return ResolveTyped<T>(GetRaw(staticMesh, hash), defaultValue); }
 
 		// Pointer overloads (delegate to reference versions).
 		static const PropertyValue* GetRaw(const ItemInfo* item, const std::string& name, bool ignoreGlobalProperty) { return GetRaw(*item, name, ignoreGlobalProperty); }

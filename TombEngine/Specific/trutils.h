@@ -22,6 +22,7 @@ namespace TEN::Utils
 	int          ToInt(const std::string& string, int fallback);
 	float        ToFloat(const std::string& string, float fallback);
 	bool         ToBool(const std::string& string, bool fallback);
+	std::tm      GetLocalTime(std::time_t time);
 
 	std::vector<std::string> SplitString(const std::string& string);
 	std::vector<std::string> SplitWords(const std::string& input);
