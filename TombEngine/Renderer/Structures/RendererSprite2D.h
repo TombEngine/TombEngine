@@ -17,5 +17,6 @@ namespace TEN::Renderer::Structures
 		BlendMode BlendMode = BlendMode::AlphaBlend;
 
 		Vector2 AspectCorrection = Vector2::One;
+		Vector4 Scissor			 = DISPLAY_SCISSOR_NONE;
 	};
 }

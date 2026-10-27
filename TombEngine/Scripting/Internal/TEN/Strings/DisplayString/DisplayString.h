@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Game/control/control.h"
+#include "Game/effects/DisplaySprite.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 
@@ -72,6 +73,7 @@ private:
 	float		_scale	  = 1.0f;
 	D3DCOLOR	_color	  = 0xFFFFFFFF;
 	FlagArray	_flags	  = {};
+	Vector4		_scissor  = DISPLAY_SCISSOR_NONE; // Normalized screen rectangle the string is clipped to.
 
 	float _timeRemaining = 0.0f; // NOTE: Seconds.
 
@@ -125,6 +127,8 @@ public:
 	void SetColor(const ScriptColor&);
 	void SetTranslated(bool isTranslated);
 	void SetFlags(const sol::table& flags);
+	void SetScissor(const Vec2& pos, const Vec2& size, sol::optional<TEN::Effects::DisplaySprite::DisplaySpriteAlignMode> alignMode);
+	void ClearScissor();
 
 	// Routines
 	static SetItemCallback	  SetItemCallbackRoutine;

@@ -334,7 +334,8 @@ namespace TEN::Renderer
 		Backend::UiFrame _uiFrame = {}; // 2D layer recorded for the scene renderer until the frame is presented.
 		void AddUiLayer(Backend::OverlayLayerType type, int first);
 		void AddUiImage(const std::string& path, const Vector2& min, const Vector2& max, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color, BlendMode blendMode);
-		void BeginUiObject(const Matrix& viewProjection, const Vector4& color, const Vector4& ambientLight, unsigned int frame, float interpolatedFrame, bool isAlphaTested);
+		void BeginUiObject(const Matrix& viewProjection, const Vector4& color, const Vector4& ambientLight, unsigned int frame, float interpolatedFrame, bool isAlphaTested,
+						   const Vector4& scissor = DISPLAY_SCISSOR_NONE);
 		void AddUiObjectMesh(const RendererMesh* mesh, const Matrix& world, const Matrix* bones = nullptr, int boneCount = 0);
 		void AddUiSkinMesh(const RendererObject& moveableObject, const RendererMesh* skinMesh, const Matrix& world);
 		void PresentFrame();
@@ -630,7 +631,8 @@ namespace TEN::Renderer
 		void AddString(int x, int y, const std::string& string, unsigned int color, int flags);
 		void AddString(const std::string& string, const Vector2& pos, const Color& color, float scale, int flags);
 		void AddString(const std::string& string, const Vector2& pos, const Vector2& area, const Color& color, float scale, int flags);
-		void AddString(const std::string& string, const Vector2& currentPos, const Vector2& prevPos, const Vector2& area, const Color& color, float scale, int flags);
+		void AddString(const std::string& string, const Vector2& currentPos, const Vector2& prevPos, const Vector2& area, const Color& color, float scale, int flags,
+					   const Vector4& scissor = DISPLAY_SCISSOR_NONE);
 		void AddDebugString(const std::string& string, const Vector2& pos, const Color& color, float scale, RendererDebugPage page = RendererDebugPage::None);
 		void FreeRendererData();
 		void AddDynamicPointLight(const Vector3& pos, float radius, const Color& color, bool castShadows, int hash = 0);
@@ -694,7 +696,7 @@ namespace TEN::Renderer
 		Quaternion GetMoveableBoneOrientation(int itemNumber, int boneID);
 
 		void AddDisplaySprite(const RendererSprite& sprite, const Vector2& pos2D, short orient, const Vector2& size, const Vector4& color,
-			int priority, BlendMode blendMode, const Vector2& aspectCorrection, RenderView& renderView);
+			int priority, BlendMode blendMode, const Vector2& aspectCorrection, const Vector4& scissor, RenderView& renderView);
 		void CollectDisplaySprites(RenderView& renderView);
 
 		// Post-process and depth of field settings.

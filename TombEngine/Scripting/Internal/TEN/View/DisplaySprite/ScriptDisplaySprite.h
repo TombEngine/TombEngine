@@ -25,6 +25,7 @@ namespace TEN::Scripting::DisplaySprite
 		float		_rotation = 0.0f;
 		Vec2		_scale	  = Vec2(0.0f, 0.0f);
 		ScriptColor _color	  = ScriptColor(255, 255, 255, 255);
+		Vector4		_scissor  = DISPLAY_SCISSOR_NONE;
 
 	public:
 		// Constructors
@@ -49,6 +50,8 @@ namespace TEN::Scripting::DisplaySprite
 		void SetRotation(float rot);
 		void SetScale(const Vec2& scale);
 		void SetColor(const ScriptColor& color);
+		void SetScissor(const Vec2& pos, const Vec2& size, sol::optional<DisplaySpriteAlignMode> alignMode);
+		void ClearScissor();
 
 		// Utilities
 		void Draw(sol::optional<int> priority, sol::optional<DisplaySpriteAlignMode> alignMode,

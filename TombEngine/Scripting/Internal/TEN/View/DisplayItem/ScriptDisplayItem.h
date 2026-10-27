@@ -1,3 +1,4 @@
+#include "Game/effects/DisplaySprite.h"
 #include "Game/Hud/DrawItems/DrawItems.h"
 #include "Scripting/Internal/LuaHandler.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
@@ -50,6 +51,8 @@ namespace TEN::Scripting::DisplayItem
 		void SetAnimNumber(int animNumber);
 		void SetFrameNumber(int frameNumber);
 		void SetMeshBits(int meshbits);
+		void SetScissor(const Vec2& pos, const Vec2& size, sol::optional<TEN::Effects::DisplaySprite::DisplaySpriteAlignMode> alignMode);
+		void ClearScissor();
 
 		// Getters
 

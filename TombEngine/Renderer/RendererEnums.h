@@ -29,6 +29,9 @@ constexpr auto BONE_COUNT_MAX = 32;
 
 constexpr auto DISPLAY_SPACE_RES = Vector2(800.0f, 600.0f);
 constexpr auto DISPLAY_SPACE_ASPECT = DISPLAY_SPACE_RES.x / DISPLAY_SPACE_RES.y;
+
+// Scissor rectangle of 2D elements in normalized screen space (left, top, right, bottom); the whole screen clips nothing.
+constexpr auto DISPLAY_SCISSOR_NONE = Vector4(0.0f, 0.0f, 1.0f, 1.0f);
 constexpr auto REFERENCE_FONT_SIZE = 35.0f;
 
 // Near/far planes for the display item virtual camera. These are intentionally tight to maximise

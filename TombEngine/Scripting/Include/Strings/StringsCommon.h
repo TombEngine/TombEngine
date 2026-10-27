@@ -7,4 +7,5 @@ using CallbackDrawString = std::function<
 		Vec2,
 		Vec2,  // Area
 		float, // Scale
-		int)>; // Flags
+		int,   // Flags
+		const Vector4&)>; // Scissor

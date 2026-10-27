@@ -743,6 +743,8 @@ namespace TEN::Renderer::Backend
             BlendMode          BlendMode   = BlendMode::PremultipliedAlphaBlend;
             bool               IsObjects   = false;
             bool               IsSharpened = false; // Upscaled scene, sharpened by RCAS while drawn.
+            bool               IsScissored = false; // Clipped to Scissor, in final target pixels.
+            RHI::ScissorRect   Scissor     = {};
         };
 
         struct OverlayObjectDraw
@@ -765,6 +767,8 @@ namespace TEN::Renderer::Backend
         RHI::GraphicsPipelineDesc               _overlayPipelineDesc        = {};
         std::vector<unsigned char>              _overlayVertexData          = {};
         std::vector<OverlayDraw>                _overlayDraws               = {};
+        bool                                    _isOverlayScissored         = false; // Scissor of the quads being collected.
+        RHI::ScissorRect                        _overlayScissor             = {};
         std::vector<OverlayObjectDraw>          _overlayObjectDraws         = {};
         std::vector<unsigned char>              _overlayInstanceData        = {};
         std::vector<unsigned char>              _overlayBoneData            = {};
@@ -1171,6 +1175,7 @@ namespace TEN::Renderer::Backend
         void AddOverlayQuad(RHI::ITexture* texture, const Vector2& position, const Vector2& size, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color,
                             BlendMode blendMode = BlendMode::PremultipliedAlphaBlend);
         void AddOverlayCorners(RHI::ITexture* texture, const Vector2* corners, const Vector2* uvs, const Vector4& color, BlendMode blendMode);
+        bool SetOverlayScissor(const Vector4& scissor);
         void AddOverlaySprite(const OverlaySprite& sprite);
         void AddScreenOverlays(const UiFrame& ui);
         RHI::IGraphicsPipeline* GetOverlayPipeline(BlendMode blendMode);

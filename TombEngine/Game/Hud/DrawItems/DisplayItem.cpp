@@ -80,6 +80,11 @@ namespace TEN::Hud
 		return _meshBits.ToPackedBits();
 	}
 
+	const Vector4& DisplayItem::GetScissor() const
+	{
+		return _scissor;
+	}
+
 	int DisplayItem::GetAnimNumber() const
 	{
 		return _animNumber;
@@ -174,6 +179,12 @@ namespace TEN::Hud
 			_prevColor = color;
 
 		_color = color;
+	}
+
+	// Normalized screen rectangle the item is clipped to; DISPLAY_SCISSOR_NONE clears it.
+	void DisplayItem::SetScissor(const Vector4& scissor)
+	{
+		_scissor = scissor;
 	}
 
 	void DisplayItem::SetVisible(bool visible)

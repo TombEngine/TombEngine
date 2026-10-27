@@ -127,6 +127,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `includePlayer` argument for `Collision.Ray` class to detect collisions with Lara.
 * Added `Effects.EmitSplash` for generating splashes.
 * Added `Effects.EmitWeather` to spawn weather at specific position.
+* Added `SetScissor` and `ClearScissor` functions to `View.DisplaySprite`, `View.DisplayItem` and `Strings.DisplayString` to clip them to a rectangle of the screen.
 * Added `Flow.GetCurrentLevelIndex` and `Flow.GetTotalLevelCount` functions to get current level index and total level count in gameflow.
 * Added `Flow.Settings.Animation.internalBlendDuration` setting to specify hardcoded animation blend durations.
 * Added `Flow.Settings.Effects` category with blood, ricochet and explosion settings.

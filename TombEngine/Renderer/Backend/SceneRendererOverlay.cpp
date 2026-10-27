@@ -30,6 +30,25 @@ namespace TEN::Renderer::Backend
         return blendMode;
     }
 
+    // Final target pixels of a normalized scissor rectangle; false when it covers the whole target and clips nothing.
+    static bool GetOverlayScissorRect(const Vector4& scissor, int width, int height, ScissorRect& rect)
+    {
+        if (scissor.x <= 0.0f && scissor.y <= 0.0f && scissor.z >= 1.0f && scissor.w >= 1.0f)
+            return false;
+
+        int left = std::clamp((int)std::floor(scissor.x * width), 0, width);
+        int top = std::clamp((int)std::floor(scissor.y * height), 0, height);
+        int right = std::clamp((int)std::ceil(scissor.z * width), left, width);
+        int bottom = std::clamp((int)std::ceil(scissor.w * height), top, height);
+        rect = ScissorRect{ left, top, right - left, bottom - top };
+        return true;
+    }
+
+    static bool IsSameScissor(const ScissorRect& rect0, const ScissorRect& rect1)
+    {
+        return (rect0.X == rect1.X && rect0.Y == rect1.Y && rect0.Width == rect1.Width && rect0.Height == rect1.Height);
+    }
+
     // RGBA8 vertex color, red in the low byte.
     static unsigned int PackOverlayColor(const Vector4& color)
     {
@@ -146,7 +165,15 @@ namespace TEN::Renderer::Backend
         return pipeline.get();
     }
 
-    // Quad from four corners in target pixels, merged into the previous run when texture and blend mode match.
+    // Scissor of the next quads; false when it clips everything, so the element is skipped.
+    bool SceneRenderer::SetOverlayScissor(const Vector4& scissor)
+    {
+        const auto& desc = _finalTarget->GetDesc();
+        _isOverlayScissored = GetOverlayScissorRect(scissor, desc.Width, desc.Height, _overlayScissor);
+        return (!_isOverlayScissored || (_overlayScissor.Width > 0 && _overlayScissor.Height > 0));
+    }
+
+    // Quad from four corners in target pixels, merged into the previous run when texture, blend mode and scissor match.
     void SceneRenderer::AddOverlayCorners(ITexture* texture, const Vector2* corners, const Vector2* uvs, const Vector4& color, BlendMode blendMode)
     {
         unsigned int packedColor = PackOverlayColor(color);
@@ -160,10 +187,13 @@ namespace TEN::Renderer::Backend
         }
 
         const auto* last = _overlayDraws.empty() ? nullptr : &_overlayDraws.back();
-        if (last == nullptr || last->Texture != texture || last->IsBar || last->BlendMode != blendMode)
+        bool isSameScissor = (last != nullptr && last->IsScissored == _isOverlayScissored && (!_isOverlayScissored || IsSameScissor(last->Scissor, _overlayScissor)));
+        if (last == nullptr || last->Texture != texture || last->IsBar || last->BlendMode != blendMode || !isSameScissor)
         {
             auto draw = OverlayDraw{ texture, firstVertex, 0 };
             draw.BlendMode = blendMode;
+            draw.IsScissored = _isOverlayScissored;
+            draw.Scissor = _overlayScissor;
             _overlayDraws.push_back(draw);
         }
 
@@ -415,6 +445,7 @@ namespace TEN::Renderer::Backend
         _overlayObjectDraws.clear();
         _overlayInstanceData.clear();
         _overlayBoneData.clear();
+        SetOverlayScissor(DISPLAY_SCISSOR_NONE);
 
         // Scene background, sharpened by RCAS when the color target holds an upscaled scene.
         const auto& desc = _finalTarget->GetDesc();
@@ -433,12 +464,18 @@ namespace TEN::Renderer::Backend
         auto textScale = Vector2(targetSize.x / ui.ScreenWidth, targetSize.y / ui.ScreenHeight);
         for (const auto& layer : ui.Layers)
         {
+            // Texts and sprites set their own scissor; other elements are never clipped.
+            SetOverlayScissor(DISPLAY_SCISSOR_NONE);
+
             int end = layer.First + layer.Count;
             switch (layer.Type)
             {
             case OverlayLayerType::Texts:
                 for (int i = layer.First; i < end && i < (int)ui.Texts.size(); i++)
-                    AddOverlayText(ui.Texts[i], textScale);
+                {
+                    if (SetOverlayScissor(ui.Texts[i].Scissor))
+                        AddOverlayText(ui.Texts[i], textScale);
+                }
 
                 break;
 
@@ -450,7 +487,10 @@ namespace TEN::Renderer::Backend
 
             case OverlayLayerType::Sprites:
                 for (int i = layer.First; i < end && i < (int)ui.Sprites.size(); i++)
-                    AddOverlaySprite(ui.Sprites[i]);
+                {
+                    if (SetOverlayScissor(ui.Sprites[i].Scissor))
+                        AddOverlaySprite(ui.Sprites[i]);
+                }
 
                 break;
 
@@ -483,11 +523,17 @@ namespace TEN::Renderer::Backend
         if (!_isLevelLoaded)
             return;
 
+        const auto& desc = _finalTarget->GetDesc();
         int firstDraw = (int)_overlayObjectDraws.size();
         int end = std::min(layer.First + layer.Count, (int)ui.Objects.size());
         for (int objectIndex = layer.First; objectIndex < end; objectIndex++)
         {
             const auto& object = ui.Objects[objectIndex];
+
+            auto scissor = ScissorRect{};
+            if (GetOverlayScissorRect(object.Scissor, desc.Width, desc.Height, scissor) && (scissor.Width <= 0 || scissor.Height <= 0))
+                continue;
+
             int meshEnd = std::min(object.FirstMesh + object.MeshCount, (int)ui.ObjectMeshes.size());
             for (int meshIndex = object.FirstMesh; meshIndex < meshEnd; meshIndex++)
             {
@@ -583,6 +629,10 @@ namespace TEN::Renderer::Backend
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
         auto vertexBinding = BufferBinding{ _overlayVertexBuffer.Buffer.get(), 0 };
 
+        // The pass starts with the whole target as scissor.
+        auto fullScissor = ScissorRect{ 0, 0, desc.Width, desc.Height };
+        auto lastScissor = fullScissor;
+
         const IGraphicsPipeline* lastPipeline = nullptr;
         int drawIndex = firstDraw;
         for (; drawIndex < (int)_overlayDraws.size(); drawIndex++)
@@ -606,6 +656,13 @@ namespace TEN::Renderer::Backend
 
             auto binding = TextureSamplerBinding{ draw.Texture, _linearClampSampler.get() };
             renderPass->BindPixelSamplers(0, &binding, 1);
+
+            const auto& scissor = draw.IsScissored ? draw.Scissor : fullScissor;
+            if (!IsSameScissor(scissor, lastScissor))
+            {
+                renderPass->SetScissor(scissor);
+                lastScissor = scissor;
+            }
 
             CountDraw(DrawCategory::Overlay, draw.VertexCount / 3);
             renderPass->Draw(draw.VertexCount, 1, draw.FirstVertex, 0);
@@ -680,7 +737,7 @@ namespace TEN::Renderer::Backend
                 state = BucketBindState{};
             }
 
-            // Each object has its own camera and animation frame.
+            // Each object has its own camera, animation frame and scissor.
             if (objectDraw.Object != lastObject)
             {
                 auto frameVertexUniforms = FrameVertexUniforms{};
@@ -688,6 +745,10 @@ namespace TEN::Renderer::Backend
                 frameVertexUniforms.Frame = object.Frame;
                 frameVertexUniforms.InterpolatedFrame = object.InterpolatedFrame;
                 commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 0, &frameVertexUniforms, sizeof(frameVertexUniforms));
+
+                auto scissor = ScissorRect{ 0, 0, desc.Width, desc.Height };
+                GetOverlayScissorRect(object.Scissor, desc.Width, desc.Height, scissor);
+                renderPass->SetScissor(scissor);
                 lastObject = objectDraw.Object;
             }
 

@@ -1087,7 +1087,7 @@ namespace TEN::Renderer
 		auto worldMatrix = scaleMatrix * rotMatrix * translationMatrix;
 
 		auto skinMode = GetSkinningMode(*moveableObject, object.skinIndex);
-		BeginUiObject(viewMatrix * projMatrix, color, g_DrawItems.GetAmbientLight(), 0, 0.0f, false);
+		BeginUiObject(viewMatrix * projMatrix, color, g_DrawItems.GetAmbientLight(), 0, 0.0f, false, item.GetScissor());
 
 		if (skinMode == SkinningMode::Full && object.skinIndex >= 0)
 			AddUiSkinMesh(*moveableObject, GetMesh(object.skinIndex), worldMatrix);

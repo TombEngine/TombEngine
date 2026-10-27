@@ -128,7 +128,7 @@ namespace TEN::Renderer
 			};
 
 			auto rotMatrix = Matrix::CreateRotationZ(TO_RAD(spriteToDraw.Orientation + ANGLE(180.0f)));
-			auto nextSprite = Backend::OverlaySprite{ spriteToDraw.SpritePtr, {}, spriteToDraw.Color, spriteToDraw.BlendMode };
+			auto nextSprite = Backend::OverlaySprite{ spriteToDraw.SpritePtr, {}, spriteToDraw.Color, spriteToDraw.BlendMode, spriteToDraw.Scissor };
 			for (int i = 0; i < VERTEX_COUNT; i++)
 				nextSprite.Corners[i] = Vector2::Transform(vertices[i], rotMatrix) * spriteToDraw.AspectCorrection + spriteToDraw.Position;
 
@@ -167,7 +167,7 @@ namespace TEN::Renderer
 	}
 
 	void Renderer::AddDisplaySprite(const RendererSprite& sprite, const Vector2& pos2D, short orient, const Vector2& size, const Vector4& color,
-									  int priority, BlendMode blendMode, const Vector2& aspectCorrection, RenderView& renderView)
+									  int priority, BlendMode blendMode, const Vector2& aspectCorrection, const Vector4& scissor, RenderView& renderView)
 	{
 		auto spriteToDraw = RendererDisplaySpriteToDraw{};
 
@@ -179,6 +179,7 @@ namespace TEN::Renderer
 		spriteToDraw.Priority = priority;
 		spriteToDraw.BlendMode = blendMode;
 		spriteToDraw.AspectCorrection = aspectCorrection;
+		spriteToDraw.Scissor = scissor;
 
 		renderView.DisplaySpritesToDraw.push_back(spriteToDraw);
 	}
@@ -223,6 +224,7 @@ namespace TEN::Renderer
 				displaySprite.Priority,
 				displaySprite.BlendMode,
 				layout.AspectCorrection,
+				displaySprite.Scissor,
 				renderView);
 		}
 

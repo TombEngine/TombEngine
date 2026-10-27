@@ -1509,12 +1509,13 @@ namespace TEN::Renderer
 	}
 
 	// Starts a 3D object of the 2D layer (inventory and HUD objects); its meshes follow with AddUiObjectMesh.
-	void Renderer::BeginUiObject(const Matrix& viewProjection, const Vector4& color, const Vector4& ambientLight, unsigned int frame, float interpolatedFrame, bool isAlphaTested)
+	void Renderer::BeginUiObject(const Matrix& viewProjection, const Vector4& color, const Vector4& ambientLight, unsigned int frame, float interpolatedFrame, bool isAlphaTested,
+								 const Vector4& scissor)
 	{
 		if (!Backend::g_SceneRenderer.IsActive())
 			return;
 
-		auto object = Backend::OverlayObject{ viewProjection, color, ambientLight, frame, interpolatedFrame, isAlphaTested, (int)_uiFrame.ObjectMeshes.size(), 0 };
+		auto object = Backend::OverlayObject{ viewProjection, color, ambientLight, frame, interpolatedFrame, isAlphaTested, (int)_uiFrame.ObjectMeshes.size(), 0, scissor };
 		_uiFrame.Objects.push_back(object);
 		AddUiLayer(Backend::OverlayLayerType::Objects, (int)_uiFrame.Objects.size() - 1);
 	}

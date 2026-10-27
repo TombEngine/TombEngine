@@ -44,7 +44,8 @@ namespace TEN::Renderer
 
 	// Splits a string into lines (wrapped to the area width when given) and queues them with their screen position,
 	// previous position for interpolation, scale and alignment flags.
-	void Renderer::AddString(const std::string& string, const Vector2& pos, const Vector2& prevPos, const Vector2& area, const Color& color, float scale, int flags)
+	void Renderer::AddString(const std::string& string, const Vector2& pos, const Vector2& prevPos, const Vector2& area, const Color& color, float scale, int flags,
+							 const Vector4& scissor)
 	{
 		if (_isLocked)
 			return;
@@ -152,6 +153,7 @@ namespace TEN::Renderer
 				rString.Position = Vector2::Zero;
 				rString.Color = color;
 				rString.Scale = stringScale;
+				rString.Scissor = scissor;
 
 				// Measure string.
 				auto stringSize = line.empty() ? Vector2(0, fontSpacing * rString.Scale) : _gameFont.MeasureString(line) * rString.Scale;
@@ -211,10 +213,10 @@ namespace TEN::Renderer
 			if (rString.Flags & (int)PrintStringFlags::Outline)
 			{
 				texts.push_back(Backend::OverlayText{ rString.String, drawPos + Vector2(shadowOffset * rString.Scale),
-					(shadowColor * rString.Color.w * shadowColor.w) * ScreenFadeCurrent, rString.Scale });
+					(shadowColor * rString.Color.w * shadowColor.w) * ScreenFadeCurrent, rString.Scale, rString.Scissor });
 			}
 
-			texts.push_back(Backend::OverlayText{ rString.String, drawPos, (rString.Color * rString.Color.w) * ScreenFadeCurrent, rString.Scale });
+			texts.push_back(Backend::OverlayText{ rString.String, drawPos, (rString.Color * rString.Color.w) * ScreenFadeCurrent, rString.Scale, rString.Scissor });
 		}
 	}
 

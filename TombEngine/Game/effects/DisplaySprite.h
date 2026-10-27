@@ -47,6 +47,8 @@ namespace TEN::Effects::DisplaySprite
 		BlendMode			   BlendMode = BlendMode::AlphaBlend;
 
 		DisplaySpritePhase Source = DisplaySpritePhase::Control;
+
+		Vector4 Scissor = DISPLAY_SCISSOR_NONE;
 	};
 
 	// Result of display sprite layout calculation.
@@ -61,9 +63,32 @@ namespace TEN::Effects::DisplaySprite
 	
 	void AddDisplaySprite(GAME_OBJECT_ID objectID, int spriteID, const Vector2& pos, short orient, const Vector2& scale, const Vector4& color,
 						  int priority, DisplaySpriteAlignMode alignMode, DisplaySpriteScaleMode scaleMode, 
-						  BlendMode blendMode, DisplaySpritePhase source);
+						  BlendMode blendMode, DisplaySpritePhase source, const Vector4& scissor = DISPLAY_SCISSOR_NONE);
 	void ClearAllDisplaySprites();
 	void ClearDrawPhaseDisplaySprites();
+
+	// Scissor rectangle from a position and size in display space percent, with the position placed by the align mode
+	// as for display sprites.
+	inline Vector4 GetDisplayScissor(const Vector2& pos, const Vector2& size, DisplaySpriteAlignMode alignMode)
+	{
+		auto topLeft = pos;
+		switch (alignMode)
+		{
+		case DisplaySpriteAlignMode::Center:       topLeft -= size / 2.0f; break;
+		case DisplaySpriteAlignMode::CenterTop:    topLeft.x -= size.x / 2.0f; break;
+		case DisplaySpriteAlignMode::CenterBottom: topLeft -= Vector2(size.x / 2.0f, size.y); break;
+		case DisplaySpriteAlignMode::CenterLeft:   topLeft.y -= size.y / 2.0f; break;
+		case DisplaySpriteAlignMode::CenterRight:  topLeft -= Vector2(size.x, size.y / 2.0f); break;
+		case DisplaySpriteAlignMode::TopRight:     topLeft.x -= size.x; break;
+		case DisplaySpriteAlignMode::BottomLeft:   topLeft.y -= size.y; break;
+		case DisplaySpriteAlignMode::BottomRight:  topLeft -= size; break;
+		default: break;
+		}
+
+		auto min = topLeft / 100.0f;
+		auto max = (topLeft + size) / 100.0f;
+		return Vector4(min.x, min.y, max.x, max.y);
+	}
 
 	// Calculate complete layout data for a display sprite.
 	// 

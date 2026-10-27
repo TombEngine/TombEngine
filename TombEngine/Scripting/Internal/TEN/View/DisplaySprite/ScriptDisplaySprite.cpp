@@ -60,6 +60,8 @@ namespace TEN::Scripting::DisplaySprite
 		ScriptReserved_DisplayStringSetRotation, &ScriptDisplaySprite::SetRotation,
 		ScriptReserved_DisplayStringSetScale, &ScriptDisplaySprite::SetScale,
 		ScriptReserved_DisplayStringSetColor, &ScriptDisplaySprite::SetColor,
+		ScriptReserved_SetScissor, &ScriptDisplaySprite::SetScissor,
+		ScriptReserved_ClearScissor, &ScriptDisplaySprite::ClearScissor,
 		ScriptReserved_DisplaySpriteDraw, &ScriptDisplaySprite::Draw);
 	}
 
@@ -337,6 +339,29 @@ namespace TEN::Scripting::DisplaySprite
 		_color = color;
 	}
 
+	/// Clip the display sprite to a rectangle of the screen.
+	// Parts of the sprite outside the rectangle are not drawn.
+	// @function DisplaySprite:SetScissor
+	// @tparam Vec2 pos Position of the rectangle in display space percent.
+	// @tparam Vec2 size Width and height of the rectangle in display space percent.
+	// @tparam[opt=View.AlignMode.TOP_LEFT] View.AlignMode alignMode Align mode placing the rectangle at its position.
+	// @usage
+	// -- Show only the left 30 percent of a bar sprite starting at 10 percent of the screen width.
+	// barSprite:SetScissor(TEN.Vec2(10, 0), TEN.Vec2(30, 100))
+	void ScriptDisplaySprite::SetScissor(const Vec2& pos, const Vec2& size, sol::optional<DisplaySpriteAlignMode> alignMode)
+	{
+		_scissor = GetDisplayScissor(Vector2(pos.x, pos.y), Vector2(size.x, size.y), alignMode.value_or(DisplaySpriteAlignMode::TopLeft));
+	}
+
+	/// Stop clipping the display sprite to a rectangle of the screen.
+	// @function DisplaySprite:ClearScissor
+	// @usage
+	// barSprite:ClearScissor()
+	void ScriptDisplaySprite::ClearScissor()
+	{
+		_scissor = DISPLAY_SCISSOR_NONE;
+	}
+
 	/// Draw the display sprite in display space for the current frame.
 	// @function DisplaySprite:Draw
 	// @tparam[opt=0] int priority Draw priority. Can be thought of as a layer, with higher values having precedence.
@@ -378,6 +403,7 @@ namespace TEN::Scripting::DisplaySprite
 			alignMode.value_or(DEFAULT_ALIGN_MODE),
 			scaleMode.value_or(DEFAULT_SCALE_MODE),
 			blendMode.value_or(DEFAULT_BLEND_MODE), 
-			DisplaySpritePhase::Control);
+			DisplaySpritePhase::Control,
+			_scissor);
 	}
 }

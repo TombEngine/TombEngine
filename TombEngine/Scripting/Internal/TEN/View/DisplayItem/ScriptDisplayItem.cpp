@@ -51,6 +51,8 @@ namespace TEN::Scripting::DisplayItem
 			ScriptReserved_SetFrameNumber, &ScriptDisplayItem::SetFrameNumber,
 
 			ScriptReserved_DisplayItemSetMeshBits, &ScriptDisplayItem::SetMeshBits,
+			ScriptReserved_SetScissor, &ScriptDisplayItem::SetScissor,
+			ScriptReserved_ClearScissor, &ScriptDisplayItem::ClearScissor,
 
 			ScriptReserved_GetObjectID, &ScriptDisplayItem::GetObjectID,
 			ScriptReserved_GetPosition, &ScriptDisplayItem::GetPosition,
@@ -307,6 +309,31 @@ namespace TEN::Scripting::DisplayItem
 	{
 		if (auto* item = TryGetItem())
 			item->SetMeshBits(meshBits);
+	}
+
+	/// Clip the display item to a rectangle of the screen.
+	// Parts of the item outside the rectangle are not drawn.
+	// @function DisplayItem:SetScissor
+	// @tparam Vec2 pos Position of the rectangle in display space percent.
+	// @tparam Vec2 size Width and height of the rectangle in display space percent.
+	// @tparam[opt=View.AlignMode.TOP_LEFT] View.AlignMode alignMode Align mode placing the rectangle at its position.
+	// @usage
+	// -- Clip the item to the left half of the screen.
+	// item:SetScissor(TEN.Vec2(0, 0), TEN.Vec2(50, 100))
+	void ScriptDisplayItem::SetScissor(const Vec2& pos, const Vec2& size, sol::optional<DisplaySpriteAlignMode> alignMode)
+	{
+		if (auto* item = TryGetItem())
+			item->SetScissor(GetDisplayScissor(Vector2(pos.x, pos.y), Vector2(size.x, size.y), alignMode.value_or(DisplaySpriteAlignMode::TopLeft)));
+	}
+
+	/// Stop clipping the display item to a rectangle of the screen.
+	// @function DisplayItem:ClearScissor
+	// @usage
+	// item:ClearScissor()
+	void ScriptDisplayItem::ClearScissor()
+	{
+		if (auto* item = TryGetItem())
+			item->SetScissor(DISPLAY_SCISSOR_NONE);
 	}
 
 	/// Make the specified mesh of a display item visible or invisible.

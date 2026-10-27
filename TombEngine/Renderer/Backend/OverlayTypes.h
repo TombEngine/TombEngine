@@ -22,6 +22,7 @@ namespace TEN::Renderer::Backend
         Vector2     Position = Vector2::Zero;
         Vector4     Color    = Vector4::Zero;
         float       Scale    = 1.0f;
+        Vector4     Scissor  = DISPLAY_SCISSOR_NONE; // Normalized screen rectangle the text is clipped to.
     };
 
     // Status bar of the HUD, in the 800x600 display space with its vertical layout position.
@@ -46,6 +47,7 @@ namespace TEN::Renderer::Backend
         Vector2                           Corners[4] = {};
         Vector4                           Color      = Vector4::Zero;
         BlendMode                         BlendMode  = BlendMode::AlphaBlend;
+        Vector4                           Scissor    = DISPLAY_SCISSOR_NONE; // Normalized screen rectangle the sprite is clipped to.
     };
 
     // Image path of the background video frame, drawn full screen in exclusive video playback.
@@ -83,6 +85,7 @@ namespace TEN::Renderer::Backend
         bool         IsAlphaTested     = false; // Alpha tested buckets keep their alpha test, as in the 2D space draws.
         int          FirstMesh         = 0;
         int          MeshCount         = 0;
+        Vector4      Scissor           = DISPLAY_SCISSOR_NONE; // Normalized screen rectangle the object is clipped to.
     };
 
     // Element list of UiFrame a layer indexes; Objects index UiFrame::Objects.

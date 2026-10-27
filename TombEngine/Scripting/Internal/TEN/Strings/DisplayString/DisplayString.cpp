@@ -8,6 +8,7 @@
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 
+using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Scripting::Types;
 
 static DisplayStringID _nextID = 0;
@@ -202,6 +203,24 @@ void DisplayString::Register(sol::table& parent)
 		// varDisplayString:SetFlags{ TEN.Strings.DisplayStringOption.CENTER }
 		ScriptReserved_SetFlags, &DisplayString::SetFlags,
 
+		/// Clip the display string to a rectangle of the screen.
+		// Parts of the string outside the rectangle are not drawn. Unlike the position and area of the string, the
+		// rectangle is in display space percent.
+		// @function DisplayString:SetScissor
+		// @tparam Vec2 pos Position of the rectangle in display space percent.
+		// @tparam Vec2 size Width and height of the rectangle in display space percent.
+		// @tparam[opt=View.AlignMode.TOP_LEFT] View.AlignMode alignMode Align mode placing the rectangle at its position.
+		// @usage
+		// -- Show the string only in a box at the bottom of the screen, for scrolling credits.
+		// varDisplayString:SetScissor(TEN.Vec2(10, 70), TEN.Vec2(80, 25))
+		ScriptReserved_SetScissor, &DisplayString::SetScissor,
+
+		/// Stop clipping the display string to a rectangle of the screen.
+		// @function DisplayString:ClearScissor
+		// @usage
+		// varDisplayString:ClearScissor()
+		ScriptReserved_ClearScissor, &DisplayString::ClearScissor,
+
 		/// Get the display string's flags.
 		// @function DisplayString:GetFlags
 		// @treturn table A table of booleans representing @{Strings.DisplayStringOption} flags, indexed from 1:<br>1: TEN.Strings.DisplayStringOption.CENTER<br>2: TEN.Strings.DisplayStringOption.SHADOW<br>3: TEN.Strings.DisplayStringOption.RIGHT<br>4: TEN.Strings.DisplayStringOption.BLINK<br>5: TEN.Strings.DisplayStringOption.VERTICAL_CENTER<br>6: TEN.Strings.DisplayStringOption.VERTICAL_BOTTOM<br>
@@ -313,6 +332,18 @@ void DisplayString::SetFlags(const sol::table& flags)
 	}
 
 	displayString._flags = flagArray;
+}
+
+void DisplayString::SetScissor(const Vec2& pos, const Vec2& size, sol::optional<DisplaySpriteAlignMode> alignMode)
+{
+	UserDisplayString& displayString = GetItemCallbackRoutine(_id).value();
+	displayString._scissor = GetDisplayScissor(Vector2(pos.x, pos.y), Vector2(size.x, size.y), alignMode.value_or(DisplaySpriteAlignMode::TopLeft));
+}
+
+void DisplayString::ClearScissor()
+{
+	UserDisplayString& displayString = GetItemCallbackRoutine(_id).value();
+	displayString._scissor = DISPLAY_SCISSOR_NONE;
 }
 
 sol::table DisplayString::GetFlags(sol::this_state state) const

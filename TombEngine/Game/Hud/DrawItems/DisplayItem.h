@@ -2,6 +2,7 @@
 
 #include "Math/Constants.h"
 #include "Objects/game_object_ids.h"
+#include "Renderer/RendererEnums.h"
 #include "Specific/Structures/BitField.h"
 
 using namespace TEN::Math;
@@ -29,6 +30,7 @@ namespace TEN::Hud
 		Color                                _color            = NEUTRAL_COLOR;
 		BitField                             _meshBits         = BitField::Default;
 		std::unordered_map<int, EulerAngles> _meshOrientations = {};
+		Vector4                              _scissor          = DISPLAY_SCISSOR_NONE;
 
 		int _animNumber      = 0;
 		int _frameNumber     = 0;
@@ -57,6 +59,7 @@ namespace TEN::Hud
 		const Color&                               GetColor() const;
 		const EulerAngles&                         GetMeshOrientation(int meshIndex) const;
 		int                                        GetMeshBits() const;
+		const Vector4&                             GetScissor() const;
 
 		// Getters
 
@@ -88,6 +91,7 @@ namespace TEN::Hud
 		void SetMeshOrientation(int meshIndex, const EulerAngles& orient, bool disableInterpolation);
 		void SetAnimation(int animNumber);
 		void SetFrame(int frameNumber);
+		void SetScissor(const Vector4& scissor);
 
 		// Inquirers
 

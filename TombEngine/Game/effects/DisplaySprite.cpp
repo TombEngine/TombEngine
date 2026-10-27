@@ -15,7 +15,7 @@ namespace TEN::Effects::DisplaySprite
 
 	void AddDisplaySprite(GAME_OBJECT_ID objectID, int spriteID, const Vector2& pos, short orient, const Vector2& scale, const Vector4& color,
 						  int priority, DisplaySpriteAlignMode alignMode, DisplaySpriteScaleMode scaleMode, 
-						  BlendMode blendMode, DisplaySpritePhase source)
+						  BlendMode blendMode, DisplaySpritePhase source, const Vector4& scissor)
 	{
 		auto displaySprite = DisplaySprite{};
 		displaySprite.ObjectID = objectID;
@@ -29,6 +29,7 @@ namespace TEN::Effects::DisplaySprite
 		displaySprite.ScaleMode = scaleMode;
 		displaySprite.BlendMode = blendMode;
 		displaySprite.Source = source;
+		displaySprite.Scissor = scissor;
 
 		DisplaySprites.push_back(displaySprite);
 	}

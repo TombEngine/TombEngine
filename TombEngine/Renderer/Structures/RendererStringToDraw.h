@@ -1,5 +1,6 @@
 #pragma once
 #include "Math/SimpleMath.h"
+#include "Renderer/RendererEnums.h"
 
 namespace TEN::Renderer::Structures
 {
@@ -13,5 +14,6 @@ namespace TEN::Renderer::Structures
 		std::string String;
 		Vector4 Color;
 		float Scale;
+		Vector4 Scissor = DISPLAY_SCISSOR_NONE;
 	};
 }
