@@ -1038,7 +1038,7 @@ static void Sound_CreateMixdownStreams()
 static void Sound_ApplyDeviceSettings()
 {
 	BASS_Set3DFactors(SOUND_BASS_UNITS, 1.5f, 1.0f);
-	BASS_SetConfig(BASS_CONFIG_3DALGORITHM, BASS_3DALG_FULL);
+	BASS_SetConfig(BASS_CONFIG_3DALGORITHM, BASS_3DALG_DEFAULT);
 	BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 2);
 	BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 10);
 }
