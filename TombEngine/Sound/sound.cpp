@@ -730,7 +730,8 @@ void Sound_VideoPlayCallback(void* data, const void* samples, unsigned count, in
 		Sound_CheckBASSError("Starting audio stream routing for video playback", false);
 	}
 
-	int bytes = count * SOUND_CHANNEL_COUNT * sizeof(float);
+	// libVLC 3 delivers 16-bit integer samples.
+	int bytes = count * SOUND_CHANNEL_COUNT * sizeof(short);
 	BASS_StreamPutData(BASS_Video, samples, bytes);
 	Sound_CheckBASSError("Video playback audio stream buffering", false);
 }
@@ -1009,8 +1010,8 @@ static void Sound_CreateMixdownStreams()
 	BASS_3D_Mixdown = BASS_StreamCreate(SOUND_SAMPLE_RATE, SOUND_CHANNEL_COUNT, BASS_SAMPLE_FLOAT, STREAMPROC_DEVICE_3D, NULL);
 	BASS_ChannelPlay(BASS_3D_Mixdown, false);
 
-	// Create video channel for video playback.
-	BASS_Video = BASS_StreamCreate(SOUND_SAMPLE_RATE, SOUND_CHANNEL_COUNT, BASS_SAMPLE_FLOAT, STREAMPROC_PUSH, NULL);
+	// Create video channel for video playback, in the 16-bit integer format of the libVLC 3 audio output.
+	BASS_Video = BASS_StreamCreate(SOUND_SAMPLE_RATE, SOUND_CHANNEL_COUNT, 0, STREAMPROC_PUSH, NULL);
 
 	// Reset buffer back to normal value.
 	BASS_SetConfig(BASS_CONFIG_BUFFER, 300);

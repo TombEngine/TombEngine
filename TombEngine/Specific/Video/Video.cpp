@@ -194,6 +194,7 @@ namespace TEN::Video
 		std::vector<const char*> vlcArgs;
 		vlcArgs.push_back("--vout=vdummy");		 // Use dummy video output (headless).
 		vlcArgs.push_back("--aout=adummy");		 // Default to silent; libvlc_audio_set_callbacks overrides to amem per-player when audio is needed.
+		vlcArgs.push_back("--audio-resampler=speex"); // Otherwise the nearest-neighbor resampler, which has a higher priority, is used.
 		vlcArgs.push_back("--no-video-title");	 // Disable video title display.
 		vlcArgs.push_back("--no-media-library"); // Disable media library to increase loading speed.
 
@@ -323,8 +324,9 @@ namespace TEN::Video
 		// Route sound data to BASS when not in silent mode.
 		if (!_silent)
 		{
-			// libVLC 3 may not start the audio callbacks after a format callback, so the format is set directly.
-			libvlc_audio_set_format(_player, "FL32", SOUND_SAMPLE_RATE, SOUND_CHANNEL_COUNT);
+			// The libVLC 3 audio memory output only supports 16-bit integer samples; the format is set directly, as it
+			// may not start the audio callbacks after a format callback.
+			libvlc_audio_set_format(_player, "S16N", SOUND_SAMPLE_RATE, SOUND_CHANNEL_COUNT);
 			libvlc_audio_set_callbacks(_player, Sound_VideoPlayCallback, nullptr, nullptr, Sound_VideoFlushCallback, nullptr, this);
 		}
 
