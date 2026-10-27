@@ -14,53 +14,9 @@ namespace TEN::Video
 	VideoHandler g_VideoPlayer = {};
 
 	static const std::string			  VIDEO_PATH	   = "FMV/";
+	static const std::string			  VIDEO_PLUGIN_PATH		  = "plugins"; // Bundled libVLC 3 plugins, next to the executable.
 	static const std::string			  VIDEO_PLUGIN_CACHE_PATH = "plugins/plugins.dat";
 	static const std::vector<std::string> VIDEO_EXTENSIONS = { ".mp4", ".avi", ".mkv", ".mov" };
-
-	// libVLC 4 is bundled on Windows; Linux distributions ship libVLC 3, which differs in these calls and names the
-	// end of playback Ended instead of Stopping.
-#if LIBVLC_VERSION_MAJOR >= 4
-	constexpr auto VLC_STATE_STOPPING = libvlc_Stopping;
-#else
-	constexpr auto VLC_STATE_STOPPING = libvlc_Ended;
-#endif
-
-	static libvlc_media_t* CreateVlcMedia(libvlc_instance_t* instance, const std::string& path)
-	{
-#if LIBVLC_VERSION_MAJOR >= 4
-		return libvlc_media_new_path(path.c_str());
-#else
-		return libvlc_media_new_path(instance, path.c_str());
-#endif
-	}
-
-	static libvlc_media_player_t* CreateVlcPlayer(libvlc_instance_t* instance, libvlc_media_t* media)
-	{
-#if LIBVLC_VERSION_MAJOR >= 4
-		return libvlc_media_player_new_from_media(instance, media);
-#else
-		return libvlc_media_player_new_from_media(media);
-#endif
-	}
-
-	static void SetVlcPosition(libvlc_media_player_t* player, float position)
-	{
-#if LIBVLC_VERSION_MAJOR >= 4
-		libvlc_media_player_set_position(player, position, false);
-#else
-		libvlc_media_player_set_position(player, position);
-#endif
-	}
-
-	// libVLC 3 may not start the audio callbacks after a format callback, so the format is set directly.
-	static void SetVlcAudioFormat(libvlc_media_player_t* player, libvlc_audio_setup_cb setupCallback)
-	{
-#if LIBVLC_VERSION_MAJOR >= 4
-		libvlc_audio_set_format_callbacks(player, setupCallback, nullptr);
-#else
-		libvlc_audio_set_format(player, "FL32", SOUND_SAMPLE_RATE, SOUND_CHANNEL_COUNT);
-#endif
-	}
 
 	// libVLC 3 copies whole decoded planes, whose height is aligned and padded with extra lines, so the frame buffer
 	// reserves those lines below the visible frame.
@@ -70,15 +26,6 @@ namespace TEN::Video
 		constexpr auto EXTRA_LINES	  = 64;
 
 		return (((height + LINE_ALIGNMENT - 1) / LINE_ALIGNMENT) * LINE_ALIGNMENT) + EXTRA_LINES;
-	}
-
-	static void StopVlcPlayer(libvlc_media_player_t* player)
-	{
-#if LIBVLC_VERSION_MAJOR >= 4
-		libvlc_media_player_stop_async(player);
-#else
-		libvlc_media_player_stop(player);
-#endif
 	}
 
 	int VideoHandler::GetPosition() const
@@ -216,7 +163,7 @@ namespace TEN::Video
 		if (_player == nullptr)
 			return;
 
-		SetVlcPosition(_player, std::clamp(pos, 0.0f, 1.0f));
+		libvlc_media_player_set_position(_player, std::clamp(pos, 0.0f, 1.0f));
 		HandleError();
 	}
 
@@ -245,7 +192,7 @@ namespace TEN::Video
 		auto pluginCachePath = g_Platform->GetBinaryPath(false) + VIDEO_PLUGIN_CACHE_PATH;
 
 		std::vector<const char*> vlcArgs;
-		vlcArgs.push_back("--vout=vdummy");		 // Use dummy video output (headless); --vout=none breaks VLC 4.0 decoder device.
+		vlcArgs.push_back("--vout=vdummy");		 // Use dummy video output (headless).
 		vlcArgs.push_back("--aout=adummy");		 // Default to silent; libvlc_audio_set_callbacks overrides to amem per-player when audio is needed.
 		vlcArgs.push_back("--no-video-title");	 // Disable video title display.
 		vlcArgs.push_back("--no-media-library"); // Disable media library to increase loading speed.
@@ -259,6 +206,11 @@ namespace TEN::Video
 			TENLog("Rebuilding video plugin cache", LogLevel::Info);
 			vlcArgs.push_back("--reset-plugins-cache");
 		}
+
+		// Bundled libVLC builds look for plugins in their install path, except on Windows where they look next to the
+		// library; the variable points all of them to the bundled plugins.
+		auto pluginPath = g_Platform->GetBinaryPath(false) + VIDEO_PLUGIN_PATH;
+		SDL_setenv_unsafe("VLC_PLUGIN_PATH", pluginPath.c_str(), 1);
 
 		_vlcInstance = libvlc_new((int)vlcArgs.size(), vlcArgs.data());
 
@@ -286,7 +238,7 @@ namespace TEN::Video
 		if (_player != nullptr)
 		{
 			if (libvlc_media_player_is_playing(_player))
-				StopVlcPlayer(_player);
+				libvlc_media_player_stop(_player);
 
 			while (libvlc_media_player_is_playing(_player))
 				std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -351,7 +303,7 @@ namespace TEN::Video
 		_fileName = fullVideoName;
 		_needRender = _updateInput = false;
 
-		auto* media = CreateVlcMedia(_vlcInstance, _fileName);
+		auto* media = libvlc_media_new_path(_vlcInstance, _fileName.c_str());
 		if (media == nullptr)
 		{
 			TENLog("Failed to create media from path: " + _fileName, LogLevel::Error);
@@ -359,7 +311,7 @@ namespace TEN::Video
 		}
 
 		// VLC requires to initialize media. Load into player and release right away.
-		_player = CreateVlcPlayer(_vlcInstance, media);
+		_player = libvlc_media_player_new_from_media(media);
 		libvlc_media_release(media);
 
 		if (_player == nullptr)
@@ -371,7 +323,8 @@ namespace TEN::Video
 		// Route sound data to BASS when not in silent mode.
 		if (!_silent)
 		{
-			SetVlcAudioFormat(_player, OnAudioSetup);
+			// libVLC 3 may not start the audio callbacks after a format callback, so the format is set directly.
+			libvlc_audio_set_format(_player, "FL32", SOUND_SAMPLE_RATE, SOUND_CHANNEL_COUNT);
 			libvlc_audio_set_callbacks(_player, Sound_VideoPlayCallback, nullptr, nullptr, Sound_VideoFlushCallback, nullptr, this);
 		}
 
@@ -494,11 +447,11 @@ namespace TEN::Video
 			return;
 
 		// Reset playback to start if video is looped.
-		if (_looped && !interruptPlayback && (state == VLC_STATE_STOPPING || state == libvlc_Stopped))
+		if (_looped && !interruptPlayback && (state == libvlc_Ended || state == libvlc_Stopped))
 			libvlc_media_player_play(_player);
 
 		// If user pressed a key to break out from video, video has finished playback, or VLC failed, stop and delete it.
-		if (interruptPlayback || state == libvlc_Error || state == VLC_STATE_STOPPING || state == libvlc_Stopped)
+		if (interruptPlayback || state == libvlc_Error || state == libvlc_Ended || state == libvlc_Stopped)
 		{
 			Stop();
 			ClearAction(In::Pause); // HACK: Otherwise pause key won't work after video ends.
@@ -530,7 +483,7 @@ namespace TEN::Video
 		}
 
 		// Reset playback to start if video is looped.
-		if (_looped && (state == VLC_STATE_STOPPING || state == libvlc_Stopped))
+		if (_looped && (state == libvlc_Ended || state == libvlc_Stopped))
 			libvlc_media_player_play(_player);
 
 		HandleError();
@@ -585,7 +538,7 @@ namespace TEN::Video
 
 		DeinitializeVideoTexture();
 
-		StopVlcPlayer(_player);
+		libvlc_media_player_stop(_player);
 		libvlc_media_player_release(_player);
 
 		_player = nullptr;
@@ -641,15 +594,6 @@ namespace TEN::Video
 		vsnprintf(logMgs, sizeof(logMgs), fmt, args);
 
 		TENLog("VLC: " + std::string(logMgs), logLevel);
-	}
-
-	int VideoHandler::OnAudioSetup(void** data, char* format, unsigned* rate, unsigned* channels)
-	{
-		strncpy(format, "FL32", 4); // 32-bit float, little-endian (default format)
-		*rate = SOUND_SAMPLE_RATE;
-		*channels = SOUND_CHANNEL_COUNT;
-
-		return 0;
 	}
 
 	unsigned int VideoHandler::OnVideoSetup(void** data, char* chroma, unsigned* width, unsigned* height, unsigned* pitches, unsigned* lines)

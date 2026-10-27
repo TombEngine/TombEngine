@@ -64,6 +64,9 @@ foreach ($library in Get-ChildItem -Path (Join-Path $rootDir "Libs") -Directory)
         {
             Copy-Newer $platformDir $TargetDir $pattern $false
         }
+
+        # Libraries loading their own modules (libVLC) keep them in a plugins folder next to the executable.
+        Copy-Newer (Join-Path $platformDir "plugins") (Join-Path $TargetDir "plugins") "*"
     }
 }
 
