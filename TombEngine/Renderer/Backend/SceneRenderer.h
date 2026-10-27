@@ -33,7 +33,6 @@ namespace TEN::Renderer::Structures
     struct RendererRoom;
     struct RendererAnimatedTextureSet;
     struct RendererBucket;
-    struct RendererDoor;
     struct RendererMesh;
     struct RendererObject;
     struct RendererLight;
@@ -180,7 +179,6 @@ namespace TEN::Renderer::Backend
         Fullscreen,
         Overlay,
         Debug,
-        Water,
 
         Count
     };
@@ -468,19 +466,6 @@ namespace TEN::Renderer::Backend
             const Structures::RendererBucket* Bucket = nullptr;
         };
 
-        // Water surface generated at load on a horizontal portal from a water room to the dry room above it: a grid
-        // of triangles in the water vertex buffer.
-        struct WaterSurface
-        {
-            int     FirstVertex = 0;
-            int     VertexCount = 0;
-            int     WaterRoom   = NO_VALUE;
-            int     DryRoom     = NO_VALUE;
-            Vector3 BoundsMin   = Vector3::Zero;
-            Vector3 BoundsMax   = Vector3::Zero;
-            int     Frame       = NO_VALUE; // Last frame that collected the surface.
-        };
-
         // Shared level vertex and index buffers, created by LoadLevel.
         struct GeometryBuffers
         {
@@ -613,28 +598,6 @@ namespace TEN::Renderer::Backend
         bool                                    _hasReflectiveMaterials  = false;
         std::unique_ptr<RHI::ITexture>          _skyReflectionTarget     = nullptr; // Dual paraboloid sky, one hemisphere per layer.
         bool                                    _hasSkyReflectiveMaterials = false;
-        bool                                    _isSkyReflectionActive   = false; // Sky reflective materials, or water reflecting a visible sky.
-
-        // Water surfaces (SceneRendererWater.cpp).
-        std::unique_ptr<RHI::IShader>           _waterVertexShader       = nullptr;
-        std::unique_ptr<RHI::IShader>           _waterPixelShader        = nullptr;
-        std::unique_ptr<RHI::IShader>           _waterReflectionShader   = nullptr;
-        std::unique_ptr<RHI::IGraphicsPipeline> _waterPipeline           = nullptr;
-        std::unique_ptr<RHI::IGraphicsPipeline> _waterReflectionPipeline = nullptr; // Half resolution reflection trace.
-        std::unique_ptr<RHI::IShader>           _underwaterFogVertexShader = nullptr;
-        std::unique_ptr<RHI::IShader>           _underwaterFogPixelShader = nullptr;
-        std::unique_ptr<RHI::IGraphicsPipeline> _underwaterFogPipeline   = nullptr;
-        std::unique_ptr<RHI::ITexture>          _waveNormalTexture       = nullptr; // Tileable wave slopes, generated at initialization.
-        std::unique_ptr<RHI::IBuffer>           _waterVertexBuffer       = nullptr;
-        std::vector<WaterSurface>               _waterSurfaces           = {};
-        std::vector<std::vector<int>>           _roomWaterSurfaces       = {}; // Surfaces of each room, by room number.
-        std::unordered_set<const Structures::RendererBucket*> _waterCoveredBuckets = {}; // Builder made water faces, replaced by the surfaces.
-        std::vector<int>                        _waterDraws              = {}; // Visible surfaces of the frame.
-        int                                     _waterFrame              = 0;
-        bool                                    _isCameraUnderwater      = false;
-        bool                                    _isWaterSkyReflected     = false;
-        float                                   _underwaterSurfaceHeight = 0.0f; // Where the fog of the rays rising out of the water ends.
-        Vector3                                 _underwaterAmbient       = Vector3::One;
 
         // Temporal antialiasing and motion vectors (SceneRendererTAA.cpp).
         static constexpr auto TAA_HISTORY_COUNT = 2;
@@ -1198,26 +1161,6 @@ namespace TEN::Renderer::Backend
         void SetInstanceMotion(int instance, const Matrix& prevWorld, int prevBoneOffset);
         void RenderTemporalAntialiasing(RHI::ICommandBuffer& commandBuffer);
 
-        // Water surfaces (SceneRendererWater.cpp).
-        bool CreateWaterResources();
-        bool CreateWaveNormalTexture();
-        void LoadWaterSurfaces(const LevelGeometry& geometry);
-        void AddWaterSurface(const Structures::RendererDoor& portal, int waterRoom);
-        void AddWaterSurfaceGrid(WaterSurface& surface, std::vector<Vector4>& vertices) const;
-        float GetSwellWeight(const WaterSurface& surface, float x, float z) const;
-        bool IsWaterSurfaceAt(const Vector2& point, float height) const;
-        void HideWaterSurfaceBuckets(const LevelGeometry& geometry);
-        static bool IsWaterSurfaceBucket(const Structures::RendererBucket& bucket, const WaterSurface& surface);
-        unsigned int GetWaterRoomFlag(int roomNumber) const;
-        void CollectWaterSurfaces(const RenderView& view);
-        WaterPixelUniforms GetWaterUniforms() const;
-        RHI::IRenderPass* BeginScenePass(RHI::ICommandBuffer& commandBuffer, bool isDepthKept);
-        void DrawWaterSurfaceList(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, WaterPixelUniforms& uniforms);
-        RHI::ITexture* CopySceneTarget(RHI::ICommandBuffer& commandBuffer);
-        void RestoreSceneUniforms(RHI::ICommandBuffer& commandBuffer);
-        void PrepareUnderwaterFog(const RenderView& view);
-        RHI::IRenderPass* DrawUnderwaterFog(RHI::ICommandBuffer& commandBuffer);
-        RHI::IRenderPass* DrawWaterSurfaces(RHI::ICommandBuffer& commandBuffer);
 
         // Atmospheric sky (SceneRendererAtmosphere.cpp).
         bool CreateAtmosphereResources();

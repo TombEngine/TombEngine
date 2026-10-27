@@ -20,7 +20,7 @@ namespace TEN::Renderer::Backend
         constexpr const char* NAMES[] =
         {
             "Rooms", "Statics", "Moveables", "Sprites", "Sorted rooms", "Sorted statics", "Sorted moveables", "Sorted sprites",
-            "Shadow map", "Debris", "Sky", "Fullscreen passes", "2D layer", "Debug primitives", "Water"
+            "Shadow map", "Debris", "Sky", "Fullscreen passes", "2D layer", "Debug primitives"
         };
 
         static_assert(sizeof(NAMES) / sizeof(NAMES[0]) == (int)DrawCategory::Count, "Draw category names.");

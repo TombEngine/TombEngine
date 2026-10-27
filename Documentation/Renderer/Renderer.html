@@ -158,7 +158,7 @@ svg.diagram .head-after { fill: #127E73; }
   </li>
   <li><a href="#textures">Textures</a></li>
   <li><a href="#sky">Sky and atmosphere</a></li>
-  <li><a href="#water">Water and mirrors</a></li>
+  <li><a href="#water">Mirrors</a></li>
   <li><a href="#sprites">Sprites, debris, gun flashes</a></li>
   <li><a href="#post">Post-processing</a>
     <ol>
@@ -855,7 +855,6 @@ svg.diagram .head-after { fill: #127E73; }
 <p><code>LoadLevel(geometry)</code> waits for the GPU, frees the previous textures first (so the geometry gets the freed memory) and then:</p>
 <ul>
   <li><b>Geometry</b> (<code>SceneRendererGeometry.cpp</code>): one vertex buffer <code>Level.Vertices</code> with the room region (40 byte <code>GpuRoomVertex</code>) and, at a 256 byte aligned offset, the object region (48 byte <code>GpuObjectVertex</code>, statics then moveables); one 32 bit index buffer <code>Level.Indices</code> with statics, moveables and rooms sections. UVs are packed as 16 bit normalized values (out of range UVs are clamped and counted). The CPU index copies stay for the sorted faces. <code>UpdateMoveableVertices</code> re-uploads the moveable section for skin and hair changes.</li>
-  <li><b>Water surfaces</b> (<a href="#water">section 10</a>).</li>
   <li><b>Textures</b> (<a href="#textures">section 8</a>), then the encoded blobs are freed.</li>
   <li><b>Animated textures</b>: frames (four corner UVs) and sets (first frame, count, fps, type, UV rotate direction and speed) in two storage buffers, plus one-frame sets for waterfalls and video textures.</li>
   <li><b>Pipelines</b> (<code>PrecompileLevelPipelines</code>, <a href="#pipelines">6.8</a>), logged as "N pipelines created at load".</li>
@@ -868,7 +867,7 @@ svg.diagram .head-after { fill: #127E73; }
   <li><code>CollectUnused</code> of the pool, <code>ApplyHdrMode</code>, <code>EnsureRenderTargets</code>, cloud noise upload on first use.</li>
   <li>Projection rebuilt for the target aspect and jittered by TAA (<code>PrepareTemporalFrame</code>); <code>EnsureTemporalTargets</code>.</li>
   <li>Frame uniforms: vertex slot 0 (<code>FrameVertexUniforms</code>), pixel slot 0 prepared, fog bulbs to vertex slot 3, defaults pushed to every other declared slot (an unpushed slot can lose the device on Vulkan).</li>
-  <li>CPU collection: materials, decals, objects (lights, clusters, statics, moveables, player, effect meshes, mirrors, debris, gun flashes), draw sorting, room draws, water surfaces, underwater fog, sprites, sky sprites, sorted faces, mirrored sorted faces, debug primitives.</li>
+  <li>CPU collection: materials, decals, objects (lights, clusters, statics, moveables, player, effect meshes, mirrors, debris, gun flashes), draw sorting, room draws, sprites, sky sprites, sorted faces, mirrored sorted faces, debug primitives.</li>
   <li><code>UploadFrameData</code>: one copy pass.</li>
   <li>Pass flags: shadows, distortion, sky reflections, DOF (and <code>EnsureDOFTargets</code>), bloom.</li>
   <li>The fourteen passes, each in a debug group with CPU time and draw count.</li>
@@ -919,7 +918,7 @@ svg.diagram .head-after { fill: #127E73; }
 <tr><td>1</td><td>Shadow map</td><td>A point or spot shadow light with casters</td><td>6 x R32F cube faces</td><td><a href="#shadows">7.3</a></td></tr>
 <tr><td>2</td><td>Depth and normals prepass</td><td>Always</td><td>D32F depth, RGBA8 normals, RGBA8 emissive, R32F depth copy, RG16F velocity with TAA</td><td>Rooms then objects, prepass shaders without normal maps; velocity variants with TAA.</td></tr>
 <tr><td>3</td><td>GTAO</td><td>AO on (setting and level)</td><td>Half resolution R16F history</td><td><a href="#gtao">12.1</a></td></tr>
-<tr><td>4</td><td>Sky reflections</td><td>Sky reflective materials, or water reflecting a visible sky</td><td>2 x 512 RGBA8 paraboloid</td><td><a href="#sky">section 9</a></td></tr>
+<tr><td>4</td><td>Sky reflections</td><td>Sky reflective materials</td><td>2 x 512 RGBA8 paraboloid</td><td><a href="#sky">section 9</a></td></tr>
 <tr><td>5</td><td>Distortion</td><td>Distortion draws in view</td><td>Half resolution payload</td><td>Rooms, objects and sprites with the distortion mode, no depth.</td></tr>
 <tr><td>6</td><td>Sky</td><td>Always (clears the scene to the fog color)</td><td>Scene color</td><td><a href="#sky">section 9</a></td></tr>
 <tr><td>7</td><td>Scene</td><td>Always</td><td>Scene color</td><td><a href="#scene-pass">6.9</a></td></tr>
@@ -967,7 +966,7 @@ svg.diagram .head-after { fill: #127E73; }
   <text x="604" y="94" class="small mono">Bloom steps 1/2 .. 1/32</text>
   <text x="604" y="110" class="small mono">SMAA edges, weights, stencil</text>
   <text x="604" y="126" class="small mono">SMAA source, upscale source</text>
-  <text x="604" y="142" class="small mono">Sky, cloud, water scene copies</text>
+  <text x="604" y="142" class="small mono">Sky and cloud scene copies</text>
   <text x="604" y="158" class="small mono">God rays, horizon mask 1/2</text>
   <text x="604" y="182" class="small muted">Matched by description, reserved at</text>
   <text x="604" y="198" class="small muted">creation, destroyed after 300 unused</text>
@@ -1019,7 +1018,7 @@ svg.diagram .head-after { fill: #127E73; }
 <tr><td>Vertex 3</td><td><code>FogBulbUniforms</code> (2064 B)</td><td>Up to 32 fog bulbs.</td></tr>
 <tr><td>Pixel 0</td><td><code>FramePixelUniforms</code> (224 B)</td><td>Fog color, camera, AO exponent, view, viewport size, caustics UVs, light cluster parameters, <code>SceneColorMax</code>.</td></tr>
 <tr><td>Pixel 1</td><td><code>DrawPixelUniforms</code> (48 B)</td><td>Alpha threshold, blend mode, light offset and count, material, caustics and outdoor flags, decal range, texture layer.</td></tr>
-<tr><td>Pixel 2</td><td><code>GpuShadowUniforms</code> (720 B)</td><td>Shadow light, six face matrices, map size, 16 blob spheres. Shared with the sky, water, fog and every fullscreen pass, so the scene pass pushes it again.</td></tr>
+<tr><td>Pixel 2</td><td><code>GpuShadowUniforms</code> (720 B)</td><td>Shadow light, six face matrices, map size, 16 blob spheres. Shared with the sky and every fullscreen pass, so the scene pass pushes it again.</td></tr>
 <tr><td>Pixel 3</td><td><code>SpriteUniforms</code>, sky camera</td><td>Soft particle and render type, near and far planes, time, moon disc.</td></tr>
 </table></div>
 
@@ -1031,7 +1030,7 @@ svg.diagram .head-after { fill: #127E73; }
   <li><b>Player</b>: one classic skinning instance serves rigid meshes, joints and holsters; optional full skin; one instance per hair unit.</li>
   <li><b>Effect meshes</b>: room effects, gun shells, swarms (rats, bats, beetles, locusts, fish) and particle group meshes, all queued by mesh. Swarms share one light slice per room and frame.</li>
   <li><b>Mirrors</b> (<a href="#water">section 10</a>) reflect the draws collected so far; debris and gun flashes come after and are not reflected.</li>
-  <li><b>Room draws</b> (<code>CollectRoomDraws</code>): per visible room and bucket, skipping water covered buckets, buckets outside the frustum (bounds +-128 for vertex effects) and buckets outside the portal rectangle. One draw per bucket; the portal scissor and room state are set when the room changes.</li>
+  <li><b>Room draws</b> (<code>CollectRoomDraws</code>): per visible room and bucket, skipping buckets outside the frustum (bounds +-128 for vertex effects) and buckets outside the portal rectangle. One draw per bucket; the portal scissor and room state are set when the room changes.</li>
   <li><b>State sort</b> (<code>DrawSort</code>): key = alpha tested (bit 60), texture array group (12 bits at 44), layer (12 bits at 32), material (16 bits at 16), mesh source; stable LSD radix sort that skips constant digits. Opaque, additive and distortion lists use it; the prepass keeps portal order (front to back, good for early depth) and alpha edges keep collection order.</li>
   <li><code>BindBucket</code> skips pushes and binds equal to the previous state; pages of one texture group change only the layer uniform.</li>
 </ul>
@@ -1069,7 +1068,7 @@ svg.diagram .head-after { fill: #127E73; }
 
 <h3 id="scene-pass">6.9 Scene pass</h3>
 <figure>
-<svg class="diagram" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 250" role="img" aria-label="Draw order of the scene pass. Opaque: rooms, objects, mirrored objects and opaque debris, with depth compare equal against the prepass. Alpha edges: alpha tested rooms and objects blended at their edges. Opaque sprites. Then, if needed, the water surfaces and the underwater fog, which end and reopen the pass. Additive: rooms, objects, debris and sprites. Then sorted transparent faces and their mirrored copies, blended debris, gun flashes, dust storm and debug primitives.">
+<svg class="diagram" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 250" role="img" aria-label="Draw order of the scene pass. Opaque: rooms, objects, mirrored objects and opaque debris, with depth compare equal against the prepass. Alpha edges: alpha tested rooms and objects blended at their edges. Opaque sprites. Additive: rooms, objects, debris and sprites. Then sorted transparent faces and their mirrored copies, blended debris, gun flashes, dust storm and debug primitives.">
   <title>Scene pass draw order.</title>
   <rect x="20" y="30" width="150" height="120" rx="6" class="a"/>
   <text x="95" y="50" text-anchor="middle" class="label">1. Opaque</text>
@@ -1085,25 +1084,20 @@ svg.diagram .head-after { fill: #127E73; }
   <text x="372" y="50" text-anchor="middle" class="label">3. Sprites</text>
   <text x="336" y="72" class="small">Opaque and</text><text x="336" y="88" class="small">alpha test</text>
   <path class="wire" d="M420 90 H430" marker-end="url(#arrow)"/>
-  <rect x="432" y="30" width="120" height="120" rx="6" class="b"/>
-  <text x="492" y="50" text-anchor="middle" class="label">4. Water</text>
-  <text x="444" y="72" class="small">Surfaces</text><text x="444" y="88" class="small">Underwater fog</text>
-  <text x="444" y="130" class="small muted">pass split: copies</text>
-  <path class="wire" d="M552 90 H562" marker-end="url(#arrow)"/>
-  <rect x="564" y="30" width="126" height="120" rx="6" class="c"/>
-  <text x="627" y="50" text-anchor="middle" class="label">5. Additive</text>
-  <text x="576" y="72" class="small">Rooms</text><text x="576" y="88" class="small">Objects (+ mirrored)</text><text x="576" y="104" class="small">Debris</text><text x="576" y="120" class="small">Sprites (+ mirrored)</text>
-  <path class="wire" d="M690 90 H700" marker-end="url(#arrow)"/>
-  <rect x="702" y="30" width="178" height="120" rx="6" class="d"/>
-  <text x="791" y="50" text-anchor="middle" class="label">6. Sorted and late</text>
-  <text x="714" y="72" class="small">Sorted faces (+ mirrored)</text><text x="714" y="88" class="small">Blended debris</text><text x="714" y="104" class="small">Gun flashes</text><text x="714" y="120" class="small">Dust storm</text><text x="714" y="136" class="small">Debug primitives</text>
+  <rect x="432" y="30" width="126" height="120" rx="6" class="c"/>
+  <text x="495" y="50" text-anchor="middle" class="label">4. Additive</text>
+  <text x="444" y="72" class="small">Rooms</text><text x="444" y="88" class="small">Objects (+ mirrored)</text><text x="444" y="104" class="small">Debris</text><text x="444" y="120" class="small">Sprites (+ mirrored)</text>
+  <path class="wire" d="M558 90 H568" marker-end="url(#arrow)"/>
+  <rect x="570" y="30" width="178" height="120" rx="6" class="d"/>
+  <text x="659" y="50" text-anchor="middle" class="label">5. Sorted and late</text>
+  <text x="582" y="72" class="small">Sorted faces (+ mirrored)</text><text x="582" y="88" class="small">Blended debris</text><text x="582" y="104" class="small">Gun flashes</text><text x="582" y="120" class="small">Dust storm</text><text x="582" y="136" class="small">Debug primitives</text>
   <text x="20" y="180" class="small muted">Inside each room and object list: draws without alpha test first (early depth kept), then alpha tested ones.</text>
   <text x="20" y="198" class="small muted">Opaque, additive and distortion lists are state sorted (alpha test, texture group, layer, material, mesh source); prepass and alpha edges keep portal order.</text>
   <text x="20" y="216" class="small muted">Blend modes other than opaque, alpha test, additive and distortion reach the screen only through the sorted faces.</text>
 </svg>
 <figcaption>Draw order inside <code>RenderScenePass</code>.</figcaption>
 </figure>
-<p>The scene pass loads the color written by the sky pass and the prepass depth. Water surfaces and the underwater fog need copies of the scene, so they end the render pass and reopen it. Blend modes other than opaque, alpha test, additive and distortion reach the screen only through the sorted faces.</p>
+<p>The scene pass loads the color written by the sky pass and the prepass depth. Blend modes other than opaque, alpha test, additive and distortion reach the screen only through the sorted faces.</p>
 
 <h2 id="shading">7. Lighting and materials</h2>
 <p>Shaders: <code>Rooms.hlsl</code>, <code>Objects.hlsl</code>, <code>Lighting.hlsli</code>, <code>LightClusters.hlsli</code>, <code>Materials.hlsli</code>, <code>Shadows.hlsli</code>, <code>Decals.hlsli</code>, <code>FogBulbs.hlsli</code>, <code>Skinning.hlsli</code>, <code>Common.hlsli</code>. Colors use <code>COLOR_MODULATION_SCALE</code> = 2 (a neutral vertex color is 0.5).</p>
@@ -1254,7 +1248,7 @@ svg.diagram .head-after { fill: #127E73; }
 <h3 id="vertex-effects">7.6 Vertex effects and skinning</h3>
 <ul>
   <li><b>Wibble</b> (glow and move bits): a sine with a 64 frame period, phased by the position hash; move displaces weighted vertices vertically up to 128 units; glow modulates the brightness.</li>
-  <li><b>Water refraction wobble</b>: when the camera and a room are on different sides of the water, room vertices wobble in clip space. Disabled in levels with generated water surfaces (<a href="#water">section 10</a>).</li>
+  <li><b>Water refraction wobble</b>: when the camera and a room are on different sides of the water, room vertices wobble in clip space.</li>
   <li><b>Skinning</b> (<code>Skinning.hlsli</code>): none (0), rigid (1, first bone), full (2, four weighted matrices), classic (3, quaternion blend with hemisphere flip and the translation of the first bone).</li>
 </ul>
 
@@ -1369,7 +1363,7 @@ svg.diagram .head-after { fill: #127E73; }
 </ul>
 
 <h3>Sky reflections</h3>
-<p>A dual paraboloid map (<code>SkyReflections</code>, two 512 x 512 RGBA8 layers) rendered every frame while a sky reflective material exists or water reflects a visible sky. It contains the classic layers and horizon meshes only: no dome, clouds, stars or aurora.</p>
+<p>A dual paraboloid map (<code>SkyReflections</code>, two 512 x 512 RGBA8 layers) rendered every frame while a sky reflective material exists. It contains the classic layers and horizon meshes only: no dome, clouds, stars or aurora.</p>
 
 <h3>Sky quality</h3>
 <div class="table"><table>
@@ -1383,20 +1377,7 @@ svg.diagram .head-after { fill: #127E73; }
 </table></div>
 <p>The dome itself does not depend on the quality. Designers switch the sky features per level in Lua: <code>level.dynamicSky</code> (dome, colors, sun disc, twilight), its <code>Aurora</code>, <code>Clouds</code> (presets, colors, sunset underside, wind, preset rotation) and <code>godRays</code> tables, <code>level.moonLens</code>, <code>level.dustStorm</code>, <code>level.underwaterSky</code>, and the <code>Flow</code> weather functions (<code>SetWeatherPreset</code>, <code>TransitionWeather</code>, <code>DefineWeatherPreset</code>, <code>SetVolumetricCloudLayerA/B</code>, <code>SetAtmosphericSkySettings</code>, <code>SetCloudWind</code>, aurora fade duration). Most other parameters are tunable only in the Sky debug page.</p>
 
-<h2 id="water">10. Water surfaces, underwater fog and mirrors</h2>
-<h3>Water surfaces</h3>
-<p>Classic levels have no water surface geometry: surfaces are the horizontal portals between a water room and a dry room above it. <code>SceneRendererWater.cpp</code> builds them at load. <b>This computation is temporary</b>: it will move to Tomb Editor, which will write the surfaces into the level.</p>
-<ul>
-  <li>A portal qualifies when it is flat (corners within 1 unit) and the dry room is above. Each becomes a flat grid of 256 unit cells (at most 128 per side) with a swell weight per vertex that fades over 512 units toward edges not continued by another surface.</li>
-  <li>Builder-made faces that fake a surface there (non-opaque buckets flat at the surface height) are hidden in room and sorted draws; the count is logged.</li>
-  <li>Wave normals: a 256 x 256 RGBA8 map (9 mips) summing 32 random sine waves.</li>
-  <li>Drawing, in the scene pass after the opaque and alpha edge draws: copy the scene, trace reflections at half resolution (10 screen space steps with binary refinement, skipped where Fresnel is low), then draw each surface with four Gerstner-like swells in the vertex shader, three scrolling normal layers, refraction (fallback where the offset hits geometry in front), Beer-Lambert absorption, Fresnel (IOR 1.33 from below with total internal reflection), an environment fallback (sky texel, sky reflection map, room ambient) and specular from the clustered room lights. Water does not write depth.</li>
-  <li>With generated surfaces the classic room refraction wobble is turned off.</li>
-  <li>Water parameters (color, absorption, flow, wave strength) are constants for now.</li>
-</ul>
-<h3>Underwater fog</h3>
-<p>Whenever the camera room is a water room, a fullscreen pass after the water surfaces absorbs light along the view ray (density 0.35), shortened for rays leaving through the surface height. It runs in levels without generated surfaces too.</p>
-<h3>Mirrors</h3>
+<h2 id="water">10. Mirrors</h2>
 <ul>
   <li>Mirrors come from the level (room, plane, flags <code>ReflectPlayer</code>, <code>ReflectMoveables</code>, <code>ReflectStatics</code>, <code>ReflectSprites</code>, <code>ReflectLights</code>); there is no Lua API. A mirror is active only while the camera or the player is in its room.</li>
   <li>The backend (<code>SceneRendererMirrors.cpp</code>) has no pass of its own: it copies the player, moveable and static instances of the mirror room allowed by the flags, multiplied by the reflection matrix, and draws them right after their normal counterpart with front face culling. Their lights are copied (reflected with <code>ReflectLights</code>) and the view dynamic lights appended, since the clusters are placed for the unreflected view.</li>
@@ -1552,7 +1533,7 @@ svg.diagram .head-after { fill: #127E73; }
   <li><b>Off (default)</b>: the scene target has the 8 bit swapchain format and the scene shaders clamp colors to 1 (<code>SceneColorMax</code> = 1).</li>
   <li><b>On</b> (<code>SceneRendererBloom.cpp</code>): the scene target is RGBA16F and the same shaders clamp to 64, so the 8 bit mode keeps identical results. The TAA history is half float. The post-process adds the bloom, multiplies by the exposure and tonemaps with the identity up to 0.8 and an exponential shoulder above, so colors of the 8 bit range keep their look.</li>
   <li><b>Bloom</b>: five pooled steps from half resolution down, R11G11B10F where supported (RGBA16F otherwise). The first step keeps the colors above the threshold with a soft knee (half the threshold) after a 13 tap downsample and compresses them by luma; each next step halves the previous one; then each step is upsampled with a 3 x 3 tent filter and added onto the next larger one. The post-process adds the half resolution step times <code>BloomIntensity / 5</code>.</li>
-  <li><b>Switching</b>: <code>ApplyHdrMode</code> waits for the GPU, recreates the pipelines registered with <code>CreateSceneColorPipeline</code> (sky, aurora, clouds, god rays, dust storm, water, underwater fog, debug primitives) and empties the scene pipeline caches; the scene targets are created in the new format by <code>EnsureRenderTargets</code>.</li>
+  <li><b>Switching</b>: <code>ApplyHdrMode</code> waits for the GPU, recreates the pipelines registered with <code>CreateSceneColorPipeline</code> (sky, aurora, clouds, god rays, dust storm, debug primitives) and empties the scene pipeline caches; the scene targets are created in the new format by <code>EnsureRenderTargets</code>.</li>
   <li>HDR needs RGBA16F as color target, sampler and compute storage (for the TAA history); otherwise the device stays in 8 bit mode.</li>
   <li>The distortion target, the DOF layers and the reflection copy stay 8 bit; there is no HDR10 swapchain output.</li>
 </ul>
@@ -1841,7 +1822,6 @@ Flow.AddLevel(bench)</code></pre>
 <tr><td>Mirrors</td><td>All non-room sorted faces and sorted sprites are reflected regardless of the mirror room, and with <code>ReflectSprites</code> all unsorted sprites; copies are not clipped to the mirror plane; room geometry is never mirrored.</td></tr>
 <tr><td>Transparent sorting</td><td>Painter's algorithm on polygon centers: intersecting polygons can sort wrong. Sprites are not interleaved with mesh clusters.</td></tr>
 <tr><td>Sky</td><td>Clouds, discs, aurora and god rays are not depth tested, so they cost the same when hidden by geometry. Sky reflections show the classic layers only. Unused cloud code: <code>DualLobePhase</code> and <code>LightTransmittance</code> (the shadow march of <code>ShadowStepCount</code>) do not affect the output, <code>OcclusionSampleSteps</code> is never uploaded, <code>CloudDiscOcclusion</code> is ignored by the shader, <code>GOD_RAY_RESOLUTION_SCALE</code> is unused.</td></tr>
-<tr><td>Water</td><td>Surfaces are generated at load from portals (temporary until Tomb Editor writes them); color, absorption, flow and wave strength are constants.</td></tr>
 <tr><td>HDR</td><td>Distortion target, DOF layers and reflection copy stay 8 bit, so highlights clip in blurred areas; no HDR10 output; bloom costs about 1 ms on integrated GPUs at native resolution.</td></tr>
 <tr><td>Pipelines</td><td>An HDR switch or an F9 reload empties the pipeline caches, so the next frames create pipelines on first use (a short hitch).</td></tr>
 <tr><td>Render target pool</td><td>Reserved targets of an unused feature are destroyed after 300 frames, so a feature turned on later allocates them while the level already fills the memory.</td></tr>
@@ -1876,7 +1856,7 @@ Flow.AddLevel(bench)</code></pre>
 <tr><td>R5 Cached static shadow maps</td><td>Static cube map per light with rooms and statics, re-rendered only when the light moves; moving casters on top; several lights in an atlas.</td><td>Room and static shadows at the cost of moving casters; a look change behind an option.</td></tr>
 <tr><td>R8 Lightweight frame graph</td><td>Passes declare reads, writes and transient targets; unused passes culled; transient targets aliased.</td><td>Less render target memory, fewer manual flags.</td></tr>
 <tr><td>R9 Render thread</td><td>Frontend of frame N+1 overlapped with backend recording of frame N from immutable, double buffered frame data.</td><td>Frame time near max(frontend, backend); one frame of latency.</td></tr>
-<tr><td>R10 Assets with Tomb Editor</td><td>Water surfaces, quantized and cache optimized vertices (meshoptimizer), LODs for statics and moveables written by the level compiler; old levels keep the load-time path.</td><td>Shorter loads, less vertex memory. Format change.</td></tr>
+<tr><td>R10 Assets with Tomb Editor</td><td>Quantized and cache optimized vertices (meshoptimizer), LODs for statics and moveables written by the level compiler; old levels keep the load-time path.</td><td>Shorter loads, less vertex memory. Format change.</td></tr>
 <tr><td>R11 Tracy profiler zones</td><td>Optional Tracy zones on frontend and backend steps, main zones exported to the benchmark CSV.</td><td>Data to prioritize S2, S8 and R9.</td></tr>
 <tr><td>R12 FSR 3.1 temporal upscaler</td><td>Port the FidelityFX FSR 3.1 passes to RHI compute (SDL GPU exposes no native handles for the SDK backends); reactive mask for sorted faces and particles; replaces TAA.</td><td>Sharper 67% and 50% scales; about ten compute passes to port and measure.</td></tr>
 <tr><td>Memory</td><td>Material maps only where they vary; budget driven texture quality with a menu option; free CPU copies after upload; per-room texture streaming.</td><td>Giant levels within 1 GB of video memory at low settings.</td></tr>

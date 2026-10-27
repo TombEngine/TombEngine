@@ -464,7 +464,6 @@ set(TEN_SOURCES
     "${TEN_PROJECT_DIR}/Renderer/Backend/SceneRendererGeometry.cpp"
     "${TEN_PROJECT_DIR}/Renderer/Backend/SceneRendererLightClusters.cpp"
     "${TEN_PROJECT_DIR}/Renderer/Backend/SceneRendererPipelines.cpp"
-    "${TEN_PROJECT_DIR}/Renderer/Backend/SceneRendererWater.cpp"
     "${TEN_PROJECT_DIR}/Renderer/Backend/SceneRendererTAA.cpp"
     "${TEN_PROJECT_DIR}/Renderer/Backend/SceneRendererDynamicResolution.cpp"
     "${TEN_PROJECT_DIR}/Renderer/Backend/SceneRendererImGui.cpp"

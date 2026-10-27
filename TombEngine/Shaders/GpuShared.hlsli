@@ -239,36 +239,6 @@ struct GpuFogBulb
     int      ShadowPadding TEN_DEFAULT(0); \
     float4   Spheres[SHADOW_SPHERES_MAX];
 
-// Pixel slot 1 of the water surfaces. Absorption is per block of water, Ambient lights the water color and replaces
-// the reflections that leave the screen indoors. Wave tile: world units of the wave normal map.
-#define TEN_WATER_PIXEL_UNIFORMS \
-    float4x4 WaterViewProjection     TEN_DEFAULT(Matrix::Identity); \
-    float3   WaterColor              TEN_DEFAULT(Vector3::Zero); \
-    float    WaterTime               TEN_DEFAULT(0.0f); \
-    float3   WaterAbsorption         TEN_DEFAULT(Vector3::Zero); \
-    float    WaterRefractionStrength TEN_DEFAULT(0.0f); \
-    float3   WaterAmbient            TEN_DEFAULT(Vector3::Zero); \
-    float    WaterReflectionStrength TEN_DEFAULT(1.0f); \
-    float2   WaterFlowDirection      TEN_DEFAULT(Vector2::Zero); \
-    float    WaterFlowSpeed          TEN_DEFAULT(0.0f); \
-    float    WaterWaveTile           TEN_DEFAULT(1.0f); \
-    float    WaterWaveStrength       TEN_DEFAULT(1.0f); \
-    float    WaterSpecular           TEN_DEFAULT(0.0f); \
-    float    WaterNearPlane          TEN_DEFAULT(1.0f); \
-    float    WaterFarPlane           TEN_DEFAULT(1.0f); \
-    uint     WaterLightCount         TEN_DEFAULT(0); \
-    uint     IsWaterSkyReflected     TEN_DEFAULT(0); \
-    float    WaterPadding0           TEN_DEFAULT(0.0f); \
-    float    WaterPadding1           TEN_DEFAULT(0.0f);
-
-// Pixel slot 2 of the underwater fog: the fog path ends at the height of the surface above the camera.
-#define TEN_UNDERWATER_FOG_UNIFORMS \
-    float4x4 UnderwaterInverseViewProjection TEN_DEFAULT(Matrix::Identity); \
-    float    UnderwaterSurfaceHeight         TEN_DEFAULT(0.0f); \
-    float    UnderwaterPadding0              TEN_DEFAULT(0.0f); \
-    float    UnderwaterPadding1              TEN_DEFAULT(0.0f); \
-    float    UnderwaterPadding2              TEN_DEFAULT(0.0f);
-
 // Vertex slot 0 of the 2D layer.
 #define TEN_OVERLAY_UNIFORMS \
     float2 InverseTargetSize TEN_DEFAULT(Vector2::Zero); \

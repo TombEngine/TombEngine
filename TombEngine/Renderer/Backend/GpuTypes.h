@@ -71,8 +71,6 @@ namespace TEN::Renderer::Backend
     struct DrawPixelUniforms   { TEN_DRAW_PIXEL_UNIFORMS };
     struct GpuShadowUniforms   { TEN_SHADOW_UNIFORMS };
     struct OverlayUniforms     { TEN_OVERLAY_UNIFORMS };
-    struct WaterPixelUniforms  { TEN_WATER_PIXEL_UNIFORMS };
-    struct UnderwaterFogUniforms { TEN_UNDERWATER_FOG_UNIFORMS };
 
     static_assert(sizeof(GpuAnimatedFrame) == 32, "GpuAnimatedFrame size.");
     static_assert(sizeof(GpuAnimatedSet) == 32, "GpuAnimatedSet size.");
@@ -93,8 +91,6 @@ namespace TEN::Renderer::Backend
     static_assert(sizeof(DrawPixelUniforms) == 48, "DrawPixelUniforms size.");
     static_assert(sizeof(GpuShadowUniforms) == 720, "GpuShadowUniforms size.");
     static_assert(sizeof(OverlayUniforms) == 16, "OverlayUniforms size.");
-    static_assert(sizeof(WaterPixelUniforms) == 160, "WaterPixelUniforms size.");
-    static_assert(sizeof(UnderwaterFogUniforms) == 80, "UnderwaterFogUniforms size.");
 
     static_assert(offsetof(FramePixelUniforms, View) == 48, "FramePixelUniforms.View must start a register.");
     static_assert(offsetof(FramePixelUniforms, ClusterViewProjection) == 144, "FramePixelUniforms.ClusterViewProjection must start a register.");
