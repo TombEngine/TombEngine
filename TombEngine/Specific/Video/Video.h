@@ -100,7 +100,6 @@ namespace TEN::Video
 		static void			OnUnlockFrame(void* data, void* picture, void* const* pixels);
 		static void			OnLog(void* data, int level, const libvlc_log_t* ctx, const char* fmt, va_list args);
 		static unsigned int OnVideoSetup(void** data, char* chroma, unsigned* width, unsigned* height, unsigned* pitches, unsigned* lines);
-		static int			OnAudioSetup(void** data, char* format, unsigned* rate, unsigned* channels);
 	};
 
 	extern VideoHandler g_VideoPlayer;
