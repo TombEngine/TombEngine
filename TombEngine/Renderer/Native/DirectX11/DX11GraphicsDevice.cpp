@@ -338,10 +338,10 @@ namespace TEN::Renderer::Native::DirectX11
 		return std::make_unique<DX11ConstantBuffer>(_device.Get(), size, name);
 	}
 
-	void DX11GraphicsDevice::UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data)
+	void DX11GraphicsDevice::UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data, int size)
 	{
 		auto nativeConstantBuffer = static_cast<DX11ConstantBuffer*>(constantBuffer);
-		nativeConstantBuffer->UpdateData(data, _context.Get());
+		nativeConstantBuffer->UpdateData(data, _context.Get(), size);
 	}
 
 	std::unique_ptr<IStructuredBuffer> DX11GraphicsDevice::CreateStructuredBuffer(int stride, int elementCount, std::wstring name)
