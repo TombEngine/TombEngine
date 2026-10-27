@@ -7,10 +7,12 @@ namespace TEN::Benchmark
 {
     constexpr auto BENCHMARK_WARMUP_TIME = 3.0f;
     constexpr auto BENCHMARK_FLUSH_FRAMES = 60;
+    constexpr auto BENCHMARK_SCREENSHOT_GAME_FRAME = 240;
 
     static bool _isActive = false;
     static bool _isStarted = false;
     static bool _isFinished = false;
+    static bool _isScreenshotTaken = false;
     static float _duration = 0.0f;
     static std::chrono::steady_clock::time_point _startTime = {};
     static int _recordedFrames = 0;
@@ -98,7 +100,7 @@ namespace TEN::Benchmark
         }
 
         _file << "frame,time_s,cpu_frame_ms,cpu_render_ms,present_ms,draw_calls,shadow_draw_calls,triangles,"
-                 "cb_updates,cb_bytes,perdraw_updates,rooms,sorted_faces,sorted_collect_ms,sorted_sort_ms,sorted_draw_ms\n";
+                 "cb_updates,cb_bytes,perdraw_updates,rooms,sorted_faces\n";
 
         _isActive = true;
         _isStarted = false;
@@ -126,6 +128,15 @@ namespace TEN::Benchmark
     bool IsBenchmarkActive()
     {
         return _isActive;
+    }
+
+    bool ConsumeBenchmarkScreenshotRequest(int gameFrame)
+    {
+        if (!_isActive || _isScreenshotTaken || gameFrame < BENCHMARK_SCREENSHOT_GAME_FRAME)
+            return false;
+
+        _isScreenshotTaken = true;
+        return true;
     }
 
     void UpdateBenchmark()
@@ -171,8 +182,7 @@ namespace TEN::Benchmark
               << stats.CpuFrameTime << ',' << stats.CpuRenderTime << ',' << stats.PresentTime << ','
               << stats.DrawCalls << ',' << stats.ShadowMapDrawCalls << ',' << stats.Triangles << ','
               << stats.ConstantBufferUpdates << ',' << stats.ConstantBufferBytes << ',' << stats.PerDrawUpdates << ','
-              << stats.RoomsDrawn << ',' << stats.SortedFaces << ','
-              << stats.SortedCollectTime << ',' << stats.SortedSortTime << ',' << stats.SortedDrawTime << '\n';
+              << stats.RoomsDrawn << ',' << stats.SortedFaces << '\n';
 
         _frameTimes.push_back(stats.CpuFrameTime);
         _renderTimes.push_back(stats.CpuRenderTime);

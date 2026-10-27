@@ -200,7 +200,8 @@ static void HandleWindowFocusLost(SDL_Window* window)
 	bool isMinimized =
 		(SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) != 0;
 
-	if ((!DebugMode || isMinimized) && ThreadSuspendCount == 0)
+	// Benchmarks keep running in the background, so a focus change does not invalidate the measurement.
+	if ((!DebugMode || isMinimized) && ThreadSuspendCount == 0 && !TEN::Benchmark::IsBenchmarkActive())
 	{
 		TENLog("Suspending game thread.", LogLevel::Info);
 

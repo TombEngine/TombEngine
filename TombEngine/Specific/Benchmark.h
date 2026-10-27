@@ -7,9 +7,6 @@ namespace TEN::Benchmark
         float CpuFrameTime       = 0.0f; // Milliseconds between consecutive presented frames.
         float CpuRenderTime      = 0.0f; // Milliseconds spent in Renderer::Render before presenting.
         float PresentTime        = 0.0f; // Milliseconds blocked in present (vsync, frame pacing, GPU).
-        float SortedCollectTime  = 0.0f;
-        float SortedSortTime     = 0.0f;
-        float SortedDrawTime     = 0.0f;
 
         int DrawCalls            = 0;
         int ShadowMapDrawCalls   = 0;
@@ -30,4 +27,7 @@ namespace TEN::Benchmark
     bool IsBenchmarkActive();
     void UpdateBenchmark();
     void RecordBenchmarkFrame(const BenchmarkFrameStats& stats);
+
+    // True once, when the game frame counter reaches a fixed value, so runs capture the same game state for comparison.
+    bool ConsumeBenchmarkScreenshotRequest(int gameFrame);
 }

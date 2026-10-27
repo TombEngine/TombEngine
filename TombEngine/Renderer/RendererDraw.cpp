@@ -3573,9 +3573,13 @@ namespace TEN::Renderer
 	void Renderer::Render(float interpFactor)
 	{
 		auto renderStartTime = std::chrono::steady_clock::now();
+		bool captureScreenshot = TEN::Benchmark::ConsumeBenchmarkScreenshotRequest(GlobalCounter);
 
 		InterpolateCamera(interpFactor);
 		RenderScene(_backBuffer.get(), _gameCamera);
+
+		if (captureScreenshot)
+			_graphicsDevice->SaveScreenshot(_backBuffer->GetRenderTarget(), g_GameFlow->GetGameDir() + "Logs/Benchmark.png");
 
 		auto presentStartTime = std::chrono::steady_clock::now();
 		_graphicsDevice->ClearState();
