@@ -129,7 +129,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;liblz4_static_d.lib;sdl3.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;pdh.lib;d3d11.lib;version.lib;liblz4_static_d.lib;sdl3.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
@@ -156,6 +156,8 @@ if not exist %ScriptsDir% mkdir %ScriptsDir%
 if not exist %EngineDir% mkdir %EngineDir%
 
 xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
+if "$(Configuration)"=="Debug" (powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin" -DebugInfo) else (powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin")
+if errorlevel 1 exit 1
 
 xcopy /Y "$(SolutionDir)Libs\bass\x86\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\lua\x86\*.dll" "$(TargetDir)"
@@ -195,7 +197,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;liblz4_static_d.lib;sdl3.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;pdh.lib;d3d11.lib;version.lib;liblz4_static_d.lib;sdl3.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
@@ -222,6 +224,8 @@ if not exist %ScriptsDir% mkdir %ScriptsDir%
 if not exist %EngineDir% mkdir %EngineDir%
 
 xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
+if "$(Configuration)"=="Debug" (powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin" -DebugInfo) else (powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin")
+if errorlevel 1 exit 1
 
 xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\lua\x64\*.dll" "$(TargetDir)"
@@ -271,7 +275,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;liblz4_static.lib;sdl3.lib;spdlog.lib;libvlc.lib;libvlccore.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;pdh.lib;d3d11.lib;version.lib;liblz4_static.lib;sdl3.lib;spdlog.lib;libvlc.lib;libvlccore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <TargetMachine>MachineX86</TargetMachine>
@@ -302,6 +306,8 @@ if not exist %ScriptsDir% mkdir %ScriptsDir%
 if not exist %EngineDir% mkdir %EngineDir%
 
 xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
+if "$(Configuration)"=="Debug" (powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin" -DebugInfo) else (powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin")
+if errorlevel 1 exit 1
 
 xcopy /Y "$(SolutionDir)Libs\bass\x86\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\lua\x86\*.dll" "$(TargetDir)"
@@ -353,7 +359,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;liblz4_static.lib;sdl3.lib;spdlog.lib;libvlc.lib;libvlccore.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;pdh.lib;d3d11.lib;version.lib;liblz4_static.lib;sdl3.lib;spdlog.lib;libvlc.lib;libvlccore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
@@ -383,6 +389,8 @@ if not exist "%ScriptsDir%" mkdir "%ScriptsDir%"
 if not exist "%EngineDir%" mkdir "%EngineDir%"
 
 xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" "%ShaderDir%"
+if "$(Configuration)"=="Debug" (powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin" -DebugInfo) else (powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin")
+if errorlevel 1 exit 1
 
 xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\lua\x64\*.dll" "$(TargetDir)"
@@ -857,6 +865,17 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Native\DirectX11\DX11GpuReadbackBuffer.h" />
     <ClInclude Include="Renderer\Native\DirectX11\DX11VertexBuffer.h" />
     <ClInclude Include="Renderer\Renderer.h" />
+    <ClInclude Include="Renderer\RHI\RHITypes.h" />
+    <ClInclude Include="Renderer\RHI\RHIDevice.h" />
+    <ClInclude Include="Renderer\RHI\DirectX11\DX11Device.h" />
+    <ClInclude Include="Renderer\RHI\OpenGL\GLDevice.h" />
+    <ClInclude Include="Renderer\RHI\SDLGPU\SDLGPUDevice.h" />
+    <ClInclude Include="Renderer\RHI\ShaderLibrary.h" />
+    <ClInclude Include="Renderer\RHI\Test\RHITest.h" />
+    <ClInclude Include="Renderer\RHI\MemoryTracker.h" />
+    <ClInclude Include="Renderer\RHI\TextureCapture.h" />
+    <ClInclude Include="Renderer\RHI\RenderTargetPool.h" />
+    <ClInclude Include="Renderer\RHI\UploadRing.h" />
     <ClInclude Include="Renderer\RendererEnums.h" />
     <ClInclude Include="Renderer\ShaderManager\ShaderManager.h" />
     <ClInclude Include="Renderer\Structures\RendererDecal.h" />
@@ -1450,6 +1469,16 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\Native\DirectX11\DX11GpuReadbackBuffer.cpp" />
     <ClCompile Include="Renderer\Native\DirectX11\DX11VertexBuffer.cpp" />
     <ClCompile Include="Renderer\Renderer.cpp" />
+    <ClCompile Include="Renderer\RHI\RHIDevice.cpp" />
+    <ClCompile Include="Renderer\RHI\DirectX11\DX11Device.cpp" />
+    <ClCompile Include="Renderer\RHI\OpenGL\GLDevice.cpp" />
+    <ClCompile Include="Renderer\RHI\SDLGPU\SDLGPUDevice.cpp" />
+    <ClCompile Include="Renderer\RHI\ShaderLibrary.cpp" />
+    <ClCompile Include="Renderer\RHI\Test\RHITest.cpp" />
+    <ClCompile Include="Renderer\RHI\MemoryTracker.cpp" />
+    <ClCompile Include="Renderer\RHI\TextureCapture.cpp" />
+    <ClCompile Include="Renderer\RHI\RenderTargetPool.cpp" />
+    <ClCompile Include="Renderer\RHI\UploadRing.cpp" />
     <ClCompile Include="Renderer\RendererAntialiasing.cpp" />
     <ClCompile Include="Renderer\RendererCompatibility.cpp" />
     <ClCompile Include="Renderer\RendererDebug.cpp" />
@@ -1549,6 +1578,9 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <None Include="Resources\Title.bin" />
     <None Include="RuleSet.ruleset" />
     <None Include="Scripting\Internal\TEN\Properties\PropertySystem.md" />
+    <None Include="Shaders\CompileShaders.ps1" />
+    <None Include="Shaders\RHITest.hlsl" />
+    <None Include="Shaders\ShaderInterop.hlsli" />
     <None Include="Shaders\AnimatedTextures.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>

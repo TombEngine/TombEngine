@@ -60,6 +60,12 @@ namespace TEN::Platform
 		return (pos != std::string::npos) ? result.substr(0, pos + 1) : std::string();
 	}
 
+	VideoMemoryInfo LinuxSubsystem::GetVideoMemoryInfo(const std::string& adapterName)
+	{
+		// Not reported yet.
+		return {};
+	}
+
 	std::vector<unsigned short> LinuxSubsystem::GetProductOrFileVersion(bool productVersion)
 	{
 		// Version info is not embedded in ELF binaries in the same way as PE files.
