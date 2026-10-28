@@ -785,6 +785,15 @@ namespace TEN::Entities
 			obj->SetHitEffect(true);
 		}
 
+		obj = &Objects[ID_OBELISK_CAGE];
+		if (obj->loaded)
+		{
+          obj->Initialize = InitializeObeliskCage;
+			obj->control = ObeliskCageControl;
+			obj->collision = ObjectCollision;
+			obj->SetHitEffect(true);
+		}
+
 		obj = &Objects[ID_WRAITH_TRAP];
 		if (obj->loaded)
 		{

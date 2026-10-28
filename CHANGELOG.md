@@ -7,6 +7,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### New features
 
+* Added the [turn switch and obelisk puzzle from TR4](https://tombengine.com/docs/tr4-obelisk-puzzle-tomb-engine-setup-guide/).
+
 ### Bug fixes
 
 ### Lua API Changes
@@ -127,6 +129,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed crashes when shooting if the gunflash object is missing.
 * Fixed crashes and missing textures while rendering swarm objects with alpha blended textures.
 * Fixed vertex move effect speed in water rooms while turning camera on the x-axis.
+* Fixed `TURN_SWITCH` not rotating the `OBELISK` correctly.
 
 ### Lua API changes
 
