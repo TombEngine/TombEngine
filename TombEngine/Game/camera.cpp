@@ -665,7 +665,7 @@ void ChaseCamera(ItemInfo* item)
 	}
 
 	auto ideal = Ideals[indexOfFarthestIdeal];
-	CameraCollisionBounds(&ideal, CLICK(1.5f), 1);
+	CameraCollisionBounds(&ideal, CLICK(1.5f), true);
 	MoveCamera(&ideal, Camera.speed);
 }
 
@@ -813,7 +813,7 @@ void CombatCamera(ItemInfo* item)
 
 	// Handle room collision.
 	auto ideal = Ideals[indexOfFarthestIdeal];
-	CameraCollisionBounds(&ideal, CLICK(1.5f), 1);
+	CameraCollisionBounds(&ideal, CLICK(1.5f), true);
 
 	// Snap position of fixed camera type.
 	if (Camera.oldType == CameraType::Fixed)
@@ -1153,21 +1153,43 @@ void CalculateCamera(const CollisionInfo& coll)
 	int y = item->Pose.Position.y + bounds.Y2 + (3 * (bounds.Y1 - bounds.Y2) / 4);
 	int z;
 
+	// Releasing the Look key while a forced look target is active permanently dismisses it. Return to the
+	// normal chase camera, but keep the combat camera if a weapon is drawn so aiming isn't dropped for a frame.
+	if (Camera.item != nullptr && !isFixedCamera && IsReleased(In::Look))
+	{
+		Camera.item->LookedAt = true;
+		Camera.item = nullptr;
+
+		bool isCombatAim = (Lara.Control.HandStatus == HandStatus::WeaponReady || Lara.Control.HandStatus == HandStatus::WeaponDraw);
+		Camera.type = isCombatAim ? CameraType::Combat : CameraType::Chase;
+		Lara.Control.Look.Orientation = EulerAngles::Identity;
+	}
+
 	if (Camera.item)
 	{
 		if (!isFixedCamera)
 		{
 			auto deltaPos = Camera.item->Pose.Position - item->Pose.Position;
-			float dist = Vector3i::Distance(Camera.item->Pose.Position, item->Pose.Position);
+			int horizontalDistance = (int)sqrt((double)SQUARE(deltaPos.x) + (double)SQUARE(deltaPos.z));
 
-			auto lookOrient = EulerAngles(
-				phd_atan(dist, y - (bounds.Y1 + bounds.Y2) / 2 - Camera.item->Pose.Position.y),
+			// Use the camera target's own vertical center as the reference height rather than the player bounds,
+			// and project onto the horizontal plane so nearby but elevated targets still yield a steep enough required pitch.
+			const auto& targetBounds = GameBoundingBox(Camera.item);
+
+			// Full pitch/heading required to centre the target on the view axis.
+			auto fullOrient = EulerAngles(
+				phd_atan(horizontalDistance, y - (targetBounds.Y1 + targetBounds.Y2) / 2 - Camera.item->Pose.Position.y),
 				phd_atan(deltaPos.z, deltaPos.x) - item->Pose.Orientation.y,
-				0) / 2;
+				0);
 
-			if (lookOrient.y > ANGLE(-50.0f) &&	lookOrient.y < ANGLE(50.0f) &&
-				lookOrient.z > ANGLE(-85.0f) && lookOrient.z < ANGLE(85.0f))
+			// Split the required angle in half across the head and torso bones.
+			auto lookOrient = fullOrient / 2;
+
+			// Gate on the full angle actually applied to the camera aim so it can never swing past the hard look constraint.
+			if (fullOrient.y > LOOKCAM_ORIENT_CONSTRAINT.first.y && fullOrient.y < LOOKCAM_ORIENT_CONSTRAINT.second.y &&
+				fullOrient.x > LOOKCAM_ORIENT_CONSTRAINT.first.x && fullOrient.x < LOOKCAM_ORIENT_CONSTRAINT.second.x)
 			{
+				// Head turns the full way toward the target.
 				short angleDelta = lookOrient.y - Lara.ExtraHeadRot.y;
 				if (angleDelta > ANGLE(4.0f))
 				{
@@ -1181,9 +1203,12 @@ void CalculateCamera(const CollisionInfo& coll)
 				{
 					Lara.ExtraHeadRot.y += angleDelta;
 				}
+
+				// Torso mirrors the head so both bones contribute equally toward the target.
 				Lara.ExtraTorsoRot.y = Lara.ExtraHeadRot.y;
 
-				angleDelta = lookOrient.z - Lara.ExtraHeadRot.x;
+				// Head pitches the full way toward the target.
+				angleDelta = lookOrient.x - Lara.ExtraHeadRot.x;
 				if (angleDelta > ANGLE(4.0f))
 				{
 					Lara.ExtraHeadRot.x += ANGLE(4.0f);
@@ -1196,9 +1221,11 @@ void CalculateCamera(const CollisionInfo& coll)
 				{
 					Lara.ExtraHeadRot.x += angleDelta;
 				}
+
 				Lara.ExtraTorsoRot.x = Lara.ExtraHeadRot.x;
 
-				Lara.Control.Look.Orientation = lookOrient;
+				// Aim the camera at the full angle so the target lands on the screen centre.
+				Lara.Control.Look.Orientation = fullOrient;
 				Camera.type = CameraType::Look;
 				Camera.item->LookedAt = true;
 			}

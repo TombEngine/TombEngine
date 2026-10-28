@@ -160,6 +160,12 @@ namespace TEN::Scripting::Effects::ParticleGroups
 
 	bool LuaParticleGroup::IsActive() const
 	{
+		const auto* group = _handle.Get();
+		return group && group->State == ParticleGroupState::Running;
+	}
+
+	bool LuaParticleGroup::IsValid() const
+	{
 		return _handle.IsValid();
 	}
 
@@ -589,6 +595,26 @@ namespace TEN::Scripting::Effects::ParticleGroups
 			// @usage
 			// local isMesh = group:IsMeshGroup()
 			ScriptReserved_ParticleGroupIsMeshGroup, &LuaParticleGroup::IsMeshGroup,
+
+			/// Check if the emitter is currently running.
+			// Returns false while paused or stopped, or if the group no longer exists.
+			// @function ParticleGroup:IsActive
+			// @treturn bool True if the emitter is running, false otherwise.
+			// @usage
+			// if group:IsActive() then
+			//     group:EmitBurst(10)
+			// end
+			ScriptReserved_ParticleGroupIsActive, &LuaParticleGroup::IsActive,
+
+			/// Check if the group still exists and its slot has not been reused.
+			// Use this to guard calls after level changes or after a stopped group has expired.
+			// @function ParticleGroup:IsValid
+			// @treturn bool True if the group is valid, false otherwise.
+			// @usage
+			// if group:IsValid() then
+			//     group:SetPosition(pos)
+			// end
+			ScriptReserved_ParticleGroupIsValid, &LuaParticleGroup::IsValid,
 
 			/// Set initial orientation for mesh particles in degrees (pitch, yaw, roll).
 			// For sprite groups it fixes the orientation of the sprites.

@@ -179,7 +179,6 @@ void InitializeGameFlags()
 
 	FlipEffect = NO_VALUE;
 	FlipStatus = false;
-	NumRPickups = 0;
 	Camera.underwater = false;
 }
 
