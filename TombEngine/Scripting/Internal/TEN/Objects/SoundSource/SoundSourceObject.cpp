@@ -2,10 +2,11 @@
 #include "SoundSourceObject.h"
 
 #include "Scripting/Internal/ReservedScriptNames.h"
-#include "Sound/sound.h"
 #include "Scripting/Internal/ScriptAssert.h"
 #include "Scripting/Internal/ScriptUtil.h"
+#include "Scripting/Internal/TEN/Sound/SoundHandler.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
+#include "Sound/sound.h"
 
 /***
 Sound source
@@ -55,7 +56,27 @@ void SoundSource::Register(sol::table& parent)
 		/// Set the sound source's ID.
 		// @function SoundSource:SetSoundID
 		// @tparam int name The sound source's new sound ID.
-		ScriptReserved_SetSoundID, &SoundSource::SetSoundID
+		ScriptReserved_SetSoundID, &SoundSource::SetSoundID,
+
+		/// Get whether the sound source is enabled.
+		// @function SoundSource:GetEnabled
+		// @treturn bool True if the sound source is enabled, false otherwise.
+		ScriptReserved_GetEnabled, &SoundSource::GetEnabled,
+
+		/// Set whether the sound source is enabled. Disabled sound sources do not play.
+		// @function SoundSource:SetEnabled
+		// @tparam bool enabled Whether the sound source is enabled.
+		ScriptReserved_SetEnabled, &SoundSource::SetEnabled,
+
+		/// Get the sound source's properties. Fields that were not overridden are read from the sound catalogue.
+		// @function SoundSource:GetProperties
+		// @treturn table Table of sound properties.
+		ScriptReserved_GetProperties, &SoundSource::GetProperties,
+
+		/// Set the sound source's property overrides. Properties not provided fall back to the sound catalogue.
+		// @function SoundSource:SetProperties
+		// @tparam table properties Table of sound properties to override. Supported fields are `volume` (0-255), `radius` (0-255 sectors), `randomness` (0-255), `pitch` (-127-127), `playMode` (a @{Sound.SoundPlayMode} value), `randomPitch` (bool) and `randomGain` (bool). An empty table clears all overrides.
+		ScriptReserved_SetProperties, &SoundSource::SetProperties
 	);
 }
 
@@ -100,6 +121,35 @@ int SoundSource::GetSoundID() const
 }
 
 void SoundSource::SetSoundID(int soundID)
-{	
+{
+	if (m_soundSource.SoundID == soundID)
+		return;
+
 	m_soundSource.SoundID = soundID;
+	m_soundSource.Properties = {};
+}
+
+bool SoundSource::GetEnabled() const
+{
+	return m_soundSource.Enabled;
+}
+
+void SoundSource::SetEnabled(bool enabled)
+{
+	if (!enabled)
+		StopSoundEffect((short)m_soundSource.SoundID);
+
+	m_soundSource.Enabled = enabled;
+}
+
+sol::table SoundSource::GetProperties(sol::this_state state) const
+{
+	auto properties = TEN::Scripting::Sound::GetEffectiveSoundProperties(m_soundSource);
+	return TEN::Scripting::Sound::MakeSoundPropertiesTable(state, properties);
+}
+
+void SoundSource::SetProperties(sol::optional<sol::table> properties)
+{
+	m_soundSource.Properties = properties.has_value() ?
+		TEN::Scripting::Sound::ParseSoundProperties(properties.value()) : SoundProperties{};
 }

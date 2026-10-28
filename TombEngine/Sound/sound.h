@@ -133,12 +133,32 @@ struct SoundTrackInfo
 	int Mask { 0 };
 };
 
+struct SoundProperties
+{
+	std::optional<unsigned char> Volume;
+	std::optional<unsigned char> Radius;
+	std::optional<unsigned char> Randomness;
+	std::optional<signed char>	 Pitch;
+	std::optional<SoundPlayMode> PlayMode;
+	std::optional<bool>			 RandomPitch;
+	std::optional<bool>			 RandomGain;
+
+	bool IsEmpty() const
+	{
+		return !Volume.has_value() && !Radius.has_value() && !Randomness.has_value() &&
+			!Pitch.has_value() && !PlayMode.has_value() && !RandomPitch.has_value() &&
+			!RandomGain.has_value();
+	}
+};
+
 struct SoundSourceInfo
 {
-	Vector3i	Position = Vector3i::Zero;
-	int			SoundID	 = 0;
-	int			Flags	 = 0;
-	std::string	Name	 = {};
+	Vector3i		Position = Vector3i::Zero;
+	int				SoundID	 = 0;
+	int				Flags	 = 0;
+	bool			Enabled	 = true;
+	std::string		Name	 = {};
+	SoundProperties Properties;
 
 	SoundSourceInfo()
 	{
@@ -175,7 +195,7 @@ struct BassDevice
 extern std::map<std::string, int> SoundTrackMap;
 extern std::unordered_map<int, SoundTrackInfo> SoundTracks;
 
-bool SoundEffect(int soundID, Pose* pose, SoundEnvironment soundEnv = SoundEnvironment::Land, float pitchMult = 1.0f, float gainMult = 1.0f);
+bool SoundEffect(int soundID, Pose* pose, SoundEnvironment soundEnv = SoundEnvironment::Land, float pitchMult = 1.0f, float gainMult = 1.0f, const SoundProperties* properties = nullptr);
 void StopSoundEffect(short effectID);
 bool LoadSample(char *buffer, int compSize, int uncompSize, int currentIndex);
 void FreeSamples();

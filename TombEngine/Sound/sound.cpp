@@ -160,8 +160,43 @@ bool LoadSample(char* pointer, int compSize, int uncompSize, int index)
 	return true;
 }
 
+// Apply Lua-defined overrides on top of a catalogue sample.
+static void ApplySoundProperties(SampleInfo& sample, const SoundProperties& properties)
+{
+	if (properties.Volume.has_value())
+		sample.Volume = properties.Volume.value();
+
+	if (properties.Radius.has_value())
+		sample.Radius = properties.Radius.value();
+
+	if (properties.Randomness.has_value())
+		sample.Randomness = properties.Randomness.value();
+
+	if (properties.Pitch.has_value())
+		sample.Pitch = properties.Pitch.value();
+
+	if (properties.PlayMode.has_value())
+		sample.Flags = (short)((sample.Flags & ~3) | (int)properties.PlayMode.value());
+
+	if (properties.RandomPitch.has_value())
+	{
+		if (properties.RandomPitch.value())
+			sample.Flags |= SOUND_FLAG_RND_PITCH;
+		else
+			sample.Flags &= ~SOUND_FLAG_RND_PITCH;
+	}
+
+	if (properties.RandomGain.has_value())
+	{
+		if (properties.RandomGain.value())
+			sample.Flags |= SOUND_FLAG_RND_GAIN;
+		else
+			sample.Flags &= ~SOUND_FLAG_RND_GAIN;
+	}
+}
+
 // TODO: Use std::optional for pose argument.
-bool SoundEffect(int soundID, Pose* pose, SoundEnvironment soundEnv, float pitchMult, float gainMult)
+bool SoundEffect(int soundID, Pose* pose, SoundEnvironment soundEnv, float pitchMult, float gainMult, const SoundProperties* properties)
 {
 	if (!g_Configuration.EnableSound)
 		return false;
@@ -198,7 +233,10 @@ bool SoundEffect(int soundID, Pose* pose, SoundEnvironment soundEnv, float pitch
 		return false;
 	}
 
-	const auto& sample = g_Level.SoundDetails[sampleIndex];
+	auto sample = g_Level.SoundDetails[sampleIndex];
+	if (properties != nullptr)
+		ApplySoundProperties(sample, *properties);
+
 	if (sample.Number < 0)
 	{
 		TENLog("No valid samples count for effect " + std::to_string(sampleIndex), LogLevel::Warning);
@@ -1305,6 +1343,9 @@ void PlaySoundSources()
 {
 	for (const auto& soundSource : g_Level.SoundSources)
 	{
+		if (!soundSource.Enabled)
+			continue;
+
 		int group = soundSource.Flags & 0x1FFF;
 
 		if (group >= MAX_FLIPMAP)
@@ -1316,7 +1357,7 @@ void PlaySoundSources()
 			continue;
 		}
 
-		SoundEffect(soundSource.SoundID, (Pose*)&soundSource.Position);
+		SoundEffect(soundSource.SoundID, (Pose*)&soundSource.Position, SoundEnvironment::Land, 1.0f, 1.0f, &soundSource.Properties);
 	}
 }
 

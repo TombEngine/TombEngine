@@ -4,8 +4,10 @@
 #include "Scripting/Internal/LuaHandler.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/ScriptUtil.h"
+#include "Scripting/Internal/TEN/Sound/SoundPlayModes.h"
 #include "Scripting/Internal/TEN/Sound/SoundTrackTypes.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
+#include "Specific/level.h"
 #include "Sound/sound.h"
 
 /// Functions for sound management.
@@ -14,6 +16,107 @@
 
 namespace TEN::Scripting::Sound
 {
+	static constexpr char VolumeKey[]		= "volume";
+	static constexpr char RadiusKey[]		= "radius";
+	static constexpr char RandomnessKey[]	= "randomness";
+	static constexpr char PitchKey[]		= "pitch";
+	static constexpr char PlayModeKey[]		= "playMode";
+	static constexpr char RandomPitchKey[]	= "randomPitch";
+	static constexpr char RandomGainKey[]	= "randomGain";
+
+	SoundProperties ParseSoundProperties(const sol::table& table)
+	{
+		auto properties = SoundProperties{};
+
+		if (auto value = table.get<sol::optional<int>>(VolumeKey); value.has_value())
+			properties.Volume = (unsigned char)std::clamp(value.value(), 0, UCHAR_MAX);
+
+		if (auto value = table.get<sol::optional<int>>(RadiusKey); value.has_value())
+			properties.Radius = (unsigned char)std::clamp(value.value(), 0, UCHAR_MAX);
+
+		if (auto value = table.get<sol::optional<int>>(RandomnessKey); value.has_value())
+			properties.Randomness = (unsigned char)std::clamp(value.value(), 0, UCHAR_MAX);
+
+		if (auto value = table.get<sol::optional<int>>(PitchKey); value.has_value())
+			properties.Pitch = (signed char)std::clamp(value.value(), -127, 127);
+
+		if (auto value = table.get<sol::optional<int>>(PlayModeKey); value.has_value())
+			properties.PlayMode = (SoundPlayMode)std::clamp(value.value(), 0, (int)SoundPlayMode::Looped);
+
+		if (auto value = table.get<sol::optional<bool>>(RandomPitchKey); value.has_value())
+			properties.RandomPitch = value.value();
+
+		if (auto value = table.get<sol::optional<bool>>(RandomGainKey); value.has_value())
+			properties.RandomGain = value.value();
+
+		return properties;
+	}
+
+	SoundProperties GetEffectiveSoundProperties(const SoundSourceInfo& soundSource)
+	{
+		auto properties = soundSource.Properties;
+
+		if (soundSource.SoundID < 0 || soundSource.SoundID >= (int)g_Level.SoundMap.size())
+			return properties;
+
+		int sampleIndex = g_Level.SoundMap[soundSource.SoundID];
+		if (sampleIndex < 0 || sampleIndex >= (int)g_Level.SoundDetails.size())
+			return properties;
+
+		const auto& sample = g_Level.SoundDetails[sampleIndex];
+
+		if (!properties.Volume.has_value())
+			properties.Volume = sample.Volume;
+
+		if (!properties.Radius.has_value())
+			properties.Radius = sample.Radius;
+
+		if (!properties.Randomness.has_value())
+			properties.Randomness = sample.Randomness;
+
+		if (!properties.Pitch.has_value())
+			properties.Pitch = sample.Pitch;
+
+		if (!properties.PlayMode.has_value())
+			properties.PlayMode = (SoundPlayMode)(sample.Flags & 3);
+
+		if (!properties.RandomPitch.has_value())
+			properties.RandomPitch = (sample.Flags & SOUND_FLAG_RND_PITCH) != 0;
+
+		if (!properties.RandomGain.has_value())
+			properties.RandomGain = (sample.Flags & SOUND_FLAG_RND_GAIN) != 0;
+
+		return properties;
+	}
+
+	sol::table MakeSoundPropertiesTable(sol::this_state state, const SoundProperties& properties)
+	{
+		auto table = sol::state_view(state).create_table();
+
+		if (properties.Volume.has_value())
+			table[VolumeKey] = (int)properties.Volume.value();
+
+		if (properties.Radius.has_value())
+			table[RadiusKey] = (int)properties.Radius.value();
+
+		if (properties.Randomness.has_value())
+			table[RandomnessKey] = (int)properties.Randomness.value();
+
+		if (properties.Pitch.has_value())
+			table[PitchKey] = (int)properties.Pitch.value();
+
+		if (properties.PlayMode.has_value())
+			table[PlayModeKey] = (int)properties.PlayMode.value();
+
+		if (properties.RandomPitch.has_value())
+			table[RandomPitchKey] = properties.RandomPitch.value();
+
+		if (properties.RandomGain.has_value())
+			table[RandomGainKey] = properties.RandomGain.value();
+
+		return table;
+	}
+
 	/// Play an audio track. Should be placed in the `Audio` folder. Supported formats are wav, mp3 and ogg.
 	// @function PlayAudioTrack
 	// @tparam string filename Filename of a track (without file extension) to play.
@@ -64,16 +167,23 @@ namespace TEN::Scripting::Sound
 	// @function PlaySound
 	// @tparam int soundID Sound ID to play. Corresponds to the value in the sound XML file or Tomb Editor's "Sound Infos" window.
 	// @tparam[opt] Vec3 position The 3D position of the sound, i.e. where the sound "comes from". If not given, the sound will not be positional.
-	static void PlaySoundEffect(int soundID, sol::optional<Vec3> pos)
+	// @tparam[opt] table properties Table of sound properties to override the catalogue values. Supported fields are `volume` (0-255), `radius` (0-255 sectors), `randomness` (0-255), `pitch` (-127-127), `playMode` (a @{Sound.SoundPlayMode} value), `randomPitch` (bool) and `randomGain` (bool).
+	static void PlaySoundEffect(int soundID, sol::optional<Vec3> pos, sol::optional<sol::table> properties)
 	{
+		auto soundProperties = SoundProperties{};
+		if (properties.has_value())
+			soundProperties = ParseSoundProperties(properties.value());
+
+		auto* soundPropertiesPtr = soundProperties.IsEmpty() ? nullptr : &soundProperties;
+
 		if (pos.has_value())
 		{
 			auto soundPose = Pose(pos->ToVector3i());
-			SoundEffect(soundID, &soundPose, SoundEnvironment::Always);
+			SoundEffect(soundID, &soundPose, SoundEnvironment::Always, 1.0f, 1.0f, soundPropertiesPtr);
 		}
 		else
 		{
-			SoundEffect(soundID, nullptr, SoundEnvironment::Always);
+			SoundEffect(soundID, nullptr, SoundEnvironment::Always, 1.0f, 1.0f, soundPropertiesPtr);
 		}
 	}
 
@@ -139,5 +249,6 @@ namespace TEN::Scripting::Sound
 
 		LuaHandler handler{ state };
 		handler.MakeReadOnlyTable(tableSound, ScriptReserved_SoundTrackType, SOUNDTRACK_TYPE);
+		handler.MakeReadOnlyTable(tableSound, ScriptReserved_SoundPlayMode, SOUND_PLAY_MODES);
 	}
 };
