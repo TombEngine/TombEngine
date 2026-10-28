@@ -66,6 +66,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Bug fixes
 
 * Fixed original bug with bridge objects blocking monkeyswing and ladder flags in the bottom room.
+* Fixed video playback needing a manual installation of the libVLC plugins, by bundling libVLC 3.0.23 and its plugins.
 * Fixed original bug with inactive SQUISHY_BLOCK_VERTICAL killing player.
 * Fixed incorrect application of LARA_DOUBLE damage after using medipacks.
 * Fixed BADDY1 / BADDY2 not monkey-swinging.
