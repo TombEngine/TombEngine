@@ -3,7 +3,21 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): <https://github.com/TombEngine/TombEditorReleases>
 
-## [Version 2.0]
+## [Version 2.0.2]
+
+### New features
+
+### Bug fixes
+
+* Fixed static meshes in flipped rooms being lit with ambient light of the original room.
+* Fixed flyby camera roll persisting after the sequence ends.
+
+### Lua API Changes
+
+* Added `ParticleGroup:IsActive` method to check if the group's emitter is currently running.
+* Added `ParticleGroup:IsValid` method to check if the group still exists and is usable.
+
+## [Version 2.0.1]
 
 ### New features
 
@@ -52,6 +66,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if property is set and when the sound ID 681 (SFX_TR2_SLAM_DOOR_CLOSE) is playing.
 * Added hit sounds for TR1 enemies when shot.
 * Added splash and bubble effects for CRUMBLING_FLOOR if it falls into water.
+* Added correct depth sorting of overlapping transparent objects, such as alpha blended meshes placed behind one another.
+* Increased renderer performance for alpha blended and other transparent geometry, and for static meshes in scenes with dynamic shadows.
 * Removed [FIRE_PENDULUM](https://tombengine.com/asset/traps/fire-pendulum/) fog effect if OCB value is 0.
 
 ### Bug fixes
@@ -84,6 +100,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed GOLDROSE_ITEM, FLARE_ITEM, and HAMMER_ITEM flickering in the pickup summary.
 * Fixed enemy gunfire not affecting other enemies in some cases.
 * Fixed regular spark sprite distance while moving with flare in hand.
+* Fixed gun smoke particles position when enemy is targeted.
 * Fixed fireflies emitting bright white light while in fly form (negative OCB).
 * Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
 * Fixed flyby camera flag "Let Lara move in cinematic mode" being ignored.
@@ -98,6 +115,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed incorrect slide directions and projectile physics around steep slopes.
 * Fixed pickup of underwater items in vertically narrow passages.
 * Fixed pickup of items placed on a pedestal (OCB 4) while Lara is underwater.
+* Fixed pickups with OCB 128 not regenerating and allowed more than 16 such pickups per level.
 * Fixed pickups taking priority over binocular mode.
 * Fixed flares being selected from inventory whilst riding the kayak.
 * Fixed kayak paddle and minecart wrench not being drawn when starting a level.
@@ -111,6 +129,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed UI bars being affected by the postprocess mode.
 * Fixed Z-fighting on DisplayItems.
 * Fixed crashes when shooting if the gunflash object is missing.
+* Fixed crashes and missing textures while rendering swarm objects with alpha blended textures.
 * Fixed vertex move effect speed in water rooms while turning camera on the x-axis.
 
 ### Lua API changes
