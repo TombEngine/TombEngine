@@ -477,10 +477,21 @@ namespace TEN::Renderer
 	{
 		std::swap(_rooms[roomNumber1], _rooms[roomNumber2]);
 
-		_rooms[roomNumber1].RoomNumber = roomNumber1;
-		_rooms[roomNumber2].RoomNumber = roomNumber2;
+		UpdateRoomCrossReferences(roomNumber1);
+		UpdateRoomCrossReferences(roomNumber2);
 
 		_invalidateCache = true;
+	}
+
+	// Room data block moves to another slot on flip, so cached room numbers of entities
+	// owned by the room must follow it, otherwise they will point at the flipped room.
+	void Renderer::UpdateRoomCrossReferences(short roomNumber)
+	{
+		auto& room = _rooms[roomNumber];
+		room.RoomNumber = roomNumber;
+
+		for (auto& staticObj : room.Statics)
+			staticObj.RoomNumber = roomNumber;
 	}
 
 	RendererObject& Renderer::GetRendererObject(GAME_OBJECT_ID id)
