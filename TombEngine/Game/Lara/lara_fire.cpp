@@ -18,6 +18,7 @@
 #include "Game/Lara/lara_struct.h"
 #include "Game/Lara/lara_tests.h"
 #include "Game/Lara/lara_two_guns.h"
+#include "Game/Lara/RemasteredControls.h"
 #include "Game/misc.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
@@ -579,68 +580,6 @@ static void ClearPlayerTargets(ItemInfo& playerItem)
 	player.TargetEntity = nullptr;
 	player.TargetList.fill(nullptr);
 	player.LastTargets.fill(nullptr);
-}
-
-// Remastered controls: the weapon draw runs twice per tick, except while the body animation blends. -- divezzi, 12.10.26
-static bool NeedsSecondWeaponPass(const ItemInfo& laraItem, const LaraInfo& player)
-{
-	return (g_Configuration.IsUsingRemasteredControls() &&
-			player.Control.HandStatus == HandStatus::WeaponDraw &&
-			!laraItem.Animation.Blend.IsEnabled());
-}
-
-static bool IsRemasteredDrawHeld(const LaraInfo& player)
-{
-	return (IsHeld(In::Draw) || player.Control.Remastered.IsDrawToggled);
-}
-
-static void UpdateRemasteredDrawToggle(LaraInfo& player)
-{
-	auto& remastered = player.Control.Remastered;
-	if (!remastered.IsDrawToggled)
-		return;
-
-	if (IsHeld(In::Draw) ||
-		(player.Control.HandStatus == HandStatus::Free &&
-		 player.Control.Weapon.RequestGunType == player.Control.Weapon.GunType))
-	{
-		remastered.IsDrawToggled = false;
-	}
-}
-
-// Remastered controls: a script draw keeps the weapons out until the player holds Draw. -- divezzi, 12.10.26
-void SetRemasteredDrawToggle(ItemInfo& laraItem)
-{
-	if (!g_Configuration.IsUsingRemasteredControls())
-		return;
-
-	auto& player = GetLaraInfo(laraItem);
-	player.Control.Remastered.IsDrawToggled = true;
-}
-
-static void SetRemasteredHolsters(LaraInfo& player, LaraWeaponType weaponType)
-{
-	auto slot = GetWeaponHolsterSlot(weaponType);
-	if (slot == HolsterSlot::Empty || !player.Weapons[(int)weaponType].Present)
-		return;
-
-	auto& holsterInfo = player.Control.Weapon.HolsterInfo;
-	switch (weaponType)
-	{
-	case LaraWeaponType::Pistol:
-	case LaraWeaponType::Uzi:
-		holsterInfo.LeftHolster = slot;
-		holsterInfo.RightHolster = slot;
-		break;
-
-	case LaraWeaponType::Revolver:
-		holsterInfo.RightHolster = slot;
-		break;
-
-	default:
-		holsterInfo.BackHolster = slot;
-		break;
-	}
 }
 
 void HandleWeapon(ItemInfo& laraItem)

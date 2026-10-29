@@ -10,6 +10,7 @@
 #include "Game/control/los.h"
 #include "Game/items.h"
 #include "Game/Lara/PlayerContext.h"
+#include "Game/Lara/RemasteredControls.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_climb.h"
 #include "Game/Lara/lara_collide.h"

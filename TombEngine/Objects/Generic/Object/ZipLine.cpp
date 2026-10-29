@@ -9,6 +9,7 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Lara/RemasteredControls.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Sound/sound.h"

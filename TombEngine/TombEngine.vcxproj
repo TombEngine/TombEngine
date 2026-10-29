@@ -483,6 +483,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Game\Lara\PlayerContext.h" />
     <ClInclude Include="Game\Lara\PlayerContextData.h" />
     <ClInclude Include="Game\Lara\PlayerStateMachine.h" />
+    <ClInclude Include="Game\Lara\RemasteredControls.h" />
     <ClInclude Include="Game\misc.h" />
     <ClInclude Include="Game\missile.h" />
     <ClInclude Include="Game\people.h" />
@@ -1139,6 +1140,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Game\Lara\Optics.cpp" />
     <ClCompile Include="Game\Lara\PlayerContext.cpp" />
     <ClCompile Include="Game\Lara\PlayerStateMachine.cpp" />
+    <ClCompile Include="Game\Lara\RemasteredControls.cpp" />
     <ClCompile Include="Game\misc.cpp" />
     <ClCompile Include="Game\missile.cpp" />
     <ClCompile Include="Game\people.cpp" />

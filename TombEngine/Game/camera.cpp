@@ -14,6 +14,7 @@
 #include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/Optics.h"
+#include "Game/Lara/RemasteredControls.h"
 #include "Game/room.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"

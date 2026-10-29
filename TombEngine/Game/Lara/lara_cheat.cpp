@@ -6,6 +6,7 @@
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_swim.h"
+#include "Game/Lara/RemasteredControls.h"
 #include "Game/Setup.h"
 #include "Sound/sound.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"

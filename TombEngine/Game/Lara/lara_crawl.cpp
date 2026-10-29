@@ -8,6 +8,7 @@
 #include "Game/control/los.h"
 #include "Game/items.h"
 #include "Game/Lara/PlayerContext.h"
+#include "Game/Lara/RemasteredControls.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_tests.h"
 #include "Game/Lara/lara_collide.h"
@@ -412,17 +413,8 @@ void lara_as_crawl_idle(ItemInfo* item, CollisionInfo* coll)
 		return;
 
 	// Remastered controls: after the crawl grab's turn, the player hangs from the edge she now faces. -- divezzi, 11.10.26
-	if (g_Configuration.IsUsingRemasteredControls() && player.Control.Remastered.IsCrawlSafetyGrabTurning)
-	{
-		player.Control.Remastered.IsCrawlSafetyGrabTurning = false;
-
-		if (TestLaraCrawlToHang(item, coll))
-		{
-			item->Animation.TargetState = LS_CRAWL_TO_HANG;
-			DoLaraCrawlToHangSnap(item, coll);
-			return;
-		}
-	}
+	if (g_Configuration.IsUsingRemasteredControls() && HandleRemasteredCrawlSafetyGrabHang(*item, *coll))
+		return;
 
 	if (IsHeld(In::Left) || IsHeld(In::Right))
 		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_CRAWL_TURN_RATE_MAX);
@@ -436,13 +428,8 @@ void lara_as_crawl_idle(ItemInfo* item, CollisionInfo* coll)
 		}
 
 		// Remastered controls: a crouch press on knees rises to the crouch without drawing a weapon. -- divezzi, 10.10.26
-		if (g_Configuration.IsUsingRemasteredControls() && player.Control.Remastered.IsCrouchStageUp &&
-			TestStateDispatch(*item, LS_CROUCH_IDLE))
-		{
-			item->Animation.TargetState = LS_CROUCH_IDLE;
-			player.Control.HandStatus = HandStatus::Free;
+		if (g_Configuration.IsUsingRemasteredControls() && HandleRemasteredCrouchStageUp(*item))
 			return;
-		}
 
 		if ((IsHeld(In::Sprint) && CanCrouchRoll(*item, *coll)) ||
 			((IsHeld(In::Draw) || (IsHeld(In::Flare) && player.Inventory.TotalFlares != 0)) &&
@@ -478,13 +465,8 @@ void lara_as_crawl_idle(ItemInfo* item, CollisionInfo* coll)
 			}
 
 			// Remastered controls: at a crawlspace edge with nothing to vault, the grab button turns the player around to hang from it. -- divezzi, 11.10.26
-			if (g_Configuration.IsUsingRemasteredControls() && IsRemasteredGrabHeld() &&
-				TestLaraCrawlToHang(item, coll, ANGLE(0.0f)))
-			{
-				player.Control.Remastered.IsCrawlSafetyGrabTurning = true;
-				item->Animation.TargetState = LS_CRAWL_TURN_180;
+			if (g_Configuration.IsUsingRemasteredControls() && HandleRemasteredCrawlSafetyGrabTurn(*item, *coll))
 				return;
-			}
 		}
 		else if (IsHeld(In::Back))
 		{

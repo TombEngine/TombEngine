@@ -68,7 +68,6 @@ GAME_OBJECT_ID	  GetWeaponObjectID(LaraWeaponType weaponType);
 GAME_OBJECT_ID	  GetWeaponObjectMeshID(ItemInfo& laraItem, LaraWeaponType weaponType);
 
 void HandleWeapon(ItemInfo& laraItem);
-void SetRemasteredDrawToggle(ItemInfo& laraItem);
 void AimWeapon(ItemInfo& laraItem, ArmInfo& arm, const WeaponInfo& weaponInfo);
 void SpawnWeaponFlash(ItemInfo& laraItem, WeaponFlashMode mode, LaraWeaponType weaponType = LaraWeaponType::Pistol);
 FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, ItemInfo& laraItem, const EulerAngles& armOrient);

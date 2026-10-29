@@ -14,6 +14,7 @@
 #include "Game/Lara/lara_flare.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_one_gun.h"
+#include "Game/Lara/RemasteredControls.h"
 #include "Game/Setup.h"
 #include "Objects/TR2/Vehicles/skidoo_info.h"
 #include "Specific/Input/Input.h"

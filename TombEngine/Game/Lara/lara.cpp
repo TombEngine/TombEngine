@@ -33,6 +33,7 @@
 #include "Game/Lara/lara_swim.h"
 #include "Game/Lara/lara_tests.h"
 #include "Game/Lara/PlayerStateMachine.h"
+#include "Game/Lara/RemasteredControls.h"
 #include "Game/misc.h"
 #include "Game/savegame.h"
 #include "Objects/Generic/Doors/generic_doors.h"
