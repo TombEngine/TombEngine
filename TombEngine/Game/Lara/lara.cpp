@@ -742,6 +742,10 @@ void UpdateLara(ItemInfo* item, bool isTitle)
 	if (isTitle)
 		ActionMap = actionMap;
 
+	// Apply parenting after player control so it is not overwritten.
+	if (item->Parenting.IsAttached())
+		item->Parenting.Update(*item);
+
 	// Update player animations.
 	g_Renderer.UpdateLaraAnimations(true);
 
@@ -750,10 +754,6 @@ void UpdateLara(ItemInfo* item, bool isTitle)
 	HandlePlayerWetnessDrips(*item);
 	HandlePlayerDiveBubbles(*item);
 	ProcessEffects(item);
-
-	// Apply parenting after player control so it is not overwritten.
-	if (item->Parenting.IsAttached())
-		item->Parenting.Update(*item);
 }
 
 // Offset values may be used to account for the quirk of room traversal only being able to occur at portals.

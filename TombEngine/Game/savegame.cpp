@@ -3042,12 +3042,8 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	{
 		auto& item = g_Level.Items[i];
 
-		if (item.Parenting.ParentObject != NO_VALUE &&
-			item.Parenting.ParentObject >= 0 &&
-			item.Parenting.ParentObject < (int)g_Level.Items.size())
-		{
-			item.Parenting.PrevPose = g_Level.Items[item.Parenting.ParentObject].Pose;
-		}
+		if (auto* parent = item.Parenting.GetParent())
+			item.Parenting.PrevPose = parent->Pose;
 	}
 
 	// Restore room item lists by array position: lists are bound to room slots, not room

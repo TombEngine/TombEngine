@@ -399,7 +399,7 @@ void Moveable::SetPosition(const Vec3& pos, sol::optional<bool> updateRoom)
 
 	if (_initialized && willUpdate)
 	{
-		bool isRoomUpdated = _moveable->IsLara() ? UpdateLaraRoom(_moveable, pos.y) : UpdateItemRoom(_moveable->Index);
+		bool isRoomUpdated = _moveable->IsLara() ? UpdateLaraRoom(_moveable, -_moveable->GetObb().Extents.y) : UpdateItemRoom(_moveable->Index);
 
 		// In case direct portal room update didn't happen and distance between old and new points is significant, do predictive room update.
 		if (!isRoomUpdated && (willUpdate || bigDistance))
@@ -1493,10 +1493,33 @@ void Moveable::AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshI
 // @tparam Objects.Moveable parent Moveable to follow.
 void Moveable::Attach(Moveable& parent)
 {
-	if (_moveableID == NO_VALUE || parent._moveableID == NO_VALUE)
-		return;
+    if (_moveableID == NO_VALUE || parent._moveableID == NO_VALUE)
+        return;
 
-	_moveable->Parenting.Attach(*parent._moveable);
+    if (_moveableID == parent._moveableID)
+    {
+        TENLog("Cannot attach moveable '" + _moveable->Name + "' to itself.", LogLevel::Warning);
+        return;
+    }
+
+    // Reject parenting cycles
+    int ancestorID = parent._moveable->Parenting.ParentObject;
+    int traversalCount = 0;
+
+    while (ancestorID >= 0 && ancestorID < (int)g_Level.Items.size() &&
+        traversalCount < (int)g_Level.Items.size())
+    {
+        if (ancestorID == _moveableID)
+        {
+            TENLog("Cannot attach moveable '" + _moveable->Name + "' to '" + parent._moveable->Name + "': it would create a parenting cycle.", LogLevel::Warning);
+            return;
+        }
+
+        ancestorID = g_Level.Items[ancestorID].Parenting.ParentObject;
+        traversalCount++;
+    }
+
+    _moveable->Parenting.Attach(*parent._moveable);
 }
 
 /// Detach this moveable from its parent, if any.
@@ -1528,11 +1551,11 @@ std::unique_ptr<Moveable> Moveable::GetParent() const
 	if (_moveableID == NO_VALUE)
 		return nullptr;
 
-	int parentID = _moveable->Parenting.ParentObject;
-	if (parentID < 0 || parentID >= (int)g_Level.Items.size())
+	auto* parent = _moveable->Parenting.GetParent();
+	if (parent == nullptr)
 		return nullptr;
 
-	return std::make_unique<Moveable>(parentID);
+	return std::make_unique<Moveable>(parent->Index);
 }
 
 /// Borrow animation from an object.

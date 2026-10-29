@@ -15,5 +15,6 @@ struct ParentingInfo
     void Detach();
     void Update(ItemInfo& item);
 
+    ItemInfo* GetParent() const;
     bool IsAttached() const;
 };

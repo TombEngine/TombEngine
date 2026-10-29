@@ -16,46 +16,52 @@ void ParentingInfo::Detach()
     ParentObject = NO_VALUE;
 }
 
+ItemInfo* ParentingInfo::GetParent() const
+{
+    if (ParentObject < 0 || ParentObject >= (int)g_Level.Items.size())
+        return nullptr;
+
+    auto& parent = g_Level.Items[ParentObject];
+
+    // Reject unused or killed item slots.
+    if (parent.ObjectNumber == ID_NO_OBJECT || (parent.Flags & IFLAG_KILLED))
+        return nullptr;
+
+    return &parent;
+}
+
 void ParentingInfo::Update(ItemInfo& item)
 {
     if (ParentObject == NO_VALUE)
         return;
 
-    if (ParentObject < 0 || ParentObject >= (int)g_Level.Items.size())
+    auto* parent = GetParent();
+    if (parent == nullptr || parent->Index == item.Index)
     {
         Detach();
         return;
     }
 
-    auto& parent = g_Level.Items[ParentObject];
-
-    if (parent.Index == item.Index)
-    {
-        Detach();
-        return;
-    }
-
-    if (PrevPose == parent.Pose)
+    if (PrevPose == parent->Pose)
         return;
 
-    auto deltaPos = parent.Pose.Position - PrevPose.Position;
-    auto deltaOrient = parent.Pose.Orientation - PrevPose.Orientation;
+    // Compute the parent's relative rigid motion between frames in world space.
+    auto prevRotMatrix = PrevPose.Orientation.ToRotationMatrix();
+    auto newRotMatrix = parent->Pose.Orientation.ToRotationMatrix();
+    auto deltaRotMatrix = newRotMatrix * prevRotMatrix.Invert();
 
-    // Translate with the parent.
-    item.Pose.Position += deltaPos;
-    item.Pose.Orientation += deltaOrient;
+    // Propagate the parent's motion onto the child's current pose.
+    item.Pose.Orientation = EulerAngles(deltaRotMatrix * item.Pose.Orientation.ToRotationMatrix());
 
-    // Rotate around the parent.
-    auto deltaItemPos = (item.Pose.Position - parent.Pose.Position).ToVector3();
-    auto rotMatrix = deltaOrient.ToRotationMatrix();
-    item.Pose.Position = Vector3i(parent.Pose.Position.ToVector3() + Vector3::Transform(deltaItemPos, rotMatrix));
+    auto relOffset = (item.Pose.Position - PrevPose.Position).ToVector3();
+    item.Pose.Position = parent->Pose.Position + Vector3i(Vector3::Transform(relOffset, deltaRotMatrix));
 
     if (item.IsLara())
-        UpdateLaraRoom(&item, item.Pose.Position.y);
+        UpdateLaraRoom(&item, -item.GetObb().Extents.y);
     else
         UpdateItemRoom(item.Index);
 
-    PrevPose = parent.Pose;
+    PrevPose = parent->Pose;
 }
 
 bool ParentingInfo::IsAttached() const

@@ -393,13 +393,13 @@ void KillItem(short const itemNumber)
 
 	RemoveFromVector(ActiveItems, itemNumber);
 
-	// Detach any children parented to the killed item.
-	for (int activeItemNumber : ActiveItems)
-	{
-		auto& activeItem = g_Level.Items[activeItemNumber];
+	// Detach the killed item from its own parent, and detach all children.
+	item->Parenting.Detach();
 
-		if (activeItem.Parenting.ParentObject == itemNumber)
-			activeItem.Parenting.Detach();
+	for (auto& otherItem : g_Level.Items)
+	{
+		if (otherItem.Parenting.ParentObject == itemNumber)
+			otherItem.Parenting.Detach();
 	}
 
 	if (item->RoomNumber != NO_VALUE)
@@ -607,6 +607,7 @@ short CreateItem()
 
 	g_Level.Items[itemNumber].Flags = 0;
 	g_Level.Items[itemNumber].DisableInterpolation = true;
+	g_Level.Items[itemNumber].Parenting = {};
 
 	return itemNumber;
 }

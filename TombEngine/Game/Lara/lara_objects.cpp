@@ -595,6 +595,7 @@ void lara_as_pole_idle(ItemInfo* item, CollisionInfo* coll)
 
 	if (item->HitPoints <= 0)
 	{
+		item->Parenting.Detach();
 		item->Animation.TargetState = LS_FREEFALL; // TODO: Death state dispatch.
 		return;
 	}
@@ -690,6 +691,7 @@ void lara_as_pole_up(ItemInfo* item, CollisionInfo* coll)
 
 	if (item->HitPoints <= 0)
 	{
+		item->Parenting.Detach();
 		item->Animation.TargetState = LS_POLE_IDLE; // TODO: Death state dispatch.
 		return;
 	}
@@ -736,6 +738,7 @@ void lara_as_pole_down(ItemInfo* item, CollisionInfo* coll)
 
 	if (item->HitPoints <= 0)
 	{
+		item->Parenting.Detach();
 		item->Animation.TargetState = LS_POLE_IDLE; // TODO: Death state dispatch.
 		return;
 	}
@@ -814,6 +817,7 @@ void lara_as_pole_turn_clockwise(ItemInfo* item, CollisionInfo* coll)
 
 	if (item->HitPoints <= 0)
 	{
+		item->Parenting.Detach();
 		item->Animation.TargetState = LS_POLE_IDLE; // TODO: Death state dispatch.
 		return;
 	}
@@ -864,6 +868,7 @@ void lara_as_pole_turn_counter_clockwise(ItemInfo* item, CollisionInfo* coll)
 
 	if (item->HitPoints <= 0)
 	{
+		item->Parenting.Detach();
 		item->Animation.TargetState = LS_POLE_IDLE; // TODO: Death state dispatch.
 		return;
 	}
