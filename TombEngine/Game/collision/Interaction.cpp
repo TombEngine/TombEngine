@@ -55,7 +55,7 @@ namespace TEN::Collision::Interaction
 
 	bool TestInteraction(const ItemInfo& interactor, const ItemInfo& interactable, const InteractionBasis& basis, std::optional<BoundingOrientedBox> expansionBox)
 	{
-		DrawDebug(interactable, basis);
+		DrawDebug(interactable, basis, expansionBox);
 
 		// 1) Avoid overriding active offset blend.
 		if (interactor.OffsetBlend.IsActive)
@@ -191,24 +191,21 @@ namespace TEN::Collision::Interaction
 		}
 	}
 
-	void DrawDebug(const ItemInfo& interactable, const InteractionBasis& basis)
+	void DrawDebug(const ItemInfo& interactable, const InteractionBasis& basis, std::optional<BoundingOrientedBox> expansionBox)
 	{
-		constexpr auto COLL_BOX_COLOR = Color(1.0f, 0.0f, 0.0f, 1.0f);
 		constexpr auto INTERACT_BOX_COLOR = Color(0.0f, 1.0f, 1.0f, 1.0f);
 
 		if (!DebugMode)
 			return;
 
-		// Draw collision box.
-		auto collBox = GameBoundingBox(&interactable).ToBoundingOrientedBox(interactable.Pose);
-		DrawDebugBox(collBox, COLL_BOX_COLOR);
+		// Resolve interaction box in interactable space.
+		auto box = expansionBox.has_value() ? Geometry::GetExpandedBoundingOrientedBox(basis.Box, *expansionBox) : basis.Box;
 
+		// Move it into world space
 		auto rotMatrix = interactable.Pose.Orientation.ToRotationMatrix();
-		auto relCenter = Vector3::Transform(basis.Box.Center, rotMatrix);
-		auto orient = interactable.Pose.Orientation.ToQuaternion();
+		auto center = interactable.Pose.Position.ToVector3() + Vector3::Transform(box.Center, rotMatrix);
+		auto interactBox = BoundingOrientedBox(center, box.Extents, interactable.Pose.Orientation.ToQuaternion());
 
-		// Draw interaction box.
-		auto interactBox = BoundingOrientedBox(interactable.Pose.Position.ToVector3() + relCenter, basis.Box.Extents, orient);
 		DrawDebugBox(interactBox, INTERACT_BOX_COLOR);
 	}
 }

@@ -35,5 +35,5 @@ namespace TEN::Collision::Interaction
 	bool TestInteraction(const ItemInfo& interactor, const ItemInfo& interactable, const InteractionBasis& basis, std::optional<BoundingOrientedBox> expansionBox = std::nullopt);
 	void SetInteraction(ItemInfo& interactor, ItemInfo& interactable, const InteractionBasis& basis, const InteractionRoutine& routine, InteractionBasisType type, const Vector3i& extraPosOffset = Vector3i::Zero, const EulerAngles& extraOrientOffset = EulerAngles::Identity);
 
-	void DrawDebug(const ItemInfo& interactable, const InteractionBasis& basis);
+	void DrawDebug(const ItemInfo& interactable, const InteractionBasis& basis, std::optional<BoundingOrientedBox> expansionBox = std::nullopt);
 }
