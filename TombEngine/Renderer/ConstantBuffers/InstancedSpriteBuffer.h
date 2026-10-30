@@ -17,7 +17,7 @@ namespace TEN::Renderer::ConstantBuffers
 		float IsBillboard;
 		float IsSoftParticle;
 		int RenderType;
-		int PerVertexColor;
+		int PerVertexData; // Color and UV come from the vertices instead of the instance.
 	};
 
 	struct alignas(16) CInstancedSpriteBuffer

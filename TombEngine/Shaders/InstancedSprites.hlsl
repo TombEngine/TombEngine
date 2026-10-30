@@ -31,7 +31,7 @@ struct InstancedSprite
 	float IsBillboard;
     float IsSoftParticle;
     int RenderType;
-    int PerVertexColor;
+    int PerVertexData; // Color and UV come from the vertices instead of the instance.
 };
 
 cbuffer InstancedSpriteBuffer : register(b13)
@@ -64,8 +64,8 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
     int polyIndex = DecodeIndexInPoly(input.Effects);
 
 	output.PositionCopy = output.Position;
-    output.Color = lerp(sprite.Color, input.Color, saturate((float)sprite.PerVertexColor));
-    output.UV = float2(sprite.UV[0][polyIndex], sprite.UV[1][polyIndex]);
+    output.Color = lerp(sprite.Color, input.Color, saturate((float)sprite.PerVertexData));
+    output.UV = (sprite.PerVertexData != 0) ? input.UV : float2(sprite.UV[0][polyIndex], sprite.UV[1][polyIndex]);
 	output.InstanceID  = InstanceID;
 
 	output.FogBulbs = DoFogBulbsForVertex(worldPosition);
