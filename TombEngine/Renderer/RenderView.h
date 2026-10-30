@@ -54,7 +54,9 @@ namespace TEN::Renderer
 		std::vector<RendererSpriteToDraw>			SpritesToDraw			 = {};
 		std::vector<RendererDisplaySpriteToDraw>	DisplaySpritesToDraw	 = {};
 		std::map<int, std::vector<RendererStatic*>> SortedStaticsToDraw		 = {};
-		std::vector<RendererSortableObject>			TransparentObjectsToDraw = {};
+		std::vector<RendererSortableObject>			TransparentObjectsToDraw  = {};
+		std::vector<RendererSortablePolygon>		TransparentPolygonsToDraw = {};
+		std::vector<RendererSortKey>				TransparentSortKeys		  = {};
 		std::vector<RendererLensFlare>				LensFlaresToDraw		 = {};
 		std::vector<RendererMirror>					Mirrors					 = {};
 
