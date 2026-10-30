@@ -75,6 +75,8 @@ namespace TEN::Scripting
 		int			RicochetCount		= 8;
 		bool		RicochetSound		= true;
 		bool		ExplosionShockwave	= true;
+		float		WaterEffectStrength = 1.0f;
+		float		WaterEffectDepth	= BLOCK(3);
 
 		static void Register(sol::table& parent);
 	};
