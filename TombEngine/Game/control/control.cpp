@@ -64,6 +64,7 @@
 #include "Scripting/Internal/TEN/Properties/PropertyUtils.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Specific/discord.h"
 #include "Specific/EngineMain.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
@@ -102,6 +103,7 @@ using namespace TEN::Math;
 using namespace TEN::Renderer;
 using namespace TEN::Scripting::Properties;
 using namespace TEN::SpotCam;
+using namespace TEN::Utils::Discord;
 using namespace TEN::Video;
 
 constexpr auto DEATH_NO_INPUT_TIMEOUT = 10 * FPS;
@@ -503,6 +505,7 @@ void DeInitialize()
 	g_VideoPlayer.DeInitialize();
 	Sound_DeInit();
 	DeinitializeInput();
+	DeInitializeDiscord();
 
 	delete g_GameScript;
 	g_GameScript = nullptr;
