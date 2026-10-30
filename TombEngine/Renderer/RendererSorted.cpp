@@ -850,7 +850,7 @@ namespace TEN::Renderer
 			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
 			SetDepthState(DepthState::Read);
-			SetCullMode(CullMode::CounterClockwise);
+			SetCullMode(_currentMirror != nullptr ? CullMode::Clockwise : CullMode::CounterClockwise);
 
 			_shaders.Bind(Shader::Items);
 		}
@@ -865,6 +865,7 @@ namespace TEN::Renderer
 		{
 			// Bind main item properties.
 			Matrix world = objectInfo->Item->InterpolatedWorld;
+			ReflectMatrixOptionally(world);
 			_stObjects.Objects[0].World = world;
 			_stObjects.Objects[0].Color = objectInfo->Item->Color;
 			_stObjects.Objects[0].AmbientLight = objectInfo->Item->AmbientLight;
