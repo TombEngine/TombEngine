@@ -7,6 +7,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### New features
 
+* Added Discord integration.
+
 ### Bug fixes
 
 * Fixed static meshes in flipped rooms being lit with ambient light of the original room.
