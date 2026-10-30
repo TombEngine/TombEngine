@@ -7,7 +7,7 @@
 #include "resource.h"
 #include "Sound/sound.h"
 #include "Specific/configuration.h"
-#include "Specific/discord.h"
+#include "Specific/Discord.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Specific/Parallel.h"

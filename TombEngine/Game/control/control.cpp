@@ -64,7 +64,7 @@
 #include "Scripting/Internal/TEN/Properties/PropertyUtils.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
-#include "Specific/discord.h"
+#include "Specific/Discord.h"
 #include "Specific/EngineMain.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
