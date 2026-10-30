@@ -19,6 +19,7 @@
 #include "Specific/level.h"
 #include "Objects/Effects/Fireflies.h"
 #include "Objects/Generic/puzzles_keys.h"
+#include "Objects/TR3/Emitter/tr3_bats_emitter.h"
 #include "Objects/TR3/Entity/FishSwarm.h"
 #include "Objects/TR4/Entity/tr4_beetle_swarm.h"
 #include "Objects/TR4/Entity/Locust.h"
@@ -93,6 +94,7 @@ void ClearSwarmEnemies(ItemInfo* item)
 	ClearLocusts();
 	ClearFishSwarm();
 	ClearFireflySwarm();
+	TEN::Entities::TR3::ClearTr3Bats();
 }
 
 void FlashOrange(ItemInfo* item) 

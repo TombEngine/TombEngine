@@ -6,7 +6,7 @@ namespace TEN::Entities::TR3
 {
 	constexpr auto NUM_TR3_BATS = 64;
 	constexpr auto TR3_BATS_PER_EMITTER = 32;
-	constexpr float TR3_BAT_WING_SPEED = 1.0f;
+	constexpr auto TR3_BAT_WING_SPEED = 1.0f;
 
 	struct Tr3BatData
 	{

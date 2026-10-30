@@ -43,10 +43,8 @@ namespace TEN::Entities::TR3
 	{
 		auto& item = g_Level.Items[itemNumber];
 
-		item.TriggerFlags = 0;
-
-		if (Objects[ID_BATS_EMITTER_TR3].loaded)
-			ClearTr3Bats();
+		if (item.TriggerFlags != 0)
+			TENLog("TR3 bats emitter ignores OCB " + std::to_string(item.TriggerFlags) + ".", LogLevel::Warning);
 	}
 
 	void TriggerTr3Bats(ItemInfo* item)
@@ -114,7 +112,7 @@ namespace TEN::Entities::TR3
 
 			if (bat.Counter < 128)
 			{
-				bat.Pose.Position.y += -4 - (i >> 1);
+				bat.Pose.Position.y -= 4 + ((i % TR3_BATS_PER_EMITTER) >> 1);
 
 				if (!(GetRandomControl() & 3))
 				{

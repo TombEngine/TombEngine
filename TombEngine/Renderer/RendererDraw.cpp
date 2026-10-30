@@ -1084,66 +1084,102 @@ namespace TEN::Renderer
 
 	void Renderer::DrawTr3Bats(RenderView& view, RendererPass rendererPass)
 	{
-		using namespace TEN::Animation;
+		using namespace TEN::Entities::TR3;
 
 		if (!Objects[ID_BATS_EMITTER_TR3].loaded)
 			return;
 
-		if (rendererPass == RendererPass::CollectTransparentFaces)
+		const auto& object = Objects[ID_BATS_EMITTER_TR3];
+		auto& moveableObject = *_moveableObjects[ID_BATS_EMITTER_TR3];
+
+		if (object.Animations.empty() || moveableObject.ObjectMeshes.empty())
 			return;
 
-		const auto& obj = Objects[ID_BATS_EMITTER_TR3];
-		auto& moveableObj = *_moveableObjects[ID_BATS_EMITTER_TR3];
-
-		if (obj.Animations.empty() || moveableObj.ObjectMeshes.empty())
-			return;
-
-		const auto& anim = obj.Animations[0];
-		int frameCount = anim.EndFrameNumber + 1;
+		// Wings flap through the first animation. The level may store fewer keyframes than the animation has frames.
+		const auto& anim = object.Animations[0];
+		int frameCount = std::min(anim.EndFrameNumber + 1, (int)anim.Frames.size());
 		if (frameCount <= 0)
-			frameCount = 1;
+			return;
 
-		int boneCount = (int)moveableObj.AnimationTransforms.size();
+		int boneCount = std::min((int)moveableObject.AnimationTransforms.size(), BONE_COUNT_MAX);
+		int meshCount = std::min((int)moveableObject.ObjectMeshes.size(), boneCount);
 
 		// Scale game time by wing speed multiplier, fold sub-tick factor into the same scale
 		// so animation phase and lerp alpha stay consistent at any FPS.
 		float gameTime = (float)GlobalCounter + GetInterpolationFactor();
-		float scaledTime = gameTime * TEN::Entities::TR3::TR3_BAT_WING_SPEED;
+		float scaledTime = gameTime * TR3_BAT_WING_SPEED;
 		int scaledTimeInt = (int)floorf(scaledTime);
-		float subAlpha = scaledTime - (float)scaledTimeInt;
+		float frameAlpha = scaledTime - (float)scaledTimeInt;
 
-		// Per-frame bone cache shared across bats with identical phase.
-		static std::vector<std::array<Matrix, BONE_COUNT_MAX>> frameBones;
-		static std::vector<bool> framePresent;
-		frameBones.assign(frameCount, {});
-		framePresent.assign(frameCount, false);
+		// Bone transforms of each animation frame, shared by bats with the same phase.
+		static auto frameBones = std::vector<std::array<Matrix, BONE_COUNT_MAX>>{};
+		static auto isFrameCached = std::vector<bool>{};
+		frameBones.resize(frameCount);
+		isFrameCached.assign(frameCount, false);
 
-		auto cacheFrame = [&](int frame)
+		auto cacheFrame = [&](int frameNumber)
 		{
-			if (framePresent[frame])
+			if (isFrameCached[frameNumber])
 				return;
 
-			const auto& interpData = anim.Frames[frame];
-			UpdateAnimation(nullptr, moveableObj, interpData, UINT_MAX);
-			memcpy(frameBones[frame].data(), moveableObj.AnimationTransforms.data(),
-				boneCount * sizeof(Matrix));
-			framePresent[frame] = true;
+			UpdateAnimation(nullptr, moveableObject, anim.Frames[frameNumber], UINT_MAX);
+			std::copy(moveableObject.AnimationTransforms.begin(), moveableObject.AnimationTransforms.begin() + boneCount, frameBones[frameNumber].begin());
+			isFrameCached[frameNumber] = true;
 		};
 
-		auto batFrame0 = [&](const TEN::Entities::TR3::Tr3BatData& bat)
+		auto getBatBones = [&](const Tr3BatData& bat, std::array<Matrix, BONE_COUNT_MAX>& bones)
 		{
-			return ((scaledTimeInt + bat.FrameOffset) % frameCount + frameCount) % frameCount;
+			int frameNumber = ((scaledTimeInt + bat.FrameOffset) % frameCount + frameCount) % frameCount;
+			int nextFrameNumber = (frameNumber + 1) % frameCount;
+			cacheFrame(frameNumber);
+			cacheFrame(nextFrameNumber);
+
+			for (int i = 0; i < boneCount; i++)
+				bones[i] = Matrix::Lerp(frameBones[frameNumber][i], frameBones[nextFrameNumber][i], frameAlpha);
 		};
 
-		for (const auto& bat : TEN::Entities::TR3::Tr3Bats)
+		auto isBatDrawable = [&](const Tr3BatData& bat)
 		{
-			if (!bat.On)
-				continue;
+			return (bat.On && bat.RoomNumber != NO_VALUE && bat.RoomNumber < (int)_rooms.size() && !IgnoreReflectionPassForRoom(bat.RoomNumber));
+		};
 
-			int f0 = batFrame0(bat);
-			int f1 = (f0 + 1) % frameCount;
-			cacheFrame(f0);
-			cacheFrame(f1);
+		auto bones = std::array<Matrix, BONE_COUNT_MAX>{};
+
+		if (rendererPass == RendererPass::CollectTransparentFaces)
+		{
+			for (const auto& bat : Tr3Bats)
+			{
+				if (!isBatDrawable(bat))
+					continue;
+
+				auto world = Matrix::Lerp(bat.PrevTransform, bat.Transform, GetInterpolationFactor());
+				getBatBones(bat, bones);
+
+				// Sorted faces are drawn mesh by mesh, each with its interpolated bone transform.
+				for (int i = 0; i < meshCount; i++)
+				{
+					auto* mesh = moveableObject.ObjectMeshes[i];
+					auto meshWorld = bones[i] * world;
+
+					for (auto& bucket : mesh->Buckets)
+					{
+						if (!IsSortedBlendMode(bucket.BlendMode))
+							continue;
+
+						auto sortable = RendererSortableObject{};
+						sortable.ObjectType = RendererObjectType::MoveableAsStatic;
+						sortable.BlendMode = bucket.BlendMode;
+						sortable.Bucket = &bucket;
+						sortable.LightMode = mesh->LightMode;
+						sortable.World = meshWorld;
+						sortable.Room = &_rooms[bat.RoomNumber];
+
+						CollectSortedBucket(view, sortable, &meshWorld, view.Camera.WorldPosition);
+					}
+				}
+			}
+
+			return;
 		}
 
 		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
@@ -1159,54 +1195,45 @@ namespace TEN::Renderer
 			_shaders.Bind(Shader::Items);
 		}
 
-		_stObjects.Skinned = (int)SkinningMode::Classic;
+		// Bats are rigid moveables: each vertex follows a single bone.
+		_stObjects.Skinned = (int)SkinningMode::None;
 
-		for (int k = 0; k < (int)moveableObj.ObjectMeshes.size(); k++)
-			_stObjects.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
+		for (int i = 0; i < meshCount; i++)
+			_stObjects.BoneLightModes[i] = (int)moveableObject.ObjectMeshes[i]->LightMode;
 
-		// Per-bat room light bucket, clamped to MAX_LIGHTS_PER_ITEM (same approach as scarabs/beetles).
-		static std::vector<RendererLight*> batLights;
+		static auto batLights = std::vector<RendererLight*>{};
 
-		for (const auto& bat : TEN::Entities::TR3::Tr3Bats)
+		for (const auto& bat : Tr3Bats)
 		{
-			if (!bat.On)
-				continue;
-
-			if (bat.RoomNumber == NO_VALUE)
-				continue;
-
-			if (IgnoreReflectionPassForRoom(bat.RoomNumber))
+			if (!isBatDrawable(bat))
 				continue;
 
 			auto& room = _rooms[bat.RoomNumber];
 
 			auto world = Matrix::Lerp(bat.PrevTransform, bat.Transform, GetInterpolationFactor());
+			auto batPos = world.Translation();
 			ReflectMatrixOptionally(world);
 
-			int f0 = batFrame0(bat);
-			int f1 = (f0 + 1) % frameCount;
-			for (int b = 0; b < boneCount; b++)
-				_stObjects.Bones[b] = Matrix::Lerp(frameBones[f0][b], frameBones[f1][b], subAlpha);
+			getBatBones(bat, bones);
+			for (int i = 0; i < boneCount; i++)
+				_stObjects.Bones[i] = bones[i];
 
 			_stObjects.Objects[0].World = world;
 			_stObjects.Objects[0].Color = NEUTRAL_COLOR;
 			_stObjects.Objects[0].AmbientLight = room.AmbientLight;
 
+			// Lights nearest to the bat, as for effects.
 			if (rendererPass != RendererPass::GBuffer)
 			{
-				batLights.clear();
-				int lightCount = std::min((int)room.LightsToDraw.size(), MAX_LIGHTS_PER_ITEM);
-				for (int i = 0; i < lightCount; i++)
-					batLights.push_back(room.LightsToDraw[i]);
-
+				CollectLights(batPos, ITEM_LIGHT_COLLECTION_RADIUS, bat.RoomNumber, NO_VALUE, false, false, nullptr, &batLights);
 				BindMoveableLights(batLights, bat.RoomNumber, bat.RoomNumber, 1.0f, false);
 			}
 
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
-			for (int k = 0; k < (int)moveableObj.ObjectMeshes.size(); k++)
+			for (int i = 0; i < meshCount; i++)
 			{
-				auto* mesh = moveableObj.ObjectMeshes[k];
+				auto* mesh = moveableObject.ObjectMeshes[i];
 
 				for (int animated = 0; animated < 2; animated++)
 				{
@@ -1215,12 +1242,10 @@ namespace TEN::Renderer
 						if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
 							continue;
 
-						auto blendMode = bucket.BlendMode;
-
-						int passes = (rendererPass == RendererPass::Opaque && blendMode == BlendMode::AlphaTest) ? 2 : 1;
-						for (int p = 0; p < passes; p++)
+						int passCount = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
+						for (int pass = 0; pass < passCount; pass++)
 						{
-							if (!SetupBlendModeAndAlphaTest(blendMode, rendererPass, p))
+							if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, pass))
 								continue;
 
 							BindBucketTextures(bucket, TextureSource::Moveables, animated);
