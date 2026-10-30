@@ -25,9 +25,11 @@
 #include "Game/room.h"
 #include "Game/Setup.h"
 #include "Game/StaticMesh.h"
+#include "Objects/Generic/Doors/generic_doors.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Objects/Generic/Switches/fullblock_switch.h"
 #include "Objects/Generic/puzzles_keys.h"
+#include "Objects/TR3/Emitter/tr3_bats_emitter.h"
 #include "Objects/TR3/Entity/FishSwarm.h"
 #include "Objects/TR4/Entity/tr4_beetle_swarm.h"
 #include "Objects/TR4/Entity/Locust.h"
@@ -56,8 +58,10 @@ using namespace TEN::Effects::Fireflies;
 using namespace TEN::Effects::Hair;
 using namespace TEN::Effects::Items;
 using namespace TEN::Entities::Creatures::TR3;
+using namespace TEN::Entities::Doors;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Entities::Switches;
+using namespace TEN::Entities::TR3;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Gui;
 using namespace TEN::Renderer;
@@ -1558,6 +1562,23 @@ const std::vector<unsigned char> SaveGame::Build()
 	}
 	auto batsOffset = fbb.CreateVector(bats);
 
+	std::vector<flatbuffers::Offset<Save::SwarmObjectInfo>> tr3Bats;
+	for (int i = 0; i < NUM_TR3_BATS; i++)
+	{
+		auto* bat = &Tr3Bats[i];
+
+		Save::SwarmObjectInfoBuilder batInfo{ fbb };
+
+		batInfo.add_flags(bat->Counter);
+		batInfo.add_on(bat->On);
+		batInfo.add_room_number(bat->RoomNumber);
+		batInfo.add_pose(&FromPose(bat->Pose));
+		batInfo.add_target(bat->Velocity);
+
+		tr3Bats.push_back(batInfo.Finish());
+	}
+	auto tr3BatsOffset = fbb.CreateVector(tr3Bats);
+
 	std::vector<flatbuffers::Offset<Save::SwarmObjectInfo>> spiders;
 	for (int i = 0; i < NUM_SPIDERS; i++)
 	{
@@ -1720,6 +1741,7 @@ const std::vector<unsigned char> SaveGame::Build()
 	sgb.add_particles(particleOffset);
 	sgb.add_locusts(locustOffset);
 	sgb.add_bats(batsOffset);
+	sgb.add_tr3_bats(tr3BatsOffset);
 	sgb.add_rats(ratsOffset);
 	sgb.add_spiders(spidersOffset);
 	sgb.add_scarabs(scarabsOffset);
@@ -2519,6 +2541,26 @@ static void ParseEffects(const Save::SaveGame* s)
 		bat->Pose = ToPose(*batInfo->pose());
 	}
 
+	if (s->tr3_bats() != nullptr)
+	{
+		for (int i = 0; i < s->tr3_bats()->size() && i < NUM_TR3_BATS; i++)
+		{
+			auto* batInfo = s->tr3_bats()->Get(i);
+			auto* bat = &Tr3Bats[i];
+
+			bat->On = batInfo->on();
+			bat->Pose = ToPose(*batInfo->pose());
+			bat->RoomNumber = batInfo->room_number();
+			bat->Counter = batInfo->flags();
+			bat->Velocity = batInfo->target();
+			bat->FrameOffset = i * 5;
+
+			auto translation = Matrix::CreateTranslation(bat->Pose.Position.ToVector3());
+			bat->Transform = bat->Pose.Orientation.ToRotationMatrix() * translation;
+			bat->PrevTransform = bat->Transform;
+		}
+	}
+
 	for (int i = 0; i < s->rats()->size(); i++)
 	{
 		auto ratInfo = s->rats()->Get(i);
@@ -2684,21 +2726,6 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	ActiveItems.clear();
 	FreeItemSlots.clear();
 
-	// Restore room item lists by array position: lists are bound to room slots, not room
-	// contents (see FlipRooms), and flipmaps were already reapplied above.
-	for (int i = 0; i < s->rooms()->size(); i++)
-	{
-		auto& room = g_Level.Rooms[i];
-		room.itemNumbers.clear();
-
-		const auto* savedItemNumbers = s->rooms()->Get(i)->item_numbers();
-		if (savedItemNumbers != nullptr)
-		{
-			for (int j = 0; j < savedItemNumbers->size(); j++)
-				room.itemNumbers.push_back(savedItemNumbers->Get(j));
-		}
-	}
-
 	for (int i = 0; i < s->active_items()->size(); i++)
 		ActiveItems.push_back(s->active_items()->Get(i));
 
@@ -2708,8 +2735,6 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	for (int i = 0; i < s->items()->size(); i++)
 	{
 		const Save::Item* savedItem = s->items()->Get(i);
-
-		bool isDynamicItem = (i >= g_Level.NumItems);
 
 		auto* item = &g_Level.Items[i];
 		item->ObjectNumber = GAME_OBJECT_ID(savedItem->object_id());
@@ -2775,6 +2800,12 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		item->RoomNumber = savedItem->room_number();
 		item->Floor = savedItem->floor();
 		item->BoxNumber = savedItem->box_number();
+
+		// Doors created at runtime are absent from the level file, so nothing reapplies their
+		// sector data on load. Reinitialize them here, before saved state is restored on top.
+		bool isDynamicItem = (i >= g_Level.NumItems);
+		if (isDynamicItem && IsFunction(Objects[item->ObjectNumber].Initialize, InitializeDoor))
+			InitializeDoor(i);
 
 		// Animations
 		item->Animation.AnimObjectID = GAME_OBJECT_ID(savedItem->anim_object_id());
@@ -3039,6 +3070,23 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			auto* data = savedItem->data();
 			const auto* savedData = (Common::Int*)data;
 			item->Data = savedData->scalar();
+		}
+	}
+
+	// Restore room item lists by array position: lists are bound to room slots, not room
+	// contents (see FlipRooms), and flipmaps were already reapplied above. Must be done after
+	// items are parsed, as initializing a dynamic item may move it between room lists.
+
+	for (int i = 0; i < s->rooms()->size(); i++)
+	{
+		auto& room = g_Level.Rooms[i];
+		room.itemNumbers.clear();
+
+		const auto* savedItemNumbers = s->rooms()->Get(i)->item_numbers();
+		if (savedItemNumbers != nullptr)
+		{
+			for (int j = 0; j < savedItemNumbers->size(); j++)
+				room.itemNumbers.push_back(savedItemNumbers->Get(j));
 		}
 	}
 }

@@ -156,7 +156,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 	auto handStatus = Lara.Control.HandStatus;
 
 	// HACK: Treat binoculars as two-handed weapon.
-	if (Lara.Control.Look.IsUsingBinoculars)
+	if (Lara.Control.Look.IsUsingBinoculars && Lara.Control.HandStatus == HandStatus::Free)
 	{
 		gunType = LaraWeaponType::Shotgun;
 		handStatus = HandStatus::WeaponReady;
@@ -349,13 +349,13 @@ void Renderer::DrawLara(RenderView& view, RendererPass rendererPass)
 	{
 		for (int m = 0; m < laraObj.AnimationTransforms.size(); m++)
 			_stObjects.Bones[m] =  laraObj.BindPoseTransforms[m] * item->InterpolatedAnimationTransforms[m];
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+        UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 		DrawMesh(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view, rendererPass);
 	}
 
 	memcpy(_stObjects.Bones, item->InterpolatedAnimationTransforms, laraObj.AnimationTransforms.size() * sizeof(Matrix));
-	UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+    UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 	for (int k = 0; k < item->MeshIndex.size(); k++)
 	{
@@ -423,7 +423,7 @@ void Renderer::DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, Render
 			_stObjects.BoneLightModes[j] = (int)LightMode::Dynamic;
 		}
 
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+        UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 		if (skinned)
 		{

@@ -47,17 +47,23 @@ PixelShaderInput VS(VertexShaderInput input)
 
 	// Calculate vertex effects
 	float wibble = Wibble(input.Effects, DecodeHash(input.AnimationFrameOffsetIndexHash));
-	float3 pos = Move(input.Position, input.Effects * weight, wibble);
+	float waterDepthFactor = Water && WaterEffectStrength > 0.0f ?
+		GetWaterEffectDepthFactor(input.Position, CamPositionWS.xyz, WaterEffectDepth) : 0.0f;
+	float moveStrength = Water ? waterDepthFactor * WaterEffectStrength : 1.0f;
+	float3 pos = Move(input.Position, input.Effects * weight, wibble * moveStrength);
 	float3 col = Glow(input.Color.xyz, input.Effects, wibble);
 
 	// Refraction
 	float4 screenPos = mul(float4(pos, 1.0f), ViewProjection);
 
-	if (CameraUnderwater != Water)
+	if (CameraUnderwater != Water && WaterEffectStrength > 0.0f)
 	{
+		float depthAttenuation = CameraUnderwater ? 1.0f : smoothstep(0.0f, 1.0f,
+			GetWaterEffectDepthFactor(pos, CamPositionWS.xyz, WaterEffectDepth));
+		float attenuation = depthAttenuation * WaterEffectStrength;
 		float factor = InterpolatedFrame + (pos.x + pos.z) * 0.2f;
-		float xOffset = (sin(factor * PI / 20.0f)) * (screenPos.z / 1024.0f) * 3.0f;
-		float yOffset = (cos(factor * PI / 20.0f)) * (screenPos.z / 1024.0f) * 3.0f;
+		float xOffset = (sin(factor * PI / 20.0f)) * (screenPos.z / 1024.0f) * 3.0f * attenuation;
+		float yOffset = (cos(factor * PI / 20.0f)) * (screenPos.z / 1024.0f) * 3.0f * attenuation;
 		screenPos.x += xOffset * weight;
 		screenPos.y += yOffset * weight;
 	}
@@ -88,6 +94,9 @@ PixelShaderOutput PS(PixelShaderInput input)
     float3x3 TBNf = float3x3(input.Tangent, input.Binormal, input.FaceNormal);
     input.UV = ParallaxOcclusionMapping(TBNf, input.WorldPosition, input.UV);                	  
 
+    output.Color = Texture.Sample(AnisotropicClampSampler, input.UV);
+    DoAlphaTest(output.Color);
+
 	float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(AnisotropicClampSampler, input.UV));
     float ambientOcclusion = ORSH.x;
     float roughness = ORSH.y;
@@ -98,9 +107,6 @@ PixelShaderOutput PS(PixelShaderInput input)
     float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(AnisotropicClampSampler, input.UV)));
     normal = EnsureNormal(mul(normal, TBN), input.WorldPosition);
-
-	output.Color = Texture.Sample(AnisotropicClampSampler, input.UV);
-	DoAlphaTest(output.Color);
 
     // Material effects
 	float3 blendedNormal = normalize(lerp(input.FaceNormal, normal, 0.1f)); // TODO: Make alpha customizable

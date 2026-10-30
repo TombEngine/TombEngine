@@ -599,13 +599,19 @@ static void FlipRooms(int roomNumber, RoomData& activeRoom, RoomData& flippedRoo
 
 	AddRoomFlipItems(activeRoom);
 
-	// Update active room sectors.
+	// Update active room sectors and statics.
 	for (auto& sector : activeRoom.Sectors)
 		sector.RoomNumber = roomNumber;
 
-	// Update flipped room sectors.
+	for (auto& staticMesh : activeRoom.mesh)
+		staticMesh.RoomNumber = roomNumber;
+
+	// Update flipped room sectors and statics.
 	for (auto& sector : flippedRoom.Sectors)
 		sector.RoomNumber = activeRoom.flippedRoom;
+
+	for (auto& staticMesh : flippedRoom.mesh)
+		staticMesh.RoomNumber = activeRoom.flippedRoom;
 
 	// Swap stopper flags.
 	for (int i = 0; i < activeRoom.Sectors.size(); i++)
