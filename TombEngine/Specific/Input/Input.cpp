@@ -240,6 +240,9 @@ namespace TEN::Input
 
 	void SetRelativeMouseMode(bool relative)
 	{
+#ifdef _DEBUG
+		return;
+#endif
 		relative = relative || g_Renderer.IsFullScreen();
 
 		if (MouseRelativeMode == relative)

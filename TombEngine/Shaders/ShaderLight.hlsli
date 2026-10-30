@@ -106,7 +106,7 @@ float3 DoSpecularSpot(float3 pos, float3 n, ShaderLight light, float strength, f
     return angleAttenuation * distanceAttenuation * spec * color * intenSpec;
 }
 
-float3 DoPointLight(float3 pos, float3 normal, ShaderLight light)
+float3 DoPointLight(float3 pos, float3 normal, ShaderLight light, bool ignoreColor = false)
 {
     float3 lightVec = light.Position.xyz - pos;
     float  distance = length(lightVec);
@@ -115,7 +115,10 @@ float3 DoPointLight(float3 pos, float3 normal, ShaderLight light)
     float attenuation = saturate((light.Out - distance) / (light.Out - light.In));
     float d = saturate(dot(normal, lightDir));
 
-    return saturate(light.Color.xyz * light.Intensity * attenuation * d);
+    if (!ignoreColor)
+		return saturate(light.Color.xyz * light.Intensity * attenuation * d);
+		
+	return saturate(light.Intensity * attenuation * d);
 }
 
 float3 DoShadowLight(float3 pos, float3 normal, ShaderLight light)
@@ -133,7 +136,7 @@ float3 DoShadowLight(float3 pos, float3 normal, ShaderLight light)
     return saturate((absolute * 0.33f) + (directional * 0.66f)) * 2.0f;
 }
 
-float3 DoSpotLight(float3 pos, float3 normal, ShaderLight light)
+float3 DoSpotLight(float3 pos, float3 normal, ShaderLight light, bool ignoreColor = false)
 {
     float3 lightVec = pos - light.Position.xyz;
     float  distance = length(lightVec);
@@ -144,7 +147,11 @@ float3 DoSpotLight(float3 pos, float3 normal, ShaderLight light)
     float distanceAttenuation = saturate((light.Out - distance) / (light.Out - light.In));
 
     float d = saturate(dot(normal, -lightDir));
-    return saturate(light.Color.xyz * light.Intensity * angleAttenuation * distanceAttenuation * d);
+
+    if (!ignoreColor)
+		return saturate(light.Color.xyz * light.Intensity * angleAttenuation * distanceAttenuation * d);
+		
+	return saturate(light.Intensity * angleAttenuation * distanceAttenuation * d);
 }
 
 void DoPointAndSpotLight(float3 pos, float3 normal, ShaderLight light, float specularIntensity, float roughness, out float3 pointOutput, out float3 spotOutput)
