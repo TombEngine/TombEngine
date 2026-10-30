@@ -146,4 +146,12 @@ namespace TEN::Animation
 
 		item.DisableInterpolation = true;
 	}
+
+	void DetachParentCommand::Execute(ItemInfo& item, bool isFrameBased) const
+	{
+		if (!isFrameBased || item.Animation.FrameNumber != _frameNumber)
+			return;
+
+		item.Parenting.Detach();
+	}
 }

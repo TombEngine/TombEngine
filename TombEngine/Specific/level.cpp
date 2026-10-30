@@ -535,6 +535,13 @@ void LoadObjects()
 							command = std::make_shared<DisableInterpolationCommand>(frameNumber);
 						}
 							break;
+
+						case AnimCommandType::DetachParent:
+						{
+							int frameNumber = ReadInt32();
+							command = std::make_shared<DetachParentCommand>(frameNumber);
+						}
+							break;
 					}
 
 					anim.Commands.push_back(std::move(command));

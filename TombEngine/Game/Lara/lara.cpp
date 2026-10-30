@@ -742,6 +742,10 @@ void UpdateLara(ItemInfo* item, bool isTitle)
 	if (isTitle)
 		ActionMap = actionMap;
 
+	// Apply parenting after player control so it is not overwritten.
+	if (item->Parenting.IsAttached())
+		item->Parenting.Update(*item);
+
 	// Update player animations.
 	g_Renderer.UpdateLaraAnimations(true);
 

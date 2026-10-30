@@ -2,6 +2,7 @@
 
 #include "Game/Animation/Animation.h"
 #include "Game/itemdata/itemdata.h"
+#include "Game/Parenting/ParentingInfo.h"
 #include "Math/Math.h"
 #include "Objects/game_object_ids.h"
 #include "Renderer/RendererEnums.h"
@@ -168,6 +169,8 @@ struct ItemInfo
 	unsigned char AIBits      = 0; // AIObjectFlags enum.
 	short         AfterDeath  = 0;
 	short         CarriedItem = 0;
+
+	ParentingInfo Parenting   = {};
 
 	PropertyMap Properties = {};
 
