@@ -6,11 +6,11 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ## [Version 2.0.2]
 
 ### New features
-* Added a parenting system for moveables that allows to parent a moveable to another.
-* Added parenting for HORIZONTAL_BAR & POLEROPE.
-* Added `Detach` anim command to dispatch detach from parent moveable.
 
 * Added Discord integration.
+* Added a parenting system for moveables that allows to parent a moveable to another.
+* Added `Detach` anim command to dispatch detach from parent moveable.
+* Added parenting for HORIZONTAL_BAR & POLEROPE.
 * Added BATS_EMITTER_TR3 object from TR3.
 
 ### Bug fixes
