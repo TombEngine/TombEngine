@@ -11,11 +11,11 @@
 
 namespace TEN::Entities::TR3
 {
-	constexpr auto TR3_BAT_LIFE_MIN	  = 144;
-	constexpr auto TR3_BAT_SPEED_MIN	  = 64;
-	constexpr auto TR3_BAT_SPEED_MAX	  = 300;
-	constexpr auto TR3_BAT_SPEED_ACCEL = 12;
-	constexpr auto TR3_BAT_SPEED_DIVISOR = 6;
+	constexpr auto TR3_BAT_LIFE_MIN			= 144;
+	constexpr auto TR3_BAT_SPEED_MIN		= 64;
+	constexpr auto TR3_BAT_SPEED_MAX		= 300;
+	constexpr auto TR3_BAT_SPEED_ACCEL		= 12;
+	constexpr auto TR3_BAT_SPEED_DIVISOR	= 6;
 
 	Tr3BatData Tr3Bats[NUM_TR3_BATS];
 

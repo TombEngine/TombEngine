@@ -31,6 +31,7 @@ using namespace TEN::Effects::Environment;
 using namespace TEN::Effects::Footprint;
 using namespace TEN::Effects::Hair;
 using namespace TEN::Entities::Creatures::TR3;
+using namespace TEN::Entities::TR3;
 using namespace TEN::Effects::Fireflies;
 
 int FlipEffect;
@@ -94,7 +95,7 @@ void ClearSwarmEnemies(ItemInfo* item)
 	ClearLocusts();
 	ClearFishSwarm();
 	ClearFireflySwarm();
-	TEN::Entities::TR3::ClearTr3Bats();
+	ClearTr3Bats();
 }
 
 void FlashOrange(ItemInfo* item) 

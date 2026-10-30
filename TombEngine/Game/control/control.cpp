@@ -95,6 +95,7 @@ using namespace TEN::Entities::Effects;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::Traps;
+using namespace TEN::Entities::TR3;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Control::Volumes;
@@ -223,7 +224,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateRats();
 	UpdateRipples();
 	UpdateBats();
-	TEN::Entities::TR3::UpdateTr3Bats();
+	UpdateTr3Bats();
 	UpdateSpiders();
 	UpdateSparkParticles();
 	UpdateSmokeParticles();

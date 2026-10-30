@@ -61,6 +61,7 @@ using namespace TEN::Entities::Creatures::TR3;
 using namespace TEN::Entities::Doors;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Entities::Switches;
+using namespace TEN::Entities::TR3;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Gui;
 using namespace TEN::Renderer;
@@ -1562,9 +1563,9 @@ const std::vector<unsigned char> SaveGame::Build()
 	auto batsOffset = fbb.CreateVector(bats);
 
 	std::vector<flatbuffers::Offset<Save::SwarmObjectInfo>> tr3Bats;
-	for (int i = 0; i < TEN::Entities::TR3::NUM_TR3_BATS; i++)
+	for (int i = 0; i < NUM_TR3_BATS; i++)
 	{
-		auto* bat = &TEN::Entities::TR3::Tr3Bats[i];
+		auto* bat = &Tr3Bats[i];
 
 		Save::SwarmObjectInfoBuilder batInfo{ fbb };
 
@@ -2542,10 +2543,10 @@ static void ParseEffects(const Save::SaveGame* s)
 
 	if (s->tr3_bats() != nullptr)
 	{
-		for (int i = 0; i < s->tr3_bats()->size() && i < TEN::Entities::TR3::NUM_TR3_BATS; i++)
+		for (int i = 0; i < s->tr3_bats()->size() && i < NUM_TR3_BATS; i++)
 		{
 			auto* batInfo = s->tr3_bats()->Get(i);
-			auto* bat = &TEN::Entities::TR3::Tr3Bats[i];
+			auto* bat = &Tr3Bats[i];
 
 			bat->On = batInfo->on();
 			bat->Pose = ToPose(*batInfo->pose());
