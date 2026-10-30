@@ -436,6 +436,9 @@ GameStatus DoLevel(int levelIndex, bool loadGame)
 	// Initialize game variables and optionally load game.
 	InitializeOrLoadGame(loadGame);
 
+	// Refresh Discord presence.
+	UpdateDiscordPresence(levelIndex);
+
 	// DoGameLoop() returns only when level has ended.
 	return DoGameLoop(levelIndex);
 }
