@@ -65,7 +65,7 @@ namespace TEN::Collision::Los
 	// Low-level LOS collision
 
 	LosCollisionData GetLosCollision(const Vector3& origin, int roomNumber, const Vector3& dir, float dist,
-									 bool collideItemBoxes, bool collideItemSpheres, bool collideStatics);
+									 bool collideItemBoxes, bool collideItemSpheres, bool collideStatics, bool collidePlayer = false);
 
 	// High-level LOS collision
 

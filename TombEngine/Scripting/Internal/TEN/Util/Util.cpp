@@ -4,7 +4,7 @@
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Los.h"
 #include "Game/control/los.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/room.h"

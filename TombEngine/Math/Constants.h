@@ -46,4 +46,6 @@
 
 	constexpr auto WALL_MASK	  = BLOCK(1) - 1;
 	constexpr auto GRID_SNAP_SIZE = (int)BLOCK(1 / 8.0f);
+
+	constexpr auto BIG_DISTANCE_THRESHOLD = BLOCK(1);
 //}

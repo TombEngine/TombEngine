@@ -184,6 +184,7 @@ namespace TEN::Gui
 		void CancelInventorySelection();
 		void UseItem(ItemInfo& item, int objectNumber);
 		void UseBinoculars(ItemInfo& item);
+
 		// Getters
 
 		const InventoryRing& GetRing(RingTypes ringType);
@@ -212,6 +213,7 @@ namespace TEN::Gui
 		void HandleOtherSettingsInput(bool fromPauseMenu);
 		void HandleOptionsInput();
 		void BackupOptions();
+		void RebuildDisplayResolutions();
 		bool DoObjectsCombine(int objectNumber1, int objectNumber2);
 		void InitializeInventory(ItemInfo* item);
 		void FillDisplayOptions();

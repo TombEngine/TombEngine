@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Entity/tr4_ahmet.h"
 
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/control/lot.h"
@@ -301,7 +301,7 @@ namespace TEN::Entities::TR4
 			case AHMET_STATE_JUMP_BITE_ATTACK:
 				creature->MaxTurn = 0;
 
-				if (item->Animation.AnimNumber == AHMET_ANIM_JUMP_SWIPE_ATTACK_START)
+				if (item->Animation.AnimNumber == AHMET_ANIM_JUMP_BITE_ATTACK_START)
 				{
 					if (abs(AI.angle) >= ANGLE(5.0f))
 					{
@@ -350,7 +350,7 @@ namespace TEN::Entities::TR4
 				else
 				{
 					if (!(creature->Flags & 1) &&
-						item->Animation.FrameNumber > 14 &&
+						item->Animation.FrameNumber > 21 &&
 						item->TouchBits.Test(AhmetSwipeAttackLeftJoints))
 					{
 						DoDamage(creature->Enemy, AHMET_SWIPE_ATTACK_DAMAGE);
@@ -358,7 +358,7 @@ namespace TEN::Entities::TR4
 						creature->Flags |= 1;
 					}
 					else if (!(creature->Flags & 2) &&
-						item->Animation.FrameNumber > 22 &&
+						item->Animation.FrameNumber > 14 &&
 						item->TouchBits.Test(AhmetSwipeAttackRightJoints))
 					{
 						DoDamage(creature->Enemy, AHMET_SWIPE_ATTACK_DAMAGE);
@@ -379,7 +379,13 @@ namespace TEN::Entities::TR4
 
 	bool RespawnAhmet(short itemNumber)
 	{
+		if (itemNumber == NO_VALUE)
+			return false;
+
 		auto* item = &g_Level.Items[itemNumber];
+
+		if (item->ObjectNumber != ID_AHMET)
+			return false;
 
 		if (item->Animation.ActiveState != AHMET_STATE_DEATH || !TestLastFrame(*item))
 			return false;
@@ -390,9 +396,10 @@ namespace TEN::Entities::TR4
 		item->Pose.Position.y = (item->ItemFlags[1] * CLICK(1));
 		item->Pose.Position.z = (item->ItemFlags[2] * BLOCK(1)) + CLICK(2);
 
-		auto outsideRoom = IsRoomOutside(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z);
-		if (item->RoomNumber != outsideRoom)
-			ItemNewRoom(itemNumber, outsideRoom);
+		short roomNumber = item->RoomNumber;
+		GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &roomNumber);
+		if (item->RoomNumber != roomNumber)
+			ItemNewRoom(itemNumber, roomNumber);
 
 		SetAnimation(item, AHMET_ANIM_IDLE);
 		item->HitPoints = Objects[item->ObjectNumber].HitPoints;

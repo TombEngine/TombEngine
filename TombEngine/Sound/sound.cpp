@@ -481,7 +481,7 @@ std::optional<std::string> GetCurrentSubtitle()
 	if (Subtitles.empty())
 		return std::nullopt;
 
-	long time = long(BASS_ChannelBytes2Seconds(channel, BASS_ChannelGetPosition(channel, BASS_POS_BYTE)) * SOUND_MILLISECONDS_IN_SECOND);
+	int time = int(BASS_ChannelBytes2Seconds(channel, BASS_ChannelGetPosition(channel, BASS_POS_BYTE)) * SOUND_MILLISECONDS_IN_SECOND);
 
 	for (auto* stringPtr : Subtitles)
 	{

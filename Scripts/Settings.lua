@@ -5,12 +5,13 @@ local Flow = TEN.Flow
 
 local settings = Flow.Settings.new()
 
+	settings.Animations.backJumpTurn = false
 	settings.Animations.crouchRoll = true
 	settings.Animations.crawlspaceSwandive = true
 	settings.Animations.sprintJump = false
 	settings.Animations.ledgeJumps = false
 	settings.Animations.poseTimeout = 0
-	settings.Animations.systemBlendDuration = 4
+	settings.Animations.internalBlendDuration = 4
 	
 	settings.Camera.binocularLightColor = Color(192, 192, 96)
 	settings.Camera.lasersightLightColor = Color(255, 0, 0)
@@ -37,6 +38,8 @@ local settings = Flow.Settings.new()
 	
 	settings.Gameplay.enableInventory = true
 	settings.Gameplay.killPoisonedEnemies = true
+	settings.Gameplay.setEnemiesOnFireWithWeapons = true
+	settings.Gameplay.setEnemiesOnFireWithDeathFlag = true
 	settings.Gameplay.targetObjectOcclusion = true
 
 	settings.Graphics.ambientOcclusion = true
@@ -69,6 +72,8 @@ local settings = Flow.Settings.new()
 	settings.System.errorMode = Flow.ErrorMode.WARN
 	settings.System.fastReload = true
 	settings.System.multithreaded = true
+	settings.System.variableFloodProtectionTimeLimit = 1000
+	settings.System.variableFloodProtectionOverallLimit = 10000
 	
 	settings.UI.headerTextColor = Color(216, 117, 49)
 	settings.UI.optionTextColor = Color(240, 220, 32)

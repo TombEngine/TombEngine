@@ -11,9 +11,9 @@ using namespace TEN::Scripting::Types;
 struct SkyLayer
 {
 	bool Enabled{ false };
-	byte R{ 0 };
-	byte G{ 0 };
-	byte B{ 0 };
+	unsigned char R{ 0 };
+	unsigned char G{ 0 };
+	unsigned char B{ 0 };
 	short CloudSpeed{ 0 };
 
 	SkyLayer() = default;

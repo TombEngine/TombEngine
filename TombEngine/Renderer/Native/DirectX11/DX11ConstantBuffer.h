@@ -5,7 +5,7 @@
 #include "Renderer/Graphics/IConstantBuffer.h"
 #include <d3d11.h>
 #include <wrl/client.h>
-#include "Game/Debug/Debug.h"
+#include "Game/debug/debug.h"
 
 namespace TEN::Renderer::Native::DirectX11
 {
@@ -27,7 +27,7 @@ namespace TEN::Renderer::Native::DirectX11
 		ID3D11Buffer* GetD3D11Buffer() const noexcept { return _buffer.Get(); }
 
 		DX11ConstantBuffer(ID3D11Device* device, int size, std::string name);
-		void UpdateData(void* data, ID3D11DeviceContext* ctx);
+		void UpdateData(void* data, ID3D11DeviceContext* ctx, int size = 0);
 	};
 }
 

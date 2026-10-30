@@ -4,7 +4,7 @@
 #include "Game/collision/collide_room.h"
 #include "Game/control/control.h"
 #include "Game/control/trigger.h"
-#include "Game/effects/Bubble.h"
+#include "Game/effects/bubble.h"
 #include "Game/effects/effects.h"
 #include "Game/items.h"
 #include "Math/Math.h"

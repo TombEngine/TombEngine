@@ -11,9 +11,10 @@
 #include "Game/control/control.h"
 #include "Game/control/volume.h"
 #include "Game/effects/DisplaySprite.h"
-#include "Game/effects/Hair.h"
+#include "Game/effects/hair.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
+#include "Game/effects/ParticleGroup.h"
 #include "Game/Gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
@@ -208,6 +209,7 @@ namespace TEN::Renderer
 			shadowProjection.ViewProjection = view * projection;
 			UpdateConstantBuffer(&shadowProjection, _cbCameraMatrices.get());
 			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
 			_stShadowMap.LightViewProjections[step] = (view * projection);
 
@@ -229,7 +231,7 @@ namespace TEN::Renderer
 			{
 				for (int m = 0; m < obj.AnimationTransforms.size(); m++)
 					_stObjects.Bones[m] = obj.BindPoseTransforms[m] * item->InterpolatedAnimationTransforms[m];
-				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+                UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 				auto* mesh = GetMesh(item->SkinIndex);
 
@@ -249,16 +251,10 @@ namespace TEN::Renderer
 			}
 
 			memcpy(_stObjects.Bones, item->InterpolatedAnimationTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
-			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+            UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
-			for (int k = 0; k < obj.ObjectMeshes.size(); k++)
+			for (int k = 0; k < item->MeshIndex.size(); k++)
 			{
-				if (item->MeshIndex.size() <= k)
-				{
-					TENLog("Mesh structure was not properly initialized for object " + GetObjectName((GAME_OBJECT_ID)item->ObjectID));
-					break;
-				}
-
 				auto* mesh = GetMesh(item->MeshIndex[k]);
 
 				if (skinMode == SkinningMode::Full && g_Level.Meshes[item->MeshIndex[k]].hidden)
@@ -352,7 +348,7 @@ namespace TEN::Renderer
 			SetBlendMode(BlendMode::Opaque);
 			SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 
-			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+            UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(gunShellCount));
 
 			const auto& mesh = *moveableObject.ObjectMeshes[0];
 			for (const auto& bucket : mesh.Buckets)
@@ -424,7 +420,7 @@ namespace TEN::Renderer
 
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::LineList);
 
-		_primitiveBatch->Begin();
+        BeginPrimitiveBatch();
 
 		for (const auto& line : _lines2DToDraw)
 		{
@@ -449,7 +445,7 @@ namespace TEN::Renderer
 			_numDrawCalls++;
 		}
 
-		_primitiveBatch->End();
+        EndPrimitiveBatch();
 
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
@@ -549,25 +545,15 @@ namespace TEN::Renderer
 
 						if (IsSortedBlendMode(bucket.BlendMode))
 						{
-							for (int p = 0; p < bucket.Polygons.size(); p++)
-							{
-								auto centre = Vector3::Transform(
-									bucket.Polygons[p].Centre, rat->Transform);
-								int distance = (centre - view.Camera.WorldPosition).Length();
+							auto object = RendererSortableObject{};
+							object.ObjectType = RendererObjectType::MoveableAsStatic;
+							object.BlendMode = bucket.BlendMode;
+							object.Bucket = &bucket;
+							object.LightMode = mesh->LightMode;
+							object.World = rat->Transform;
+							object.Room = &_rooms[rat->RoomNumber];
 
-								RendererSortableObject object;
-								object.ObjectType = RendererObjectType::MoveableAsStatic;
-								object.Centre = centre;
-								object.Distance = distance;
-								object.BlendMode = bucket.BlendMode;
-								object.Bucket = &bucket;
-								object.LightMode = mesh->LightMode;
-								object.Polygon = &bucket.Polygons[p];
-								object.World = rat->Transform;
-								object.Room = &_rooms[rat->RoomNumber];
-
-								view.TransparentObjectsToDraw.push_back(object);
-							}
+							CollectSortedBucket(view, object, &object.World, view.Camera.WorldPosition);
 						}
 					}
 				}
@@ -627,7 +613,7 @@ namespace TEN::Renderer
 						if (rendererPass != RendererPass::GBuffer)
 							BindInstancedStaticLights(_rooms[rat->RoomNumber].LightsToDraw, 0);
 
-						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+                        UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 						for (int animated = 0; animated < 2; animated++)
 						{
@@ -673,30 +659,22 @@ namespace TEN::Renderer
 					continue;
 
 				auto& mesh = *GetMesh(Objects[ID_FISH_EMITTER].meshIndex + fish.MeshIndex);
+				auto worldMatrix = Matrix::Lerp(fish.PrevTransform, fish.Transform, GetInterpolationFactor());
+
 				for (auto& bucket : mesh.Buckets)
 				{
 					if (!IsSortedBlendMode(bucket.BlendMode))
 						continue;
-						
-					for (auto& poly : bucket.Polygons)
-					{
-						auto worldMatrix = Matrix::Lerp(fish.PrevTransform, fish.Transform, GetInterpolationFactor());
-						auto center = Vector3::Transform(poly.Centre, worldMatrix);
-						float dist = Vector3::Distance(center, view.Camera.WorldPosition);
 
-						auto object = RendererSortableObject{};
-						object.ObjectType = RendererObjectType::MoveableAsStatic;
-						object.Centre = center;
-						object.Distance = dist;
-						object.BlendMode = bucket.BlendMode;
-						object.Bucket = &bucket;
-						object.LightMode = mesh.LightMode;
-						object.Polygon = &poly;
-						object.World = worldMatrix;
-						object.Room = &_rooms[fish.RoomNumber];
+					auto object = RendererSortableObject{};
+					object.ObjectType = RendererObjectType::MoveableAsStatic;
+					object.BlendMode = bucket.BlendMode;
+					object.Bucket = &bucket;
+					object.LightMode = mesh.LightMode;
+					object.World = worldMatrix;
+					object.Room = &_rooms[fish.RoomNumber];
 
-						view.TransparentObjectsToDraw.push_back(object);
-					}
+					CollectSortedBucket(view, object, &worldMatrix, view.Camera.WorldPosition);
 				}
 			}
 		}
@@ -744,7 +722,7 @@ namespace TEN::Renderer
 					if (rendererPass != RendererPass::GBuffer)
 						BindInstancedStaticLights(_rooms[fish.RoomNumber].LightsToDraw, 0);
 
-					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+                    UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -773,6 +751,222 @@ namespace TEN::Renderer
 		}
 	}
 
+	void Renderer::DrawParticleGroupMeshes(RenderView& view, RendererPass rendererPass)
+	{
+		using namespace TEN::Effects::ParticleGroups;
+
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
+		for (const auto& group : ParticleGroupList)
+		{
+			if (!group.Active)
+				continue;
+
+			if (!group.IsMeshGroup())
+				continue;
+
+			if (!Objects[group.ObjectID].loaded)
+				continue;
+
+			if (!_moveableObjects[group.ObjectID].has_value())
+				continue;
+
+			if (rendererPass == RendererPass::CollectTransparentFaces)
+			{
+				for (const auto& p : group.Particles)
+				{
+					if (!p.Active)
+						continue;
+
+					if (IgnoreReflectionPassForRoom(p.RoomNumber))
+						continue;
+
+					float dist = Vector3::Distance(p.Position, view.Camera.WorldPosition);
+					if (dist > DEFAULT_RENDER_DISTANCE)
+						continue;
+
+					// Validate per-particle object ID (if overridden).
+					if (!Objects[p.ObjectID].loaded)
+						continue;
+
+					// Ensure it's a moveable (positive nmeshes) with valid mesh data.
+					if (Objects[p.ObjectID].nmeshes <= 0)
+						continue;
+
+					if (!_moveableObjects[p.ObjectID].has_value())
+						continue;
+
+					int clampedMeshIndex = std::clamp(p.SubIndex, 0, Objects[p.ObjectID].nmeshes - 1);
+					auto& mesh = *GetMesh(Objects[p.ObjectID].meshIndex + clampedMeshIndex);
+
+					// Transform is identical for all polygons of the particle; compute it once.
+					auto worldMatrix = Matrix::Lerp(p.PrevTransform, p.Transform, GetInterpolationFactor());
+					ReflectMatrixOptionally(worldMatrix);
+
+					for (auto& bucket : mesh.Buckets)
+					{
+						if (!IsSortedBlendMode(bucket.BlendMode))
+							continue;
+
+						auto object = RendererSortableObject{};
+						object.ObjectType = RendererObjectType::MoveableAsStatic;
+						object.BlendMode = bucket.BlendMode;
+						object.Bucket = &bucket;
+						object.LightMode = mesh.LightMode;
+						object.World = worldMatrix;
+						object.Room = &_rooms[p.RoomNumber];
+
+						CollectSortedBucket(view, object, &worldMatrix, view.Camera.WorldPosition);
+					}
+				}
+			}
+			else
+			{
+				// Cluster visible particles by (object ID, mesh index): all particles of a
+				// cluster share the same mesh, so they can be drawn with instancing in
+				// batches of up to INSTANCED_STATIC_MESH_BUCKET_SIZE instead of paying a
+				// full constant buffer upload and a draw call per particle.
+				struct ParticleMeshCluster
+				{
+					GAME_OBJECT_ID ObjectID = GAME_OBJECT_ID::ID_NO_OBJECT;
+					int MeshIndex = 0;
+					std::vector<const GroupParticle*> Particles = {};
+				};
+
+				// Keep scratch memory across calls to avoid per-frame reallocations.
+				static auto clusters = std::vector<ParticleMeshCluster>{};
+				for (auto& cluster : clusters)
+					cluster.Particles.clear();
+
+				int clusterCount = 0;
+				for (const auto& p : group.Particles)
+				{
+					if (!p.Active)
+						continue;
+
+					// In mirror passes, draw only particles in the mirrored room, with the
+					// reflection applied. Lights are reflected by BindLight.
+					if (IgnoreReflectionPassForRoom(p.RoomNumber))
+						continue;
+
+					float dist = Vector3::Distance(p.Position, view.Camera.WorldPosition);
+					if (dist > DEFAULT_RENDER_DISTANCE)
+						continue;
+
+					// Validate per-particle object ID (if overridden): must be a loaded
+					// moveable (positive nmeshes) with valid mesh data.
+					if (!Objects[p.ObjectID].loaded || Objects[p.ObjectID].nmeshes <= 0 ||
+						!_moveableObjects[p.ObjectID].has_value())
+					{
+						continue;
+					}
+
+					int clampedMeshIndex = std::clamp(p.SubIndex, 0, Objects[p.ObjectID].nmeshes - 1);
+
+					// Distinct keys are few (usually one per group); linear scan is enough.
+					ParticleMeshCluster* cluster = nullptr;
+					for (int c = 0; c < clusterCount; c++)
+					{
+						if (clusters[c].ObjectID == p.ObjectID && clusters[c].MeshIndex == clampedMeshIndex)
+						{
+							cluster = &clusters[c];
+							break;
+						}
+					}
+
+					if (cluster == nullptr)
+					{
+						if (clusterCount == (int)clusters.size())
+							clusters.emplace_back();
+
+						cluster = &clusters[clusterCount++];
+						cluster->ObjectID = p.ObjectID;
+						cluster->MeshIndex = clampedMeshIndex;
+					}
+
+					cluster->Particles.push_back(&p);
+				}
+
+				if (clusterCount == 0)
+					continue;
+
+				if (rendererPass == RendererPass::GBuffer)
+				{
+					_shaders.Bind(Shader::GBuffer);
+					_shaders.Bind(Shader::GBufferInstancedStatics);
+				}
+				else
+				{
+					_shaders.Bind(Shader::InstancedStatics);
+				}
+
+				_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+				_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+
+				for (int c = 0; c < clusterCount; c++)
+				{
+					const auto& cluster = clusters[c];
+					const auto& mesh = *GetMesh(Objects[cluster.ObjectID].meshIndex + cluster.MeshIndex);
+
+					for (int baseIndex = 0; baseIndex < (int)cluster.Particles.size(); baseIndex += INSTANCED_STATIC_MESH_BUCKET_SIZE)
+					{
+						int instanceCount = std::min((int)cluster.Particles.size() - baseIndex, INSTANCED_STATIC_MESH_BUCKET_SIZE);
+
+						for (int i = 0; i < instanceCount; i++)
+						{
+							const auto& p = *cluster.Particles[baseIndex + i];
+
+							auto worldMatrix = Matrix::Lerp(p.PrevTransform, p.Transform, GetInterpolationFactor());
+							ReflectMatrixOptionally(worldMatrix);
+
+							_stObjects.Objects[i].World = worldMatrix;
+							_stObjects.Objects[i].Color = Vector4(p.ParticleColor.R(), p.ParticleColor.G(), p.ParticleColor.B(), p.ParticleColor.A());
+							_stObjects.Objects[i].AmbientLight = _rooms[p.RoomNumber].AmbientLight;
+							_stObjects.Objects[i].LightMode = (int)mesh.LightMode;
+
+							if (rendererPass != RendererPass::GBuffer)
+								BindInstancedStaticLights(_rooms[p.RoomNumber].LightsToDraw, i);
+						}
+
+                        UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(instanceCount));
+
+						bool bindTexturesAndMaterialsRequired = true;
+
+						for (int animated = 0; animated < 2; animated++)
+						{
+							for (const auto& bucket : mesh.Buckets)
+							{
+								if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
+									continue;
+
+								int passCount = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
+								for (int pass = 0; pass < passCount; pass++)
+								{
+									if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, pass))
+										continue;
+
+									if (bindTexturesAndMaterialsRequired)
+									{
+										BindBucketTextures(bucket, TextureSource::Moveables, animated);
+										BindMaterial(bucket.MaterialIndex, false);
+
+										bindTexturesAndMaterialsRequired = false;
+									}
+
+									DrawIndexedInstancedTriangles(bucket.NumIndices, instanceCount, bucket.StartIndex, 0);
+
+									_numMoveablesDrawCalls++;
+								}
+
+								bindTexturesAndMaterialsRequired = true;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	void Renderer::DrawBats(RenderView& view, RendererPass rendererPass)
 	{
 		if (!Objects[ID_BATS_EMITTER].loaded)
@@ -792,30 +986,22 @@ namespace TEN::Renderer
 				if (IgnoreReflectionPassForRoom(bat.RoomNumber))
 					continue;
 
+				auto transformMatrix = Matrix::Lerp(bat.PrevTransform, bat.Transform, GetInterpolationFactor());
+
 				for (auto& bucket : mesh.Buckets)
 				{
 					if (!IsSortedBlendMode(bucket.BlendMode))
 						continue;
 
-					for (int p = 0; p < bucket.Polygons.size(); p++)
-					{
-						auto transformMatrix = Matrix::Lerp(bat.PrevTransform, bat.Transform, GetInterpolationFactor());
-						auto centre = Vector3::Transform(bucket.Polygons[p].Centre, transformMatrix);
-						float dist = (centre - view.Camera.WorldPosition).Length();
+					auto object = RendererSortableObject{};
+					object.ObjectType = RendererObjectType::MoveableAsStatic;
+					object.BlendMode = bucket.BlendMode;
+					object.Bucket = &bucket;
+					object.LightMode = mesh.LightMode;
+					object.World = transformMatrix;
+					object.Room = &_rooms[bat.RoomNumber];
 
-						auto object = RendererSortableObject{};
-						object.ObjectType = RendererObjectType::MoveableAsStatic;
-						object.Centre = centre;
-						object.Distance = dist;
-						object.BlendMode = bucket.BlendMode;
-						object.Bucket = &bucket;
-						object.LightMode = mesh.LightMode;
-						object.Polygon = &bucket.Polygons[p];
-						object.World = transformMatrix;
-						object.Room = &_rooms[bat.RoomNumber];
-
-						view.TransparentObjectsToDraw.push_back(object);
-					}
+					CollectSortedBucket(view, object, &transformMatrix, view.Camera.WorldPosition);
 				}
 			}
 		}
@@ -865,7 +1051,7 @@ namespace TEN::Renderer
 					_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 					_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
-					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+                    UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(batCount));
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -1076,24 +1262,15 @@ namespace TEN::Renderer
 					if (!IsSortedBlendMode(bucket.BlendMode))
 						continue;
 
-					for (int p = 0; p < bucket.Polygons.size(); p++)
-					{
-						auto centre = Vector3::Transform(bucket.Polygons[p].Centre, transformMatrix);
-						float dist = (centre - view.Camera.WorldPosition).Length();
+					auto object = RendererSortableObject{};
+					object.ObjectType = RendererObjectType::MoveableAsStatic;
+					object.BlendMode = bucket.BlendMode;
+					object.Bucket = &bucket;
+					object.LightMode = mesh.LightMode;
+					object.World = transformMatrix;
+					object.Room = &_rooms[beetle.RoomNumber];
 
-						auto object = RendererSortableObject{};
-						object.ObjectType = RendererObjectType::MoveableAsStatic;
-						object.Centre = centre;
-						object.Distance = dist;
-						object.BlendMode = bucket.BlendMode;
-						object.Bucket = &bucket;
-						object.LightMode = mesh.LightMode;
-						object.Polygon = &bucket.Polygons[p];
-						object.World = transformMatrix;
-						object.Room = &_rooms[beetle.RoomNumber];
-
-						view.TransparentObjectsToDraw.push_back(object);
-					}
+					CollectSortedBucket(view, object, &transformMatrix, view.Camera.WorldPosition);
 				}
 			}
 		}
@@ -1149,7 +1326,7 @@ namespace TEN::Renderer
 					_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 					_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
-					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+                    UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(beetleCount));
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -1201,31 +1378,22 @@ namespace TEN::Renderer
 					continue;
 
 				auto& mesh = *GetMesh(Objects[ID_LOCUSTS].meshIndex + (-locust.Counter & 3));
+				auto transformMatrix = Matrix::Lerp(locust.PrevTransform, locust.Transform, GetInterpolationFactor());
 
 				for (auto& bucket : mesh.Buckets)
 				{
 					if (!IsSortedBlendMode(bucket.BlendMode))
 						continue;
 
-					for (int p = 0; p < bucket.Polygons.size(); p++)
-					{
-						auto transformMatrix = Matrix::Lerp(locust.PrevTransform, locust.Transform, GetInterpolationFactor());
-						auto centre = Vector3::Transform(bucket.Polygons[p].Centre, transformMatrix);
-						float dist = (centre - view.Camera.WorldPosition).Length();
+					auto object = RendererSortableObject{};
+					object.ObjectType = RendererObjectType::MoveableAsStatic;
+					object.BlendMode = bucket.BlendMode;
+					object.Bucket = &bucket;
+					object.LightMode = mesh.LightMode;
+					object.World = transformMatrix;
+					object.Room = &_rooms[locust.RoomNumber];
 
-						auto object = RendererSortableObject{};
-						object.ObjectType = RendererObjectType::MoveableAsStatic;
-						object.Centre = centre;
-						object.Distance = dist;
-						object.BlendMode = bucket.BlendMode;
-						object.Bucket = &bucket;
-						object.LightMode = mesh.LightMode;
-						object.Polygon = &bucket.Polygons[p];
-						object.World = transformMatrix;
-						object.Room = &_rooms[locust.RoomNumber];
-
-						view.TransparentObjectsToDraw.push_back(object);
-					}
+					CollectSortedBucket(view, object, &transformMatrix, view.Camera.WorldPosition);
 				}
 			}
 		}
@@ -1280,7 +1448,7 @@ namespace TEN::Renderer
 					if (rendererPass != RendererPass::GBuffer)
 						BindInstancedStaticLights(_rooms[locust.RoomNumber].LightsToDraw, 0);
 
-					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+                    UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -1317,7 +1485,7 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::Solid);
 
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::LineList);
-		_primitiveBatch->Begin();
+        BeginPrimitiveBatch();
 
 		for (const auto& line : _lines3DToDraw)
 		{
@@ -1335,7 +1503,7 @@ namespace TEN::Renderer
 			_numDrawCalls++;
 		}
 
-		_primitiveBatch->End();
+        EndPrimitiveBatch();
 
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
@@ -1351,7 +1519,7 @@ namespace TEN::Renderer
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
-		_primitiveBatch->Begin();
+        BeginPrimitiveBatch();
 
 		for (const auto& tri : _triangles3DToDraw)
 		{
@@ -1373,7 +1541,7 @@ namespace TEN::Renderer
 			_numDrawCalls++;
 		}
 
-		_primitiveBatch->End();
+        EndPrimitiveBatch();
 
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
@@ -1776,7 +1944,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddDynamicSpotLight(const Vector3& pos, const Vector3& dir, float radius, float falloff, float distance, const Color& color, bool castShadows, int hash)
 	{
-		if (_isLocked || g_GameFlow->LastFreezeMode != FreezeMode::None)
+		if (_isLocked || g_GameFlow->LastFreezeMode == FreezeMode::Full)
 			return;
 
 		RendererLight dynamicLight = {};
@@ -1813,7 +1981,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddDynamicPointLight(const Vector3& pos, float radius, const Color& color, bool castShadows, int hash)
 	{
-		if (_isLocked || g_GameFlow->LastFreezeMode != FreezeMode::None)
+		if (_isLocked || g_GameFlow->LastFreezeMode == FreezeMode::Full)
 			return;
 
 		if (radius <= EPSILON)
@@ -1841,7 +2009,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddDynamicFogBulb(const Vector3& pos, float radius, float density, const Color& color, int hash)
 	{
-		if (_isLocked || g_GameFlow->LastFreezeMode != FreezeMode::None)
+		if (_isLocked || g_GameFlow->LastFreezeMode == FreezeMode::Full)
 			return;
 
 		auto dynamicLight = RendererLight{};
@@ -1912,7 +2080,7 @@ namespace TEN::Renderer
 
 	void Renderer::PrepareScene()
 	{
-		if (g_GameFlow->CurrentFreezeMode == FreezeMode::None &&
+		if (g_GameFlow->CurrentFreezeMode != FreezeMode::Full &&
 			g_Gui.GetInventoryMode() == InventoryMode::None)
 		{
 			_dynamicLightList ^= 1;
@@ -1963,6 +2131,10 @@ namespace TEN::Renderer
 
 		ResetDebugVariables();
 
+		// Sampler slots keep their states for the whole frame; the point filter override is
+		// decided once here.
+		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
+
 		auto& level = *g_GameFlow->GetLevel(CurrentLevel);
 
 		// Prepare scene to draw.
@@ -1987,6 +2159,7 @@ namespace TEN::Renderer
 		PrepareSmokes(view);
 		PrepareSmokeParticles(view);
 		PrepareSimpleParticles(view);
+		PrepareParticleGroups(view);
 		PrepareSparkParticles(view);
 		PrepareExplosionParticles(view);
 		PrepareFootprints(view);
@@ -2017,19 +2190,19 @@ namespace TEN::Renderer
 		// Bind constant buffers.
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PerDraw, _cbPerDraw.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Room, _cbRoom.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Sprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Sky, _cbSky.get());
 
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PerDraw, _cbPerDraw.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Room, _cbRoom.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Sprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Sky, _cbSky.get());
 
@@ -2044,7 +2217,7 @@ namespace TEN::Renderer
 		BindMaterial(0, true);
 
 		_stPerDraw.Animated = 0;
-		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+        InvalidatePerDrawBuffer();
 
 		// Set up vertex parameters.
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
@@ -2054,7 +2227,7 @@ namespace TEN::Renderer
 		DrawHorizonAndSkyForReflections(view);
 
 		_stPerDraw.Animated = 0;
-		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+        InvalidatePerDrawBuffer();
 
 		// Bind and clear render target.
 		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
@@ -2145,10 +2318,18 @@ namespace TEN::Renderer
 		DoRenderPass(RendererPass::Opaque, view, true);
 		DoRenderPass(RendererPass::Additive, view, true);
 		DoRenderPass(RendererPass::Distortion, view, true);
+
+		using ms = std::chrono::duration<float, std::milli>;
+
+		auto sortedTime0 = std::chrono::high_resolution_clock::now();
 		DoRenderPass(RendererPass::CollectTransparentFaces, view, false);
+		auto sortedTime1 = std::chrono::high_resolution_clock::now();
 		SortTransparentFaces(view);
+		auto sortedTime2 = std::chrono::high_resolution_clock::now();
 
 		DoRenderPass(RendererPass::Transparent, view, true);
+		auto sortedTime3 = std::chrono::high_resolution_clock::now();
+
 		DoRenderPass(RendererPass::GunFlashes, view, true); // HACK: Gunflashes are drawn after everything because they are near camera.
 
 		// Draw 3D debug lines and triangles.
@@ -2183,14 +2364,14 @@ namespace TEN::Renderer
 		// SMAA: RT -> ..., ... -> RT
 		ApplyAntialiasing(_renderTarget.get(), view);
 
+		// Now we can apply the color grade, lens flare, cinematic bars and post process effects
+		// RT -> PPRT0, [PPRT0 -> PPRT1], PPRT1 -> PPRT0, PPRT0 -> RT
+		DrawPostprocess(renderTarget, view, renderMode);
+
 		// Draw text and 2D HUD
 		ClearDrawPhaseDisplaySprites();
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
 			g_Hud.Draw2D(*LaraItem);
-
-		// Now we can apply the color grade, lens flare, cinematic bars and post process effects
-		// RT -> PPRT0, [PPRT0 -> PPRT1], PPRT1 -> PPRT0, PPRT0 -> RT
-		DrawPostprocess(renderTarget, view, renderMode);
 
 		_doingFullscreenPass = false;
 
@@ -2203,7 +2384,11 @@ namespace TEN::Renderer
 			DrawDisplaySprites(view, false);
 
 			DrawDebugRenderTargets(view);
-			DrawAllStrings();
+
+			// HACK: Strings in the title level are drawn in a separate menu pass, so we bypass it here.
+			if (CurrentLevel != 0)
+				DrawAllStrings();
+
 			DrawDisplaySprites(view, true);
 		}
 
@@ -2581,6 +2766,7 @@ namespace TEN::Renderer
 				DrawRats(view, pass);
 				DrawLocusts(view, pass);
 				DrawFishSwarm(view, pass);
+				DrawParticleGroupMeshes(view, pass);
 			}
 			else if (player)
 			{
@@ -2704,7 +2890,7 @@ namespace TEN::Renderer
 		_stPerDraw.AnimType = 1; // UVRotate
 		_stPerDraw.Animated = 1;
 		_stPerDraw.IsWaterfall = 1;
-		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+        InvalidatePerDrawBuffer();
 
 		// We need only top/bottom Y coordinate for UVRotate, but we pass whole
 		// rectangle anyway, in case later we may want to implement different UVRotate modes.
@@ -2718,7 +2904,7 @@ namespace TEN::Renderer
 
 		// Reset animated metadata after rendering just in case.
 		_stPerDraw.AnimFps = _stPerDraw.NumAnimFrames = _stPerDraw.AnimType = 0;
-		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+        InvalidatePerDrawBuffer();
 	}
 
 	void Renderer::DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass)
@@ -2728,6 +2914,9 @@ namespace TEN::Renderer
 		RendererObject& moveableObj = *_moveableObjects[item->ObjectID];
 
 		auto skinMode = GetSkinningMode(moveableObj, item->SkinIndex);
+
+        if (rendererPass != RendererPass::CollectTransparentFaces && !HasItemForPass(*item, moveableObj, rendererPass))
+            return;
 
 		if (rendererPass != RendererPass::CollectTransparentFaces)
 		{
@@ -2749,13 +2938,17 @@ namespace TEN::Renderer
 			{
 				for (int m = 0; m < moveableObj.AnimationTransforms.size(); m++)
 					_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * item->InterpolatedAnimationTransforms[m];
-				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-
-				DrawMesh(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view, rendererPass);
+				UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 			}
+		}
 
+		if (skinMode == SkinningMode::Full)
+			DrawMesh(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view, rendererPass);
+
+		if (rendererPass != RendererPass::CollectTransparentFaces)
+		{
 			memcpy(_stObjects.Bones, item->InterpolatedAnimationTransforms, moveableObj.AnimationTransforms.size() * sizeof(Matrix));
-			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 		}
 
 		for (int k = 0; k < item->MeshIndex.size(); k++)
@@ -2887,7 +3080,7 @@ namespace TEN::Renderer
 
 			for (auto it = view.SortedStaticsToDraw.begin(); it != view.SortedStaticsToDraw.end(); it++)
 			{
-				auto statics = it->second;
+				const auto& statics = it->second;
 
 				auto* refStatic = statics[0];
 				auto& refStaticObj = GetStaticRendererObject(refStatic->ObjectNumber);
@@ -2895,6 +3088,9 @@ namespace TEN::Renderer
 					continue;
 
 				auto* refMesh = refStaticObj.ObjectMeshes[0];
+
+                if (!HasMeshForPass(*refMesh, rendererPass))
+                    continue;
 
 				int staticsCount = (int)statics.size();
 				int bucketSize = INSTANCED_STATIC_MESH_BUCKET_SIZE;
@@ -2934,7 +3130,7 @@ namespace TEN::Renderer
 
 					if (instancesCount > 0)
 					{
-						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+                        UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(instancesCount));
 
 						bool bindTextureAndMaterialsRequired = true;
 
@@ -2979,7 +3175,7 @@ namespace TEN::Renderer
 			// Collect sorted blend modes faces ordered by room if doing transparent pass.
 			for (auto it = view.SortedStaticsToDraw.begin(); it != view.SortedStaticsToDraw.end(); it++)
 			{
-				auto statics = it->second;
+				const auto& statics = it->second;
 
 				auto* refStatic = statics[0];
 				auto& refStaticObj = GetStaticRendererObject(refStatic->ObjectNumber);
@@ -3001,22 +3197,15 @@ namespace TEN::Renderer
 
 						if (IsSortedBlendMode(blendMode) || statics[i]->Color.w < ALPHA_BLEND_THRESHOLD)
 						{
-							for (int p = 0; p < bucket.Polygons.size(); p++)
-							{
-								auto object = RendererSortableObject{};
+							auto object = RendererSortableObject{};
+							object.ObjectType = RendererObjectType::Static;
+							object.Bucket = &bucket;
+							object.Static = statics[i];
+							object.BlendMode = blendMode;
+							object.LightMode = refMesh->LightMode;
+							object.Room = &_rooms[statics[i]->RoomNumber];
 
-								object.ObjectType = RendererObjectType::Static;
-								object.Bucket = &bucket;
-								object.Static = statics[i];
-								object.Centre = Vector3::Transform(bucket.Polygons[p].Centre, statics[i]->World);
-								object.Distance = Vector3::Distance(object.Centre, view.Camera.WorldPosition);
-								object.BlendMode = blendMode;
-								object.LightMode = refMesh->LightMode;
-								object.Polygon = &bucket.Polygons[p];
-								object.Room = &_rooms[object.Static->RoomNumber];
-
-								view.TransparentObjectsToDraw.push_back(object);
-							}
+							CollectSortedBucket(view, object, &statics[i]->World, view.Camera.WorldPosition);
 						}
 					}
 				}
@@ -3039,20 +3228,13 @@ namespace TEN::Renderer
 
 					if (IsSortedBlendMode(bucket.BlendMode))
 					{
-						for (int p = 0; p < bucket.Polygons.size(); p++)
-						{
-							RendererSortableObject object;
+						auto object = RendererSortableObject{};
+						object.ObjectType = RendererObjectType::Room;
+						object.BlendMode = bucket.BlendMode;
+						object.Bucket = &bucket;
+						object.Room = room;
 
-							object.ObjectType = RendererObjectType::Room;
-							object.Centre = bucket.Centre;
-							object.Distance = Vector3::Distance(view.Camera.WorldPosition, bucket.Polygons[p].Centre);
-							object.BlendMode = bucket.BlendMode;
-							object.Bucket = &bucket;
-							object.Room = room;
-							object.Polygon = &bucket.Polygons[p];
-
-							view.TransparentObjectsToDraw.push_back(object);
-						}
+						CollectSortedBucket(view, object, nullptr, view.Camera.WorldPosition);
 					}
 				}
 			}
@@ -3113,9 +3295,15 @@ namespace TEN::Renderer
 				BindRenderTargetAsTexture(TextureRegister::SSAO, _SSAOBlurredRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 			}
 
-			for (int i = (int)view.RoomsToDraw.size() - 1; i >= 0; i--)
+			// In G-Buffer pass, draw rooms front to back to maximize early depth rejection. Room collector
+			// traverses portals starting from camera's room, so collection order is already front to back.
+			// Other passes keep the reversed order (back to front).
+			int roomCount = (int)view.RoomsToDraw.size();
+			for (int i = 0; i < roomCount; i++)
 			{
-				const auto& room = *view.RoomsToDraw[i];
+				int index = (rendererPass == RendererPass::GBuffer) ? i : (roomCount - 1 - i);
+
+				const auto& room = *view.RoomsToDraw[index];
 				const auto& nativeRoom = g_Level.Rooms[room.RoomNumber];
 
 				bool bindRoomDataRequired = true;
@@ -3338,7 +3526,7 @@ namespace TEN::Renderer
 					_stInstancedSpriteBuffer.Sprites[i].IsBillboard = 1;
 					_stInstancedSpriteBuffer.Sprites[i].IsSoftParticle = 0;
 
-					// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+					// NOTE: Strange packing due to particular HLSL 16-byte alignment requirements.
 					_stInstancedSpriteBuffer.Sprites[i].UV[0].x = rDrawSprite.Sprite->UV[0].x;
 					_stInstancedSpriteBuffer.Sprites[i].UV[0].y = rDrawSprite.Sprite->UV[1].x;
 					_stInstancedSpriteBuffer.Sprites[i].UV[0].z = rDrawSprite.Sprite->UV[2].x;
@@ -3349,7 +3537,7 @@ namespace TEN::Renderer
 					_stInstancedSpriteBuffer.Sprites[i].UV[1].w = rDrawSprite.Sprite->UV[3].y;
 				}
 
-				UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());
+                UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(), (int)sizeof(InstancedSprite) * starsToDraw);
 
 				// Draw sprites with instancing.
 				DrawInstancedTriangles(4, starsToDraw, 0);
@@ -3401,7 +3589,7 @@ namespace TEN::Renderer
 						_stInstancedSpriteBuffer.Sprites[i].IsBillboard = 1;
 						_stInstancedSpriteBuffer.Sprites[i].IsSoftParticle = 0;
 
-						// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+						// NOTE: Strange packing due to particular HLSL 16-byte alignment requirements.
 						_stInstancedSpriteBuffer.Sprites[i].UV[0].x = rDrawSprite.Sprite->UV[0].x;
 						_stInstancedSpriteBuffer.Sprites[i].UV[0].y = rDrawSprite.Sprite->UV[1].x;
 						_stInstancedSpriteBuffer.Sprites[i].UV[0].z = rDrawSprite.Sprite->UV[2].x;
@@ -3412,7 +3600,7 @@ namespace TEN::Renderer
 						_stInstancedSpriteBuffer.Sprites[i].UV[1].w = rDrawSprite.Sprite->UV[3].y;
 					}
 
-					UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());
+                    UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(), (int)sizeof(InstancedSprite) * meteorsToDraw);
 
 					// Draw sprites with instancing.
 					DrawInstancedTriangles(4, meteorsToDraw, 0);
@@ -3513,7 +3701,7 @@ namespace TEN::Renderer
 			_stInstancedSpriteBuffer.Sprites[0].IsBillboard = 1;
 			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = 0;
 
-			// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+			// NOTE: Strange packing due to particular HLSL 16-byte alignment requirements.
 			_stInstancedSpriteBuffer.Sprites[0].UV[0].x = rDrawSprite.Sprite->UV[0].x;
 			_stInstancedSpriteBuffer.Sprites[0].UV[0].y = rDrawSprite.Sprite->UV[1].x;
 			_stInstancedSpriteBuffer.Sprites[0].UV[0].z = rDrawSprite.Sprite->UV[2].x;
@@ -3525,7 +3713,7 @@ namespace TEN::Renderer
 
 			BindTexture(TextureRegister::ColorMap, rDrawSprite.Sprite->Texture, SamplerStateRegister::LinearClamp);
 
-			UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());
+            UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(), (int)sizeof(InstancedSprite) * 1);
 
 			// Draw sprites with instancing.
 			DrawInstancedTriangles(4, 1, 0);
@@ -3550,34 +3738,27 @@ namespace TEN::Renderer
 	{
 		if (rendererPass == RendererPass::CollectTransparentFaces)
 		{
+			auto world = itemToDraw->InterpolatedAnimationTransforms[boneIndex] * itemToDraw->InterpolatedWorld;
+			auto cameraPosition = Camera.pos.ToVector3();
+
 			for (auto& bucket : mesh->Buckets)
 			{
 				if (bucket.NumVertices == 0)
 					continue;
 
 				auto blendMode = GetBlendModeFromAlpha(bucket.BlendMode, itemToDraw->Color.w);
+				if (!IsSortedBlendMode(blendMode))
+					continue;
 
-				if (IsSortedBlendMode(blendMode))
-				{
-					for (int p = 0; p < bucket.Polygons.size(); p++)
-					{
-						auto center = Vector3::Transform(bucket.Polygons[p].Centre, itemToDraw->InterpolatedAnimationTransforms[boneIndex] * itemToDraw->InterpolatedWorld);
-						int dist = Vector3::Distance(center, Camera.pos.ToVector3());
+				auto object = RendererSortableObject{};
+				object.ObjectType = type;
+				object.Skinned = skinned;
+				object.BlendMode = blendMode;
+				object.Bucket = &bucket;
+				object.Item = itemToDraw;
+				object.LightMode = mesh->LightMode;
 
-						auto object = RendererSortableObject{};
-						object.ObjectType = type;
-						object.Centre = center;
-						object.Distance = dist;
-						object.Skinned = skinned;
-						object.BlendMode = blendMode;
-						object.Bucket = &bucket;
-						object.Item = itemToDraw;
-						object.LightMode = mesh->LightMode;
-						object.Polygon = &bucket.Polygons[p];
-
-						view.TransparentObjectsToDraw.push_back(object);
-					}
-				}
+				CollectSortedBucket(view, object, &world, cameraPosition);
 			}
 		}
 		else
@@ -3646,16 +3827,12 @@ namespace TEN::Renderer
 
 	bool Renderer::SetupBlendModeAndAlphaTest(BlendMode blendMode, RendererPass rendererPass, int drawPass)
 	{
+        if (!IsBlendModeSupported(blendMode, rendererPass))
+            return false;
+
 		switch (rendererPass)
 		{
 		case RendererPass::GBuffer:
-			if (blendMode != BlendMode::Opaque &&
-				blendMode != BlendMode::AlphaTest &&
-				blendMode != BlendMode::FastAlphaBlend)
-			{
-				return false;
-			}
-
 			if (blendMode == BlendMode::Opaque)
 			{ 
 				SetBlendMode(BlendMode::Opaque);
@@ -3669,12 +3846,6 @@ namespace TEN::Renderer
 			break;
 
 		case RendererPass::Opaque:
-			if (blendMode != BlendMode::Opaque &&
-				blendMode != BlendMode::AlphaTest)
-			{
-				return false;
-			}
-
 			if (blendMode == BlendMode::Opaque)
 			{
 				SetBlendMode(BlendMode::Opaque);
@@ -3696,21 +3867,11 @@ namespace TEN::Renderer
 			break;
 
 		case RendererPass::Additive:
-			if (blendMode != BlendMode::Additive)
-			{
-				return false;
-			}
-
 			SetBlendMode(blendMode);
 			SetAlphaTest(AlphaTestMode::None, 1.0f);
 			break;
 
 		case RendererPass::Distortion:
-			if (blendMode != BlendMode::Distortion)
-			{
-				return false;
-			}
-
 			_hasDistortionMask = true;
 			SetBlendMode(blendMode);
 			SetAlphaTest(AlphaTestMode::None, 1.0f);
@@ -3722,503 +3883,6 @@ namespace TEN::Renderer
 		}
 
 		return true;
-	}
-
-	void Renderer::SortTransparentFaces(RenderView& view)
-	{
-		std::sort(
-			view.TransparentObjectsToDraw.begin(),
-			view.TransparentObjectsToDraw.end(),
-			[](RendererSortableObject& a, RendererSortableObject& b)
-			{
-				return (a.Distance > b.Distance);
-			}
-		);
-	}
-
-	void Renderer::DrawSortedFaces(RenderView& view)
-	{
-		for (int i = 0; i < view.TransparentObjectsToDraw.size(); i++)
-		{
-			auto* object = &view.TransparentObjectsToDraw[i];
-			auto lastObjectType = (i > 0 ? view.TransparentObjectsToDraw[i - 1].ObjectType : RendererObjectType::Unknown);
-
-			_sortedPolygonsVertices.clear();
-			_sortedPolygonsIndices.clear();
-
-			if (_currentMirror != nullptr && object->ObjectType == RendererObjectType::Room)
-				continue;
-
-			if (object->ObjectType == RendererObjectType::Room)
-			{
-				while (i < view.TransparentObjectsToDraw.size() &&
-					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
-					view.TransparentObjectsToDraw[i].Room->RoomNumber == object->Room->RoomNumber &&
-					view.TransparentObjectsToDraw[i].Bucket->Animated == object->Bucket->Animated &&
-					view.TransparentObjectsToDraw[i].Bucket->Texture == object->Bucket->Texture &&
-					view.TransparentObjectsToDraw[i].BlendMode == object->BlendMode &&
-					_sortedPolygonsIndices.size() + (view.TransparentObjectsToDraw[i].Polygon->Shape == 0 ? 6 : 3) < MAX_TRANSPARENT_VERTICES)
-				{
-					auto* currentObject = &view.TransparentObjectsToDraw[i];
-					_sortedPolygonsIndices.bulk_push_back(
-						_roomsIndices.data(),
-						currentObject->Polygon->BaseIndex,
-						currentObject->Polygon->Shape == 0 ? 6 : 3);
-					i++;
-				}
-
-				DrawRoomSorted(object, lastObjectType, view);
-
-				if (i == view.TransparentObjectsToDraw.size())
-					return;
-
-				i--;
-			}
-			else if (object->ObjectType == RendererObjectType::Moveable)
-			{
-				while (i < view.TransparentObjectsToDraw.size() &&
-					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
-					view.TransparentObjectsToDraw[i].Item->ItemNumber == object->Item->ItemNumber &&
-					view.TransparentObjectsToDraw[i].Bucket->Texture == object->Bucket->Texture &&
-					view.TransparentObjectsToDraw[i].Bucket->Animated == object->Bucket->Animated &&
-					view.TransparentObjectsToDraw[i].Skinned == object->Skinned &&
-					view.TransparentObjectsToDraw[i].BlendMode == object->BlendMode &&
-					_sortedPolygonsIndices.size() + (view.TransparentObjectsToDraw[i].Polygon->Shape == 0 ? 6 : 3) < MAX_TRANSPARENT_VERTICES)
-				{
-					auto* currentObject = &view.TransparentObjectsToDraw[i];
-					_sortedPolygonsIndices.bulk_push_back(
-						_moveablesIndices.data(),
-						currentObject->Polygon->BaseIndex,
-						currentObject->Polygon->Shape == 0 ? 6 : 3);
-					i++;
-				}
-
-				DrawItemSorted(object, lastObjectType, view);
-
-				if (i == view.TransparentObjectsToDraw.size())
-					return;
-
-				i--;
-			}
-			else if (object->ObjectType == RendererObjectType::HairPrimary ||
-					 object->ObjectType == RendererObjectType::HairSecondary)
-			{
-				while (i < view.TransparentObjectsToDraw.size() &&
-					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
-					view.TransparentObjectsToDraw[i].Item->ItemNumber == object->Item->ItemNumber &&
-					view.TransparentObjectsToDraw[i].Bucket->Texture == object->Bucket->Texture &&
-					view.TransparentObjectsToDraw[i].Bucket->Animated == object->Bucket->Animated &&
-					view.TransparentObjectsToDraw[i].Skinned == object->Skinned &&
-					view.TransparentObjectsToDraw[i].BlendMode == object->BlendMode &&
-					_sortedPolygonsIndices.size() + (view.TransparentObjectsToDraw[i].Polygon->Shape == 0 ? 6 : 3) < MAX_TRANSPARENT_VERTICES)
-				{
-					auto* currentObject = &view.TransparentObjectsToDraw[i];
-					_sortedPolygonsIndices.bulk_push_back(
-						_moveablesIndices.data(),
-						currentObject->Polygon->BaseIndex,
-						currentObject->Polygon->Shape == 0 ? 6 : 3);
-					i++;
-				}
-
-				DrawHairSorted(object, lastObjectType, view, object->ObjectType == RendererObjectType::HairPrimary ? 0 : 1);
-
-				if (i == view.TransparentObjectsToDraw.size())
-					return;
-
-				i--;
-			}
-			else if (object->ObjectType == RendererObjectType::Static)
-			{
-				while (i < view.TransparentObjectsToDraw.size() &&
-					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
-					view.TransparentObjectsToDraw[i].Static->RoomNumber == object->Static->RoomNumber &&
-					view.TransparentObjectsToDraw[i].Static->IndexInRoom == object->Static->IndexInRoom &&
-					view.TransparentObjectsToDraw[i].Bucket->Texture == object->Bucket->Texture &&
-					view.TransparentObjectsToDraw[i].Bucket->Animated == object->Bucket->Animated &&
-					view.TransparentObjectsToDraw[i].BlendMode == object->BlendMode &&
-					_sortedPolygonsIndices.size() + (view.TransparentObjectsToDraw[i].Polygon->Shape == 0 ? 6 : 3) < MAX_TRANSPARENT_VERTICES)
-				{
-					auto* currentObject = &view.TransparentObjectsToDraw[i];
-					_sortedPolygonsIndices.bulk_push_back(
-						_staticsIndices.data(),
-						currentObject->Polygon->BaseIndex,
-						currentObject->Polygon->Shape == 0 ? 6 : 3);
-					i++;
-				}
-
-				DrawStaticSorted(object, lastObjectType, view);
-
-				if (i == view.TransparentObjectsToDraw.size())
-					return;
-
-				i--;
-			}
-			else if (object->ObjectType == RendererObjectType::MoveableAsStatic)
-			{
-				while (i < view.TransparentObjectsToDraw.size() &&
-					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
-					view.TransparentObjectsToDraw[i].Room->RoomNumber == object->Room->RoomNumber &&
-					view.TransparentObjectsToDraw[i].Bucket->Texture == object->Bucket->Texture &&
-					view.TransparentObjectsToDraw[i].Bucket->Animated == object->Bucket->Animated &&
-					view.TransparentObjectsToDraw[i].BlendMode == object->BlendMode &&
-					_sortedPolygonsIndices.size() + (view.TransparentObjectsToDraw[i].Polygon->Shape == 0 ? 6 : 3) < MAX_TRANSPARENT_VERTICES)
-				{
-					auto* currentObject = &view.TransparentObjectsToDraw[i];
-					_sortedPolygonsIndices.bulk_push_back(
-						_staticsIndices.data(),
-						currentObject->Polygon->BaseIndex,
-						currentObject->Polygon->Shape == 0 ? 6 : 3);
-					i++;
-				}
-
-				DrawMoveableAsStaticSorted(object, lastObjectType, view);
-
-				if (i == view.TransparentObjectsToDraw.size())
-					return;
-
-				i--;
-			}
-			else if (object->ObjectType == RendererObjectType::Sprite)
-			{			
-				while (i < view.TransparentObjectsToDraw.size() &&
-					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
-					view.TransparentObjectsToDraw[i].Sprite->Type == object->Sprite->Type &&
-					view.TransparentObjectsToDraw[i].Sprite->SoftParticle == object->Sprite->SoftParticle &&
-					view.TransparentObjectsToDraw[i].Sprite->Sprite == object->Sprite->Sprite &&
-					view.TransparentObjectsToDraw[i].Sprite->Sprite->Texture == object->Sprite->Sprite->Texture &&
-					view.TransparentObjectsToDraw[i].Sprite->BlendMode == object->Sprite->BlendMode &&
-					_sortedPolygonsVertices.size() + 6 < MAX_TRANSPARENT_VERTICES)
-				{
-					RendererSortableObject* currentObject = &view.TransparentObjectsToDraw[i];
-					RendererSpriteToDraw* spr = currentObject->Sprite;
-
-					Vector3 p0t;
-					Vector3 p1t;
-					Vector3 p2t;
-					Vector3 p3t;
-
-					Vector2 uv0;
-					Vector2 uv1;
-					Vector2 uv2;
-					Vector2 uv3;
-
-					if (spr->Type == SpriteType::ThreeD)
-					{
-						p0t = spr->vtx1;
-						p1t = spr->vtx2;
-						p2t = spr->vtx3;
-						p3t = spr->vtx4;
-
-
-					}
-					else
-					{
-						p0t = Vector3(-0.5, 0.5, 0);
-						p1t = Vector3(0.5, 0.5, 0);
-						p2t = Vector3(0.5, -0.5, 0);
-						p3t = Vector3(-0.5, -0.5, 0);
-					}
-
-					uv0 = spr->Sprite->UV[0];
-					uv1 = spr->Sprite->UV[1];
-					uv2 = spr->Sprite->UV[2];
-					uv3 = spr->Sprite->UV[3];
-
-					auto world = GetWorldMatrixForSprite(*currentObject->Sprite, view);
-					
-					Vertex v0;
-					v0.Position = Vector3::Transform(p0t, world);
-					v0.UV = uv0;
-					v0.Color = VectorColorToRGBA(spr->c1);
-					v0.Effects = 0 << INDEX_IN_POLY_VERTEX_SHIFT;
-
-					Vertex v1;
-					v1.Position = Vector3::Transform(p1t, world);
-					v1.UV = uv1;
-					v1.Color = VectorColorToRGBA(spr->c2);
-					v1.Effects = 1 << INDEX_IN_POLY_VERTEX_SHIFT;
-
-					Vertex v2;
-					v2.Position = Vector3::Transform(p2t, world);
-					v2.UV = uv2;
-					v2.Color = VectorColorToRGBA(spr->c3);
-					v2.Effects = 2 << INDEX_IN_POLY_VERTEX_SHIFT;
-				    
-					Vertex v3;
-					v3.Position = Vector3::Transform(p3t, world);
-					v3.UV = uv3;
-					v3.Color = VectorColorToRGBA(spr->c4);
-					v3.Effects = 3 << INDEX_IN_POLY_VERTEX_SHIFT;
-
-					_sortedPolygonsVertices.push_back(v0);
-					_sortedPolygonsVertices.push_back(v1);
-					_sortedPolygonsVertices.push_back(v3);
-					_sortedPolygonsVertices.push_back(v2);
-					_sortedPolygonsVertices.push_back(v3);
-					_sortedPolygonsVertices.push_back(v1);
-
-					i++;
-				}
-
-				DrawSpriteSorted(object, lastObjectType, view);
-
-				if (i == view.TransparentObjectsToDraw.size())
-				{
-					return;
-				}
-
-				i--;
-			}
-		}
-	}
-
-	void Renderer::DrawRoomSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
-	{
-		if (lastObjectType != objectInfo->ObjectType)
-		{
-			_graphicsDevice->BindVertexBuffer(_roomsVertexBuffer.get());
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-
-			SetDepthState(DepthState::Read);
-			SetCullMode(CullMode::CounterClockwise);
-
-			_shaders.Bind(Shader::Rooms);
-		}
-		
-		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
-		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
-
-		RoomData* nativeRoom = &g_Level.Rooms[objectInfo->Room->RoomNumber];
-
-		_stRoom.Caustics =  int(g_Configuration.EnableCaustics && (nativeRoom->flags & ENV_FLAG_WATER) && !(nativeRoom->flags & ENV_FLAG_NOCAUSTICS));
-		_stRoom.AmbientColor = Vector3(objectInfo->Room->AmbientLight.x, objectInfo->Room->AmbientLight.y, objectInfo->Room->AmbientLight.z);
-		BindRoomLights(view.LightsToDraw);
-		_stRoom.NumRoomDecals = 0; // Don't draw decals on sorted faces to avoid slowdowns.
-		_stRoom.Water = (nativeRoom->flags & ENV_FLAG_WATER) != 0 ? 1 : 0;
-		UpdateConstantBuffer(&_stRoom, _cbRoom.get());
-
-		SetScissor(objectInfo->Room->ClipBounds);
-
-		SetBlendMode(objectInfo->BlendMode);
-		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
-
-		BindBucketTextures(*objectInfo->Bucket, TextureSource::Rooms, objectInfo->Bucket->Animated);
-		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
-
-		DrawIndexedTriangles((int)_sortedPolygonsIndices.size(), 0, 0);
-
-		_numSortedRoomsDrawCalls++;
-		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
-
-		ResetScissor();
-	}
-
-	void Renderer::DrawItemSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
-	{
-		if (lastObjectType != objectInfo->ObjectType)
-		{
-			_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-
-			SetDepthState(DepthState::Read);
-			SetCullMode(CullMode::CounterClockwise);
-
-			_shaders.Bind(Shader::Items);
-		}
-		
-		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
-		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
-
-		// Bind main item properties.
-		Matrix world = objectInfo->Item->InterpolatedWorld;
-		_stObjects.Objects[0].World = world;
-		_stObjects.Objects[0].Color = objectInfo->Item->Color;
-		_stObjects.Objects[0].AmbientLight = objectInfo->Item->AmbientLight;
-		_stObjects.Skinned = (int)(objectInfo->Skinned ? SkinningMode::Full : SkinningMode::None);
-
-		const auto& moveableObj = *_moveableObjects[objectInfo->Item->ObjectID];
-
-		if (objectInfo->Skinned)
-		{
-			for (int m = 0; m < moveableObj.BindPoseTransforms.size(); m++)
-				_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * objectInfo->Item->InterpolatedAnimationTransforms[m];
-		}
-		else
-		{
-			memcpy(_stObjects.Bones, objectInfo->Item->InterpolatedAnimationTransforms, sizeof(Matrix) * BONE_COUNT_MAX);
-		}
-		
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-
-		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
-			_stObjects.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
-
-		bool acceptsShadows = moveableObj.ShadowType == ShadowMode::None;
-		BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-
-		SetBlendMode(objectInfo->BlendMode);
-		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
-
-		BindBucketTextures(*objectInfo->Bucket, TextureSource::Moveables, objectInfo->Bucket->Animated);
-		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
-
-		DrawIndexedTriangles((int)_sortedPolygonsIndices.size(), 0, 0);
-
-		_numSortedMoveablesDrawCalls++;
-		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
-	}
-
-	void Renderer::DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
-	{
-		_stObjects.Skinned = (int)SkinningMode::Static;
-
-		if (lastObjectType != objectInfo->ObjectType)
-		{
-			_graphicsDevice->BindVertexBuffer(_staticsVertexBuffer.get());
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-
-			SetDepthState(DepthState::Read);
-			SetCullMode(CullMode::CounterClockwise);
-
-			_shaders.Bind(Shader::InstancedStatics);
-		}
-		
-		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
-		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
-
-		auto world = objectInfo->Static->World;
-		_stObjects.Objects[0].World = world;
-
-		_stObjects.Objects[0].Color = objectInfo->Static->Color;
-		_stObjects.Objects[0].AmbientLight = objectInfo->Room->AmbientLight;
-		_stObjects.Objects[0].LightMode = (int)GetStaticRendererObject(objectInfo->Static->ObjectNumber).ObjectMeshes[0]->LightMode;
-		BindInstancedStaticLights(objectInfo->Static->LightsToDraw, 0);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-
-		SetBlendMode(objectInfo->BlendMode);
-		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
-
-		BindBucketTextures(*objectInfo->Bucket, TextureSource::Statics, objectInfo->Bucket->Animated);
-		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
-
-		DrawIndexedInstancedTriangles((int)_sortedPolygonsIndices.size(), 1, 0, 0);
-
-		_numSortedStaticsDrawCalls++;
-		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
-	}
-
-	void Renderer::DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
-	{
-		_stObjects.Skinned = (int)SkinningMode::Static;
-
-		if (lastObjectType != objectInfo->ObjectType)
-		{
-			_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-
-			SetDepthState(DepthState::Read);
-			SetCullMode(CullMode::CounterClockwise);
-
-			_shaders.Bind(Shader::InstancedStatics);
-		}
-
-		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
-		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
-
-		auto world = objectInfo->World;
-		_stObjects.Objects[0].World = world;
-
-		_stObjects.Objects[0].Color = NEUTRAL_COLOR;
-		_stObjects.Objects[0].AmbientLight = objectInfo->Room->AmbientLight;
-		_stObjects.Objects[0].LightMode = (int)objectInfo->LightMode;
-		BindInstancedStaticLights(objectInfo->Room->LightsToDraw, 0);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-
-		SetBlendMode(objectInfo->BlendMode);
-		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
-
-		BindBucketTextures(*objectInfo->Bucket, TextureSource::Statics, objectInfo->Bucket->Animated);
-		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
-
-		DrawIndexedInstancedTriangles((int)_sortedPolygonsIndices.size(), 1, 0, 0);
-
-		_numSortedStaticsDrawCalls++;
-		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
-	}
-
-	void Renderer::DrawHairSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int index)
-	{
-		if (index >= HairEffect.Units.size())
-		{
-			TENLog("Attempt to draw nonexistent hair unit", LogLevel::Warning);
-			return;
-		}
-
-		if (lastObjectType != objectInfo->ObjectType)
-		{
-			_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-
-			SetDepthState(DepthState::Read);
-			SetCullMode(CullMode::CounterClockwise);
-
-			_shaders.Bind(Shader::Items);
-		}
-
-		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
-		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
-
-		// Bind main item properties.
-		Matrix world = objectInfo->Item->InterpolatedWorld;
-		_stObjects.Objects[0].World = world;
-		_stObjects.Objects[0].Color = objectInfo->Item->Color;
-		_stObjects.Objects[0].AmbientLight = objectInfo->Item->AmbientLight;
-		_stObjects.Skinned = (int)(objectInfo->Skinned ? SkinningMode::Full : SkinningMode::None);
-
-		const auto& moveableObj = *_moveableObjects[(int)GAME_OBJECT_ID::ID_HAIR_PRIMARY + index];
-
-		_stObjects.Objects[0].World = Matrix::Identity;
-		_stObjects.Bones[0] = objectInfo->Item->InterpolatedAnimationTransforms[HairUnit::GetRootMeshID(index)] * objectInfo->Item->InterpolatedWorld;
-		ReflectMatrixOptionally(_stObjects.Bones[0]);
-
-		bool forceValue = g_GameFlow->CurrentFreezeMode == FreezeMode::Player;
-
-		for (int i = 0; i < HairEffect.Units[index].Segments.size(); i++)
-		{
-			const auto& segment = HairEffect.Units[index].Segments[i];
-			auto worldMatrix = segment.GlobalTransform;
-
-			ReflectMatrixOptionally(worldMatrix);
-
-			_stObjects.Bones[i + 1] = worldMatrix;
-			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
-		}
-
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-
-		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
-			_stObjects.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
-
-		bool acceptsShadows = moveableObj.ShadowType == ShadowMode::None;
-		BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-
-		SetBlendMode(objectInfo->BlendMode);
-		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
-
-		BindBucketTextures(*objectInfo->Bucket, TextureSource::Moveables, objectInfo->Bucket->Animated);
-		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
-
-		DrawIndexedTriangles((int)_sortedPolygonsIndices.size(), 0, 0);
-
-		_numSortedMoveablesDrawCalls++;
-		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
 	}
 
 	void Renderer::CalculateSSAO(RenderView& view)
@@ -4235,10 +3899,9 @@ namespace TEN::Renderer
 		// SSAO pixel shader.
 		_shaders.Bind(Shader::Ssao);
 
-		_graphicsDevice->ClearRenderTarget2D(_SSAORenderTarget->GetRenderTarget(), Colors::White);
 		_graphicsDevice->BindRenderTarget(_SSAORenderTarget->GetRenderTarget(), nullptr);
 
-		// Must set correctly viewport because SSAO is done at 1/4 screen resolution.
+        // Both passes cover every pixel at full resolution.
 		RendererViewport viewport = { 0, 0, _graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(), 0.0f, 1.0f };
 		_graphicsDevice->SetViewport(viewport);
 		_graphicsDevice->SetScissor(viewport);
@@ -4262,7 +3925,6 @@ namespace TEN::Renderer
 		// Blur step.
 		_shaders.Bind(Shader::SsaoBlur);
 
-		_graphicsDevice->ClearRenderTarget2D(_SSAOBlurredRenderTarget->GetRenderTarget(), Colors::Black);
 		_graphicsDevice->BindRenderTarget(_SSAOBlurredRenderTarget->GetRenderTarget(), nullptr);
 
 		BindRenderTargetAsTexture(TextureRegister::SSAO, _SSAORenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
@@ -4361,7 +4023,7 @@ namespace TEN::Renderer
 			frameCount = std::min<int>(set.NumTextures, (int)_animatedFrames.size());
 		}
 
-		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+        InvalidatePerDrawBuffer();
 		_graphicsDevice->UpdateStructuredBuffer(_animatedFramesBuffer.get(), _animatedFrames.data(), frameCount);
 	}
 

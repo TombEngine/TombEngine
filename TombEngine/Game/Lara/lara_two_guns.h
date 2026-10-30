@@ -1,6 +1,6 @@
 #pragma once
 
-enum class LaraWeaponType;
+enum class LaraWeaponType : int;
 struct ItemInfo;
 
 void HandlePistols(ItemInfo& laraItem, LaraWeaponType weaponType);

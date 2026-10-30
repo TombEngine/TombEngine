@@ -58,9 +58,9 @@ void ObeliskControl(short itemNumber)
 
 		item->ItemFlags[3]++;
 
-		byte r = (GetRandomControl() & 0x1F) + 224;
-		byte g = r - (GetRandomControl() & 0x1F) - 32;
-		byte b = g - (GetRandomControl() & 0x1F) - 128;
+		unsigned char r = (GetRandomControl() & 0x1F) + 224;
+		unsigned char g = r - (GetRandomControl() & 0x1F) - 32;
+		unsigned char b = g - (GetRandomControl() & 0x1F) - 128;
 
 		if (!(GlobalCounter & 1))
 		{
@@ -109,7 +109,8 @@ void ObeliskControl(short itemNumber)
 			pos.y = item->Pose.Position.y;
 			pos.z = item->Pose.Position.z + BLOCK(8) * phd_cos(item->Pose.Orientation.y + ANGLE(90.0f));
 
-			SoundEffect(SFX_TR4_ELECTRIC_ARCING_LOOP, &Pose(Vector3i(pos)));
+			auto obeliskPose = Pose(Vector3i(pos));
+			SoundEffect(SFX_TR4_ELECTRIC_ARCING_LOOP, &obeliskPose);
 
 			if (GlobalCounter & 1)
 			{

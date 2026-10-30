@@ -145,7 +145,7 @@ namespace TEN::Entities::TR4
 			if (item->AIBits)
 				GetAITarget(creature);
 			else
-				TargetNearestEntity(*item, FriendlyCreatures);
+				TargetNearestEntity(*item, GetFriendlyCreatureIDs(*item));
 
 			AI_INFO AI;
 			CreatureAIInfo(item, &AI);

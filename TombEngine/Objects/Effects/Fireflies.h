@@ -50,9 +50,9 @@ namespace TEN::Effects::Fireflies
 		int PrevX;
 		int PrevY;
 		int PrevZ;
-		byte PrevR;
-		byte PrevG;
-		byte PrevB;
+		unsigned char PrevR;
+		unsigned char PrevG;
+		unsigned char PrevB;
 
 		void StoreInterpolationData()
 		{

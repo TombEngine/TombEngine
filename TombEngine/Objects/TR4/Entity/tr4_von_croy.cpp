@@ -363,8 +363,6 @@ namespace TEN::Entities::TR4
 		short rot = 0;
 		bool flags;
 
-		TENLog("State:" + std::to_string(item->Animation.ActiveState), LogLevel::Info);
-
 		switch (item->Animation.ActiveState)
 		{
 		case VON_CROY_STATE_IDLE:

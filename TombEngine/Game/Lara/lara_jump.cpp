@@ -405,7 +405,7 @@ void lara_as_jump_back(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Left) || IsHeld(In::Right))
+	if (g_GameFlow->GetSettings()->Animations.BackJumpTurn && (IsHeld(In::Left) || IsHeld(In::Right)))
 		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_JUMP_TURN_RATE_MAX);
 
 	if (CanLand(*item, *coll))

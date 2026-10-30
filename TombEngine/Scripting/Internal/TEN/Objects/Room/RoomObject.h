@@ -5,7 +5,7 @@
 
 namespace sol { class state; }
 
-enum class ReverbType;
+enum class ReverbType : int;
 class Vec3;
 namespace TEN::Scripting::Types { class ScriptColor; }
 

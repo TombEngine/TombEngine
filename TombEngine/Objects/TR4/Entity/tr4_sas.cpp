@@ -580,7 +580,7 @@ namespace TEN::Entities::TR4
 				item.Animation.TargetState = 2;
 				AnimateItem(item);
 			}
-			else if (!(byte)GetRandomControl())
+			else if (!(unsigned char)GetRandomControl())
 			{
 				item.Animation.TargetState = 3;
 			}

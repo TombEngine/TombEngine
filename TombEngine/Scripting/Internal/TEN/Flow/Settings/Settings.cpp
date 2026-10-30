@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Scripting/Internal/TEN/Flow/Settings/Settings.h"
 
-#include "Game/effects/Hair.h"
+#include "Game/effects/hair.h"
 #include "Scripting/Internal/TEN/Objects/Lara/WeaponTypes.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/ScriptUtil.h"
@@ -96,6 +96,10 @@ namespace TEN::Scripting
 			sol::call_constructor, sol::constructors<AnimSettings()>(),
 			sol::meta_function::new_index, NewIndexErrorMaker(AnimSettings, ScriptReserved_AnimSettings),
 
+		/// Turning while jumping back.
+		// @tfield[opt=false] bool backJumpTurn When enabled, player will be able to turn while performing back jump.
+		"backJumpTurn", &AnimSettings::BackJumpTurn,
+
 		/// Extended crawl moveset.
 		// @tfield[opt=true] bool crawlExtended When enabled, player will be able to traverse across one-click steps in crawlspaces.
 		"crawlExtended", &AnimSettings::CrawlExtended,
@@ -124,9 +128,9 @@ namespace TEN::Scripting
 		// @tfield[opt=false] bool ledgeJumps If this setting is enabled, player will be able to jump upwards while hanging on the ledge.
 		"ledgeJumps", &AnimSettings::LedgeJumps,
 
-		/// Blend duration for internal system animation changes.
-		// @tfield[opt=4] int systemBlendDuration Default blend duration in frames for internal system player animation transitions, such as death or fall animations.
-		"systemBlendDuration", &AnimSettings::SystemBlendDuration,
+		/// Animation blending duration for internal hardcoded animation changes.
+		// @tfield[opt=4] int internalBlendDuration Default blend duration in frames for internal hardcoded player animation transitions, such as death, slide or fall animations.
+		"internalBlendDuration", &AnimSettings::InternalBlendDuration,
 
 		/// Pose timeout.
 		// @tfield[opt=20] int poseTimeout If this setting is larger than 0, idle standing pose animation will be performed after given timeout (in seconds).
@@ -254,6 +258,14 @@ namespace TEN::Scripting
 		// or to replace it with custom module, such as ring inventory.
 		// @tfield[opt=true] bool enableInventory If false, inventory will not open.
 		"enableInventory", &GameplaySettings::EnableInventory,
+
+		/// Set enemies on fire with weapons.
+		// @tfield[opt=true] bool setEnemiesOnFireWithWeapons If true, enemy creatures will catch fire from explosive weapons.
+		"setEnemiesOnFireWithWeapons", &GameplaySettings::SetEnemiesOnFireWithWeapons,
+
+		/// Set enemies on fire with death sector flag.
+		// @tfield[opt=true] bool setEnemiesOnFireWithDeathFlag If true, enemy creatures will catch fire when stepping on a sector with death flag set.
+		"setEnemiesOnFireWithDeathFlag", &GameplaySettings::SetEnemiesOnFireWithDeathFlag,
 
 		/// Kill enemies which were poisoned by a crossbow poisoned ammo or by any other means. If disabled, enemy hit points will
 		// reach minimum but will never go to zero. This behaviour replicates original TR4 behaviour.
@@ -568,12 +580,23 @@ namespace TEN::Scripting
 		// @tfield[opt=true] bool multithreaded Determines whether to use multithreading or not.
 		"multithreaded", &SystemSettings::Multithreaded,
 
-		/// Can the game utilize the fast reload feature? <br>
+		/// Toggle fast savegame reload. <br>
 		// When set to `true`, the game will attempt to perform fast savegame reloading if current level is the same as
 		// the level loaded from the savegame. It will not work if the level timestamp or checksum has changed
 		// (i.e. level was updated). If set to `false`, this functionality is turned off.
 		// @tfield[opt=true] bool fastReload Toggles fast reload on or off.
-		"fastReload", &SystemSettings::FastReload);
+		"fastReload", &SystemSettings::FastReload,
+
+		/// Maximum number of variables in scripts created within 1 second. <br>
+		// Set to `0` to disable the per-second limit.
+		// @tfield[opt=1000] int variableFloodProtectionTimeLimit Maximum variable creations allowed per second.
+		"variableFloodProtectionTimeLimit", &SystemSettings::VariableFloodProtectionTimeLimit,
+
+		/// Maximum combined number of variables allowed in `GlobalVars`, `GameVars`, and `LevelVars`.
+		// This type of variable flood protection will only trigger in debug mode for performance reasons. <br>
+		// Set to `0` to disable the overall limit.
+		// @tfield[opt=5000] int variableFloodProtectionOverallLimit Maximum total variable count allowed.
+		"variableFloodProtectionOverallLimit", &SystemSettings::VariableFloodProtectionOverallLimit);
 	}
 
 	/// UI

@@ -4,7 +4,7 @@
 #include "Game/control/box.h"
 #include "Game/items.h"
 #include "Game/Animation/Animation.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Game/Hud/DrawItems/DrawItems.h"
 #include "Game/Hud/Hud.h"
 #include "Game/Hud/PickupSummary.h"
@@ -49,6 +49,7 @@
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Renderer/Structures/RendererRoomAmbientMap.h"
 #include "Renderer/Structures/RendererObject.h"
+#include "Renderer/Structures/RendererSortedBatch.h"
 #include "Renderer/Structures/RendererStar.h"
 #include "Specific/level.h"
 #include "Specific/Structures/fast_vector.h"
@@ -140,12 +141,15 @@ namespace TEN::Renderer
 		std::unique_ptr<IConstantBuffer> _cbInstancedSpriteBuffer;
 		CPerDrawBuffer _stPerDraw;
 		std::unique_ptr<IConstantBuffer> _cbPerDraw;
+		bool _perDrawBufferDirty = true;
 		CSMAABuffer _stSMAABuffer;
 		std::unique_ptr<IConstantBuffer> _cbSMAABuffer;
 		CSkyBuffer _stSky;
 		std::unique_ptr<IConstantBuffer> _cbSky;
 
 		// Primitive batches
+
+		bool _primitiveBatchActive = false;
 
 		RendererViewport _viewport;
 		RendererViewport _distortionViewport;
@@ -263,6 +267,8 @@ namespace TEN::Renderer
 		int _numGetVisibleRoomsCalls = 0;
 
 		int _numConstantBufferUpdates = 0;
+		unsigned long long _numConstantBufferBytes = 0;
+		int _numPerDrawUpdates = 0;
 
 		int _numExecutedMaterialsUpdates = 0;
 		int _numRequestedMaterialsUpdates = 0;
@@ -295,6 +301,10 @@ namespace TEN::Renderer
 		DepthState _lastDepthState;
 		CullMode _lastCullMode;
 		int _lastMaterialIndex;
+		int _lastSortedRoomNumber = NO_VALUE;
+		RendererObjectType _lastSortedObjectType = RendererObjectType::Unknown;
+		const void* _lastSortedObject = nullptr;
+		bool _lastSortedSkinned = false;
 
 		std::vector<RendererSpriteBucket> _spriteBuckets;
 
@@ -328,6 +338,9 @@ namespace TEN::Renderer
 
 		fast_vector<Vertex> _sortedPolygonsVertices;
 		fast_vector<int> _sortedPolygonsIndices;
+
+		std::vector<RendererSortedBatch> _sortedPolygonsBatches;
+		std::vector<RendererSortKey> _sortKeysScratch;
 		std::unique_ptr<IVertexBuffer> _sortedPolygonsVertexBuffer;
 		std::unique_ptr<IIndexBuffer> _sortedPolygonsIndexBuffer;
 
@@ -373,7 +386,6 @@ namespace TEN::Renderer
 		void CollectLightsForCamera();
 		void CalculateLightFades(RendererItem* item);
 		void CollectDecalsForRoom(short roomNumber, RenderView& renderView);
-		void CollectEffects(short roomNumber);
 		void ClearShadowMap();
 		void CalculateSSAO(RenderView& view);
 		void UpdateItemAnimations(RenderView& view);
@@ -391,6 +403,9 @@ namespace TEN::Renderer
 		void DrawRooms(RenderView& view, RendererPass rendererPass);
 		void DrawItems(RenderView& view, RendererPass rendererPass, bool onlyPlayer = false);
 		void DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass);
+		void DrawEffects(RenderView& view, RendererPass rendererPass);
+		void DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass);
+		void CollectEffect(int itemNumber, RendererRoom& room);
 		void DrawWaterfalls(RendererItem* item, RenderView& view, float speed, RendererPass rendererPass);
 		void DrawBaddyGunflashes(RenderView& view);
 		void DrawStatics(RenderView& view, RendererPass rendererPass);
@@ -407,20 +422,19 @@ namespace TEN::Renderer
 		void PrepareBubbles(RenderView& view);
 		void DoRenderPass(RendererPass pass, RenderView& view, bool drawMirrors);
 		void DrawObjects(RendererPass pass, RenderView& view, bool player, bool moveables, bool statics, bool sprites);
-		void DrawEffects(RenderView& view, RendererPass rendererPass);
-		void DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass);
 		void PrepareSplashes(RenderView& view);
 		void DrawSprites(RenderView& view, RendererPass rendererPass);
 		void DrawDisplaySprites(RenderView& view, bool negativePriority);
 		void DrawDisplayItems();
 		void DrawSortedFaces(RenderView& view);
 		void DrawSingleSprite(RendererSortableObject* object, RendererObjectType lastObjectType, RenderView& view);
-		void DrawRoomSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawItemSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawSpriteSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawHairSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int index);
+		void DrawRoomSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
+		void DrawItemSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
+		void DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
+		void DrawSpriteSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseVertex, int count);
+		void DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
+		void DrawEffectSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
+		void DrawHairSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int index, int baseIndex, int count);
 		void DrawLines2D();
 		void DrawLines3D(RenderView& view);
 		void DrawTriangles3D(RenderView& view);
@@ -453,6 +467,8 @@ namespace TEN::Renderer
 		void DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass);
 		void DrawMesh(RendererItem* itemToDraw, RendererMesh* mesh, RendererObjectType type, int boneIndex, bool skinned, RenderView& view, RendererPass rendererPass);
 		void PrepareSimpleParticles(RenderView& view);
+		void PrepareParticleGroups(RenderView& view);
+		void DrawParticleGroupMeshes(RenderView& view, RendererPass rendererPass);
 		void PrepareStreamers(RenderView& view);
 		void PrepareFootprints(RenderView& view);
 		void DrawLoadingBar(float percent);
@@ -473,8 +489,17 @@ namespace TEN::Renderer
 		void SetAlphaTest(AlphaTestMode mode, float threshold, bool force = false);
 		void SetScissor(RendererRectangle rectangle);
 		bool SetupBlendModeAndAlphaTest(BlendMode blendMode, RendererPass rendererPass, int drawPass);
+        void InvalidatePerDrawBuffer();
+        void FlushPerDrawBuffer();
+        void BeginPrimitiveBatch();
+        void EndPrimitiveBatch();
+        static bool IsBlendModeSupported(BlendMode blendMode, RendererPass rendererPass);
+        static bool HasMeshForPass(const RendererMesh& mesh, RendererPass rendererPass, float alpha = 1.0f);
+        bool HasItemForPass(RendererItem& item, RendererObject& object, RendererPass rendererPass);
 		void SortAndPrepareSprites(RenderView& view);
 		void SortTransparentFaces(RenderView& view);
+		void CollectSortedBucket(RenderView& view, const RendererSortableObject& object, const Matrix* world, const Vector3& cameraPosition);
+		void CollectSortedSprite(RenderView& view, const RendererSortableObject& object, int distance);
 		void ResetItems();
 		void ResetScissor();
 		void ResetDebugVariables();
@@ -553,6 +578,7 @@ namespace TEN::Renderer
 
 		inline void DrawIndexedTriangles(int count, int baseIndex, int baseVertex)
 		{
+            FlushPerDrawBuffer();
 			_graphicsDevice->DrawIndexedTriangles(count, baseIndex, baseVertex);
 			_numTriangles += count / 3;
 			_numDrawCalls++;
@@ -560,6 +586,7 @@ namespace TEN::Renderer
 
 		inline void DrawIndexedInstancedTriangles(int count, int instances, int baseIndex, int baseVertex)
 		{
+            FlushPerDrawBuffer();
 			_graphicsDevice->DrawIndexedInstancedTriangles(count, instances, baseIndex, baseVertex);
 			_numTriangles += (count / 3 * instances) * (count % 4 == 0 ? 2 : 1);
 			_numDrawCalls++;
@@ -567,6 +594,7 @@ namespace TEN::Renderer
 
 		inline void DrawInstancedTriangles(int count, int instances, int baseVertex)
 		{
+            FlushPerDrawBuffer();
 			_graphicsDevice->DrawInstancedTriangles(count, instances, baseVertex);
 			_numTriangles += (count / 3 * instances) * (count % 4 == 0 ? 2 : 1);
 			_numDrawCalls++;
@@ -574,15 +602,18 @@ namespace TEN::Renderer
 
 		inline void DrawTriangles(int count, int baseVertex)
 		{
+            FlushPerDrawBuffer();
 			_graphicsDevice->DrawTriangles(count, baseVertex);
 			_numTriangles += count / 3;
 			_numDrawCalls++;
 		}
 
-		inline void UpdateConstantBuffer(void* data, IConstantBuffer* cb) noexcept
+        template <typename CBuff>
+        inline void UpdateConstantBuffer(CBuff* data, IConstantBuffer* cb, int size = 0) noexcept
 		{
-			_graphicsDevice->UpdateConstantBuffer(cb, data);
+			_graphicsDevice->UpdateConstantBuffer(cb, data, size);
 			_numConstantBufferUpdates++;
+            _numConstantBufferBytes += (size > 0 && size < (int)sizeof(CBuff)) ? size : (int)sizeof(CBuff);
 		}
 
 		template <typename CBuff>
@@ -621,7 +652,7 @@ namespace TEN::Renderer
 			if (_stPerDraw.Animated == 0)
 				return;
 			_stPerDraw.Animated = 0;
-			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+            InvalidatePerDrawBuffer();
 		}
 
 		static inline bool IsWaterfall(short objectNumber)
@@ -697,7 +728,6 @@ namespace TEN::Renderer
 		void RenderScene(IRenderSurface2D* renderTarget, RenderView& view, SceneRenderMode renderMode = SceneRenderMode::Full);
 		void PrepareScene();
 		void ClearScene();
-		void SaveScreenshot();
 		void DrawDisplayPickup(const DisplayPickup& pickup);
 		int  Synchronize();
 		void AddString(int x, int y, const std::string& string, unsigned int color, int flags);
@@ -718,7 +748,7 @@ namespace TEN::Renderer
 		void UpdatePlayerSkinVertices(GAME_OBJECT_ID skinID, GAME_OBJECT_ID skinJointsID, GAME_OBJECT_ID hairPrimaryID, GAME_OBJECT_ID hairSecondaryID);
 		void ToggleFullScreen(bool force = false);
 		void SetFullScreen();
-		bool IsFullsScreen();
+		bool IsFullScreen();
 		void RenderTitleImage();
 
 		void AddLine2D(const Vector2& origin, const Vector2& target, const Color& color, RendererDebugPage page = RendererDebugPage::None);
@@ -754,6 +784,7 @@ namespace TEN::Renderer
 		void SetLoadingScreen(const std::string& fileName);
 		std::unique_ptr<ITexture2D> SetTextureOrDefault(std::string path);
 		std::string GetDefaultAdapterName();
+		std::string SaveScreenshot();
 		const AdapterInfo& GetAdapterInfo() const;
 		void SaveOldState();
 
@@ -782,6 +813,7 @@ namespace TEN::Renderer
 		void			RestoreDOF();
 
 		void SetGraphicsSettingsChanged();
+		void UpdateDumpScreenRenderTarget();
 
 		RendererDebugPage GetDebugPage() const;
 	};

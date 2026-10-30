@@ -27,6 +27,9 @@ namespace TEN::Renderer::Structures
 
 		void Update(float interpolationFactor)
 		{
+			if (Vector3i::Distance(PrevPose.Position, Pose.Position) > BIG_DISTANCE_THRESHOLD)
+				PrevPose = Pose;
+
 			auto pos = Vector3::Lerp(PrevPose.Position.ToVector3(), Pose.Position.ToVector3(), interpolationFactor);
 			auto scale = Vector3::Lerp(PrevPose.Scale, Pose.Scale, interpolationFactor);
 			

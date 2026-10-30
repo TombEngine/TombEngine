@@ -1,1 +1,2 @@
-local RingInventory = require("Engine.RingInventory.Inventory")
+require("Engine.RingInventory.Inventory")
+require("Engine.PhotoMode.PhotoMode")

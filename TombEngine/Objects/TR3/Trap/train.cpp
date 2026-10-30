@@ -8,7 +8,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Point.h"
 #include "Game/collision/floordata.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/effects/effects.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
@@ -26,7 +26,7 @@ namespace TEN::Entities::Traps
 {
 	constexpr auto TRAIN_VEL = 260;
 
-	long TrainTestHeight(ItemInfo* item, long x, long z, short* roomNumber)
+	int TrainTestHeight(ItemInfo* item, int x, int z, short* roomNumber)
 	{
 		float sinX = phd_sin(item->Pose.Orientation.x);
 		float sinY = phd_sin(item->Pose.Orientation.y);
@@ -60,7 +60,7 @@ namespace TEN::Entities::Traps
 		item.Pose.Position.z += item.ItemFlags[1] * cosY;
 
 		short roomNumber;
-		long floorHeight = TrainTestHeight(&item, 0, 0, &roomNumber);
+		int floorHeight = TrainTestHeight(&item, 0, 0, &roomNumber);
 		item.Pose.Position.y = floorHeight;
 
 		if (floorHeight == NO_HEIGHT)
@@ -149,8 +149,8 @@ namespace TEN::Entities::Traps
 		float sinY = phd_sin(item.Pose.Orientation.y);
 		float cosY = phd_cos(item.Pose.Orientation.y);
 
-		long x = playerItem->Pose.Position.x + CLICK(1) * sinY;
-		long z = playerItem->Pose.Position.z + CLICK(1) * cosY;
+		int x = playerItem->Pose.Position.x + CLICK(1) * sinY;
+		int z = playerItem->Pose.Position.z + CLICK(1) * cosY;
 
 		DoLotsOfBlood(x, playerItem->Pose.Position.y - CLICK(2), z, BLOCK(1), item.Pose.Orientation.y, playerItem->RoomNumber, 15);
 	}

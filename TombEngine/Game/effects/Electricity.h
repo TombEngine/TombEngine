@@ -23,9 +23,9 @@ namespace TEN::Effects::Electricity
 		Vector3 pos4;
 		std::array<Vector3, 3> interpolation = {};
 
-		byte r;
-		byte g;
-		byte b;
+		unsigned char r;
+		unsigned char g;
+		unsigned char b;
 
 		float life;
 		float sLife;
@@ -44,9 +44,9 @@ namespace TEN::Effects::Electricity
 		Vector3 PrevPos2 = Vector3::Zero;
 		Vector3 PrevPos3 = Vector3::Zero;
 		Vector3 PrevPos4 = Vector3::Zero;
-		byte	PrevR	 = 0;
-		byte	PrevG	 = 0;
-		byte	PrevB	 = 0;
+		unsigned char	PrevR	 = 0;
+		unsigned char	PrevG	 = 0;
+		unsigned char	PrevB	 = 0;
 		float	PrevLife = 0.0f;
 
 		void StoreInterpolationData()
@@ -107,9 +107,9 @@ namespace TEN::Effects::Electricity
 	extern std::array<Vector3, ELECTRICITY_KNOTS_SIZE>	ElectricityKnots;
 	extern std::array<Vector3, ELECTRICITY_BUFFER_SIZE> ElectricityBuffer;
 
-	void SpawnElectricity(const Vector3& origin, const Vector3& target, float amplitude, byte r, byte g, byte b, float life, int flags, float width, unsigned int numSegments);
+	void SpawnElectricity(const Vector3& origin, const Vector3& target, float amplitude, unsigned char r, unsigned char g, unsigned char b, float life, int flags, float width, unsigned int numSegments);
 	void SpawnElectricEffect(const ItemInfo& item, int jointNumber, const Vector3i& offset, const float spawnRadius, float beamOriginRadius, float beamTargetRadius, int frequency, const Vector3& pos);
-	void SpawnElectricityGlow(const Vector3& pos, float scale, byte r, byte g, byte b);
+	void SpawnElectricityGlow(const Vector3& pos, float scale, unsigned char r, unsigned char g, unsigned char b);
 	void SpawnHelicalLaser(const Vector3& origin, const Vector3& target);
 	void UpdateElectricityArcs();
 	void UpdateHelicalLasers();

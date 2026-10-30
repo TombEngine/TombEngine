@@ -18,9 +18,10 @@ namespace TEN::Collision::Point
 		Vector3i _position	= Vector3i::Zero;
 		int		 _roomNumber = 0;
 
-		FloorInfo* _sector		 = nullptr;
-		FloorInfo* _bottomSector = nullptr;
-		FloorInfo* _topSector	 = nullptr;
+		FloorInfo* _sector				  = nullptr;
+		FloorInfo* _bottomSector		  = nullptr;
+		FloorInfo* _bottomSectorNoBridges = nullptr;
+		FloorInfo* _topSector			  = nullptr;
 
 		std::optional<int>	   _floorHeight				= std::nullopt;
 		std::optional<int>	   _ceilingHeight			= std::nullopt;
@@ -45,7 +46,7 @@ namespace TEN::Collision::Point
 		int		 GetRoomNumber() const;
 
 		FloorInfo& GetSector();
-		FloorInfo& GetBottomSector();
+		FloorInfo& GetBottomSector(bool ignoreBridges = false);
 		FloorInfo& GetTopSector();
 
 		int		GetFloorHeight();

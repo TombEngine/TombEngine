@@ -150,7 +150,7 @@ namespace TEN::Entities::Traps
 				int joint = ElectricCleanerWireEndJoints[i];
 				auto pos = GetJointPosition(&item, joint, Vector3i(-160, -8, 16));
 
-				byte c = Random::GenerateInt(0, 64) + 128;
+				unsigned char c = Random::GenerateInt(0, 64) + 128;
 				SpawnDynamicLight(pos.x, pos.y, pos.z, 10, c >> 2, c >> 1, c);
 
 				auto& spark = GetFreeSparkParticle();

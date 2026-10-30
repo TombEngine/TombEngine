@@ -6,7 +6,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
 #include "Game/items.h"
@@ -206,12 +206,14 @@ namespace TEN::Entities::Traps
 		if (!HandleItemSphereCollision(item, *playerItem))
 			return;
 
-		if (item.Animation.FrameNumber <= FALLING_BLOCK_IMPACT_FRAME)
+		if (TriggerActive(&item) &&
+			item.Animation.FrameNumber > 0 &&
+			item.Animation.FrameNumber <= FALLING_BLOCK_IMPACT_FRAME)
 		{
 			item.Animation.FrameNumber += FALLING_BLOCK_NEXT_FRAME;
 
 			DoDamage(playerItem, INT_MAX);
-			SetAnimation(playerItem, LA_BOULDER_DEATH, 0, GetSystemBlendDuration());
+			SetAnimation(playerItem, LA_BOULDER_DEATH, 0, GetInternalBlendDuration());
 			playerItem->Animation.Velocity.y = 0.0f;	
 			playerItem->Animation.Velocity.z = 0.0f;	
 		}

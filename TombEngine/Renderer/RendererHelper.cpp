@@ -4,7 +4,7 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/control/control.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/items.h"
@@ -37,6 +37,84 @@ extern ScriptInterfaceFlowHandler *g_GameFlow;
 
 namespace TEN::Renderer
 {
+    void Renderer::InvalidatePerDrawBuffer()
+    {
+        _perDrawBufferDirty = true;
+        if (_primitiveBatchActive)
+            FlushPerDrawBuffer();
+    }
+
+    void Renderer::FlushPerDrawBuffer()
+    {
+        if (!_perDrawBufferDirty)
+            return;
+
+        UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+        _perDrawBufferDirty = false;
+        _numPerDrawUpdates++;
+    }
+
+    void Renderer::BeginPrimitiveBatch()
+    {
+        FlushPerDrawBuffer();
+        _primitiveBatchActive = true;
+        _primitiveBatch->Begin();
+    }
+
+    void Renderer::EndPrimitiveBatch()
+    {
+        _primitiveBatch->End();
+        _primitiveBatchActive = false;
+    }
+
+    bool Renderer::IsBlendModeSupported(BlendMode blendMode, RendererPass rendererPass)
+    {
+        switch (rendererPass)
+        {
+        case RendererPass::GBuffer:
+            return blendMode == BlendMode::Opaque || blendMode == BlendMode::AlphaTest || blendMode == BlendMode::FastAlphaBlend;
+        case RendererPass::Opaque:
+            return blendMode == BlendMode::Opaque || blendMode == BlendMode::AlphaTest;
+        case RendererPass::Additive:
+            return blendMode == BlendMode::Additive;
+        case RendererPass::Distortion:
+            return blendMode == BlendMode::Distortion;
+        default:
+            return false;
+        }
+    }
+
+    bool Renderer::HasMeshForPass(const RendererMesh& mesh, RendererPass rendererPass, float alpha)
+    {
+        if (rendererPass == RendererPass::CollectTransparentFaces || rendererPass == RendererPass::ShadowMap)
+            return true;
+
+        for (const auto& bucket : mesh.Buckets)
+        {
+            if (bucket.NumVertices > 0 && IsBlendModeSupported(GetBlendModeFromAlpha(bucket.BlendMode, alpha), rendererPass))
+                return true;
+        }
+
+        return false;
+    }
+
+    bool Renderer::HasItemForPass(RendererItem& item, RendererObject& object, RendererPass rendererPass)
+    {
+        if (GetSkinningMode(object, item.SkinIndex) == SkinningMode::Full &&
+            HasMeshForPass(*GetMesh(item.SkinIndex), rendererPass, item.Color.w))
+        {
+            return true;
+        }
+
+        for (int meshIndex : item.MeshIndex)
+        {
+            if (HasMeshForPass(*GetMesh(meshIndex), rendererPass, item.Color.w))
+                return true;
+        }
+
+        return false;
+    }
+
 	void Renderer::UpdateAnimation(RendererItem* rendererItem, RendererObject& rendererObject, const FrameData& frame, int mask, bool useObjectWorldRotation,
 								   const MoveableAnimBlendData* blend, const RootMotionData* rootMotionOffset)
 	{
@@ -104,7 +182,7 @@ namespace TEN::Renderer
 
 				auto translationMatrix = (bone == rendererObject.Skeleton) ? Matrix::CreateTranslation(rootPos) : Matrix::Identity;
 				auto extraRotMatrix = Matrix::CreateFromQuaternion(bone->ExtraRotation);
-
+				
 				if (useObjectWorldRotation)
 				{
 					auto scale = Vector3::Zero;
@@ -181,12 +259,20 @@ namespace TEN::Renderer
 
 		auto& moveableObj = *_moveableObjects[nativeItem->ObjectNumber];
 
-		// Copy meshswaps
+		// Copy meshswaps and apply eventually effects.
 		itemToDraw->MeshIndex = nativeItem->Model.MeshIndex;
-		itemToDraw->SkinIndex = nativeItem->Model.SkinIndex;
+		itemToDraw->SkinIndex = nativeItem->Model.GetSkinGlobalIndex();
 
 		if (obj->Animations.empty())
+		{
+			// Objects without animations (e.g. virtual ID_BODY_PART borrowing a single mesh) never get
+			// bone transforms computed. Default them to identity, otherwise meshes are drawn with a zero
+			// matrix and collapse to the origin (a tiny garbage mesh) instead of the item's world pose.
+			for (int i = 0; i < BONE_COUNT_MAX; i++)
+				itemToDraw->AnimationTransforms[i] = Matrix::Identity;
+
 			return;
+		}
 
 		// Apply extra rotations
 		int lastJoint = 0;
@@ -360,7 +446,7 @@ namespace TEN::Renderer
 			BuildHierarchyRecursive(obj, childNode, obj->Skeleton);
 	}
 
-	bool Renderer::IsFullsScreen()
+	bool Renderer::IsFullScreen()
 	{
 		return (!_isWindowed);
 	}
@@ -414,12 +500,23 @@ namespace TEN::Renderer
 
 	Matrix Renderer::GetWorldMatrixForMoveable(const ItemInfo& item, Matrix* rotationMatrix, Matrix* translationMatrix) const
 	{
-		const auto& anim = GetAnimData(item);
-		auto rootMotionCounteract = anim.GetRootMotionCounteraction(item.Animation.FrameNumber);
+		auto orient = item.Pose.Orientation;
+		auto pos = item.Pose.Position.ToVector3();
 
-		auto orient = item.Pose.Orientation + rootMotionCounteract.Rotation;
+		// Apply root motion counteraction only for animated objects. Virtual objects without
+		// animations (e.g. ID_BODY_PART) would otherwise fetch a fallback animation and have their
+		// world matrix polluted by bogus root motion, making them spin erratically.
+		const auto& animObject = Objects[item.Animation.AnimObjectID];
+		if (!animObject.Animations.empty())
+		{
+			const auto& anim = GetAnimData(item);
+			auto rootMotionCounteract = anim.GetRootMotionCounteraction(item.Animation.FrameNumber);
+
+			orient += rootMotionCounteract.Rotation;
+			pos += Vector3::Transform(rootMotionCounteract.Translation, orient.ToRotationMatrix());
+		}
+
 		auto rotMatrix = orient.ToRotationMatrix();
-		auto pos = item.Pose.Position.ToVector3() + Vector3::Transform(rootMotionCounteract.Translation, rotMatrix);
 		auto transMatrix = Matrix::CreateTranslation(pos);
 
 		if (rotationMatrix != nullptr)
@@ -462,15 +559,32 @@ namespace TEN::Renderer
 
 		// Collect spheres.
 		auto spheres = std::vector<BoundingSphere>{};
-		for (int i = 0; i < moveable.ObjectMeshes.size(); i++)
+		if (moveable.ObjectMeshes.empty())
 		{
-			const auto& mesh = *moveable.ObjectMeshes[i];
+			// Virtual objects (e.g. ID_BODY_PART) have no object meshes; each instance borrows its
+			// mesh per-instance, so derive the bounding spheres from the item's own mesh list.
+			for (int i = 0; i < itemToDraw.MeshIndex.size(); i++)
+			{
+				const auto& mesh = *GetMesh(itemToDraw.MeshIndex[i]);
 
-			const auto& animationTransform = itemToDraw.AnimationTransforms[i];
-			auto pos = Vector3::Transform(mesh.Sphere.Center, animationTransform * worldMatrix);
+				const auto& animationTransform = itemToDraw.AnimationTransforms[i];
+				auto pos = Vector3::Transform(mesh.Sphere.Center, animationTransform * worldMatrix);
 
-			auto sphere = BoundingSphere(pos, mesh.Sphere.Radius);
-			spheres.push_back(sphere);
+				spheres.push_back(BoundingSphere(pos, mesh.Sphere.Radius));
+			}
+		}
+		else
+		{
+			for (int i = 0; i < moveable.ObjectMeshes.size(); i++)
+			{
+				const auto& mesh = *moveable.ObjectMeshes[i];
+
+				const auto& animationTransform = itemToDraw.AnimationTransforms[i];
+				auto pos = Vector3::Transform(mesh.Sphere.Center, animationTransform * worldMatrix);
+
+				auto sphere = BoundingSphere(pos, mesh.Sphere.Radius);
+				spheres.push_back(sphere);
+			}
 		}
 
 		return spheres;
@@ -645,23 +759,33 @@ namespace TEN::Renderer
 		return false;
 	}
 
-	void Renderer::SaveScreenshot()
+	std::string Renderer::SaveScreenshot()
 	{
 		char buffer[64];
 		time_t rawtime;
 
 		time(&rawtime);
 		auto time = localtime(&rawtime);
-		strftime(buffer, sizeof(buffer), "/TEN-%Y-%m-%d_%H-%M-%S.png", time);
+		strftime(buffer, sizeof(buffer), "TEN-%Y-%m-%d_%H-%M-%S.png", time);
 
 		auto screenPath = g_GameFlow->GetGameDir() + "Screenshots";
 
 		if (!std::filesystem::is_directory(screenPath))
 			std::filesystem::create_directory(screenPath);
 
+		screenPath += "/";
 		screenPath += buffer;
-		
-		_graphicsDevice->SaveScreenshot(_backBuffer->GetRenderTarget(), screenPath);
+
+		if (!_graphicsDevice->SaveScreenshot(_backBuffer->GetRenderTarget(), screenPath))
+		{
+			TENLog(fmt::format("Failed to save screenshot '{}' to disk.", screenPath), LogLevel::Error);
+			return std::string();
+		}
+		else
+		{
+			TENLog(fmt::format("Saved screenshot to '{}'.", screenPath), LogLevel::Info);
+			return std::string(buffer);
+		}
 	}
 
 	std::optional<Vector2> Renderer::ProjectDisplayItemPointToScreen(const Vector3& worldPos) const

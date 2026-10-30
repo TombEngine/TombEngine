@@ -25,7 +25,7 @@ void SpringBoardControl(short itemNumber)
 			LaraItem->Animation.Velocity.z *= -1;
 		}
 
-		SetAnimation(LaraItem, LA_FALL_START, 0, GetSystemBlendDuration());
+		SetAnimation(LaraItem, LA_FALL_START, 0, GetInternalBlendDuration());
 		LaraItem->Animation.IsAirborne = true;
 		LaraItem->Animation.Velocity.y = -240.0f;
 

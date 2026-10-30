@@ -13,6 +13,7 @@
 #include "Scripting/Internal/TEN/Objects/Lara/HandStatuses.h"
 #include "Scripting/Internal/TEN/Objects/Lara/LaraObject.h"
 #include "Scripting/Internal/TEN/Objects/Lara/WaterStatuses.h"
+#include "Scripting/Internal/TEN/Objects/Lara/WeaponFlashMode.h"
 #include "Scripting/Internal/TEN/Objects/Lara/WeaponModes.h"
 #include "Scripting/Internal/TEN/Objects/Lara/WeaponTypes.h"
 #include "Scripting/Internal/TEN/Objects/Material/MaterialObject.h"
@@ -286,6 +287,7 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_AmmoType, AMMO_TYPES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_TextureMaterialType, TEXTURE_MATERIAL_TYPES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_WeaponMode, WEAPON_MODES);
+	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_WeaponFlashMode, WEAPON_FLASH_MODE);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_HandStatus, HAND_STATUSES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_WaterStatus, WATER_STATUSES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_MoveableStatus, MOVEABLE_STATUSES);
@@ -306,8 +308,8 @@ std::vector<std::unique_ptr<Material>> ObjectsHandler::GetMaterialsByObject(cons
 	for (int meshIndex : item.Model.MeshIndex)
 		AppendMeshMaterials(materials, addedMaterialIndices, meshIndex);
 
-	if (item.Model.SkinIndex != NO_VALUE)
-		AppendMeshMaterials(materials, addedMaterialIndices, item.Model.SkinIndex);
+	if (item.Model.GetSkinGlobalIndex() != NO_VALUE)
+		AppendMeshMaterials(materials, addedMaterialIndices, item.Model.GetSkinGlobalIndex());
 
 	return materials;
 }

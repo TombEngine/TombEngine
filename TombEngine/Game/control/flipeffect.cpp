@@ -4,10 +4,10 @@
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/lot.h"
-#include "Game/effects/Hair.h"
+#include "Game/effects/hair.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
-#include "Game/effects/Footprint.h"
+#include "Game/effects/footprint.h"
 #include "Game/effects/debris.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
@@ -185,16 +185,14 @@ void DrawRightPistol(ItemInfo* item)
 
 void ShootLeftGun(ItemInfo* item)
 {
-	auto& player = GetLaraInfo(*item);
-
-	player.LeftArm.GunFlash = 3;
+	SpawnWeaponFlash(*item, WeaponFlashMode::Left);
+	FlipEffect = NO_VALUE;
 }
 
 void ShootRightGun(ItemInfo* item)
 {
-	auto& player = GetLaraInfo(*item);
-
-	player.RightArm.GunFlash = 3;
+	SpawnWeaponFlash(*item, WeaponFlashMode::Right);
+	FlipEffect = NO_VALUE;
 }
 
 void LaraHandsFree(ItemInfo* item)
@@ -206,28 +204,17 @@ void LaraHandsFree(ItemInfo* item)
 
 void KillActiveBaddys(ItemInfo* item)
 {
-	if (NextItemActive != NO_VALUE)
+	for (int itemNumber : ActiveItems)
 	{
-		short itemNumber = NextItemActive;
+		auto* targetItem = &g_Level.Items[itemNumber];
 
-		do
+		if (Objects[targetItem->ObjectNumber].intelligent)
 		{
-			auto* targetItem = &g_Level.Items[itemNumber];
-
-			if (Objects[targetItem->ObjectNumber].intelligent)
-			{
-				targetItem->Status = ITEM_INVISIBLE;
-
-				if (*(int*)&item != 0xABCDEF)
-				{
-					RemoveActiveItem(itemNumber);
-					DisableEntityAI(itemNumber);
-					targetItem->Flags |= IFLAG_INVISIBLE;
-				}
-			}
-
-			itemNumber = targetItem->NextActive;
-		} while (itemNumber != NO_VALUE);
+			RemoveActiveItem(itemNumber);
+			DisableEntityAI(itemNumber);
+			targetItem->Flags |= IFLAG_INVISIBLE;
+			targetItem->Status = ITEM_INVISIBLE;
+		}
 	}
 
 	FlipEffect = NO_VALUE;

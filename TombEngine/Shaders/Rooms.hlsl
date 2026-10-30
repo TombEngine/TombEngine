@@ -52,13 +52,12 @@ PixelShaderInput VS(VertexShaderInput input)
 
 	// Refraction
 	float4 screenPos = mul(float4(pos, 1.0f), ViewProjection);
-	float2 clipPos = screenPos.xy / screenPos.w;
 
 	if (CameraUnderwater != Water)
 	{
-		float factor = (Frame + clipPos.x * 320);
-		float xOffset = (sin(factor * PI / 20.0f)) * (screenPos.z / 1024) * 4;
-		float yOffset = (cos(factor * PI / 20.0f)) * (screenPos.z / 1024) * 4;
+		float factor = InterpolatedFrame + (pos.x + pos.z) * 0.2f;
+		float xOffset = (sin(factor * PI / 20.0f)) * (screenPos.z / 1024.0f) * 3.0f;
+		float yOffset = (cos(factor * PI / 20.0f)) * (screenPos.z / 1024.0f) * 3.0f;
 		screenPos.x += xOffset * weight;
 		screenPos.y += yOffset * weight;
 	}
@@ -89,6 +88,9 @@ PixelShaderOutput PS(PixelShaderInput input)
     float3x3 TBNf = float3x3(input.Tangent, input.Binormal, input.FaceNormal);
     input.UV = ParallaxOcclusionMapping(TBNf, input.WorldPosition, input.UV);                	  
 
+    output.Color = Texture.Sample(AnisotropicClampSampler, input.UV);
+    DoAlphaTest(output.Color);
+
 	float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(AnisotropicClampSampler, input.UV));
     float ambientOcclusion = ORSH.x;
     float roughness = ORSH.y;
@@ -99,9 +101,6 @@ PixelShaderOutput PS(PixelShaderInput input)
     float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(AnisotropicClampSampler, input.UV)));
     normal = EnsureNormal(mul(normal, TBN), input.WorldPosition);
-
-	output.Color = Texture.Sample(AnisotropicClampSampler, input.UV);
-	DoAlphaTest(output.Color);
 
     // Material effects
 	float3 blendedNormal = normalize(lerp(input.FaceNormal, normal, 0.1f)); // TODO: Make alpha customizable

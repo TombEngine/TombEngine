@@ -23,6 +23,12 @@ namespace TEN::Scripting::Properties
 		_names[hash] = name;
 	}
 
+	void PropertyMap::Set(int hash, const PropertyValue& value)
+	{
+		_values[hash] = value;
+		_names[hash] = hash;
+	}
+
 	bool PropertyMap::Has(const std::string& name) const
 	{
 		return Has(GetHash(name));

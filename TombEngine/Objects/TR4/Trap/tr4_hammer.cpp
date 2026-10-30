@@ -52,7 +52,7 @@ namespace TEN::Entities::Traps
 
 		if (!TriggerActive(&item))
 		{
-			*(long*)&item.ItemFlags[0] = 0;
+			*(int*)&item.ItemFlags[0] = 0;
 			return;
 		}
 
@@ -62,11 +62,11 @@ namespace TEN::Entities::Traps
 		{
 			if (frameNumber < HAMMER_CLOSED_FRAME)
 			{
-				*(long*)&item.ItemFlags[0] = RIGHT_HAMMER_BITS;
+				*(int*)&item.ItemFlags[0] = RIGHT_HAMMER_BITS;
 			}
 			else
 			{
-				*(long*)&item.ItemFlags[0] = 0;
+				*(int*)&item.ItemFlags[0] = 0;
 			}
 		}
 		else if (item.Animation.ActiveState == HAMMER_STATE_IDLE && item.Animation.TargetState == HAMMER_STATE_IDLE)
@@ -102,35 +102,29 @@ namespace TEN::Entities::Traps
 
 			if (frameNumber < HAMMER_CLOSED_FRAME)
 			{
-				*(long*)&item.ItemFlags[0] = RIGHT_HAMMER_BITS | LEFT_HAMMER_BITS;
+				*(int*)&item.ItemFlags[0] = RIGHT_HAMMER_BITS | LEFT_HAMMER_BITS;
 			}
 			else
 			{
-				*(long*)&item.ItemFlags[0] = 0;
+				*(int*)&item.ItemFlags[0] = 0;
 			}
 
 			if (frameNumber == HAMMER_HIT_FRAME)
 			{
 				if (item.TriggerFlags == 2)
 				{
-					short targetItem = g_Level.Rooms[item.RoomNumber].itemNumber;
-
-					if (targetItem != NO_VALUE)
+					for (int targetItemNumber : g_Level.Rooms[item.RoomNumber].itemNumbers)
 					{
-						auto* target = &g_Level.Items[targetItem];
-						for (; targetItem != NO_VALUE; targetItem = target->NextItem)
-						{
-							target = &g_Level.Items[targetItem];
+						auto* target = &g_Level.Items[targetItemNumber];
 
-							if (target->ObjectNumber == ID_OBELISK && target->Pose.Orientation.y == -ANGLE(270) &&
-								g_Level.Items[target->ItemFlags[0]].Pose.Orientation.y == ANGLE(90) &&
-								g_Level.Items[target->ItemFlags[1]].Pose.Orientation.y == 0)
-							{
-								target->Flags |= CODE_BITS;
-								g_Level.Items[target->ItemFlags[0]].Flags |= CODE_BITS;
-								g_Level.Items[target->ItemFlags[1]].Flags |= CODE_BITS;
-								break;
-							}
+						if (target->ObjectNumber == ID_OBELISK && target->Pose.Orientation.y == -ANGLE(270) &&
+							g_Level.Items[target->ItemFlags[0]].Pose.Orientation.y == ANGLE(90) &&
+							g_Level.Items[target->ItemFlags[1]].Pose.Orientation.y == 0)
+						{
+							target->Flags |= CODE_BITS;
+							g_Level.Items[target->ItemFlags[0]].Flags |= CODE_BITS;
+							g_Level.Items[target->ItemFlags[1]].Flags |= CODE_BITS;
+							break;
 						}
 					}
 
@@ -139,51 +133,40 @@ namespace TEN::Entities::Traps
 				}
 				else
 				{
-					int targetItemNumber = g_Level.Rooms[item.RoomNumber].itemNumber;
-					if (targetItemNumber != NO_VALUE)
+					// Check for pushables to destroy.
+					for (int targetItemNumber : g_Level.Rooms[item.RoomNumber].itemNumbers)
 					{
-						// TODO: What is this syntax?
 						auto* targetItem = &g_Level.Items[targetItemNumber];
-						for (; targetItemNumber != NO_VALUE; targetItemNumber = targetItem->NextItem)
-						{
-							targetItem = &g_Level.Items[targetItemNumber];
 
-							if ((targetItem->ObjectNumber >= ID_PUSHABLE_OBJECT1 && targetItem->ObjectNumber <= ID_PUSHABLE_OBJECT10) ||
-								(targetItem->ObjectNumber >= ID_PUSHABLE_OBJECT_CLIMBABLE1 && targetItem->ObjectNumber <= ID_PUSHABLE_OBJECT_CLIMBABLE10))
+						if ((targetItem->ObjectNumber >= ID_PUSHABLE_OBJECT1 && targetItem->ObjectNumber <= ID_PUSHABLE_OBJECT10) ||
+							(targetItem->ObjectNumber >= ID_PUSHABLE_OBJECT_CLIMBABLE1 && targetItem->ObjectNumber <= ID_PUSHABLE_OBJECT_CLIMBABLE10))
+						{
+							if (item.Pose.Position.x == targetItem->Pose.Position.x &&
+								item.Pose.Position.z == targetItem->Pose.Position.z)
 							{
-								if (item.Pose.Position.x == targetItem->Pose.Position.x &&
-									item.Pose.Position.z == targetItem->Pose.Position.z)
-								{
-									ExplodeItemNode(targetItem, 0, 0, 128);
-									KillItem(targetItemNumber);
-									isHammerTouched = true;
-								}
+								ExplodeItemNode(targetItem, 0, 0, 128);
+								KillItem(targetItemNumber);
+								isHammerTouched = true;
 							}
 						}
 					}
 
+					// Take all puzzle items, keys, and their combos.
 					if (isHammerTouched)
 					{
-						targetItemNumber = g_Level.Rooms[item.RoomNumber].itemNumber;
-
-						if (targetItemNumber != NO_VALUE)
+						for (int targetItemNumber : g_Level.Rooms[item.RoomNumber].itemNumbers)
 						{
 							auto* target = &g_Level.Items[targetItemNumber];
-							for (; targetItemNumber != NO_VALUE; targetItemNumber = target->NextItem)
-							{
-								target = &g_Level.Items[targetItemNumber];
 
-								// Take all puzzle items, keys, and their combos.
-								if ((target->ObjectNumber >= ID_PUZZLE_ITEM1 && target->ObjectNumber <= ID_PUZZLE_ITEM16) ||
-									(target->ObjectNumber >= ID_PUZZLE_ITEM1_COMBO1 && target->ObjectNumber <= ID_PUZZLE_ITEM16_COMBO2) ||
-									(target->ObjectNumber >= ID_KEY_ITEM1 && target->ObjectNumber <= ID_KEY_ITEM16) ||
-									(target->ObjectNumber >= ID_KEY_ITEM1_COMBO1 && target->ObjectNumber <= ID_KEY_ITEM16_COMBO2))
+							if ((target->ObjectNumber >= ID_PUZZLE_ITEM1 && target->ObjectNumber <= ID_PUZZLE_ITEM16) ||
+								(target->ObjectNumber >= ID_PUZZLE_ITEM1_COMBO1 && target->ObjectNumber <= ID_PUZZLE_ITEM16_COMBO2) ||
+								(target->ObjectNumber >= ID_KEY_ITEM1 && target->ObjectNumber <= ID_KEY_ITEM16) ||
+								(target->ObjectNumber >= ID_KEY_ITEM1_COMBO1 && target->ObjectNumber <= ID_KEY_ITEM16_COMBO2))
+							{
+								if (item.Pose.Position.x == target->Pose.Position.x &&
+									item.Pose.Position.z == target->Pose.Position.z)
 								{
-									if (item.Pose.Position.x == target->Pose.Position.x &&
-										item.Pose.Position.z == target->Pose.Position.z)
-									{
-										target->Status = ITEM_NOT_ACTIVE;
-									}
+									target->Status = ITEM_NOT_ACTIVE;
 								}
 							}
 						}

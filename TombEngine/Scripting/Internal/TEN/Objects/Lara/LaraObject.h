@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Game/Lara/lara_struct.h"
+#include "Game/Lara/lara_fire.h"
 #include "Scripting/Internal/TEN/Input/ActionIDs.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 
@@ -16,6 +17,8 @@ public:
 	int GetAir() const;
 	void SetStamina(sol::optional<int> value);
 	int GetStamina() const;
+	void SetExposure(sol::optional<int> exposure);
+	int GetExposure() const;
 	void SetWet(sol::optional<int> wetness);
 	int GetWet() const;
 	bool GetAirborne() const;
@@ -37,6 +40,12 @@ public:
 	int GetAmmoCount() const;
 	int GetWeaponMode(TypeOrNil<LaraWeaponType> weaponType) const;
 	void SetWeaponMode(LaraWeaponType weaponType, PlayerWeaponMode weaponMode);
+
+	std::tuple<LaraWeaponType, LaraWeaponType, LaraWeaponType> GetHolsterWeaponTypes() const;
+	void SetHolsterWeaponTypes(TypeOrNil<LaraWeaponType> left, TypeOrNil<LaraWeaponType> right, TypeOrNil<LaraWeaponType> back);
+	void ResetHair();
+	void SpawnGunFlash(LaraWeaponType weaponType, TypeOrNil<WeaponFlashMode> weaponFlashType);
+	void ClearGunFlashes();
 
 	void UndrawWeapon();
 	void DiscardTorch();
