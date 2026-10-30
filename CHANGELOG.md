@@ -7,12 +7,11 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### New features
 
-* Fixed missing splash when SPEEDBOAT, RUBBER_BOAT or KAYAK falls into water from a height.
-
 ### Bug fixes
 
 * Fixed static meshes in flipped rooms being lit with ambient light of the original room.
 * Fixed flyby camera roll persisting after the sequence ends.
+* Fixed missing splash when SPEEDBOAT, RUBBER_BOAT or KAYAK falls into water from a height.
 
 ### Lua API Changes
 
