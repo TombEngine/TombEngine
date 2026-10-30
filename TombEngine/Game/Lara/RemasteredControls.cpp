@@ -840,13 +840,23 @@ static void UpdatePlayerRemasteredCrouchStages(ItemInfo& item, PlayerInput& inpu
 	input.Crouch = ((remastered.CrouchStage != 0) || IsPushed(In::Crouch));
 }
 
+// True if the stick points within the roll arc: the player's back in a forward jump, her front in a back jump.
+static bool IsRemasteredPushInJumpRollArc(const ItemInfo& item)
+{
+	constexpr auto ROLL_ARC_ANGLE = ANGLE(45.0f);
+
+	bool isForwardJump = (item.Animation.ActiveState == LS_JUMP_FORWARD);
+	short rollAngle = isForwardJump ? (short)(item.Pose.Orientation.y + ANGLE(180.0f)) : item.Pose.Orientation.y;
+	short deltaAngle = Geometry::GetShortestAngle(rollAngle, GetPlayerHeadingAngleY(item));
+	return (abs((int)deltaAngle) <= ROLL_ARC_ANGLE);
+}
+
 // True if the stick is pushed firmly along one axis toward the player's back (forward jump)
 // or front (back jump). A light push, Look or an already spent push does not roll the player.
 // TODO: Roll the player in a left or right running jump when the stick is pushed the opposite way. -- divezzi, 11.10.26
 static bool IsPlayerRemasteredJumpRollPushed(const ItemInfo& item, const PlayerInput& input)
 {
-	constexpr auto PUSH_MIN		  = 0.7f; // About half the stick's travel. Keys and the D-pad give 1.0.
-	constexpr auto ROLL_ARC_ANGLE = ANGLE(45.0f);
+	constexpr auto PUSH_MIN = 0.7f; // About half the stick's travel. Keys and the D-pad give 1.0.
 
 	const auto& player = GetLaraInfo(item);
 
@@ -866,15 +876,22 @@ static bool IsPlayerRemasteredJumpRollPushed(const ItemInfo& item, const PlayerI
 	if (abs(isVertical ? moveAxis.y : moveAxis.x) < PUSH_MIN)
 		return false;
 
-	short rollAngle = isForwardJump ? (short)(item.Pose.Orientation.y + ANGLE(180.0f)) : item.Pose.Orientation.y;
-	short deltaAngle = Geometry::GetShortestAngle(rollAngle, GetPlayerHeadingAngleY(item));
-	return (abs((int)deltaAngle) <= ROLL_ARC_ANGLE);
+	return IsRemasteredPushInJumpRollArc(item);
 }
 
-// The push that made a roll is spent until the stick is released or the jump ends.
+// A direction key or stick direction was pressed or released this frame.
+static bool HasRemasteredDirectionChanged()
+{
+	return (IsClicked(In::Forward) || IsClicked(In::Back) || IsClicked(In::Left) || IsClicked(In::Right) ||
+			IsReleased(In::Forward) || IsReleased(In::Back) || IsReleased(In::Left) || IsReleased(In::Right));
+}
+
+// The roll is an input event. A push held when the jump starts, a push that made a roll and a push held outside the
+// roll arc are spent. Only a stick release or a direction press or release clears it; camera movement never does.
 static void UpdatePlayerRemasteredJumpRollLatch(ItemInfo& item)
 {
 	auto& player = GetLaraInfo(item);
+	bool isPushing = (player.Control.RefMoveAxis != Vector2::Zero);
 
 	switch (item.Animation.ActiveState)
 	{
@@ -884,13 +901,16 @@ static void UpdatePlayerRemasteredJumpRollLatch(ItemInfo& item)
 
 	case LS_JUMP_FORWARD:
 	case LS_JUMP_BACK:
-		if (player.Control.RefMoveAxis == Vector2::Zero)
+		if (!isPushing || HasRemasteredDirectionChanged())
 			player.Control.Remastered.IsJumpRollSpent = false;
+
+		if (isPushing && !IsRemasteredPushInJumpRollArc(item))
+			player.Control.Remastered.IsJumpRollSpent = true;
 
 		break;
 
 	default:
-		player.Control.Remastered.IsJumpRollSpent = false;
+		player.Control.Remastered.IsJumpRollSpent = isPushing;
 		break;
 	}
 }
@@ -931,6 +951,30 @@ static void SynthesizeRemasteredTurnActions(ItemInfo& item, PlayerInput& input, 
 		input.StepLeft = false;
 		input.StepRight = false;
 	}
+}
+
+// Idle with weapons ready and the camera direction exactly behind the player: Walk and Roll are written so the stock
+// 180 turn plays instead of a long armed turn. True while it does.
+static bool HandleRemasteredArmedTurn180(ItemInfo& item, PlayerInput& input)
+{
+	if (item.Animation.ActiveState != LS_IDLE)
+		return false;
+
+	auto& player = GetLaraInfo(item);
+	short deltaAngle = Geometry::GetShortestAngle(item.Pose.Orientation.y, player.Control.RefCameraOrient.y);
+	if (deltaAngle != SHRT_MIN || !TestStateDispatch(item, LS_TURN_180))
+		return false;
+
+	ResetRemasteredArmedTurn(item);
+	player.Control.TurnRate = 0;
+
+	input.Left = false;
+	input.Right = false;
+	input.StepLeft = false;
+	input.StepRight = false;
+	input.Walk = true;
+	input.Roll = true;
+	return true;
 }
 
 // Rewrites the movement actions so the stick moves the player relative to the camera.
@@ -1003,16 +1047,17 @@ static void TransformPlayerRemasteredInput(ItemInfo& item, PlayerInput& input, P
 		return;
 	}
 
-	// Stick centered: with weapons ready the player turns to face the camera direction, otherwise she stops turning.
+	// Stick centered: with weapons ready and no target the player turns to face the camera direction, otherwise she stops turning.
 	if (player.Control.RefMoveAxis == Vector2::Zero)
 	{
 		float armedRate = 0.0f;
 		short armedStepMax = 0;
-		if (!input.Look && !input.Jump &&
+		if (!input.Look && !input.Jump && player.TargetEntity == nullptr &&
 			(Camera.type == CameraType::Chase || Camera.type == CameraType::Combat) &&
 			GetPlayerRemasteredTurnParams(item, armedRate, armedStepMax) == RemasteredInputScope::ArmedSynthesis)
 		{
-			SynthesizeRemasteredTurnActions(item, input, player.Control.RefCameraOrient.y, ARMED_TURN_MIN_ANGLE);
+			if (!HandleRemasteredArmedTurn180(item, input))
+				SynthesizeRemasteredTurnActions(item, input, player.Control.RefCameraOrient.y, ARMED_TURN_MIN_ANGLE);
 		}
 		else
 		{
@@ -1300,8 +1345,9 @@ void ClampRemasteredArmedTurnRate(ItemInfo& item)
 	if (!player.Control.Remastered.IsArmedTurning)
 		return;
 
-	short errorMax = (short)abs((int)player.Control.Remastered.ArmedTurnErrorY);
-	player.Control.TurnRate = std::clamp(player.Control.TurnRate, (short)-errorMax, (short)errorMax);
+	// NOTE: In int, so an error of exactly 180 degrees does not wrap to -180.
+	int errorMax = abs((int)player.Control.Remastered.ArmedTurnErrorY);
+	player.Control.TurnRate = (short)std::clamp((int)player.Control.TurnRate, -errorMax, errorMax);
 }
 
 // Remastered controls: after the crawl grab's turn, the player hangs from the edge she now faces. -- divezzi, 11.10.26
