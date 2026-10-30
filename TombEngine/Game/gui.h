@@ -84,6 +84,25 @@ namespace TEN::Gui
 		Sound
 	};
 
+	enum class GameplaySettingsOption
+	{
+		None,
+		ControlModeOption,
+		TargetHighlighter,
+		InteractionHighlighter,
+		ToggleRumble,
+		ThumbstickCameraControl,
+		AutoMonkeySwingJump,
+		AutoTargeting,
+		InvertCameraYAxisOption,
+		SprintToggleOption,
+		LookToggleOption,
+		CrouchToggleOption,
+		GrabToggleOption,
+		SmoothSprintStepsOption,
+		MouseSensitivity
+	};
+
 	struct MenuOption
 	{
 		MenuType	Type = MenuType::None;
@@ -250,4 +269,5 @@ namespace TEN::Gui
 
 	std::vector<ActionID> GetPageActionIDs(Menu menu);
 	std::vector<std::string> GetPageActionStrings(Menu menu);
+	std::vector<GameplaySettingsOption> GetGameplaySettingsOptions();
 }

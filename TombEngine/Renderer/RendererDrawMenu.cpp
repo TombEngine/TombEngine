@@ -51,7 +51,7 @@ namespace TEN::Renderer
 
 	// Vertical menu positioning templates
 	constexpr auto MenuVerticalControls = 30;
-	constexpr auto MenuVerticalGameplaySettings = 50;
+	constexpr auto MenuVerticalGameplaySettings = 260;
 	constexpr auto MenuVerticalDisplaySettings = 110;
 	constexpr auto MenuVerticalSoundSettings = 165;
 	constexpr auto MenuVerticalBottomCenter = 400;
@@ -226,99 +226,122 @@ namespace TEN::Renderer
 			break;
 
 		case Menu::Gameplay:
-			// Setup needed parameters
-			y = MenuVerticalGameplaySettings;
+			{
+				// Remastered controls: draws the rows of the selected control mode; the page top moves with the row count. -- divezzi, 29.10.26
+				const auto& config = g_Gui.GetCurrentSettings().Configuration;
+				auto options = GetGameplaySettingsOptions();
+				int optionCount = (int)options.size();
 
-			// Title
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_GAMEPLAY), headerColor, SF_Center());
-			GetNextBlockPosition(&y);
+				// Setup needed parameters
+				y = MenuVerticalGameplaySettings - ((optionCount * MenuVerticalLineSpacing) / 2);
 
-			// Remastered controls: draws the control mode row. -- divezzi, 08.10.26
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_CONTROL_MODE), optionColor, SF(titleOption == 0));
-			AddString(MenuRightSideEntry, y, Str_ControlMode(g_Gui.GetCurrentSettings().Configuration.ControlMode), plainColor, SF(titleOption == 0));
-			GetNextLinePosition(&y);
+				// Title
+				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_GAMEPLAY), headerColor, SF_Center());
+				GetNextBlockPosition(&y);
 
-			// Target highlighter
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TARGET_HIGHLIGHTER), optionColor, SF(titleOption == 1));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableTargetHighlighter),
-				g_GameFlow->GetSettings()->Hud.TargetHighlighter ? plainColor : disabledColor, SF(titleOption == 1));
-			GetNextLinePosition(&y);
+				for (int i = 0; i < optionCount; i++)
+				{
+					int flags = SF(titleOption == i);
 
-			// Interaction highlighter
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_INTERACTION_HIGHLIGHTER), optionColor, SF(titleOption == 2));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableInteractionHighlighter),
-				g_GameFlow->GetSettings()->Hud.InteractionHighlighter ? plainColor : disabledColor, SF(titleOption == 2));
-			GetNextLinePosition(&y);
+					switch (options[i])
+					{
+					case GameplaySettingsOption::ControlModeOption:
+						AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_CONTROL_MODE), optionColor, flags);
+						AddString(MenuRightSideEntry, y, Str_ControlMode(config.ControlMode), plainColor, flags);
+						break;
 
-			// Vibration
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RUMBLE), optionColor, SF(titleOption == 3));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableRumble), plainColor, SF(titleOption == 3));
-			GetNextLinePosition(&y);
+					// Target highlighter
+					case GameplaySettingsOption::TargetHighlighter:
+						AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TARGET_HIGHLIGHTER), optionColor, flags);
+						AddString(MenuRightSideEntry, y, Str_Enabled(config.EnableTargetHighlighter),
+							g_GameFlow->GetSettings()->Hud.TargetHighlighter ? plainColor : disabledColor, flags);
+						break;
 
-			// Thumbstick camera
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_THUMBSTICK_CAMERA), optionColor, SF(titleOption == 4));
-			// Remastered controls: grayed out, as the Remastered camera does not read it. -- divezzi, 08.10.26
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableThumbstickCamera),
-				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? disabledColor : plainColor, SF(titleOption == 4));
-			GetNextLinePosition(&y);
+					// Interaction highlighter
+					case GameplaySettingsOption::InteractionHighlighter:
+						AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_INTERACTION_HIGHLIGHTER), optionColor, flags);
+						AddString(MenuRightSideEntry, y, Str_Enabled(config.EnableInteractionHighlighter),
+							g_GameFlow->GetSettings()->Hud.InteractionHighlighter ? plainColor : disabledColor, flags);
+						break;
 
-			// Auto monkey swing jump
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_MONKEY_SWING_JUMP), optionColor, SF(titleOption == 5));
-			// Remastered controls: this and the next row show the forced value, grayed out. -- divezzi, 12.10.26
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.IsAutoMonkeySwingJumpEnabled()),
-				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? disabledColor : plainColor, SF(titleOption == 5));
-			GetNextLinePosition(&y);
+					// Vibration
+					case GameplaySettingsOption::ToggleRumble:
+						AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RUMBLE), optionColor, flags);
+						AddString(MenuRightSideEntry, y, Str_Enabled(config.EnableRumble), plainColor, flags);
+						break;
 
-			// Auto targeting
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_TARGETING), optionColor, SF(titleOption == 6));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.IsAutoTargetingEnabled()),
-				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? disabledColor : plainColor, SF(titleOption == 6));
-			GetNextLinePosition(&y);
+					// Thumbstick camera
+					case GameplaySettingsOption::ThumbstickCameraControl:
+						AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_THUMBSTICK_CAMERA), optionColor, flags);
+						AddString(MenuRightSideEntry, y, Str_Enabled(config.EnableThumbstickCamera), plainColor, flags);
+						break;
 
-			// Remastered controls: invert camera Y row, grayed out under Classic. -- divezzi, 08.10.26
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_INVERT_CAMERA_Y_AXIS), optionColor, SF(titleOption == 7));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.InvertCameraYAxis),
-				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? plainColor : disabledColor, SF(titleOption == 7));
-			GetNextLinePosition(&y);
+					// Auto monkey swing jump
+					case GameplaySettingsOption::AutoMonkeySwingJump:
+						AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_MONKEY_SWING_JUMP), optionColor, flags);
+						AddString(MenuRightSideEntry, y, Str_Enabled(config.IsAutoMonkeySwingJumpEnabled()), plainColor, flags);
+						break;
 
-			// Remastered controls: toggle rows and Smooth Sprint Steps, grayed out under Classic. -- divezzi, 10.10.26
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TOGGLE_SPRINT), optionColor, SF(titleOption == 8));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableSprintToggle),
-				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? plainColor : disabledColor, SF(titleOption == 8));
-			GetNextLinePosition(&y);
+					// Auto targeting
+					case GameplaySettingsOption::AutoTargeting:
+						AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_TARGETING), optionColor, flags);
+						AddString(MenuRightSideEntry, y, Str_Enabled(config.IsAutoTargetingEnabled()), plainColor, flags);
+						break;
 
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TOGGLE_LOOK), optionColor, SF(titleOption == 9));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableLookToggle),
-				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? plainColor : disabledColor, SF(titleOption == 9));
-			GetNextLinePosition(&y);
+					case GameplaySettingsOption::InvertCameraYAxisOption:
+						AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_INVERT_CAMERA_Y_AXIS), optionColor, flags);
+						AddString(MenuRightSideEntry, y, Str_Enabled(config.InvertCameraYAxis), plainColor, flags);
+						break;
 
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TOGGLE_CROUCH), optionColor, SF(titleOption == 10));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableCrouchToggle),
-				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? plainColor : disabledColor, SF(titleOption == 10));
-			GetNextLinePosition(&y);
+					case GameplaySettingsOption::SprintToggleOption:
+						AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TOGGLE_SPRINT), optionColor, flags);
+						AddString(MenuRightSideEntry, y, Str_Enabled(config.EnableSprintToggle), plainColor, flags);
+						break;
 
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TOGGLE_GRAB), optionColor, SF(titleOption == 11));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableGrabToggle),
-				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? plainColor : disabledColor, SF(titleOption == 11));
-			GetNextLinePosition(&y);
+					case GameplaySettingsOption::LookToggleOption:
+						AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TOGGLE_LOOK), optionColor, flags);
+						AddString(MenuRightSideEntry, y, Str_Enabled(config.EnableLookToggle), plainColor, flags);
+						break;
 
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SMOOTH_SPRINT_STEPS), optionColor, SF(titleOption == 12));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableSmoothSprintSteps),
-				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? plainColor : disabledColor, SF(titleOption == 12));
-			GetNextLinePosition(&y);
+					case GameplaySettingsOption::CrouchToggleOption:
+						AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TOGGLE_CROUCH), optionColor, flags);
+						AddString(MenuRightSideEntry, y, Str_Enabled(config.EnableCrouchToggle), plainColor, flags);
+						break;
 
-			// Mouse sensitivity
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MOUSE_SENSITIVITY), optionColor, SF(titleOption == 13));
-			AddString(MenuRightSideEntry, y, std::to_string(g_Gui.GetCurrentSettings().Configuration.MouseSensitivity).c_str(), plainColor, SF(titleOption == 13));
-			GetNextBlockPosition(&y);
+					case GameplaySettingsOption::GrabToggleOption:
+						AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TOGGLE_GRAB), optionColor, flags);
+						AddString(MenuRightSideEntry, y, Str_Enabled(config.EnableGrabToggle), plainColor, flags);
+						break;
 
-			// Apply
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 14));
-			GetNextLinePosition(&y);
+					case GameplaySettingsOption::SmoothSprintStepsOption:
+						AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SMOOTH_SPRINT_STEPS), optionColor, flags);
+						AddString(MenuRightSideEntry, y, Str_Enabled(config.EnableSmoothSprintSteps), plainColor, flags);
+						break;
 
-			// Cancel
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 15));
-			break;
+					// Mouse sensitivity
+					case GameplaySettingsOption::MouseSensitivity:
+						AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MOUSE_SENSITIVITY), optionColor, flags);
+						AddString(MenuRightSideEntry, y, std::to_string(config.MouseSensitivity).c_str(), plainColor, flags);
+						break;
+
+					default:
+						break;
+					}
+
+					if (i < (optionCount - 1))
+						GetNextLinePosition(&y);
+				}
+
+				GetNextBlockPosition(&y);
+
+				// Apply
+				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == optionCount));
+				GetNextLinePosition(&y);
+
+				// Cancel
+				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == (optionCount + 1)));
+				break;
+			}
 
 		case Menu::Display:
 			// Setup needed parameters

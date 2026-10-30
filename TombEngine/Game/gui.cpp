@@ -185,6 +185,44 @@ namespace TEN::Gui
 		}
 	}
 
+	// Remastered controls: the Gameplay page rows: Control Mode, the selected mode's rows, then the rows of both modes. -- divezzi, 29.10.26
+	std::vector<GameplaySettingsOption> GetGameplaySettingsOptions()
+	{
+		auto options = std::vector<GameplaySettingsOption>{ GameplaySettingsOption::ControlModeOption };
+
+		if (g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls())
+		{
+			options.insert(options.end(),
+			{
+				GameplaySettingsOption::InvertCameraYAxisOption,
+				GameplaySettingsOption::SprintToggleOption,
+				GameplaySettingsOption::LookToggleOption,
+				GameplaySettingsOption::CrouchToggleOption,
+				GameplaySettingsOption::GrabToggleOption,
+				GameplaySettingsOption::SmoothSprintStepsOption
+			});
+		}
+		else
+		{
+			options.insert(options.end(),
+			{
+				GameplaySettingsOption::ThumbstickCameraControl,
+				GameplaySettingsOption::AutoMonkeySwingJump,
+				GameplaySettingsOption::AutoTargeting
+			});
+		}
+
+		options.insert(options.end(),
+		{
+			GameplaySettingsOption::TargetHighlighter,
+			GameplaySettingsOption::InteractionHighlighter,
+			GameplaySettingsOption::ToggleRumble,
+			GameplaySettingsOption::MouseSensitivity
+		});
+
+		return options;
+	}
+
 	bool GuiController::GuiIsPulsed(ActionID actionID) const
 	{
 		constexpr auto DELAY		 = 0.1f;
@@ -1078,34 +1116,17 @@ namespace TEN::Gui
 
 	void GuiController::HandleGameplaySettingsInput(bool fromPauseMenu)
 	{
-		enum GameplaySettingsOption
-		{
-			ControlModeOption,
-			TargetHighlighter,
-			InteractionHighlighter,
-			ToggleRumble,
-			ThumbstickCameraControl,
-			AutoMonkeySwingJump,
-			AutoTargeting,
-			InvertCameraYAxisOption,
-			SprintToggleOption,
-			LookToggleOption,
-			CrouchToggleOption,
-			GrabToggleOption,
-			SmoothSprintStepsOption,
-			MouseSensitivity,
+		// Remastered controls: the rows of the selected control mode, followed by Apply and Cancel. -- divezzi, 29.10.26
+		auto options = GetGameplaySettingsOptions();
+		int applyOption = (int)options.size();
+		int cancelOption = applyOption + 1;
+		auto option = (SelectedOption < applyOption) ? options[SelectedOption] : GameplaySettingsOption::None;
 
-			Apply,
-			Cancel,
-
-			Count
-		};
-
-		OptionCount = (int)GameplaySettingsOption::Count - 1;
+		OptionCount = cancelOption;
 
 		if (GuiIsPulsed(In::MenuLeft) || GuiIsPulsed(In::MenuRight))
 		{
-			switch (SelectedOption)
+			switch (option)
 			{
 			// Remastered controls: cycles the control mode between Classic and Remastered. -- divezzi, 08.10.26
 			case GameplaySettingsOption::ControlModeOption:
@@ -1114,25 +1135,11 @@ namespace TEN::Gui
 				break;
 
 			case GameplaySettingsOption::AutoMonkeySwingJump:
-				// Remastered controls: locked, always off. -- divezzi, 12.10.26
-				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
-				{
-					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
-					break;
-				}
-
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableAutoMonkeySwingJump = !CurrentSettings.Configuration.EnableAutoMonkeySwingJump;
 				break;
 
 			case GameplaySettingsOption::AutoTargeting:
-				// Remastered controls: locked, always on. -- divezzi, 12.10.26
-				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
-				{
-					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
-					break;
-				}
-
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableAutoTargeting = !CurrentSettings.Configuration.EnableAutoTargeting;
 				break;
@@ -1163,84 +1170,50 @@ namespace TEN::Gui
 				break;
 
 			case GameplaySettingsOption::ThumbstickCameraControl:
-				// Remastered controls: locked, as the Remastered camera does not read it. -- divezzi, 08.10.26
-				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
-				{
-					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
-					break;
-				}
-
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableThumbstickCamera = !CurrentSettings.Configuration.EnableThumbstickCamera;
 				break;
 
 			// Remastered controls: toggles invert camera Y (Remastered camera only). -- divezzi, 08.10.26
 			case GameplaySettingsOption::InvertCameraYAxisOption:
-				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
-				{
-					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-					CurrentSettings.Configuration.InvertCameraYAxis = !CurrentSettings.Configuration.InvertCameraYAxis;
-				}
-				else
-					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.InvertCameraYAxis = !CurrentSettings.Configuration.InvertCameraYAxis;
 				break;
 
-			// Remastered controls: toggle rows and Smooth Sprint Steps, locked under Classic. -- divezzi, 10.10.26
+			// Remastered controls: toggle rows and Smooth Sprint Steps. -- divezzi, 10.10.26
 			case GameplaySettingsOption::SprintToggleOption:
-				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
-				{
-					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-					CurrentSettings.Configuration.EnableSprintToggle = !CurrentSettings.Configuration.EnableSprintToggle;
-				}
-				else
-					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.EnableSprintToggle = !CurrentSettings.Configuration.EnableSprintToggle;
 				break;
 
 			case GameplaySettingsOption::LookToggleOption:
-				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
-				{
-					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-					CurrentSettings.Configuration.EnableLookToggle = !CurrentSettings.Configuration.EnableLookToggle;
-				}
-				else
-					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.EnableLookToggle = !CurrentSettings.Configuration.EnableLookToggle;
 				break;
 
 			case GameplaySettingsOption::CrouchToggleOption:
-				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
-				{
-					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-					CurrentSettings.Configuration.EnableCrouchToggle = !CurrentSettings.Configuration.EnableCrouchToggle;
-				}
-				else
-					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.EnableCrouchToggle = !CurrentSettings.Configuration.EnableCrouchToggle;
 				break;
 
 			case GameplaySettingsOption::GrabToggleOption:
-				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
-				{
-					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-					CurrentSettings.Configuration.EnableGrabToggle = !CurrentSettings.Configuration.EnableGrabToggle;
-				}
-				else
-					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.EnableGrabToggle = !CurrentSettings.Configuration.EnableGrabToggle;
 				break;
 
 			case GameplaySettingsOption::SmoothSprintStepsOption:
-				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
-				{
-					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-					CurrentSettings.Configuration.EnableSmoothSprintSteps = !CurrentSettings.Configuration.EnableSmoothSprintSteps;
-				}
-				else
-					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.EnableSmoothSprintSteps = !CurrentSettings.Configuration.EnableSmoothSprintSteps;
+				break;
+
+			default:
 				break;
 			}
 		}
 
 		if (IsPulsed(In::MenuLeft, 0.05f, 0.4f))
 		{
-			switch (SelectedOption)
+			switch (option)
 			{
 			case GameplaySettingsOption::MouseSensitivity:
 				if (CurrentSettings.Configuration.MouseSensitivity > MOUSE_SENSITIVITY_MIN)
@@ -1253,12 +1226,15 @@ namespace TEN::Gui
 				}
 
 				break;
+
+			default:
+				break;
 			}
 		}
 
 		if (IsPulsed(In::MenuRight, 0.05f, 0.4f))
 		{
-			switch (SelectedOption)
+			switch (option)
 			{
 			case GameplaySettingsOption::MouseSensitivity:
 				if (CurrentSettings.Configuration.MouseSensitivity < MOUSE_SENSITIVITY_MAX)
@@ -1271,6 +1247,9 @@ namespace TEN::Gui
 				}
 
 				break;
+
+			default:
+				break;
 			}
 		}
 
@@ -1278,7 +1257,7 @@ namespace TEN::Gui
 
 		if (GuiIsSelected() || GuiIsDeselected())
 		{
-			if (SelectedOption == GameplaySettingsOption::Apply || GuiIsDeselected())
+			if (SelectedOption == applyOption || GuiIsDeselected())
 			{
 				// Was rumble setting changed?
 				bool indicateRumble = CurrentSettings.Configuration.EnableRumble && !g_Configuration.EnableRumble;
@@ -1301,7 +1280,7 @@ namespace TEN::Gui
 				if (indicateRumble)
 					Rumble(0.5f);
 			}
-			else if (SelectedOption != GameplaySettingsOption::Cancel)
+			else if (SelectedOption != cancelOption)
 			{
 				// No action was taken, no need to play confirmation sound.
 				return;
