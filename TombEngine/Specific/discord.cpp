@@ -6,8 +6,6 @@
 
 using namespace TEN::Scripting;
 
-#if PLATFORM_64BIT
-
 namespace TEN::Utils::Discord
 {
     static constexpr auto APPLICATION_ID   = "1521229664541081730";
@@ -45,7 +43,7 @@ namespace TEN::Utils::Discord
     static std::string GetLevelName(int levelIndex)
     {
         auto* level = g_GameFlow->GetLevel(levelIndex);
-        if (!level)
+        if (!level || level->NameStringKey.empty())
             return std::string();
 
         const char* name = g_GameFlow->GetString(level->NameStringKey.c_str());
@@ -101,23 +99,3 @@ namespace TEN::Utils::Discord
         DiscordInitialized = false;
     }
 }
-
-#else
-
-// Discord RPC binaries are only available for 64-bit platforms, so all calls are no-ops.
-namespace TEN::Utils::Discord
-{
-    void InitializeDiscord()
-    {
-    }
-
-    void UpdateDiscordPresence(int)
-    {
-    }
-
-    void DeInitializeDiscord()
-    {
-    }
-}
-
-#endif
