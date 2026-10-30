@@ -872,9 +872,7 @@ namespace TEN::Entities::Vehicles
 		rBoatItem->Animation.Velocity.y = DoRubberBoatDynamics(rBoat->Water, rBoatItem->Animation.Velocity.y, (int*)&rBoatItem->Pose.Position.y);
 
 		if (ofs - rBoatItem->Animation.Velocity.y > 32 && rBoatItem->Animation.Velocity.y == 0 && water != NO_HEIGHT)
-		{
 			TriggerVehicleSplash(rBoatItem, ofs - rBoatItem->Animation.Velocity.y, RBOAT_RADIUS);
-		}
 
 		height = frontLeft.y + frontRight.y;
 		if (height < 0)

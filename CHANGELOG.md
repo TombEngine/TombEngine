@@ -132,12 +132,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed UI bars being affected by the postprocess mode.
 * Fixed Z-fighting on DisplayItems.
 * Fixed crashes when shooting if the gunflash object is missing.
-* Fixed vertex move effect speed in water rooms while turning camera on the x-axis
-* Fixed flares being selected from inventory whilst riding the kayak.
-* Fixed kayak paddle and minecart wrench not being drawn when starting a level.
 * Fixed crashes and missing textures while rendering swarm objects with alpha blended textures.
 * Fixed vertex move effect speed in water rooms while turning camera on the x-axis.
-
 
 ### Lua API changes
 
