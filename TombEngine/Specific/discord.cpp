@@ -62,6 +62,16 @@ namespace TEN::Utils::Discord
         DiscordInitialized = true;
     }
 
+    void DeInitializeDiscord()
+    {
+        if (!DiscordInitialized)
+            return;
+
+        Discord_ClearPresence();
+        Discord_Shutdown();
+        DiscordInitialized = false;
+    }
+
     void UpdateDiscordPresence(int levelIndex)
     {
         auto levelName = GetLevelName(levelIndex);
@@ -87,15 +97,5 @@ namespace TEN::Utils::Discord
 
         // The stable start timestamp keeps Discord's elapsed timer counting on its own between updates.
         Discord_UpdatePresence(&presence);
-    }
-
-    void DeInitializeDiscord()
-    {
-        if (!DiscordInitialized)
-            return;
-
-        Discord_ClearPresence();
-        Discord_Shutdown();
-        DiscordInitialized = false;
     }
 }
