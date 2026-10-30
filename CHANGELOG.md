@@ -7,6 +7,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### New features
 
+* Added re-worked and expanded [WRECKING_BALL](https://tombengine.com/asset/traps/wrecking-ball/) object from TR5.
+
 ### Bug fixes
 
 * Fixed static meshes in flipped rooms being lit with ambient light of the original room.
