@@ -183,6 +183,14 @@ function M.extract_identifier (value)
    return value:match('([%.:%-_%w]+)(.*)$')
 end
 
+function M.extract_quoted_name (value)
+   if type(value) ~= 'string' then
+      return nil
+   end
+   local _, name, rest = value:match('^%s*([\'"])(.-)%1(.*)$')
+   return name, rest
+end
+
 function M.identifier_list (ls)
    local ns = List()
    if type(ls) == 'string' then ls = List{ns} end
