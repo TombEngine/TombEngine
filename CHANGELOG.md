@@ -3,19 +3,30 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): <https://github.com/TombEngine/TombEditorReleases>
 
-## [Version 2.1]
+## [Version 2.0.2]
 
 ### New features
 * Added a parenting system for moveables that allows to parent a moveable to another.
 * Added parenting for HORIZONTAL_BAR & POLEROPE.
 * Added `Detach` anim command to dispatch detach from parent moveable.
 
+* Added Discord integration.
+* Added BATS_EMITTER_TR3 object from TR3.
+
 ### Bug fixes
+
+* Fixed GUARD enemies not being alerted by player gunfire.
+* Fixed static meshes in flipped rooms being lit with ambient light of the original room.
+* Fixed flyby camera roll persisting after the sequence ends.
 
 ### Lua API Changes
 * Added `Moveable:Attach`, `Moveable:Detach`, `Moveable:IsAttached` and `Moveable:GetParent` to manage parenting via scripting.
 
-## [Version 2.0]
+* Added `ParticleGroup:IsActive` method to check if the group's emitter is currently running.
+* Added `ParticleGroup:IsValid` method to check if the group still exists and is usable.
+* Added `Flow.Settings.Effects.waterEffectStrength` and `Flow.Settings.Effects.waterEffectDepth` settings to customize underwater wave effect.
+
+## [Version 2.0.1]
 
 ### New features
 

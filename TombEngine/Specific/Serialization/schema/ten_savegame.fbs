@@ -768,6 +768,7 @@ table SaveGame {
 	free_item_slots: [int32];
 	moveable_type_properties: [TypePropertyMap];
 	static_type_properties: [TypePropertyMap];
+	tr3_bats: [SwarmObjectInfo];
 }
 
 root_type TEN.Serialization.Save.SaveGame;
