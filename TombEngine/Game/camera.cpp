@@ -591,8 +591,9 @@ void ResetRemasteredCameraOrient(const ItemInfo& item)
 	RemasteredCameraPrevAltitude = RemasteredCameraAltitude;
 }
 
-// Camera frame the stick is read in. It stays locked while the look camera is active and
-// unlocks once the player stops.
+// Camera frame the stick is read in: the orbit angle, or the view's direction in a flyby or a fixed camera shot.
+// A flyby is followed every frame. In a fixed shot the frame keeps its direction while the player moves and takes the
+// view's direction once she stops.
 void UpdatePlayerRefCameraOrient(ItemInfo& item)
 {
 	if (!g_Configuration.IsUsingRemasteredControls())
@@ -604,15 +605,13 @@ void UpdatePlayerRefCameraOrient(ItemInfo& item)
 	bool isStopped = (((GetMoveAxis() == Vector2::Zero && !IsHeld(In::StepLeft) && !IsHeld(In::StepRight)) || vel == 0.0f) &&
 					  TestState(item.Animation.ActiveState, PLAYER_IDLE_STATE_IDS));
 
-	if (isStopped)
-		player.Control.LockRefCameraOrient = false;
+	// NOTE: CalculateCamera() has already reset Camera.type to Chase; Camera.lastType holds this tick's camera type.
+	bool isFixedShot = (!UseSpotCam && (Camera.lastType == CameraType::Fixed || Camera.lastType == CameraType::Heavy));
+	player.Control.LockRefCameraOrient = (isFixedShot && !isStopped);
 
-	if (Camera.type == CameraType::Look)
-		player.Control.LockRefCameraOrient = true;
-
-	short frameAngle = Camera.actualAngle;
-	if (Camera.type == CameraType::Chase || Camera.type == CameraType::Combat)
-		frameAngle = RemasteredCameraAzimuth;
+	short frameAngle = RemasteredCameraAzimuth;
+	if (UseSpotCam || isFixedShot)
+		frameAngle = Geometry::GetOrientToPoint(Camera.pos.ToVector3(), Camera.target.ToVector3()).y;
 
 	if (!player.Control.LockRefCameraOrient)
 		player.Control.RefCameraOrient = EulerAngles(Camera.actualElevation, frameAngle, 0);
@@ -902,14 +901,76 @@ static void UpdateRemasteredCameraOrient()
 	Camera.actualElevation += (RemasteredCameraAltitude - Camera.actualElevation) / 2;
 }
 
+// Settings of the camera clip walk. A control mode passes its own values.
+struct CameraClipSetup
+{
+	int StepCount		 = 0; // Steps from the look-at to the camera position.
+	int SurfaceSlideDist = 0; // How far a step may pass a floor or ceiling and still slide along it.
+};
+
+// Walks from lookAt toward pos in equal steps and moves pos to the last step with open space, judged by the floor and
+// ceiling heights at each step. A step past a floor or ceiling by less than the slide distance slides along it.
+// The walk also stops after a step in a swamp room.
+static void ClipCameraToRoomGeometry(const GameVector& lookAt, GameVector& pos, const CameraClipSetup& setup)
+{
+	auto step = (pos.ToVector3() - lookAt.ToVector3()) / (float)setup.StepCount;
+	auto point = lookAt.ToVector3();
+	auto clipPoint = point;
+	int roomNumber = lookAt.RoomNumber;
+	int clipRoomNumber = roomNumber;
+	bool isOpenFound = false;
+
+	for (int i = 0; i < setup.StepCount; i++)
+	{
+		if (TestEnvironment(ENV_FLAG_SWAMP, roomNumber))
+			break;
+
+		auto pointColl = GetPointCollision(Vector3i(point), roomNumber);
+		roomNumber = pointColl.GetRoomNumber();
+
+		int floorHeight = pointColl.GetFloorHeight();
+		int ceilingHeight = pointColl.GetCeilingHeight();
+		if (floorHeight != NO_HEIGHT && ceilingHeight != NO_HEIGHT && ceilingHeight < floorHeight)
+		{
+			if (point.y > floorHeight)
+			{
+				if ((point.y - floorHeight) >= setup.SurfaceSlideDist)
+					break;
+
+				point.y = (float)floorHeight;
+			}
+
+			if (point.y < ceilingHeight)
+			{
+				if ((ceilingHeight - point.y) >= setup.SurfaceSlideDist)
+					break;
+
+				point.y = (float)ceilingHeight;
+			}
+
+			isOpenFound = true;
+		}
+		else if (isOpenFound)
+		{
+			break;
+		}
+
+		clipPoint = point;
+		clipRoomNumber = roomNumber;
+		point += step;
+	}
+
+	auto clipPos = Vector3i(clipPoint);
+	pos = GameVector(clipPos, GetPointCollision(clipPos, clipRoomNumber).GetRoomNumber());
+}
+
 // Chase camera held at the player's orbit angle. Tests only that angle, then clips the ideal
 // position against room geometry and pushes it off walls.
 static void RemasteredChaseCamera(ItemInfo& item)
 {
-	constexpr auto CAMERA_SPEED				   = 3;
-	constexpr auto CLIP_STEP_COUNT			   = 64;
-	constexpr auto CLIP_MARGIN				   = 0;
-	constexpr auto CLIP_MARGIN_LOOK_AT_CLAMPED = 250;
+	constexpr auto CAMERA_SPEED				  = 3;
+	constexpr auto CLIP_SETUP				  = CameraClipSetup{ 64, 0 };
+	constexpr auto CLIP_SETUP_LOOK_AT_CLAMPED = CameraClipSetup{ 64, 250 };
 
 	Camera.speed = CAMERA_SPEED;
 
@@ -947,7 +1008,7 @@ static void RemasteredChaseCamera(ItemInfo& item)
 	ideal.z = Camera.target.z - (distance * phd_cos(Camera.actualAngle));
 	ideal.RoomNumber = Camera.target.RoomNumber;
 
-	LOSAndReturnTargetPrecise(&Camera.target, &ideal, isLookAtClamped ? CLIP_MARGIN_LOOK_AT_CLAMPED : CLIP_MARGIN, CLIP_STEP_COUNT);
+	ClipCameraToRoomGeometry(Camera.target, ideal, isLookAtClamped ? CLIP_SETUP_LOOK_AT_CLAMPED : CLIP_SETUP);
 
 	bool isPushBlocked = CameraCollisionBounds(&ideal, REMASTERED_CAMERA_WALL_PUSH, true);
 	ApplyRemasteredCameraDiagonalPush(ideal, Camera.target);
@@ -1108,6 +1169,14 @@ void CombatCamera(ItemInfo* item)
 
 	Camera.target.x = item->Pose.Position.x;
 	Camera.target.z = item->Pose.Position.z;
+
+	// Remastered controls fix: without it, a blocked camera swings to a fixed side and the stick no longer matches the view. -- divezzi, 29.10.26
+	if (g_Configuration.IsUsingRemasteredControls())
+	{
+		Camera.targetDistance = BLOCK(1.5f);
+		RemasteredChaseCamera(*item);
+		return;
+	}
 
 	if (player.TargetEntity)
 	{
@@ -2057,8 +2126,8 @@ void UpdateCamera()
 		CalculateCamera(LaraCollision);
 	}
 
-	// Remastered controls: updates the camera frame the stick is read in, except during flybys. -- divezzi, 10.10.26
-	if (LaraItem != nullptr && !UseSpotCam)
+	// Remastered controls: updates the camera frame the stick is read in, also during flybys. -- divezzi, 10.10.26
+	if (LaraItem != nullptr)
 		UpdatePlayerRefCameraOrient(*LaraItem);
 
 	// Update cameras matrices there, after having done all the possible camera logic.
