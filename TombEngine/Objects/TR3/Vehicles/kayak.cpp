@@ -1095,12 +1095,6 @@ namespace TEN::Entities::Vehicles
 		lara->HitDirection = -1;
 	}
 
-	static void KayakSplash(ItemInfo* kayakItem, int verticalVelocity)
-	{
-		// Restore the classic TR3 kayak splash produced when it drops into water from height.
-		TriggerVehicleSplash(kayakItem, verticalVelocity, KAYAK_SPLASH_RADIUS);
-	}
-
 	void KayakItemControl(short itemNumber)
 	{
 		auto* kayakItem = &g_Level.Items[itemNumber];
@@ -1136,7 +1130,7 @@ namespace TEN::Entities::Vehicles
 		if (ofs - kayakItem->Animation.Velocity.y > 32 &&
 			kayakItem->Animation.Velocity.y == 0 && kayak->TrueWater)
 		{
-			KayakSplash(kayakItem, ofs - kayakItem->Animation.Velocity.y);
+			TriggerVehicleSplash(kayakItem, ofs - kayakItem->Animation.Velocity.y, KAYAK_SPLASH_RADIUS);
 		}
 
 		probe = GetPointCollision(*kayakItem);
