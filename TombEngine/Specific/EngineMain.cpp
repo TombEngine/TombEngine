@@ -7,6 +7,7 @@
 #include "resource.h"
 #include "Sound/sound.h"
 #include "Specific/configuration.h"
+#include "Specific/Discord.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Specific/Parallel.h"
@@ -20,6 +21,7 @@ using namespace TEN::Renderer;
 using namespace TEN::Input;
 using namespace TEN::Utils;
 using namespace TEN::Video;
+using namespace TEN::Utils::Discord;
 
 // SDL threads
 SDL_Thread* GameThread = nullptr;
@@ -419,6 +421,9 @@ int main(int argc, char* argv[])
 
 		// Initialize input.
 		InitializeInput();
+
+		// Initialize Discord Rich Presence.
+		InitializeDiscord();
 
 		// Load level if specified in command line.
 		CurrentLevel = g_GameFlow->GetLevelNumber(levelFile);
