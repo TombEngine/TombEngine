@@ -14,7 +14,7 @@ cbuffer CBRoom : register(b5)
     float2 CausticsSize;
 	//--
     float3 AmbientColor;
-    float RoomPadding0;
+    int Outdoor;
 	//--
     float WaterEffectStrength;
     float WaterEffectDepth;

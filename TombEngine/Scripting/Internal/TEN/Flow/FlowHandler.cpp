@@ -8,6 +8,7 @@
 #include "Game/pickup/pickup_ammo.h"
 #include "Game/pickup/pickup_consumable.h"
 #include "Game/savegame.h"
+#include "Game/Sky/SkyCloudSystem.h"
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
 #include "Scripting/Include/Strings/ScriptInterfaceStringsHandler.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
@@ -22,6 +23,8 @@
 #include "Scripting/Internal/TEN/Flow/Enums/WeatherTypes.h"
 #include "Scripting/Internal/TEN/Flow/InventoryItem/InventoryItem.h"
 #include "Scripting/Internal/TEN/Flow/Settings/Settings.h"
+#include "Scripting/Internal/TEN/Flow/DynamicSky/DynamicSky.h"
+#include "Scripting/Internal/TEN/Flow/Weather/WeatherPreset.h"
 #include "Scripting/Internal/TEN/Logic/LevelFunc.h"
 #include "Scripting/Internal/TEN/Objects/Lara/WeaponTypes.h"
 #include "Scripting/Internal/TEN/Types/Time/Time.h"
@@ -379,12 +382,17 @@ Specify which translations in the strings table correspond to which languages.
 	Vec3::Register(parent);
 	Level::Register(tableFlow);
 	SkyLayer::Register(tableFlow);
+	DynamicSky::Register(tableFlow);
+	MoonLens::Register(tableFlow);
+	LevelDustStorm::Register(tableFlow);
+	LevelUnderwaterSky::Register(tableFlow);
 	InventoryItem::Register(tableFlow);
 	Settings::Register(tableFlow);
 	Fog::Register(tableFlow);
 	Horizon::Register(tableFlow);
 	LensFlare::Register(tableFlow);
 	Starfield::Register(tableFlow);
+	TEN::Scripting::RegisterWeatherAPI(tableFlow);
 
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_WeatherType, WEATHER_TYPES);
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_LaraType, PLAYER_TYPES);
@@ -500,6 +508,8 @@ void FlowHandler::LoadFlowScript()
 	ResetInventoryTablesToDefault();
 
 	_handler.ExecuteScript(_gameDir + "Scripts/Gameflow.lua");
+	_handler.ExecuteScript(_gameDir + "Scripts/WeatherPresets.lua", true);
+	TEN::Sky::g_SkyCloudSystem.FinalizeBasePresets();
 	_handler.ExecuteScript(_gameDir + "Scripts/SystemStrings.lua", true);
 	_handler.ExecuteScript(_gameDir + "Scripts/Strings.lua", true);
 	_handler.ExecuteScript(_gameDir + "Scripts/Settings.lua", true);

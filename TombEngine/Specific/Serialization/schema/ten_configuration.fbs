@@ -37,6 +37,8 @@ table Configuration {
 	menu_option_looping_mode: int32;
 	last_gamepad_type: int32;
 	bindings: [Binding];
+
+	atmospheric_sky_quality: int32 = 1;
 }
 
 root_type Configuration;

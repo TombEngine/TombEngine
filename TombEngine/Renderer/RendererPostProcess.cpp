@@ -2,6 +2,9 @@
 #include "Renderer/Renderer.h"
 
 #include "Game/spotcam.h"
+#include "Game/Sky/SkyCloudSystem.h"
+
+using namespace TEN::Sky;
 
 namespace TEN::Renderer
 {
@@ -164,21 +167,85 @@ namespace TEN::Renderer
 		
 		if (!view.LensFlaresToDraw.empty())
 		{
+			// Re-render horizon mesh into the GBuffer depth color RT so PSLensFlare
+			// can occlude flares behind mountain horizon geometry.
+			DrawHorizonDepth(view);
+
+			// Restore post-process pipeline state after the horizon-depth draw.
+			_shaders.Bind(Shader::PostProcess);
+			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+			_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
+			_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+			SetBlendMode(BlendMode::Opaque);
+			SetCullMode(CullMode::CounterClockwise);
+			SetDepthState(DepthState::Write);
+
+			// Update cloud occlusion for lens flare attenuation (before setting up lens flare RT).
+			// If the new dual-layer system has active volumetric layers, use its combined
+			// transmittance; otherwise fall back to the legacy single-layer occlusion.
+			if (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
+			{
+				// Dual-layer occlusion is updated inside DrawDualVolumetricClouds().
+			}
+			else
+			{
+				UpdateCloudLensFlareOcclusion(view);
+			}
+			float cloudOcclusion = (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
+				? g_SkyCloudSystem.GetCombinedCloudTransmittance()
+				: GetCloudLensFlareOcclusion();
+
 			_graphicsDevice->ClearRenderTarget2D(_postProcessRenderTarget[destRenderTarget]->GetRenderTarget(), Colors::Transparent);
 			_graphicsDevice->BindRenderTarget(_postProcessRenderTarget[destRenderTarget]->GetRenderTarget(), nullptr);
+			_graphicsDevice->SetViewport(view.Viewport);
 
 			_shaders.Bind(Shader::PostProcessLensFlare);
 
 			for (int i = 0; i < view.LensFlaresToDraw.size(); i++)
 			{
 				_stPostProcessBuffer.LensFlares[i].Position = view.LensFlaresToDraw[i].Position;
-				_stPostProcessBuffer.LensFlares[i].Color = view.LensFlaresToDraw[i].Color.ToVector3();
+
+				// Attenuate flare color by cloud transmittance: 1.0 = fully visible, 0.0 = fully occluded.
+				auto flareColor = view.LensFlaresToDraw[i].Color.ToVector3();
+				if (view.LensFlaresToDraw[i].IsGlobal)
+				{
+					flareColor *= cloudOcclusion;
+
+					// Fade the lens flare glow below the horizon unconditionally so the sun
+					// cannot be seen below the horizon regardless of atmospheric sky state.
+					// Direction.y = -sin(pitch) in TEN Y-down, so elevation = -Direction.y.
+					float sunElevation = -view.LensFlaresToDraw[i].Direction.y;
+					float sunBelowFade = std::clamp(1.0f + sunElevation * 8.0f, 0.0f, 1.0f);
+					sunBelowFade = sunBelowFade * sunBelowFade * (3.0f - 2.0f * sunBelowFade);
+					flareColor *= sunBelowFade;
+				}
+
+				// Suppress procedural starburst spike + ghost lens artifacts when the
+				// scripted lens flare disabled them (e.g. moon-only night levels).
+				if (!view.LensFlaresToDraw[i].EffectsEnabled)
+					flareColor = Vector3::Zero;
+
+				// Hide all global lens flare effects while the underwater sky
+				// preset is active — the sun is below the surface from the
+				// player's perspective and must not bleed sun/star flare through.
+				if (view.LensFlaresToDraw[i].IsGlobal && g_SkyCloudSystem.IsUnderwaterSkyPresetActive())
+					flareColor = Vector3::Zero;
+
+				_stPostProcessBuffer.LensFlares[i].Color = flareColor;
 			}
 			_stPostProcessBuffer.NumLensFlares = (int)view.LensFlaresToDraw.size();
 			UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
 
 			BindRenderTargetAsTexture(TextureRegister::ColorMap, _postProcessRenderTarget[currentRenderTarget]->GetRenderTarget(), SamplerStateRegister::PointWrap);
+
+			// Bind GBuffer depth at slot t1 so PSLensFlare can occlude flares
+			// behind opaque scene geometry (rooms, statics, moveables).
+			BindRenderTargetAsTexture(TextureRegister::NormalMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
+
 			DrawTriangles(3, 0);
+
+			// Unbind depth SRV so the depth target can be safely re-bound elsewhere.
+			_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::NormalMap);
 
 			destRenderTarget = (destRenderTarget) == 1 ? 0 : 1;
 			currentRenderTarget = (currentRenderTarget == 1) ? 0 : 1;

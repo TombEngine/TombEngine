@@ -20,7 +20,7 @@ namespace TEN::Renderer::ConstantBuffers
 		Vector2 CausticsSize;
 		//--
 		Vector3 AmbientColor;
-		float RoomPadding0;
+		int Outdoor;
 		//--
 		float WaterEffectStrength;
 		float WaterEffectDepth;

@@ -14,12 +14,13 @@ namespace TEN::Entities::Effects
 		int		RoomNumber = 0;	
 		Color	Color	   = {};
 
-		bool IsGlobal = false;
+		bool IsGlobal	   = false;
+		bool EffectsEnabled = true;
 	};
 
 	extern std::vector<LensFlare> LensFlares;
 
-	void SetupLensFlare(const Vector3& pos, int roomNumber, const Color& color, float* intensity, int spriteID);
+	void SetupLensFlare(const Vector3& pos, int roomNumber, const Color& color, float* intensity, int spriteID, bool effectsEnabled = true);
 	void ControlLensFlare(int itemNumber);
 	void ClearLensFlares();
 	void UpdateGlobalLensFlare();

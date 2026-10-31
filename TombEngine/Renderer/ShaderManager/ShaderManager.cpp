@@ -52,6 +52,23 @@ namespace TEN::Renderer::Utils
 		Load(Shader::Downscale, "PostProcess", "Downscale", ShaderType::Pixel, {});
 		Load(Shader::Blur, "PostProcess", "Blur", ShaderType::Pixel, {});
 		Load(Shader::GlowCombine, "PostProcess", "GlowCombine", ShaderType::Pixel, {});
+
+		// Volumetric clouds.
+		Load(Shader::VolumetricClouds, "VolumetricClouds", "", ShaderType::PixelAndVertex, {});
+		Load(Shader::VolumetricCloudComposite, "VolumetricClouds", "CloudComposite", ShaderType::Pixel, {});
+		Load(Shader::VolumetricCloudOcclusion, "VolumetricClouds", "CloudOcclusion", ShaderType::Pixel, {});
+
+		// Atmospheric sky dome.
+		Load(Shader::AtmosphericSkyDome, "AtmosphericSkyDome", "AtmosphericSky", ShaderType::PixelAndVertex, {});
+		Load(Shader::Aurora, "AtmosphericSkyDome", "Aurora", ShaderType::PixelAndVertex, {});
+		Load(Shader::SunMoonDisc, "AtmosphericSkyDome", "SunMoonDisc", ShaderType::PixelAndVertex, {});
+
+		// God rays.
+		Load(Shader::GodRay, "GodRay", "GodRay", ShaderType::PixelAndVertex, {});
+		Load(Shader::GodRayComposite, "GodRay", "GodRayComposite", ShaderType::Pixel, {});
+
+		// Volumetric dust storm.
+		Load(Shader::DustStorm, "DustStorm", "DustStorm", ShaderType::PixelAndVertex, {});
 	}
 
 	void ShaderManager::LoadAAShaders(int width, int height, bool recompile)
@@ -106,6 +123,8 @@ namespace TEN::Renderer::Utils
 		Load(Shader::RoomAmbientSky, "RoomAmbient", "Sky", ShaderType::PixelAndVertex, {});
 		Load(Shader::Items, "Objects", "", ShaderType::PixelAndVertex, {});
 		Load(Shader::Sky, "Sky", "", ShaderType::PixelAndVertex, {});
+		Load(Shader::SkyDepth, "Sky", "Depth", ShaderType::Pixel, {});
+		Load(Shader::SkyHorizonMask, "Sky", "HorizonMask", ShaderType::Pixel, {});
 		Load(Shader::Solid, "Solid", "", ShaderType::PixelAndVertex, {});
 		Load(Shader::Inventory, "Inventory", "", ShaderType::PixelAndVertex, {});
 

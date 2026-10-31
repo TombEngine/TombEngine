@@ -12,6 +12,11 @@
 #include "Game/control/control.h"
 #include "Specific/trutils.h"
 
+#include <imgui.h>
+
+// Forward declaration as instructed by imgui_impl_win32.h (guarded by #if 0 in the header).
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 extern "C"
 {
 	__declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
@@ -187,6 +192,10 @@ namespace TEN::Platform
 		// Set UTF-8 locale so that std::filesystem::path and C library functions
 		// interpret char* as UTF-8 (required for non-ASCII paths on Windows).
 		setlocale(LC_ALL, ".UTF-8");
+
+		// Force C numeric locale so printf-family functions and ImGui sliders
+		// always use '.' as the decimal separator regardless of system locale.
+		setlocale(LC_NUMERIC, "C");
 
 		constexpr unsigned int PROCESS_SYSTEM_DPI_AWARE = 1;
 

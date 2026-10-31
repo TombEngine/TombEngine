@@ -1,6 +1,6 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
-
+#include "Renderer/ImGuiIntegration.h"
 #include "Renderer/RendererUtils.h"
 #include "Renderer/SMAA/AreaTex.h"
 #include "Renderer/SMAA/SearchTex.h"
@@ -48,7 +48,7 @@ namespace TEN::Renderer
 
 		auto roomShader = _shaders.Get(Shader::Rooms);
 		_vertexInputLayout = _graphicsDevice->CreateInputLayout(inputLayoutItems, (IShader*)roomShader);
-		
+
 		// Initialize constant buffers.
 		_cbCameraMatrices = CreateConstantBuffer<CCameraMatrixBuffer>();
 		_cbObjects = CreateConstantBuffer<CObjectsBuffer>();
@@ -89,6 +89,10 @@ namespace TEN::Renderer
 		InitializeGameBars();
 		InitializeSpriteQuad();
 		InitializeSky();
+		InitializeVolumetricClouds();
+		InitializeAtmosphericSky();
+		InitializeGodRays();
+		InitializeDustStorm();
 
 		_sortedPolygonsVertices.reserve(MAX_TRANSPARENT_VERTICES);
 		_sortedPolygonsIndices.reserve(MAX_TRANSPARENT_VERTICES);
@@ -103,6 +107,9 @@ namespace TEN::Renderer
 
 		_primitiveBatch = _graphicsDevice->InitializePrimitiveBatch();
 		_spriteBatch = _graphicsDevice->InitializeSpriteBatch();
+
+		// Initialize ImGui debug overlay.
+		ImGuiInit(g_Platform->GetSDL3Window());
 	}
 
 	void Renderer::InitializePostProcess()
@@ -290,6 +297,7 @@ namespace TEN::Renderer
 		SAFE_DELETE(_postProcessRenderTarget[0]);
 		SAFE_DELETE(_postProcessRenderTarget[1]);
 		SAFE_DELETE(_dumpScreenRenderTarget);
+		SAFE_DELETE(_outdoorMaskRenderTarget);
 		SAFE_DELETE(_shadowMap);
 		SAFE_DELETE(_depthRenderTarget);
 		SAFE_DELETE(_normalsAndMaterialIndexRenderTarget);
@@ -324,6 +332,8 @@ namespace TEN::Renderer
 		_depthRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_R32_Float, false, DepthFormat::None);
 		_normalsAndMaterialIndexRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_emissiveAndRoughnessRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+		
+		_outdoorMaskRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_R8_Unorm, false, DepthFormat::None);
 
 		_SSAORenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_SSAOBlurredRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);

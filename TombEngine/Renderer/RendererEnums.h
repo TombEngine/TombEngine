@@ -187,6 +187,7 @@ enum class RendererDebugPage
 	PortalStats,
 	PathfindingStats,
 	WireframeMode,
+	SkyDebug,
 
 	Count
 };
@@ -219,7 +220,8 @@ enum class TextureRegister
 	AnimatedFrames = 14, // StructuredBuffer<AnimatedFrameUV> for per-draw animated UVs.
 	DistortionMap = 15,
 	NearBlurMap = 16,
-	FarBlurMap = 17
+	FarBlurMap = 17,
+	GBufferOutdoorMask = 18
 };
 
 enum class SamplerStateRegister
@@ -245,9 +247,10 @@ enum class ConstantBufferRegister
 	// buffer (t14) and metadata folded into PerDraw at b2.
 	PostProcess = 7,
 	Sky = 8,
+	VolumetricCloud = 9,
 	Hud = 10,
 	HudBar = 11,
-	// Slot 12 is currently unused — was Blending before it merged into PerDraw at b2.
+	AtmosphericSky = 12,
 	Sprites = 13
 };
 
@@ -472,6 +475,8 @@ enum class Shader
 	InstancedStatics,
 	InstancedSprites,
 	Sky,
+	SkyDepth,
+	SkyHorizonMask,
 	Solid,
 	Inventory,
 	FullScreenQuad,
@@ -526,6 +531,27 @@ enum class Shader
 	Blur,
 	Downscale,
 	GlowCombine,
+
+	// Volumetric clouds
+
+	VolumetricClouds,
+	VolumetricCloudComposite,
+	VolumetricCloudOcclusion,
+
+	// Atmospheric sky dome
+
+	AtmosphericSkyDome,
+	Aurora,
+	SunMoonDisc,
+
+	// God rays
+
+	GodRay,
+	GodRayComposite,
+
+	// Volumetric dust storm
+
+	DustStorm,
 
 	Count
 };

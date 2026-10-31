@@ -45,7 +45,7 @@ namespace TEN::Entities::Effects
 		}
 	}
 
-	void SetupLensFlare(const Vector3& pos, int roomNumber, const Color& color, float* intensity, int spriteID)
+	void SetupLensFlare(const Vector3& pos, int roomNumber, const Color& color, float* intensity, int spriteID, bool effectsEnabled)
 	{
 		auto cameraPos = Camera.pos.ToVector3();
 		auto cameraTarget = Camera.target.ToVector3();
@@ -138,6 +138,7 @@ namespace TEN::Entities::Effects
 		lensFlare.IsGlobal = isGlobal;
 		lensFlare.Color = color * Smoothstep(finalIntensity);
 		lensFlare.SpriteID = spriteID;
+		lensFlare.EffectsEnabled = effectsEnabled;
 
 		LensFlares.push_back(lensFlare);
 
@@ -153,14 +154,15 @@ namespace TEN::Entities::Effects
 			return;
 
 		auto orient   = EulerAngles(g_GameFlow->GetLevel(CurrentLevel)->GetLensFlarePitch(), g_GameFlow->GetLevel(CurrentLevel)->GetLensFlareYaw(), 0);
-		auto color    = g_GameFlow->GetLevel(CurrentLevel)->GetLensFlareColor();
+		auto color    = g_GameFlow->GetLevel(CurrentLevel)->GetLensFlareEvaluatedColor();
 		auto spriteID = g_GameFlow->GetLevel(CurrentLevel)->GetLensFlareSunSpriteID();
+		auto effects  = g_GameFlow->GetLevel(CurrentLevel)->GetLensFlareEffects();
 		
 		auto pos = Camera.pos.ToVector3();
 		auto rotMatrix = orient.ToRotationMatrix();
 
 		pos += Vector3::Transform(BASE_POS, rotMatrix);
-		SetupLensFlare(pos, NO_VALUE, color, &GlobalLensFlareIntensity, spriteID);
+		SetupLensFlare(pos, NO_VALUE, color, &GlobalLensFlareIntensity, spriteID, effects);
 	}
 
 	void ControlLensFlare(int itemNumber)

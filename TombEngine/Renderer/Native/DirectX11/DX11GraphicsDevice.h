@@ -103,6 +103,10 @@ namespace TEN::Renderer::Native::DirectX11
 	public:
 		~DX11GraphicsDevice() = default;
 
+		// Raw D3D11 handles for backends that need them (ImGui, RenderDoc, etc.).
+		ID3D11Device*        GetD3D11Device()  const { return _device.Get(); }
+		ID3D11DeviceContext* GetD3D11Context() const { return _context.Get(); }
+
 		std::unique_ptr<IVertexBuffer> CreateVertexBuffer(int numVertices, int vertexSize, void* data) override;
 		void UpdateVertexBuffer(IVertexBuffer* vertexBuffer, int startVertex, int count, void* data) override;
 		void BindVertexBuffer(IVertexBuffer* vertexBuffer) override;

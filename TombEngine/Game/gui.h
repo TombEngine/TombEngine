@@ -135,6 +135,7 @@ namespace TEN::Gui
 
 		int TimeInMenu = NO_VALUE;
 		float BackupGamma = 1.0f;
+		AtmosphericSkyQuality BackupAtmoSkyQuality = AtmosphericSkyQuality::Medium;
 		SettingsData CurrentSettings;
 
 		// Inventory variables
