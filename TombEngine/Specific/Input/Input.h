@@ -67,6 +67,27 @@ namespace TEN::Input
 		float	   FadeSpeed = 0.0f;
 	};
 
+	// Held state of the general actions, Forward to Look, for one tick. Clicks, pushes, clears and axes are not included.
+	struct PlayerInput
+	{
+		bool Forward   = false;
+		bool Back	   = false;
+		bool Left	   = false;
+		bool Right	   = false;
+		bool StepLeft  = false;
+		bool StepRight = false;
+		bool Walk	   = false;
+		bool Sprint	   = false;
+		bool Crouch	   = false;
+		bool Jump	   = false;
+		bool Roll	   = false;
+		bool Action	   = false;
+		bool Draw	   = false;
+		bool Look	   = false;
+	};
+
+	// NOTE: PlayerInput holds the general actions. Update PLAYER_INPUT_ACTIONS in Input.cpp when this group changes.
+
 	extern std::unordered_map<int, float>				  KeyMap;
 	extern std::unordered_map<ActionID, Action>			  ActionMap;
 	extern std::unordered_map<ActionID, ActionQueueState> ActionQueueMap;
@@ -85,6 +106,7 @@ namespace TEN::Input
 	void StopRumble();
 	void ApplyDefaultBindings();
 	bool RestoreDefaultBindings(DefaultBindingType bindingType);
+	void RefreshBindingsForControlMode();
 	GamepadType GetGamepadType();
 	InputDevice GetLastInputDevice();
 
@@ -99,6 +121,14 @@ namespace TEN::Input
 	float		 GetActionValue(ActionID actionID);
 	unsigned int GetActionTimeActive(ActionID actionID);
 	unsigned int GetActionTimeInactive(ActionID actionID);
+	bool		 IsCleared(ActionID actionID);
+	bool		 IsPushed(ActionID actionID);
+
+	PlayerInput ReadPlayerInput();
+	void		ApplyClearedActions(PlayerInput& input);
+	void		WritePlayerInput(const PlayerInput& input, const PlayerInput& heldWithoutClickInput = PlayerInput{});
+	void		RestorePlayerInput();
+	bool		IsRawActionHeld(ActionID actionID);
 
 	bool IsDirectionalActionHeld();
 	bool IsWakeActionHeld();

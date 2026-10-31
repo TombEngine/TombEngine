@@ -9,6 +9,7 @@
 #include "Game/effects/effects.h"
 #include "Game/items.h"
 #include "Game/Lara/PlayerContext.h"
+#include "Game/Lara/RemasteredControls.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_swim.h"
@@ -38,6 +39,10 @@ constexpr auto DEFLECT_DIAGONAL_ANGLE_CRAWL = ANGLE(5.0f);
 bool LaraDeflectEdge(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
+
+	// Remastered controls fix: without it, diagonal steps and walls deflect the player every tick against the heading solver. -- divezzi, 10.10.26
+	if (HandlePlayerRemasteredDiagonalStep(*item, *coll))
+		return false;
 
 	if (coll->CollisionType == CollisionType::Front || coll->CollisionType == CollisionType::TopFront)
 	{

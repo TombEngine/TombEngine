@@ -37,6 +37,17 @@ table Configuration {
 	menu_option_looping_mode: int32;
 	last_gamepad_type: int32;
 	bindings: [Binding];
+
+	// Appended at the end: slots are positional, so existing config files stay valid.
+	control_mode: int32;
+	remastered_bindings: [Binding];
+	remastered_gamepad_bindings: [Binding];
+	invert_camera_y_axis: bool;
+	enable_sprint_toggle: bool;
+	enable_crouch_toggle: bool = true;
+	enable_smooth_sprint_steps: bool = true;
+	enable_grab_toggle: bool = true;
+	enable_look_toggle: bool;
 }
 
 root_type Configuration;

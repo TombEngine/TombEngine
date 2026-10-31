@@ -12,6 +12,7 @@
 #include "Game/effects/drip.h"
 #include "Game/GuiObjects.h"
 #include "Game/Lara/PlayerContext.h"
+#include "Game/Lara/RemasteredControls.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_collide.h"
 #include "Game/Lara/lara_fire.h"
@@ -23,6 +24,7 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Sound/sound.h"
+#include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
@@ -88,6 +90,10 @@ void HandleLaraMovementParameters(ItemInfo* item, CollisionInfo* coll)
 	{
 		ResetPlayerFlex(item, 0.1f);
 	}
+
+	// Remastered controls: the heading solver turns the player in its states, so the turn rate is zeroed there. -- divezzi, 10.10.26
+	if (g_Configuration.IsUsingRemasteredControls() && DoesPlayerRemasteredSolverOwnHeading(*item))
+		lara->Control.TurnRate = 0;
 
 	// Apply and reset turn rate.
 	item->Pose.Orientation.y += lara->Control.TurnRate;
@@ -388,6 +394,8 @@ void HandlePlayerQuickActions(ItemInfo& item)
 	/*if (IsClicked(In::Weapon10) && player.Weapons[(int)LaraWeaponType::].Present)
 		requestedGunType = LaraWeaponType::;*/
 
+	// TODO: Add gamepad quick weapon selection (e.g. DualSense touchpad combined with other inputs) here, setting requestedGunType. -- divezzi, 12.10.26
+
 	if (requestedGunType != LaraWeaponType::None)
 	{
 		player.Control.Weapon.RequestGunType = requestedGunType;
@@ -487,15 +495,16 @@ void HandlePlayerLookAround(ItemInfo& item, bool invertXAxis)
 	bool isSlow = IsHeld(In::Walk);
 	auto axisCoeff = Vector2::Zero;
 
+	// Remastered controls: look-around reads the keys as pressed, before the movement rewrite. -- divezzi, 10.10.26
 	// Determine X axis coefficient.
-	if ((IsHeld(In::Forward) || IsHeld(In::Back)) &&
+	if ((IsRawActionHeld(In::Forward) || IsRawActionHeld(In::Back)) &&
 		(player.Control.Look.Mode == LookMode::Free || player.Control.Look.Mode == LookMode::Vertical))
 	{
 		axisCoeff.x = AxisMap[AxisID::Move].y;
 	}
 
 	// Determine Y axis coefficient.
-	if ((IsHeld(In::Left) || IsHeld(In::Right)) &&
+	if ((IsRawActionHeld(In::Left) || IsRawActionHeld(In::Right)) &&
 		(player.Control.Look.Mode == LookMode::Free || player.Control.Look.Mode == LookMode::Horizontal))
 	{
 		axisCoeff.y = AxisMap[AxisID::Move].x;
@@ -982,6 +991,14 @@ void HandlePlayerElevationChange(ItemInfo* item, CollisionInfo* coll)
 		{
 			item->DisableInterpolation = true;
 
+			// Remastered controls: with Smooth Sprint Steps on, a sprint climbs the step without the step-up animation. -- divezzi, 10.10.26
+			if (g_Configuration.IsUsingRemasteredControls() && g_Configuration.EnableSmoothSprintSteps &&
+				item->Animation.ActiveState == LS_SPRINT)
+			{
+				item->Pose.Position.y += coll->Middle.Floor;
+				return;
+			}
+
 			const auto* dispatch = GetStateDispatch(*item, LS_STEP_UP);
 			if (dispatch != nullptr)
 			{
@@ -1280,7 +1297,14 @@ void ModulateLaraTurnRateY(ItemInfo* item, short accelRate, short minTurnRate, s
 		axisCoeff = std::min(1.2f, abs(axisCoeff)) * sign;
 	}
 
+	// Remastered controls: in turn states, the turn keys turn the player at the full rate, since the stick's x axis is camera-relative. -- divezzi, 12.10.26
+	bool isUnscaledTurn = GetRemasteredUnscaledTurnAxisCoeff(*item, axisCoeff);
+
 	lara->Control.TurnRate/*.y*/ = ModulateLaraTurnRate(lara->Control.TurnRate/*.y*/, accelRate, minTurnRate, maxTurnRate, axisCoeff, invert);
+
+	// Remastered controls: the armed turn does not overshoot the heading it turns to. -- divezzi, 12.10.26
+	if (isUnscaledTurn)
+		ClampRemasteredArmedTurnRate(*item);
 }
 
 static short ResetPlayerTurnRate(short turnRate, short decelRate)
@@ -1307,6 +1331,10 @@ void ResetPlayerTurnRateY(ItemInfo& item, short decelRate)
 void ModulateLaraSwimTurnRates(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
+
+	// Remastered controls: the stick steers in water, so the Forward it holds does not pitch the player down here. -- divezzi, 12.10.26
+	if (DoesRemasteredSolverOwnWaterHeading(*item))
+		return;
 
 	/*if ((IsHeld(In::Forward) || IsHeld(In::Back)))
 	ModulateLaraTurnRateX(item, 0, 0, 0);*/

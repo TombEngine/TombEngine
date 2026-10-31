@@ -352,7 +352,7 @@ namespace TEN::Scripting
 			sol::meta_function::new_index, NewIndexErrorMaker(GraphicsSettings, ScriptReserved_GraphicsSettings),
 
 		/// Enable ambient occlusion.
-		// @tfield[opt=true] bool ambientOcclusion If disabled, ambient occlusion setting will be forced to off, and corresponding menu entry in the Display Settings dialog will be grayed out.
+		// @tfield[opt=true] bool ambientOcclusion If disabled, ambient occlusion setting will be forced to off, and corresponding menu entry in the Display dialog will be grayed out.
 		"ambientOcclusion", &GraphicsSettings::AmbientOcclusion,
 
 		/// Enable flame heat haze overlays for fire particles and sparks.

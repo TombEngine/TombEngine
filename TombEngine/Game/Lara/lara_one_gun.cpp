@@ -24,6 +24,7 @@
 #include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_two_guns.h"
+#include "Game/Lara/RemasteredControls.h"
 #include "Game/misc.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
@@ -120,7 +121,7 @@ void AnimateShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 		{
 			item.Animation.TargetState = WEAPON_STATE_UNDERWATER_AIM;
 		}
-		else if ((!IsHeld(In::Action) || player.TargetEntity) && player.LeftArm.Locked == false)
+		else if ((!IsRemasteredGrabHeld() || player.TargetEntity) && player.LeftArm.Locked == false)
 		{
 			item.Animation.TargetState = WEAPON_STATE_UNAIM;
 		}
@@ -148,7 +149,7 @@ void AnimateShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 
 		if (player.Control.WaterStatus == WaterStatus::Underwater || isRunning)
 		{
-			if ((!IsHeld(In::Action) || player.TargetEntity) && player.LeftArm.Locked == false)
+			if ((!IsRemasteredGrabHeld() || player.TargetEntity) && player.LeftArm.Locked == false)
 				item.Animation.TargetState = WEAPON_STATE_UNDERWATER_UNAIM;
 			else
 				item.Animation.TargetState = WEAPON_STATE_UNDERWATER_RECOIL;
@@ -178,7 +179,7 @@ void AnimateShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 			if (player.Control.WaterStatus != WaterStatus::Underwater &&
 				!isRunning && !reloadHarpoonGun)
 			{
-				if (IsHeld(In::Action) && (!player.TargetEntity || player.LeftArm.Locked))
+				if (IsRemasteredGrabHeld() && (!player.TargetEntity || player.LeftArm.Locked))
 				{
 					switch (weaponType)
 					{
@@ -250,7 +251,7 @@ void AnimateShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 		{
 			SoundEffect(SFX_TR4_HK_FIRE, &laraItem.Pose);
 		}
-		else if (weaponType == LaraWeaponType::Shotgun && !IsHeld(In::Action) && !player.LeftArm.Locked)
+		else if (weaponType == LaraWeaponType::Shotgun && !IsRemasteredGrabHeld() && !player.LeftArm.Locked)
 		{
 			item.Animation.TargetState = WEAPON_STATE_UNAIM;
 		}
@@ -270,7 +271,7 @@ void AnimateShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 
 			if ((player.Control.WaterStatus == WaterStatus::Underwater || isRunning) && !reloadHarpoonGun)
 			{
-				if (IsHeld(In::Action) && (!player.TargetEntity || player.LeftArm.Locked))
+				if (IsRemasteredGrabHeld() && (!player.TargetEntity || player.LeftArm.Locked))
 				{
 					switch (weaponType)
 					{
@@ -1232,9 +1233,9 @@ void LasersightWeaponHandler(ItemInfo& item, LaraWeaponType weaponType)
 	if (player.Control.Weapon.Timer != 0.0f)
 		player.Control.Weapon.Timer -= 1.0f;
 
-	if (!IsHeld(In::Action) || player.Control.Weapon.Interval != 0.0f || !ammo)
+	if (!IsRemasteredGrabHeld() || player.Control.Weapon.Interval != 0.0f || !ammo)
 	{
-		if (!IsHeld(In::Action))
+		if (!IsRemasteredGrabHeld())
 		{
 			player.Control.Weapon.NumShotsFired = 0;
 			Camera.bounce = 0;
@@ -1323,7 +1324,7 @@ void RifleHandler(ItemInfo& laraItem, LaraWeaponType weaponType)
 
 	FindNewTarget(laraItem, weapon);
 
-	if (IsHeld(In::Action))
+	if (IsRemasteredGrabHeld())
 		LaraTargetInfo(laraItem, weapon);
 
 	AimWeapon(laraItem, player.LeftArm, weapon);

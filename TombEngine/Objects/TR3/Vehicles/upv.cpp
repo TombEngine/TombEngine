@@ -18,6 +18,7 @@
 #include "Game/Lara/lara_flare.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_one_gun.h"
+#include "Game/Lara/RemasteredControls.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Game/Sink.h"
@@ -1007,7 +1008,8 @@ namespace TEN::Entities::Vehicles
 		{
 			DoCurrent(UPVItem, laraItem);
 
-			if (IsHeld(In::Fire) &&
+			// Remastered controls: the harpoon fires on Action. -- divezzi, 12.10.26
+			if (IsRemasteredVehicleFireHeld() &&
 				UPV->Flags & UPV_FLAG_CONTROL &&
 				!UPV->HarpoonTimer)
 			{

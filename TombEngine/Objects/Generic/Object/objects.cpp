@@ -10,9 +10,11 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Lara/RemasteredControls.h"
 #include "Game/Setup.h"
 #include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
+#include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
@@ -111,6 +113,10 @@ void TightropeCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* col
 				laraInfo->Control.Tightrope.CanDismount = false;
 				laraInfo->Control.Tightrope.TightropeItem = itemNumber;
 				laraInfo->Control.Tightrope.TimeOnTightrope = 0;
+
+				// Remastered controls: each tightrope starts with the turn latch released. -- divezzi, 11.10.26
+				if (g_Configuration.IsUsingRemasteredControls())
+					laraInfo->Control.Remastered.IsTightropeTurnLatched = false;
 			}
 			else
 			{
@@ -134,7 +140,7 @@ void HorizontalBarCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo*
 	auto* laraInfo = GetLaraInfo(laraItem);
 	auto* barItem = &g_Level.Items[itemNumber];
 
-	if (IsHeld(In::Action) &&
+	if (IsRemasteredGrabHeld() &&
 		laraItem->Animation.ActiveState == LS_REACH &&
 		laraItem->Animation.AnimNumber == LA_REACH &&
 		laraInfo->Control.HandStatus == HandStatus::Free)

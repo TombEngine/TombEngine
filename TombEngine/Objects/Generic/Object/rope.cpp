@@ -8,6 +8,7 @@
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/Lara/lara.h"
+#include "Game/Lara/RemasteredControls.h"
 #include "Math/Math.h"
 #include "Game/collision/collide_room.h"
 #include "Objects/Generic/Object/rope.h"
@@ -170,7 +171,7 @@ namespace TEN::Entities::Generic
 		auto* ropeItem = &g_Level.Items[itemNumber];
 		auto* rope = &Ropes[ropeItem->TriggerFlags];
 		
-		if (IsHeld(In::Action) &&
+		if (IsRemasteredGrabHeld() &&
 			laraInfo->Control.HandStatus == HandStatus::Free &&
 			(laraItem->Animation.ActiveState == LS_REACH || laraItem->Animation.ActiveState == LS_JUMP_UP) &&
 			laraItem->Animation.IsAirborne &&

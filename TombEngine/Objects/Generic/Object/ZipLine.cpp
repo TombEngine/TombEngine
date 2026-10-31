@@ -9,6 +9,7 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Lara/RemasteredControls.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Sound/sound.h"
@@ -53,7 +54,7 @@ namespace TEN::Entities::Traps
 
 		g_Hud.InteractionHighlighter.Test(*laraItem, zipLineItem, InteractionMode::Custom);
 
-		if ((IsHeld(In::Action) &&
+		if ((IsRemasteredGrabHeld() &&
 			laraItem->Animation.ActiveState == LS_IDLE &&
 			!laraItem->Animation.IsAirborne &&
 			player.Control.HandStatus == HandStatus::Free) ||

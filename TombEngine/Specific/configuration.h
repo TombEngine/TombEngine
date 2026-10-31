@@ -15,6 +15,15 @@ enum class MenuOptionLoopingMode
 	Disabled
 };
 
+// Remastered controls: selects between the stock control scheme and the Remastered-style scheme. -- divezzi, 08.10.26
+enum class ControlMode
+{
+	Classic,
+	RemasteredControls,
+
+	Count
+};
+
 struct GameConfiguration
 {
 	static constexpr auto DEFAULT_SHADOW_MAP_SIZE	= 1024;
@@ -53,16 +62,33 @@ struct GameConfiguration
 	bool EnableInteractionHighlighter	= false;
 	bool EnableRumble					= false;
 	bool EnableThumbstickCamera			= false;
+	bool InvertCameraYAxis				= false;
+	bool EnableSprintToggle				= false;
+	bool EnableLookToggle				= false;
+	bool EnableCrouchToggle				= true;
+	bool EnableGrabToggle				= true;
+	bool EnableSmoothSprintSteps		= true;
 
 	// Input
 	int					  MouseSensitivity		= DEFAULT_MOUSE_SENSITIVITY;
 	MenuOptionLoopingMode MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
 	GamepadType			  LastGamepadType		= GamepadType::Xbox;
 	BindingProfile		  Bindings				= {};
+	ControlMode			  ControlMode			= ControlMode::Classic;
+
+	BindingProfile RemasteredBindings		 = {};
+	BindingProfile RemasteredGamepadBindings = {};
 
 	std::vector<Vector2i>	SupportedScreenResolutions	= {};
 	std::string				AdapterName					= {};
 	std::vector<BassDevice> SupportedSoundDevices				= {};
+
+	bool IsUsingClassicControls() const			{ return ControlMode == ControlMode::Classic; }
+	bool IsUsingRemasteredControls() const		{ return ControlMode == ControlMode::RemasteredControls; }
+
+	// Remastered controls: Auto Targeting forced on, Auto Monkey Jump forced off; saved values unchanged. -- divezzi, 12.10.26
+	bool IsAutoTargetingEnabled() const			{ return (IsUsingRemasteredControls() || EnableAutoTargeting); }
+	bool IsAutoMonkeySwingJumpEnabled() const	{ return (!IsUsingRemasteredControls() && EnableAutoMonkeySwingJump); }
 };
 
 void InitDefaultConfiguration();

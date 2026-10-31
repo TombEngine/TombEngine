@@ -12,6 +12,7 @@
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/Lara/lara_tests.h"
+#include "Game/Lara/RemasteredControls.h"
 #include "Math/Math.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
@@ -72,7 +73,7 @@ namespace TEN::Entities::Generic
 		g_Hud.InteractionHighlighter.Test(*laraItem, poleItem);
 
 		// Mount while grounded.
-		if (IsHeld(In::Action) && isFacingPole &&
+		if (IsRemasteredGrabHeld() && isFacingPole &&
 			TestState(laraItem->Animation.ActiveState, VPoleGroundedMountStates) &&
 			player.Control.HandStatus == HandStatus::Free ||
 			(player.Control.IsMoving && player.Context.InteractedItem == itemNumber))
@@ -111,7 +112,7 @@ namespace TEN::Entities::Generic
 		}
 
 		// Mount while airborne.
-		if (IsHeld(In::Action) && isFacingPole &&
+		if (IsRemasteredGrabHeld() && isFacingPole &&
 			TestState(laraItem->Animation.ActiveState, VPoleAirborneMountStates) &&
 			laraItem->Animation.IsAirborne &&
 			laraItem->Animation.Velocity.y > 0.0f &&

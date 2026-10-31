@@ -10,6 +10,7 @@
 #include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_struct.h"
+#include "Game/Lara/RemasteredControls.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
@@ -110,7 +111,7 @@ static void AnimateWeapon(ItemInfo& laraItem, LaraWeaponType weaponType, bool& h
 	int frame = arm.FrameNumber;
 
 	// Wind animation forward.
-	if ((IsHeld(In::Action) && !player.TargetEntity) || arm.Locked)
+	if ((IsRemasteredGrabHeld() && !player.TargetEntity) || arm.Locked)
 	{
 		// At or beyond DRAW_END (2) start frame AND before SHOOT_START (0) end frame; increment toward SHOOT_START (0) end frame.
 		if (frame >= 0 && frame < weaponAnimData.Draw1Anim2)
@@ -121,7 +122,7 @@ static void AnimateWeapon(ItemInfo& laraItem, LaraWeaponType weaponType, bool& h
 		else if (frame == weaponAnimData.Draw1Anim2)
 		{
 			// Shoot weapon.
-			if (IsHeld(In::Action))
+			if (IsRemasteredGrabHeld())
 			{
 				// HACK: Special case for revolver.
 				bool canShoot = (weaponType == LaraWeaponType::Revolver) ? isRightWeapon : true;
@@ -270,7 +271,7 @@ void HandlePistols(ItemInfo& laraItem, LaraWeaponType weaponType)
 	auto& weapon = Weapons[(int)weaponType];
 
 	FindNewTarget(laraItem, weapon);
-	if (IsHeld(In::Action))
+	if (IsRemasteredGrabHeld())
 		LaraTargetInfo(laraItem, weapon);
 
 	AimWeapon(laraItem, lara.LeftArm, weapon);
