@@ -1315,6 +1315,7 @@ struct PlayerInventoryData
 	int TotalSmallMedipacks;
 	int TotalLargeMedipacks;
 	int TotalFlares;
+	int TotalGoldRoses;
 	unsigned int TotalSecrets;
 
 	bool HasLoad	   = false;
@@ -1327,6 +1328,7 @@ struct PlayerInventoryData
 	bool HasTorch	   = false;
 	bool HasLasersight = false;
 	bool HasSilencer   = false; // TODO: Unused.
+	bool HasHammer	   = false;
 
 	int Puzzles[NUM_PUZZLES]			= {};
 	int Keys[NUM_KEYS]					= {};
