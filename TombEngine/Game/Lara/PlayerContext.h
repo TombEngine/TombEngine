@@ -1,4 +1,5 @@
 #pragma once
+#include "Game/collision/Interaction.h"
 #include "Game/Lara/PlayerContextData.h"
 #include "Math/Math.h"
 
@@ -6,10 +7,19 @@ struct CollisionInfo;
 struct ItemInfo;
 struct LaraInfo;
 
+using namespace TEN::Collision::Interaction;
 using namespace TEN::Math;
 
 namespace TEN::Entities::Player
 {
+	struct PlayerWalkInteractionData
+	{
+		bool IsComplete = false;
+
+		std::optional<InteractionBasis> Basis = std::nullopt;
+		InteractionRoutine				Routine = nullptr;
+	};
+
 	class PlayerContext
 	{
 	private:
@@ -29,6 +39,8 @@ namespace TEN::Entities::Player
 		int		 WaterSurfaceDist	= 0;
 		short	 WaterCurrentActive = 0; // Sink number? Often used as bool.
 		Vector3i WaterCurrentPull	= Vector3i::Zero;
+
+		PlayerWalkInteractionData WalkInteraction = {};
 
 		int InteractedItem = 0; // InteractedItemNumber.
 		int Vehicle		   = 0; // VehicleItemNumber.

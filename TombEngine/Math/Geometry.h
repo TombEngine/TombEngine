@@ -64,6 +64,7 @@ namespace TEN::Math::Geometry
 
 	Quaternion ConvertDirectionToQuat(const Vector3& dir);
 	Vector3	   ConvertQuatToDirection(const Quaternion& quat);
+	BoundingOrientedBox GetExpandedBoundingOrientedBox(const BoundingOrientedBox& box, const BoundingOrientedBox& expansionBox);
 
 	// Point relation inquirers
 

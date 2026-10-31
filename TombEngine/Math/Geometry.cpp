@@ -325,6 +325,17 @@ namespace TEN::Math::Geometry
 		return Vector3::Transform(Vector3::UnitZ, quat);
 	}
 
+	BoundingOrientedBox GetExpandedBoundingOrientedBox(const BoundingOrientedBox& box, const BoundingOrientedBox& expansionBox)
+	{
+		auto rotMatrix = Matrix::CreateFromQuaternion(box.Orientation);
+		auto offset = Vector3::Transform(expansionBox.Center, rotMatrix);
+
+		return BoundingOrientedBox(
+			box.Center + offset,
+			box.Extents + expansionBox.Extents,
+			box.Orientation);
+	}
+
 	bool IsPointInFront(const Pose& pose, const Vector3& target)
 	{
 		return IsPointInFront(pose.Position.ToVector3(), target, pose.Orientation);
