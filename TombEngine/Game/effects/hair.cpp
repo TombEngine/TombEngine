@@ -2,6 +2,7 @@
 #include "Game/effects/hair.h"
 
 #include "Game/Animation/Animation.h"
+#include "Game/Animation/Skeleton.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/control/control.h"
@@ -48,8 +49,9 @@ namespace TEN::Effects::Hair
 		bool isYoung = (g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() == LaraType::Young);
 
 		// Get world matrix from head bone.
-		auto worldMatrix = Matrix::Identity;
-		g_Renderer.GetBoneMatrix(item.Index, GetRootMeshID(hairUnitID), &worldMatrix);
+		auto pose = SkeletonPose{};
+		GetItemPose(item, pose);
+		auto worldMatrix = pose.Transforms[GetRootMeshID(hairUnitID)] * GetItemWorldMatrix(item);
 
 		// Apply base offset to world matrix.
 		auto relOffset = GetRelBaseOffset(hairUnitID, isYoung);
@@ -58,7 +60,7 @@ namespace TEN::Effects::Hair
 		// Use player's head bone orientation as base.
 		auto rootMotionCounteract = GetAnimData(item).GetRootMotionCounteraction(item.Animation.FrameNumber);
 		auto itemOrient = (item.Pose.Orientation + rootMotionCounteract.Rotation).ToQuaternion();
-		auto baseOrient = Geometry::ConvertDirectionToQuat(-Geometry::ConvertQuatToDirection(GetBoneOrientation(item, LM_HEAD))) * itemOrient;
+		auto baseOrient = Geometry::ConvertDirectionToQuat(-Geometry::ConvertQuatToDirection(pose.Orientations[LM_HEAD])) * itemOrient;
 
 		// Set position of base segment.
 		Segments[0].Position = worldMatrix.Translation();

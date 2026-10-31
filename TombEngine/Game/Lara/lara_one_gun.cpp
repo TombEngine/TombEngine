@@ -81,9 +81,6 @@ void AnimateShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 	auto& player = *GetLaraInfo(&laraItem);
 	const auto& weapon = player.Weapons[(int)LaraWeaponType::HK];
 
-	// Force update of player's animations to ensure that the gun smoke particles are applied correctly.
-	g_Renderer.UpdateLaraAnimations(true);
-
 	if (player.LeftArm.GunSmoke > 0)
 	{
 		auto relOffset = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].MuzzleOffset.ToVector3();

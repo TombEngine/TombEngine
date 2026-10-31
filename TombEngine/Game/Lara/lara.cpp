@@ -742,9 +742,6 @@ void UpdateLara(ItemInfo* item, bool isTitle)
 	if (isTitle)
 		ActionMap = actionMap;
 
-	// Update player animations.
-	g_Renderer.UpdateLaraAnimations(true);
-
 	// Update player effects.
 	HairEffect.Update(*item);
 	HandlePlayerWetnessDrips(*item);

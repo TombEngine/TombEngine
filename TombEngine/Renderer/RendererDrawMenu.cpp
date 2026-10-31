@@ -976,7 +976,7 @@ namespace TEN::Renderer
 		if (!object.Animations.empty())
 		{
 			const auto& frame = GetAnimData(object, 0).Frames.front();
-			UpdateAnimation(nullptr, *moveableObject, frame, UINT_MAX);
+			UpdateAnimation(*moveableObject, frame);
 		}
 
 		auto pos = _graphicsDevice->Unproject(Vector3(pos2D.x, pos2D.y, 1.0f), projMatrix, viewMatrix, Matrix::Identity);
@@ -1143,7 +1143,7 @@ namespace TEN::Renderer
 		{
 			int animNumber = item.GetAnimNumber();
 			int frameNumber = item.GetFrameNumber();
-			UpdateAnimation(nullptr, *moveableObject, GetAnimData(object, animNumber).Frames[frameNumber], UINT_MAX);
+			UpdateAnimation(*moveableObject, GetAnimData(object, animNumber).Frames[frameNumber]);
 		}
 
 		SetBlendMode(BlendMode::Opaque);

@@ -3,6 +3,12 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): <https://github.com/TombEngine/TombEditorReleases>
 
+## [Version 2.1.0]
+
+### New features
+
+* Moved skeleton posing from the renderer to the game: joint positions, collision spheres, hair and animation blends of moveables are now always up to date, including moveables that were not drawn in the previous frame.
+
 ## [Version 2.0.2]
 
 ### New features
