@@ -6,6 +6,7 @@
 #include "Renderer/Renderer.h"
 #include "resource.h"
 #include "Sound/sound.h"
+#include "Specific/Benchmark.h"
 #include "Specific/configuration.h"
 #include "Specific/Discord.h"
 #include "Specific/Input/Input.h"
@@ -201,7 +202,8 @@ static void HandleWindowFocusLost(SDL_Window* window)
 	bool isMinimized =
 		(SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) != 0;
 
-	if ((!DebugMode || isMinimized) && ThreadSuspendCount == 0)
+	// Benchmarks keep running in the background, so a focus change does not invalidate the measurement.
+	if ((!DebugMode || isMinimized) && ThreadSuspendCount == 0 && !TEN::Benchmark::IsBenchmarkActive())
 	{
 		TENLog("Suspending game thread.", LogLevel::Info);
 
@@ -259,6 +261,7 @@ int main(int argc, char* argv[])
 	// Process command line arguments.
 	auto levelFile = std::string();
 	auto gameDir = std::string();
+	float benchmarkDuration = 0.0f;
 
 	for (int i = 1; i < argc; ++i)
 	{
@@ -280,6 +283,10 @@ int main(int argc, char* argv[])
 		{
 			gameDir = argv[++i];
 		}
+		else if (ArgEquals(arg.c_str(), "benchmark") && i + 1 < argc)
+		{
+			benchmarkDuration = std::stof(argv[++i]);
+		}
 	}
 
 	// Construct asset directory.
@@ -288,6 +295,9 @@ int main(int argc, char* argv[])
 	// Initialize logging as early as possible so any later failure is captured.
 	InitTENLog(GameDirectory);
 	g_Platform->InstallCrashHandler();
+
+	if (benchmarkDuration > 0.0f)
+		TEN::Benchmark::InitializeBenchmark(benchmarkDuration, GameDirectory);
 
 	// Initialize SDL3.
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS))
@@ -476,6 +486,8 @@ int main(int argc, char* argv[])
 	bool running = true;
 	while (running && !ThreadEnded && DoTheGame)
 	{
+		TEN::Benchmark::UpdateBenchmark();
+
 		auto event = SDL_Event{};
 		while (SDL_PollEvent(&event))
 		{
@@ -526,6 +538,8 @@ int main(int argc, char* argv[])
 		SDL_Delay(1);
 
 	TENLog("Cleaning up and exiting...", LogLevel::Info);
+
+	TEN::Benchmark::ShutdownBenchmark();
 
 	SDL_DestroyWindow(sdlWindow);
 	EngineClose();
