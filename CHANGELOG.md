@@ -9,6 +9,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 * Added Discord integration.
 * Added BATS_EMITTER_TR3 object from TR3.
+* This is going to be great! 
 
 ### Bug fixes
 
