@@ -1,0 +1,38 @@
+name: Changelog Check
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check PR files
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const files = await github.paginate(
+              github.rest.pulls.listFiles,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+              }
+            );
+
+            const changedFiles = files.map(f => f.filename);
+
+            const changelogUpdated = changedFiles.includes("CHANGELOG.md");
+
+            const sourceChanged = changedFiles.some(
+              f => f.startsWith("TombEngine/")
+            );
+
+            if (sourceChanged && !changelogUpdated) {
+              core.setFailed(
+                "Changes to TombEngine require an update to CHANGELOG.md."
+              );
+            }
