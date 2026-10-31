@@ -9,6 +9,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 * Added Discord integration.
 * Added BATS_EMITTER_TR3 object from TR3.
+* Added properties for [PUNA_BOSS](https://tombengine.com/asset/enemy/puna/) and restored missing lightning effect on the headdress.
 
 ### Bug fixes
 
