@@ -1,6 +1,6 @@
 -- TombEngine settings file
 -- WARNING: Bad values could make your game unplayable; please follow reference guide attentively.
--- This is a test
+
 local Flow = TEN.Flow
 
 local settings = Flow.Settings.new()
