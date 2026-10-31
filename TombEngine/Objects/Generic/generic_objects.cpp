@@ -242,7 +242,7 @@ void StartSwitches(ObjectInfo* object)
 	if (object->loaded)
 	{
 		object->collision = FullBlockSwitchCollision;
-		object->control = FullBlockSwitchControl;
+		object->control = FullBlockSwitch1Control;
 		object->SetHitEffect(true);
 	}
 
@@ -250,7 +250,7 @@ void StartSwitches(ObjectInfo* object)
 	if (object->loaded)
 	{
 		object->collision = FullBlockSwitchCollision;
-		object->control = FullBlockSwitchControl;
+		object->control = FullBlockSwitch2Control;
 		object->SetHitEffect(true);
 	}
 
@@ -258,7 +258,7 @@ void StartSwitches(ObjectInfo* object)
 	if (object->loaded)
 	{
 		object->collision = FullBlockSwitchCollision;
-		object->control = FullBlockSwitchControl;
+		object->control = FullBlockSwitch3Control;
 		object->SetHitEffect(true);
 	}
 
