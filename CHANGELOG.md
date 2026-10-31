@@ -3,6 +3,12 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): <https://github.com/TombEngine/TombEditorReleases>
 
+## [Version 2.1.0]
+
+### New features
+
+* Moved skeleton posing from the renderer to the game: joint positions, collision spheres, hair and animation blends of moveables are now always up to date, including moveables that were not drawn in the previous frame.
+
 ## [Version 2.0]
 
 ### New features
@@ -116,7 +122,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed crashes when shooting if the gunflash object is missing.
 * Fixed crashes and missing textures while rendering swarm objects with alpha blended textures.
 * Fixed vertex move effect speed in water rooms while turning camera on the x-axis.
-* Fixed joint positions, collision spheres and blends of moveables that were not drawn in the previous frame, which used stale or default poses.
 
 ### Lua API changes
 
