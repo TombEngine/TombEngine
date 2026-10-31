@@ -7,8 +7,12 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### New features
 
+* Added Discord integration.
+* Added BATS_EMITTER_TR3 object from TR3.
+
 ### Bug fixes
 
+* Fixed GUARD enemies not being alerted by player gunfire.
 * Fixed static meshes in flipped rooms being lit with ambient light of the original room.
 * Fixed flyby camera roll persisting after the sequence ends.
 
@@ -16,6 +20,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 * Added `ParticleGroup:IsActive` method to check if the group's emitter is currently running.
 * Added `ParticleGroup:IsValid` method to check if the group still exists and is usable.
+* Added `Flow.Settings.Effects.waterEffectStrength` and `Flow.Settings.Effects.waterEffectDepth` settings to customize underwater wave effect.
 
 ## [Version 2.0.1]
 
