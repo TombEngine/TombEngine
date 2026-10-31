@@ -864,6 +864,7 @@ static void StartVehicles(ObjectInfo* obj)
 	if (obj->loaded)
 	{
 		obj->Initialize = InitializeKayak;
+		obj->control = KayakItemControl;
 		obj->collision = KayakPlayerCollision;
 		obj->shadowType = ShadowMode::Player;
 		obj->SetHitEffect(true);

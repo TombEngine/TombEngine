@@ -63,6 +63,7 @@ namespace TEN::Entities::Vehicles
 	constexpr auto KAYAK_DRAW_SHIFT = 32;
 	constexpr auto KAYAK_X = 128;
 	constexpr auto KAYAK_Z = 128;
+	constexpr auto KAYAK_SPLASH_RADIUS = 250;
 	constexpr auto KAYAK_MAX_KICK = -80;
 	constexpr auto KAYAK_MIN_BOUNCE = (KAYAK_VELOCITY_MAX / 2) / VEHICLE_VELOCITY_SCALE;
 
@@ -526,8 +527,12 @@ namespace TEN::Entities::Vehicles
 		kayakItem->Pose.Position.z += kayakItem->Animation.Velocity.z * phd_cos(kayakItem->Pose.Orientation.y);
 		kayakItem->Pose.Orientation.y += kayak->TurnRate;
 
-		KayakDoSlopeSlide(kayakItem);
-		KayakDoCurrent(kayakItem, laraItem);
+		// Water current state belongs to the player, so only apply it while the player is driving this kayak.
+		if (GetLaraInfo(laraItem)->Context.Vehicle == kayakItem->Index)
+		{
+			KayakDoSlopeSlide(kayakItem);
+			KayakDoCurrent(kayakItem, laraItem);
+		}
 
 		kayak->LeftVerticalVelocity = KayakDoDynamics(leftHeight, kayak->LeftVerticalVelocity, &leftPos.y);
 		kayak->RightVerticalVelocity = KayakDoDynamics(rightHeight, kayak->RightVerticalVelocity, &rightPos.y);
@@ -1089,6 +1094,46 @@ namespace TEN::Entities::Vehicles
 		lara->Control.Weapon.GunType = LaraWeaponType::None;
 		lara->ExtraAnim = 1;
 		lara->HitDirection = -1;
+	}
+
+	void KayakItemControl(short itemNumber)
+	{
+		auto* kayakItem = &g_Level.Items[itemNumber];
+		auto* kayak = GetKayakInfo(kayakItem);
+
+		// While Lara drives the kayak, its tracking is handled by KayakControl() instead.
+		if (LaraItem != nullptr && GetLaraInfo(LaraItem)->Context.Vehicle == itemNumber)
+			return;
+
+		// Establish the water height first so a freshly dropped kayak falls onto it correctly.
+		auto probe = GetPointCollision(*kayakItem);
+		int water = GetPointCollision(kayakItem->Pose.Position, probe.GetRoomNumber()).GetWaterTopHeight();
+
+		if (water == NO_HEIGHT)
+		{
+			water = probe.GetFloorHeight();
+			kayak->TrueWater = false;
+		}
+		else
+		{
+			water -= 5;
+			kayak->TrueWater = true;
+		}
+
+		kayak->WaterHeight = water;
+
+		// Cache the vertical velocity to detect a water impact.
+		int ofs = kayakItem->Animation.Velocity.y;
+
+		KayakToBackground(kayakItem, LaraItem.Get());
+
+		// The kayak has just landed on water after a fall; spawn a splash.
+		if (ofs - kayakItem->Animation.Velocity.y > 32 && kayakItem->Animation.Velocity.y == 0 && kayak->TrueWater)
+			TriggerVehicleSplash(kayakItem, ofs - kayakItem->Animation.Velocity.y, KAYAK_SPLASH_RADIUS);
+
+		probe = GetPointCollision(*kayakItem);
+		if (probe.GetRoomNumber() != kayakItem->RoomNumber)
+			ItemNewRoom(itemNumber, probe.GetRoomNumber());
 	}
 
 	bool KayakControl(ItemInfo* laraItem)
