@@ -53,17 +53,22 @@ PixelShaderInput VSRooms(VertexShaderInput input)
 
 	// Calculate vertex effects
 	float wibble = Wibble(input.Effects, DecodeHash(input.AnimationFrameOffsetIndexHash));
-	float3 pos = Move(input.Position, input.Effects * weight, wibble);
+	float waterDepthFactor = Water && WaterEffectStrength > 0.0f ?
+		GetWaterEffectDepthFactor(input.Position, CamPositionWS.xyz, WaterEffectDepth) : 0.0f;
+	float moveStrength = Water ? waterDepthFactor * WaterEffectStrength : 1.0f;
+	float3 pos = Move(input.Position, input.Effects * weight, wibble * moveStrength);
 
 	// Refraction
 	float4 screenPos = mul(float4(pos, 1.0f), ViewProjection);
-	float2 clipPos = screenPos.xy / screenPos.w;
 
-	if (CameraUnderwater != Water)
+	if (CameraUnderwater != Water && WaterEffectStrength > 0.0f)
 	{
-		float factor = (Frame + clipPos.x * 320);
-		float xOffset = (sin(factor * PI / 20.0f)) * (screenPos.z / 1024) * 4;
-		float yOffset = (cos(factor * PI / 20.0f)) * (screenPos.z / 1024) * 4;
+		float depthAttenuation = CameraUnderwater ? 1.0f : smoothstep(0.0f, 1.0f,
+			GetWaterEffectDepthFactor(pos, CamPositionWS.xyz, WaterEffectDepth));
+		float attenuation = depthAttenuation * WaterEffectStrength;
+		float factor = InterpolatedFrame + (pos.x + pos.z) * 0.2f;
+		float xOffset = (sin(factor * PI / 20.0f)) * (screenPos.z / 1024.0f) * 3.0f * attenuation;
+		float yOffset = (cos(factor * PI / 20.0f)) * (screenPos.z / 1024.0f) * 3.0f * attenuation;
 		screenPos.x += xOffset * weight;
 		screenPos.y += yOffset * weight;
 	}

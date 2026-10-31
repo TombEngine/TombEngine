@@ -47,7 +47,9 @@ namespace TEN::Entities::Creatures::TR3
 		ID_GUIDE,
 		ID_MONK1,
 		ID_MONK2,
-		ID_TROOPS
+		ID_TROOPS,
+		ID_PRISONER,
+		ID_PUNK
 	};
 
 	enum CivvyState

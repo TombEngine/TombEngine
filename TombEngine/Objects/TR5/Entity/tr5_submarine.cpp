@@ -326,7 +326,7 @@ namespace TEN::Entities::Creatures::TR5
 			if (distance < BLOCK(16))
 			{
 				distance = BLOCK(16) - distance;
-				byte color = (GetRandomControl() & 0xF) + (distance / 128) + 64;
+				unsigned char color = (GetRandomControl() & 0xF) + (distance / 128) + 64;
 				SpawnDynamicLight(target.x, target.y, target.z, (GetRandomControl() & 1) + (distance / 2048) + 12, color / 2, color, color / 2);
 			}
 		}

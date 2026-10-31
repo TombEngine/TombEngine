@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Game/Control/volume.h"
+#include "Game/control/volume.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 #include "Scripting/Internal/TEN/Objects/NamedBase.h"
 

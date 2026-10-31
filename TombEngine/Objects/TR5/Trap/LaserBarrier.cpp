@@ -170,7 +170,7 @@ namespace TEN::Entities::Traps
 				playerItem->HitPoints > 0 && playerItem->Effect.Type != EffectType::Smoke)
 			{
 				ItemRedLaserBurn(playerItem, 2.0f * FPS);
-				DoDamage(playerItem, MAXINT);
+				DoDamage(playerItem, INT_MAX);
 			}
 			else if (barrier.IsHeavyActivator)
 			{

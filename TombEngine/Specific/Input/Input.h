@@ -76,6 +76,7 @@ namespace TEN::Input
 	void DeinitializeInput();
 	void HandleSDLEvent(const SDL_Event& event);
 	void SetInputLockState(bool locked);
+	void SetRelativeMouseMode(bool relative);
 	void DefaultConflict();
 	void UpdateInputActions(bool allowAsyncUpdate = false, bool applyQueue = false);
 	void ApplyActionQueue();

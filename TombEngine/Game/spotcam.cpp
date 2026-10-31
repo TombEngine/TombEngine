@@ -282,7 +282,10 @@ namespace TEN::SpotCam
 			Lara.Control.IsLocked = true;
 			SetCinematicBars(SPOTCAM_CINEMATIC_BARS_HEIGHT, SPOTCAM_CINEMATIC_BARS_SPEED);
 		}
-	
+
+		if (firstCam.Flags & SCF_REENABLE_LARA_CONTROLS)
+			Lara.Control.IsLocked = false;
+
 		// Populate spline knot arrays.
 		if (firstCam.Flags & SCF_TRACKING_CAM)
 		{
@@ -503,6 +506,7 @@ namespace TEN::SpotCam
 		SpotcamOverlay = false;
 		SpotcamDontDrawLara = false;
 		AlterFOV(LastFOV);
+		AlterRoll(0);
 		g_Renderer.RestoreDOF();
 	}
 	
@@ -676,6 +680,7 @@ namespace TEN::SpotCam
 				Lara.Control.IsLocked = false;
 				Camera.speed = 1;
 				AlterFOV(LastFOV);
+				AlterRoll(0);
 				g_Renderer.RestoreDOF();
 				CalculateCamera(LaraCollision);
 				RunHeavyTriggers = false;
@@ -781,9 +786,6 @@ namespace TEN::SpotCam
 		}
 		else
 		{
-			if (g_Level.SpotCams[CurrentCameraIndex].Flags & SCF_REENABLE_LARA_CONTROLS)
-				Lara.Control.IsLocked = false;
-
 			if (g_Level.SpotCams[CurrentCameraIndex].Flags & SCF_DISABLE_LARA_CONTROLS)
 			{
 				Lara.Control.IsLocked = true;
@@ -791,6 +793,9 @@ namespace TEN::SpotCam
 				if (CurrentLevel)
 					SetCinematicBars(SPOTCAM_CINEMATIC_BARS_HEIGHT, SPOTCAM_CINEMATIC_BARS_SPEED);
 			}
+
+			if (g_Level.SpotCams[CurrentCameraIndex].Flags & SCF_REENABLE_LARA_CONTROLS)
+				Lara.Control.IsLocked = false;
 	
 			// Handle cut-to-cam: jump to a specific camera in the sequence.
 			if (g_Level.SpotCams[CurrentCameraIndex].Flags & SCF_CUT_TO_CAM)

@@ -110,29 +110,30 @@ namespace TEN::Entities::Creatures::TR5
 		orient.x += short(GetRandomControl() % (distance / 2) - (distance / 4));
 		orient.y += short(GetRandomControl() % (distance / 4) - (distance / 8));
 
-		int fxNumber = CreateNewEffect(item->RoomNumber);
+		int fxNumber = CreateNewEffect(item->RoomNumber, ID_IMP_ROCK, Pose(pos1));
 		if (fxNumber == NO_VALUE)
 			return;
 
-		auto& fx = EffectList[fxNumber];
+		auto& fx = g_Level.Items[fxNumber];
+		auto& fxInfo = GetFXInfo(fx);
 
-		fx.objectNumber = ID_IMP_ROCK;
-		fx.frameNumber = Objects[ID_IMP_ROCK].meshIndex;
+		fx.ObjectNumber = ID_IMP_ROCK;
+		fx.Model.MeshIndex = { (int)Objects[ID_IMP_ROCK].meshIndex };
 
-		fx.pos.Position = pos1;
-		fx.roomNumber = item->RoomNumber;
-		fx.speed = sqrt(distance) * 4;
+		fx.Pose.Position = pos1;
+		fx.RoomNumber = item->RoomNumber;
+		fx.Animation.Velocity.z = sqrt(distance) * 4;
 
-		fx.pos.Orientation = EulerAngles(orient.x + (distance / 2), orient.y, 0);
+		fx.Pose.Orientation = EulerAngles(orient.x + (distance / 2), orient.y, 0);
 
-		if (fx.speed < BLOCK(0.25f))
-			fx.speed = BLOCK(0.25f);
+		if (fx.Animation.Velocity.z < BLOCK(0.25f))
+			fx.Animation.Velocity.z = BLOCK(0.25f);
 
-		fx.fallspeed = 0;
-		fx.color = NEUTRAL_COLOR;
-		fx.counter = 0;
-		fx.flag1 = 2;
-		fx.flag2 = 0x2000;
+		fx.Animation.Velocity.y = 0;
+		fx.Model.Color = NEUTRAL_COLOR;
+		fxInfo.Counter = 0;
+		fxInfo.Flag1 = 2;
+		fxInfo.Flag2 = 0x2000;
 	}
 
 	static bool IsTorchLitNearby(ItemInfo& item)

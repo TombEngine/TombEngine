@@ -113,7 +113,7 @@ namespace TEN::Entities::Creatures::TR3
 						continue;
 
 					auto* target = &g_Level.Items[currentCreature->ItemNumber];
-					if (target->ObjectNumber != ID_LARA)
+					if (target->ObjectNumber != ID_LARA && target->ObjectNumber != ID_PRISONER)
 						continue;
 
 					dx = target->Pose.Position.x - item->Pose.Position.x;

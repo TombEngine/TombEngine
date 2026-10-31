@@ -99,8 +99,9 @@ namespace TEN::Scripting::Properties
 	}
 
 	// Serialize global type properties into FlatBuffers vectors.
+	template <typename KeyType>
 	inline flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Save::TypePropertyMap>>>
-	BuildTypeProperties(flatbuffers::FlatBufferBuilder& fbb, const std::unordered_map<int, PropertyMap>& typeProps)
+	BuildTypeProperties(flatbuffers::FlatBufferBuilder& fbb, const std::unordered_map<KeyType, PropertyMap>& typeProps)
 	{
 		auto entries = std::vector<flatbuffers::Offset<Save::TypePropertyMap>>{};
 
@@ -112,7 +113,7 @@ namespace TEN::Scripting::Properties
 			auto propsOffset = BuildPropertyMap(fbb, propMap);
 
 			Save::TypePropertyMapBuilder tpm(fbb);
-			tpm.add_type_id(typeID);
+			tpm.add_type_id((int)typeID);
 			tpm.add_properties(propsOffset);
 			entries.push_back(tpm.Finish());
 		}
@@ -196,7 +197,8 @@ namespace TEN::Scripting::Properties
 	}
 
 	// Deserialize type properties from a FlatBuffers vector.
-	inline void ParseTypeProperties(const flatbuffers::Vector<flatbuffers::Offset<Save::TypePropertyMap>>* typePropsVec, std::unordered_map<int, PropertyMap>& outMap)
+	template <typename KeyType>
+	inline void ParseTypeProperties(const flatbuffers::Vector<flatbuffers::Offset<Save::TypePropertyMap>>* typePropsVec, std::unordered_map<KeyType, PropertyMap>& outMap)
 	{
 		outMap.clear();
 
@@ -209,7 +211,7 @@ namespace TEN::Scripting::Properties
 			if (entry == nullptr)
 				continue;
 
-			auto& propMap = outMap[entry->type_id()];
+			auto& propMap = outMap[(KeyType)entry->type_id()];
 			ParsePropertyMap(entry->properties(), propMap);
 		}
 	}

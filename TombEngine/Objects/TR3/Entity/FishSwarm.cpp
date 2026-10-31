@@ -14,7 +14,7 @@
 #include "Game/misc.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
-#include "Objects/TR3/Object/Corpse.h"
+#include "Objects/TR3/Object/corpse.h"
 #include "Renderer/Renderer.h"
 #include "Specific/clock.h"
 #include "Specific/level.h"

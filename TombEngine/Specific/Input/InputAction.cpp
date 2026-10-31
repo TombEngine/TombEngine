@@ -227,7 +227,8 @@ namespace TEN::Input
 
 	bool Action::IsHeld(float delaySec) const
 	{
-		return (IsMatchingMode() && IsHeldRaw(delaySec));
+		// HACK: Always report action button as held to prevent ledge or rope drops while getting out of inventory.
+		return (IsMatchingMode() || _id == In::Action) && IsHeldRaw(delaySec);
 	}
 
 	// NOTE: To avoid stutter on second pulse, ensure `initialDelaySec` is multiple of `delaySec`.

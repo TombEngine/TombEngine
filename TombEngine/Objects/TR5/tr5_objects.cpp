@@ -1037,7 +1037,15 @@ static void StartPickup(ObjectInfo *obj)
 	InitPickup(obj, ID_SILENCER_ITEM);
 	InitPickup(obj, ID_FLARE_INV_ITEM);
 	InitPickup(obj, ID_WATERSKIN1_EMPTY);
+	InitPickup(obj, ID_WATERSKIN1_1);
+	InitPickup(obj, ID_WATERSKIN1_2);
+	InitPickup(obj, ID_WATERSKIN1_3);
 	InitPickup(obj, ID_WATERSKIN2_EMPTY);
+	InitPickup(obj, ID_WATERSKIN2_1);
+	InitPickup(obj, ID_WATERSKIN2_2);
+	InitPickup(obj, ID_WATERSKIN2_3);
+	InitPickup(obj, ID_WATERSKIN2_4);
+	InitPickup(obj, ID_WATERSKIN2_5);
 	InitPickup(obj, ID_GOLDROSE_ITEM);
 	InitPickup(obj, ID_DIARY_ITEM);
 	InitPickup(obj, ID_PC_LOAD_INV_ITEM);

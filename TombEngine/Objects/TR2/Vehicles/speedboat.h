@@ -21,6 +21,6 @@ namespace TEN::Entities::Vehicles
 	int SpeedboatDynamics(short itemNumber, ItemInfo* laraItem);
 	bool SpeedboatUserControl(ItemInfo* speedboatItem, ItemInfo* laraItem);
 	void SpeedboatAnimation(ItemInfo* speedboatItem, ItemInfo* laraItem, int collide);
-	void SpeedboatSplash(ItemInfo* speedboatItem, long verticalVelocity, long water);
+	void SpeedboatSplash(ItemInfo* speedboatItem, int verticalVelocity, int water);
 	void SpeedboatControl(short itemNumber);
 }

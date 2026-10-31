@@ -418,7 +418,7 @@ void lara_as_climb_stepoff_right(ItemInfo* item, CollisionInfo* coll)
 
 short GetClimbFlags(int x, int y, int z, short roomNumber)
 {
-	return GetClimbFlags(&GetPointCollision(Vector3i(x, y, z), roomNumber).GetBottomSector());
+	return GetClimbFlags(&GetPointCollision(Vector3i(x, y, z), roomNumber).GetBottomSector(true));
 }
 
 short GetClimbFlags(FloorInfo* floor)
@@ -779,7 +779,7 @@ int LaraTestClimb(ItemInfo* item, int xOffset, int yOffset, int zOffset, int xFr
 	auto probeUp = GetPointCollision(Vector3i(x, y - CLICK(0.5f), z), item->RoomNumber);
 	auto probeDown = GetPointCollision(Vector3i(x, y, z), item->RoomNumber);
 
-	if (!lara->Control.CanClimbLadder && !TestLaraNearClimbableWall(item, &probeDown.GetBottomSector()))
+	if (!lara->Control.CanClimbLadder && !TestLaraNearClimbableWall(item, &probeDown.GetBottomSector(true)))
 		return 0;
 
 	int height = probeUp.GetFloorHeight();

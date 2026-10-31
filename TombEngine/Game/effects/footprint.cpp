@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Game/effects/Footprint.h"
+#include "Game/effects/footprint.h"
 
 #include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"

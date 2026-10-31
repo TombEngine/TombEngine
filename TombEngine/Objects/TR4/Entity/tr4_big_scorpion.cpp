@@ -94,20 +94,16 @@ namespace TEN::Entities::TR4
 					item->Status = ITEM_INVISIBLE;
 					creature->MaxTurn = 0;
 
-					short linkNumber = g_Level.Rooms[item->RoomNumber].itemNumber;
-					if (linkNumber != NO_VALUE)
+					for (int itemNumber : g_Level.Rooms[item->RoomNumber].itemNumbers)
 					{
-						for (linkNumber = g_Level.Rooms[item->RoomNumber].itemNumber; linkNumber != NO_VALUE; linkNumber = g_Level.Items[linkNumber].NextItem)
-						{
-							auto* currentItem = &g_Level.Items[linkNumber];
+						auto* currentItem = &g_Level.Items[itemNumber];
 
-							if (currentItem->ObjectNumber == ID_TROOPS && currentItem->TriggerFlags == 1)
-							{
-								DisableEntityAI(linkNumber);
-								KillItem(linkNumber);
-								currentItem->Flags |= IFLAG_KILLED;
-								break;
-							}
+						if (currentItem->ObjectNumber == ID_TROOPS && currentItem->TriggerFlags == 1)
+						{
+							DisableEntityAI(itemNumber);
+							KillItem(itemNumber);
+							currentItem->Flags |= IFLAG_KILLED;
+							break;
 						}
 					}
 				}

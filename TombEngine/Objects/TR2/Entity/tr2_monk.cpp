@@ -51,7 +51,7 @@ namespace TEN::Entities::Creatures::TR2
 		}
 		else
 		{
-			TargetNearestEntity(*item, FriendlyCreatures);
+			TargetNearestEntity(*item, GetFriendlyCreatureIDs(*item));
 
 			AI_INFO AI;
 			CreatureAIInfo(item, &AI);

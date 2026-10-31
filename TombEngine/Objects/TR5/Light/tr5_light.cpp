@@ -27,7 +27,7 @@ void PulseLightControl(short itemNumber)
 	{
 		item->ItemFlags[0] -= 1024;
 
-		long pulse = 256 * phd_sin(item->ItemFlags[0] + ((item->Pose.Position.y & 0x3FFF) * 4));
+		int pulse = 256 * phd_sin(item->ItemFlags[0] + ((item->Pose.Position.y & 0x3FFF) * 4));
 		pulse = abs(pulse);
 		if (pulse > 255)
 			pulse = 255;
@@ -62,9 +62,9 @@ void StrobeLightControl(short itemNumber)
 	{
 		item->Pose.Orientation.y += ANGLE(16.0f);
 
-		byte r = item->Model.Color.x * UCHAR_MAX;
-		byte g = item->Model.Color.y * UCHAR_MAX;
-		byte b = item->Model.Color.z * UCHAR_MAX;
+		unsigned char r = item->Model.Color.x * UCHAR_MAX;
+		unsigned char g = item->Model.Color.y * UCHAR_MAX;
+		unsigned char b = item->Model.Color.z * UCHAR_MAX;
 
 		TriggerAlertLight(
 			item->Pose.Position.x,

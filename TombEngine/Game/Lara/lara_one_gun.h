@@ -3,7 +3,7 @@
 
 using namespace TEN::Math;
 
-enum class LaraWeaponType;
+enum class LaraWeaponType : int;
 struct ItemInfo;
 
 enum class GrenadeType

@@ -92,6 +92,10 @@ struct ItemNumber;
 struct ItemNumberBuilder;
 struct ItemNumberT;
 
+struct ItemFXInfo;
+struct ItemFXInfoBuilder;
+struct ItemFXInfoT;
+
 enum class ItemData : uint8_t {
   NONE = 0,
   TEN_Serialization_Common_Int = 1,
@@ -115,11 +119,12 @@ enum class ItemData : uint8_t {
   Rubberboat = 19,
   Pushable = 20,
   Minecart = 21,
+  ItemFXInfo = 22,
   MIN = NONE,
-  MAX = Minecart
+  MAX = ItemFXInfo
 };
 
-inline const ItemData (&EnumValuesItemData())[22] {
+inline const ItemData (&EnumValuesItemData())[23] {
   static const ItemData values[] = {
     ItemData::NONE,
     ItemData::TEN_Serialization_Common_Int,
@@ -142,13 +147,14 @@ inline const ItemData (&EnumValuesItemData())[22] {
     ItemData::Wraith,
     ItemData::Rubberboat,
     ItemData::Pushable,
-    ItemData::Minecart
+    ItemData::Minecart,
+    ItemData::ItemFXInfo
   };
   return values;
 }
 
 inline const char * const *EnumNamesItemData() {
-  static const char * const names[23] = {
+  static const char * const names[24] = {
     "NONE",
     "TEN_Serialization_Common_Int",
     "TEN_Serialization_Common_Short",
@@ -171,13 +177,14 @@ inline const char * const *EnumNamesItemData() {
     "Rubberboat",
     "Pushable",
     "Minecart",
+    "ItemFXInfo",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameItemData(ItemData e) {
-  if (flatbuffers::IsOutRange(e, ItemData::NONE, ItemData::Minecart)) return "";
+  if (flatbuffers::IsOutRange(e, ItemData::NONE, ItemData::ItemFXInfo)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesItemData()[index];
 }
@@ -268,6 +275,10 @@ template<> struct ItemDataTraits<TEN::Serialization::Save::Pushable> {
 
 template<> struct ItemDataTraits<TEN::Serialization::Save::Minecart> {
   static const ItemData enum_value = ItemData::Minecart;
+};
+
+template<> struct ItemDataTraits<TEN::Serialization::Save::ItemFXInfo> {
+  static const ItemData enum_value = ItemData::ItemFXInfo;
 };
 
 struct ItemDataUnion {
@@ -469,6 +480,14 @@ struct ItemDataUnion {
   const TEN::Serialization::Save::MinecartT *AsMinecart() const {
     return type == ItemData::Minecart ?
       reinterpret_cast<const TEN::Serialization::Save::MinecartT *>(value) : nullptr;
+  }
+  TEN::Serialization::Save::ItemFXInfoT *AsItemFXInfo() {
+    return type == ItemData::ItemFXInfo ?
+      reinterpret_cast<TEN::Serialization::Save::ItemFXInfoT *>(value) : nullptr;
+  }
+  const TEN::Serialization::Save::ItemFXInfoT *AsItemFXInfo() const {
+    return type == ItemData::ItemFXInfo ?
+      reinterpret_cast<const TEN::Serialization::Save::ItemFXInfoT *>(value) : nullptr;
   }
 };
 
@@ -2647,6 +2666,86 @@ struct ItemNumber::Traits {
 
 flatbuffers::Offset<ItemNumber> CreateItemNumber(flatbuffers::FlatBufferBuilder &_fbb, const ItemNumberT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct ItemFXInfoT : public flatbuffers::NativeTable {
+  typedef ItemFXInfo TableType;
+  int32_t counter = 0;
+  int32_t flag1 = 0;
+  int32_t flag2 = 0;
+};
+
+struct ItemFXInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef ItemFXInfoT NativeTableType;
+  typedef ItemFXInfoBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_COUNTER = 4,
+    VT_FLAG1 = 6,
+    VT_FLAG2 = 8
+  };
+  int32_t counter() const {
+    return GetField<int32_t>(VT_COUNTER, 0);
+  }
+  int32_t flag1() const {
+    return GetField<int32_t>(VT_FLAG1, 0);
+  }
+  int32_t flag2() const {
+    return GetField<int32_t>(VT_FLAG2, 0);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int32_t>(verifier, VT_COUNTER) &&
+           VerifyField<int32_t>(verifier, VT_FLAG1) &&
+           VerifyField<int32_t>(verifier, VT_FLAG2) &&
+           verifier.EndTable();
+  }
+  ItemFXInfoT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(ItemFXInfoT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<ItemFXInfo> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ItemFXInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct ItemFXInfoBuilder {
+  typedef ItemFXInfo Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_counter(int32_t counter) {
+    fbb_.AddElement<int32_t>(ItemFXInfo::VT_COUNTER, counter, 0);
+  }
+  void add_flag1(int32_t flag1) {
+    fbb_.AddElement<int32_t>(ItemFXInfo::VT_FLAG1, flag1, 0);
+  }
+  void add_flag2(int32_t flag2) {
+    fbb_.AddElement<int32_t>(ItemFXInfo::VT_FLAG2, flag2, 0);
+  }
+  explicit ItemFXInfoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<ItemFXInfo> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<ItemFXInfo>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<ItemFXInfo> CreateItemFXInfo(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t counter = 0,
+    int32_t flag1 = 0,
+    int32_t flag2 = 0) {
+  ItemFXInfoBuilder builder_(_fbb);
+  builder_.add_flag2(flag2);
+  builder_.add_flag1(flag1);
+  builder_.add_counter(counter);
+  return builder_.Finish();
+}
+
+struct ItemFXInfo::Traits {
+  using type = ItemFXInfo;
+  static auto constexpr Create = CreateItemFXInfo;
+};
+
+flatbuffers::Offset<ItemFXInfo> CreateItemFXInfo(flatbuffers::FlatBufferBuilder &_fbb, const ItemFXInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 inline ShortArrayT *ShortArray::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = std::make_unique<ShortArrayT>();
   UnPackTo(_o.get(), _resolver);
@@ -3428,6 +3527,38 @@ inline flatbuffers::Offset<ItemNumber> CreateItemNumber(flatbuffers::FlatBufferB
       _num);
 }
 
+inline ItemFXInfoT *ItemFXInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<ItemFXInfoT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void ItemFXInfo::UnPackTo(ItemFXInfoT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = counter(); _o->counter = _e; }
+  { auto _e = flag1(); _o->flag1 = _e; }
+  { auto _e = flag2(); _o->flag2 = _e; }
+}
+
+inline flatbuffers::Offset<ItemFXInfo> ItemFXInfo::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ItemFXInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateItemFXInfo(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<ItemFXInfo> CreateItemFXInfo(flatbuffers::FlatBufferBuilder &_fbb, const ItemFXInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ItemFXInfoT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _counter = _o->counter;
+  auto _flag1 = _o->flag1;
+  auto _flag2 = _o->flag2;
+  return TEN::Serialization::Save::CreateItemFXInfo(
+      _fbb,
+      _counter,
+      _flag1,
+      _flag2);
+}
+
 inline bool VerifyItemData(flatbuffers::Verifier &verifier, const void *obj, ItemData type) {
   switch (type) {
     case ItemData::NONE: {
@@ -3515,6 +3646,10 @@ inline bool VerifyItemData(flatbuffers::Verifier &verifier, const void *obj, Ite
     }
     case ItemData::Minecart: {
       auto ptr = reinterpret_cast<const TEN::Serialization::Save::Minecart *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ItemData::ItemFXInfo: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::ItemFXInfo *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return true;
@@ -3619,6 +3754,10 @@ inline void *ItemDataUnion::UnPack(const void *obj, ItemData type, const flatbuf
       auto ptr = reinterpret_cast<const TEN::Serialization::Save::Minecart *>(obj);
       return ptr->UnPack(resolver);
     }
+    case ItemData::ItemFXInfo: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::ItemFXInfo *>(obj);
+      return ptr->UnPack(resolver);
+    }
     default: return nullptr;
   }
 }
@@ -3709,6 +3848,10 @@ inline flatbuffers::Offset<void> ItemDataUnion::Pack(flatbuffers::FlatBufferBuil
       auto ptr = reinterpret_cast<const TEN::Serialization::Save::MinecartT *>(value);
       return CreateMinecart(_fbb, ptr, _rehasher).Union();
     }
+    case ItemData::ItemFXInfo: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::ItemFXInfoT *>(value);
+      return CreateItemFXInfo(_fbb, ptr, _rehasher).Union();
+    }
     default: return 0;
   }
 }
@@ -3797,6 +3940,10 @@ inline ItemDataUnion::ItemDataUnion(const ItemDataUnion &u) : type(u.type), valu
     }
     case ItemData::Minecart: {
       value = new TEN::Serialization::Save::MinecartT(*reinterpret_cast<TEN::Serialization::Save::MinecartT *>(u.value));
+      break;
+    }
+    case ItemData::ItemFXInfo: {
+      value = new TEN::Serialization::Save::ItemFXInfoT(*reinterpret_cast<TEN::Serialization::Save::ItemFXInfoT *>(u.value));
       break;
     }
     default:
@@ -3908,6 +4055,11 @@ inline void ItemDataUnion::Reset() {
     }
     case ItemData::Minecart: {
       auto ptr = reinterpret_cast<TEN::Serialization::Save::MinecartT *>(value);
+      delete ptr;
+      break;
+    }
+    case ItemData::ItemFXInfo: {
+      auto ptr = reinterpret_cast<TEN::Serialization::Save::ItemFXInfoT *>(value);
       delete ptr;
       break;
     }

@@ -61,16 +61,19 @@ namespace TEN::Renderer::Graphics
 		virtual void SetScissor(RendererRectangle rectangle) = 0;
 		virtual void SetScissor(RendererViewport viewport) = 0;
 
-		virtual void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType) = 0;
+		virtual void BindTexture(TextureRegister registerType, ITextureBase* texture) = 0;
 
-		// Clears the SRV bound at `registerType` for the given shader stage.
-		// Used to drop SRV bindings before re-binding the same resource as RTV/copy dest,
-		// which would otherwise trip D3D11 hazard warnings. On stateless backends
-		// (SDL_GPU/Vulkan) this is typically a no-op since bindings are scoped to a pass.
+		// Binds the full sampler set to the fixed slots declared in Samplers.hlsli. Called once
+		// per frame: shaders address samplers by register, so this is the single point where
+		// the point filter override can reach them. When `pointFilter` is true every filtering
+		// slot receives the point-wrap state (shadow map excluded).
+		virtual void BindSamplers(bool pointFilter) = 0;
+
 		virtual void UnbindTexture(ShaderStage stage, TextureRegister registerType) = 0;
 		
 		virtual std::unique_ptr<IConstantBuffer> CreateConstantBuffer(int size, std::string name) = 0;
-		virtual void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data) = 0;
+
+		virtual void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data, int size = 0) = 0;
 		virtual void BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer) = 0;
 
 		virtual std::unique_ptr<IStructuredBuffer> CreateStructuredBuffer(int stride, int elementCount, std::wstring name) = 0;
@@ -129,7 +132,7 @@ namespace TEN::Renderer::Graphics
 		virtual void SetViewport(RendererViewport viewport) = 0;
 		virtual Vector3 Unproject(Vector3 position, Matrix projection, Matrix view, Matrix world) = 0;
 
-		virtual void SaveScreenshot(IRenderTarget2D* renderTarget, std::string path) = 0;
+		virtual bool SaveScreenshot(IRenderTarget2D* renderTarget, std::string path) = 0;
 
 		virtual void Flush() = 0;
 		virtual void UnbindAllRenderTargets() = 0;

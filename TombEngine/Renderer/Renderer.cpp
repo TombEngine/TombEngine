@@ -34,7 +34,6 @@ namespace TEN::Renderer
 	void Renderer::FreeRendererData()
 	{
 		_items.resize(0);
-		_effects.resize(0);
 		_moveableObjects.resize(0);
 		_staticObjects.clear();
 		_sprites.resize(0);
@@ -155,17 +154,14 @@ namespace TEN::Renderer
 
 	void Renderer::BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType)
 	{
-		if (g_GameFlow->IsPointFilterEnabled() && samplerType != SamplerStateRegister::ShadowMap)
-		{
-			samplerType = SamplerStateRegister::PointWrap;
-		}
-
-		_graphicsDevice->BindTexture(registerType, texture, samplerType);
+		// Sampler states sit in fixed slots bound once per frame by BindSamplers and shaders
+		// pick them by register, so samplerType takes no part in the bind.
+		_graphicsDevice->BindTexture(registerType, texture);
 	}
 
 	void Renderer::BindRenderTargetAsTexture(TextureRegister registerType, IRenderTarget2D* target, SamplerStateRegister samplerType)
 	{
-		_graphicsDevice->BindTexture(registerType, target, samplerType);
+		_graphicsDevice->BindTexture(registerType, target);
 	}
 
 	int Renderer::BindLight(RendererLight& light, ShaderLight* lights, int index)
@@ -300,7 +296,7 @@ namespace TEN::Renderer
 			_stPerDraw.MaterialTypeAndFlags = materialTypeAndFlags;
 			_stPerDraw.MaterialProperties   = materialProperties;
 
-			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+            InvalidatePerDrawBuffer();
 
 			_lastMaterialIndex = materialIndex;
 
@@ -320,7 +316,7 @@ namespace TEN::Renderer
 			_graphicsDevice->SetBlendMode(blendMode);
 
 			_stPerDraw.BlendMode = (unsigned int)blendMode;
-			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+            InvalidatePerDrawBuffer();
 			
 			_lastBlendMode = blendMode;
 		}
@@ -377,7 +373,7 @@ namespace TEN::Renderer
 		{
 			_stPerDraw.AlphaTest = (int)mode;
 			_stPerDraw.AlphaThreshold = threshold;
-			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+            InvalidatePerDrawBuffer();
 		}
 	}
 

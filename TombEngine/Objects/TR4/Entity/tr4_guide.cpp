@@ -662,25 +662,19 @@ namespace TEN::Entities::TR4
 
 				auto* room = &g_Level.Rooms[item->RoomNumber];
 
-				ItemInfo* currentItem = nullptr;
-				short currentitemNumber = room->itemNumber;
-				while (currentitemNumber != NO_VALUE)
+				for (int itemNumber : room->itemNumbers)
 				{
-					currentItem = &g_Level.Items[currentitemNumber];
+					auto* currentItem = &g_Level.Items[itemNumber];
 
 					if (currentItem->ObjectNumber >= ID_ANIMATING1 &&
 						currentItem->ObjectNumber <= ID_ANIMATING15 &&
 						trunc(item->Pose.Position.x) == trunc(currentItem->Pose.Position.x) &&
 						trunc(item->Pose.Position.z) == trunc(currentItem->Pose.Position.z))
 					{
+						currentItem->MeshBits = 0xFFFFFFFD;
 						break;
 					}
-
-					currentitemNumber = currentItem->NextItem;
 				}
-
-				if (currentItem != nullptr)
-					currentItem->MeshBits = 0xFFFFFFFD;
 			}
 
 			item->ItemFlags[1] = 1;

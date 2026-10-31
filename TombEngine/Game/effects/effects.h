@@ -1,13 +1,14 @@
 #pragma once
 
-#include "Game/Items.h"
+#include "Game/items.h"
 #include "Game/effects/Light.h"
+#include "Game/itemdata/FXInfo.h"
 #include "Math/Math.h"
 #include "Renderer/RendererEnums.h"
 
 using namespace TEN::Effects::Light;
 
-enum class LaraWeaponType;
+enum class LaraWeaponType : int;
 enum GAME_OBJECT_ID : short;
 struct CollisionInfo;
 struct ItemInfo;
@@ -96,24 +97,6 @@ enum class FlameType
 	Trail
 };
 
-struct FX_INFO
-{
-	Pose pos;
-	short roomNumber;
-	short objectNumber;
-	short nextFx;
-	short nextActive;
-	short speed;
-	short fallspeed;
-	int frameNumber;
-	short counter;
-	Vector4 color;
-	short flag1;
-	short flag2;
-
-	bool DisableInterpolation;
-};
-
 struct NODEOFFSET_INFO
 {
 	short x;
@@ -194,10 +177,10 @@ struct Particle
 	int PrevY;
 	int PrevZ;
 	short PrevRotAng;
-	byte PrevR;
-	byte PrevG; 
-	byte PrevB;
-	byte PrevScalar;
+	unsigned char PrevR;
+	unsigned char PrevG; 
+	unsigned char PrevB;
+	unsigned char PrevScalar;
 
 	void StoreInterpolationData()
 	{
@@ -214,13 +197,13 @@ struct Particle
 
 struct ParticleDynamic
 {
-	byte On;
-	byte Falloff;
-	byte R;
-	byte G;
-	byte B;
-	byte Flags;
-	byte Pad[2];
+	unsigned char On;
+	unsigned char Falloff;
+	unsigned char R;
+	unsigned char G;
+	unsigned char B;
+	unsigned char Flags;
+	unsigned char Pad[2];
 };
 
 extern GameBoundingBox DeadlyBounds;
@@ -231,8 +214,6 @@ extern ParticleDynamic ParticleDynamics[MAX_PARTICLE_DYNAMICS];
 
 extern Vector3i NodeVectors[ParticleNodeOffsetIDs::NodeMax];
 extern NODEOFFSET_INFO NodeOffsets[ParticleNodeOffsetIDs::NodeMax];
-
-extern FX_INFO EffectList[MAX_SPAWNED_ITEM_COUNT];
 
 template <typename TEffect>
 TEffect& GetNewEffect(std::vector<TEffect>& effects, unsigned int countMax)
@@ -272,6 +253,7 @@ void ClearInactiveEffects(std::vector<TEffect>& effects)
 }
 
 Particle* GetFreeParticle();
+FXInfo& GetFXInfo(ItemInfo& fx);
 
 void SetSpriteSequence(Particle& particle, GAME_OBJECT_ID objectID);
 void SetAdvancedSpriteSequence(Particle& particle, GAME_OBJECT_ID objectID, ParticleAnimType animationType, float frameRate);
