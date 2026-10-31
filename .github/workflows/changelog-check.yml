@@ -1,0 +1,35 @@
+name: Changelog Check
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check PR files
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const files = await github.paginate(
+              github.rest.pulls.listFiles,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+              }
+            );
+
+            const changelogUpdated = files.some(
+              f => f.filename.toLowerCase() === "changelog.md"
+            );
+
+            if (!changelogUpdated) {
+              core.setFailed(
+                "Pull requests must update CHANGELOG.md."
+              );
+            }
+            
