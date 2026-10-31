@@ -840,14 +840,14 @@ namespace TEN::Gui
 				g_Renderer.SetGraphicsSettingsChanged();
 
 				MenuToDisplay = Menu::Options;
-				SelectedOption = 1;
+				SelectedOption = 2;
 			}
 			else if (SelectedOption == DisplaySettingsOption::Cancel)
 			{
 				g_Configuration.Gamma = BackupGamma;
 				g_Renderer.SetGraphicsSettingsChanged();
 				MenuToDisplay = Menu::Options;
-				SelectedOption = 1;
+				SelectedOption = 2;
 			}
 			else
 			{
@@ -1016,7 +1016,7 @@ namespace TEN::Gui
 				if (menu.has_value())
 				{
 					MenuToDisplay = *menu;
-					SelectedOption = 0;
+					SelectedOption = 1;
 					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 					return;
 				}
@@ -1065,7 +1065,7 @@ namespace TEN::Gui
 				}
 
 				MenuToDisplay = Menu::Options;
-				SelectedOption = 0;
+				SelectedOption = 1;
 			}
 		}
 	}
@@ -1080,9 +1080,9 @@ namespace TEN::Gui
 	{
 		enum OptionsOption
 		{
+			Gameplay,
 			Controls,
 			Display,
-			Gameplay,
 			Sound
 		};
 
@@ -1287,7 +1287,7 @@ namespace TEN::Gui
 			}
 
 			MenuToDisplay = Menu::Options;
-			SelectedOption = 2;
+			SelectedOption = 0;
 			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 		}
 	}

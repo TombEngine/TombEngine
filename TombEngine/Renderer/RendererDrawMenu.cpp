@@ -209,16 +209,16 @@ namespace TEN::Renderer
 			// Setup needed parameters
 			y = initialY;
 
+			// Gameplay
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_GAMEPLAY), plainColor, SF_Center(titleOption == 0));
+			GetNextLinePosition(&y);
+
 			// Controls
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CONTROLS), plainColor, SF_Center(titleOption == 0));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CONTROLS), plainColor, SF_Center(titleOption == 1));
 			GetNextLinePosition(&y);
 
 			// Display
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_DISPLAY), plainColor, SF_Center(titleOption == 1));
-			GetNextLinePosition(&y);
-
-			// Gameplay
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_GAMEPLAY), plainColor, SF_Center(titleOption == 2));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_DISPLAY), plainColor, SF_Center(titleOption == 2));
 			GetNextLinePosition(&y);
 
 			// Sound
