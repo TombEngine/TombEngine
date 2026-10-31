@@ -51,14 +51,14 @@ namespace TEN::Renderer
 
 	// Vertical menu positioning templates
 	constexpr auto MenuVerticalControls = 30;
-	constexpr auto MenuVerticalGameplaySettings = 260;
+	constexpr auto MenuVerticalGameplaySettings = 220;
 	constexpr auto MenuVerticalDisplaySettings = 110;
 	constexpr auto MenuVerticalSoundSettings = 165;
 	constexpr auto MenuVerticalBottomCenter = 400;
 	constexpr auto MenuVerticalStatisticsTitle = 150;
 	constexpr auto MenuVerticalOptionsTitle = 350;
 	constexpr auto MenuVerticalPause = 220;
-	constexpr auto MenuVerticalOptionsPause = 275;
+	constexpr auto MenuVerticalOptionsPause = 245;
 
 	// Used with distance travelled
 	constexpr auto UnitsToMeters = 419;
@@ -252,6 +252,7 @@ namespace TEN::Renderer
 
 					// Target highlighter
 					case GameplaySettingsOption::TargetHighlighter:
+						GetNextNarrowLinePosition(&y);
 						AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TARGET_HIGHLIGHTER), optionColor, flags);
 						AddString(MenuRightSideEntry, y, Str_Enabled(config.EnableTargetHighlighter),
 							g_GameFlow->GetSettings()->Hud.TargetHighlighter ? plainColor : disabledColor, flags);
