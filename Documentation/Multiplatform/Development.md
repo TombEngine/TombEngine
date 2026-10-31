@@ -127,7 +127,7 @@ Requirements:
 
 - Xcode command line tools: `xcode-select --install`.
 - CMake and Ninja, for example from [Homebrew](https://brew.sh/): `brew install cmake ninja`.
-- PowerShell 7: `brew install --cask powershell`.
+- PowerShell 7: `brew install powershell`.
 - The [Vulkan SDK](https://vulkan.lunarg.com/) for macOS, whose DXC and SPIRV-Cross compile the shaders to MSL. The
   shader script finds them through the `VULKAN_SDK` variable the SDK installer sets, or on the `PATH`.
 
