@@ -1143,7 +1143,17 @@ namespace TEN::Renderer
 		{
 			int animNumber = item.GetAnimNumber();
 			int frameNumber = item.GetFrameNumber();
-			UpdateAnimation(nullptr, *moveableObject, GetAnimData(object, animNumber).Frames[frameNumber], UINT_MAX);
+
+			const auto& frame = GetFrame(objectNumber, animNumber, frameNumber);
+			if (item.GetPrevAnimNumber() == animNumber)
+			{
+				const auto& prevFrame = GetFrame(objectNumber, item.GetPrevAnimNumber(), item.GetPrevFrameNumber());
+				UpdateAnimation(nullptr, *moveableObject, prevFrame, UINT_MAX, false, nullptr, nullptr, &frame, alpha);
+			}
+			else
+			{
+				UpdateAnimation(nullptr, *moveableObject, frame, UINT_MAX);
+			}
 		}
 
 		SetBlendMode(BlendMode::Opaque);
