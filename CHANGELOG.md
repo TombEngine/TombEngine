@@ -7,6 +7,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### New features
 
+* Added a rendering hardware interface with Vulkan, Direct3D 12, DirectX 11 and OpenGL 4.5 backends, validated with the rhitest command line mode.
 * Added GLM 1.0.1, stb_image and Dear ImGui 1.91.8 to the bundled libraries, and updated SDL to 3.4.18.
 * Moved skeleton posing from the renderer to the game: joint positions, collision spheres, hair and animation blends of moveables are now always up to date, including moveables that were not drawn in the previous frame.
 
