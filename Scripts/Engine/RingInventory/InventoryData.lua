@@ -377,8 +377,8 @@ function InventoryData.OpenAtItem(itemID, repositionRings)
             -- Only the main rings need repositioning
             if Utilities.Contains(Ring.PRIMARY_TYPES, rType) then
                 local order = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[rType]
-                local offset = (order - base) * Ring.RING_POSITION_PRIMARY_OFFSET_Y
-                local position = Vec3(ringPosition.x, ringPosition.y + offset, ringPosition.z)
+                local offset = Ring.RING_POSITION_PRIMARY_OFFSET * (order - base)
+                local position = ringPosition + offset
                 r:SetPosition(position)
                 r:Translate(position, Ring.RING_RADIUS, angle)
             end

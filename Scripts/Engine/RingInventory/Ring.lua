@@ -16,7 +16,7 @@ Ring.__index = Ring
 
 -- Class Constants
 Ring.RING_POSITION_PRIMARY = Vec3(0, 200, 1024) -- Position on the screen of whatever ring is currently focused
-Ring.RING_POSITION_PRIMARY_OFFSET_Y = Constants.RING_OFFSET_Y
+Ring.RING_POSITION_PRIMARY_OFFSET = Constants.RING_OFFSET
 Ring.RING_POSITION_SECONDARY = Vec3(0, 230, 1024)
 Ring.RING_RADIUS = -Constants.RING_RADIUS
 
@@ -54,8 +54,8 @@ Ring.CENTERS = {}
 local ringPosition = Ring.RING_POSITION_PRIMARY
 local base = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[Ring.DEFAULT_TYPE]
 for order, ringName in ipairs(Ring.PRIMARY_TYPES) do
-    local offset = (order - base) * Ring.RING_POSITION_PRIMARY_OFFSET_Y
-    local position = Vec3(ringPosition.x, ringPosition.y + offset, ringPosition.z)
+    local offset = Ring.RING_POSITION_PRIMARY_OFFSET * (order - base)
+    local position = ringPosition + offset
 
     Ring.CENTERS[ringName] = position
 end
@@ -251,7 +251,7 @@ end
 
 function Ring:OffsetPosition(direction)
     self.previousPosition = self.position 
-    self.position = Vec3(self.previousPosition.x, self.previousPosition.y - direction * Ring.RING_POSITION_PRIMARY_OFFSET_Y, self.previousPosition.z)
+    self.position = self.previousPosition - (Ring.RING_POSITION_PRIMARY_OFFSET * direction)
 end
 
 -- Get ring position
