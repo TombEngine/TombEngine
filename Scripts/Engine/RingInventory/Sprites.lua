@@ -3,6 +3,7 @@
 -- @local
 
 --External Modules
+local Constants = require("Engine.RingInventory.Constants")
 local Interpolate = require("Engine.RingInventory.Interpolate")
 local InventoryData
 local InventoryStates
@@ -18,14 +19,14 @@ local BG_LAYER = 0
 local ALPHA_SPEED = Settings.Animation.transitionSpeed
 
 -- Background state
-local bgAlpha  = 0
-local bgTarget = 0
+local bgAlpha  = Constants.ALPHA_MIN
+local bgTarget = Constants.ALPHA_MIN
 
 -- Arrows state
-local arrowUpAlpha    = 0
-local arrowUpTarget   = 0
-local arrowDownAlpha  = 0
-local arrowDownTarget = 0
+local arrowUpAlpha    = Constants.ALPHA_MIN
+local arrowUpTarget   = Constants.ALPHA_MIN
+local arrowDownAlpha  = Constants.ALPHA_MIN
+local arrowDownTarget = Constants.ALPHA_MIN
 local arrowVisible = true
 
 local Sprites = {}
@@ -92,11 +93,11 @@ end
 -- ============================================================
 
 function Sprites.ShowBackground()
-    bgTarget = 255
+    bgTarget = Constants.ALPHA_MAX
 end
 
 function Sprites.HideBackground()
-    bgTarget = 0
+    bgTarget = Constants.ALPHA_MIN
 end
 
 -- ============================================================
@@ -105,30 +106,30 @@ end
 
 function Sprites.ShowArrows()
     arrowVisible = true
-    arrowUpTarget   = 255
-    arrowDownTarget = 255
+    Sprites.ShowArrowsUp()
+    Sprites.ShowArrowsDown()
 end
 
 function Sprites.HideArrows()
     arrowVisible = false
-    arrowUpTarget   = 0
-    arrowDownTarget = 0
+    Sprites.HideArrowsUp()
+    Sprites.HideArrowsDown()
 end
 
 function Sprites.ShowArrowsUp()
-    arrowUpTarget = 255
+    arrowUpTarget = Constants.ALPHA_MAX
 end
 
 function Sprites.HideArrowsUp()
-    arrowUpTarget = 0
+    arrowUpTarget = Constants.ALPHA_MIN
 end
 
 function Sprites.ShowArrowsDown()
-    arrowDownTarget = 255
+    arrowDownTarget = Constants.ALPHA_MAX
 end
 
 function Sprites.HideArrowsDown()
-    arrowDownTarget = 0
+    arrowDownTarget = Constants.ALPHA_MIN
 end
 
 -- ============================================================
@@ -152,8 +153,8 @@ function Sprites.Update(selectedRing)
 
     if arrowVisible then
 
-        arrowUpTarget = InventoryStates.GetNeighbourRingType(selectedRingType, -1) and 255 or 0
-        arrowDownTarget = InventoryStates.GetNeighbourRingType(selectedRingType, 1) and 255 or 0
+        arrowUpTarget = InventoryStates.GetNeighbourRingType(selectedRingType, -1) and Constants.ALPHA_MAX or Constants.ALPHA_MIN
+        arrowDownTarget = InventoryStates.GetNeighbourRingType(selectedRingType, 1) and Constants.ALPHA_MAX or Constants.ALPHA_MIN
 
     end
   
@@ -179,12 +180,12 @@ end
 -- ============================================================
 
 function Sprites.Clear()
-    bgAlpha         = 0
-    bgTarget        = 0
-    arrowUpAlpha    = 0
-    arrowUpTarget   = 0
-    arrowDownAlpha  = 0
-    arrowDownTarget = 0
+    bgAlpha         = Constants.ALPHA_MIN
+    bgTarget        = Constants.ALPHA_MIN
+    arrowUpAlpha    = Constants.ALPHA_MIN
+    arrowUpTarget   = Constants.ALPHA_MIN
+    arrowDownAlpha  = Constants.ALPHA_MIN
+    arrowDownTarget = Constants.ALPHA_MIN
     arrowVisible = false
 end
 
