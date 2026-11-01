@@ -3,6 +3,7 @@
 
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
+#include "Game/collision/Point.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/control.h"
@@ -27,7 +28,7 @@
 #include "Specific/level.h"
 
 #include <algorithm>
-#include <limits>
+#include <climits>
 #include <unordered_map>
 
 using namespace TEN::Animation;
@@ -122,7 +123,7 @@ namespace TEN::Entities::Traps
 		int   Timer = 0;
 		int   DropDelay = 0;
 
-		short BaseObject = -1;
+		short BaseObject = NO_VALUE;
 
 		std::vector<short> Links = {};
 
@@ -147,7 +148,7 @@ namespace TEN::Entities::Traps
 	static short EncodeWreckingBallSector(int coordinate)
 	{
 		int sector = (int)std::floor((float)coordinate / BLOCK(1));
-		return (short)std::clamp(sector, (int)std::numeric_limits<short>::min(), (int)std::numeric_limits<short>::max());
+		return (short)std::clamp(sector, (int)SHRT_MIN, (int)SHRT_MAX);
 	}
 
 	static int DecodeWreckingBallSector(short sector)
@@ -160,11 +161,11 @@ namespace TEN::Entities::Traps
 		item.ItemFlags[0] = state.BaseObject;
 		item.ItemFlags[1] = (short)state.PhaseState;
 		item.ItemFlags[2] = (short)state.MoveAxis;
-		item.ItemFlags[3] = (short)std::clamp(state.DropDelay, 0, (int)std::numeric_limits<short>::max());
-		item.ItemFlags[4] = (short)std::clamp(state.RoamTimer, 0, (int)std::numeric_limits<short>::max());
+		item.ItemFlags[3] = (short)std::clamp(state.DropDelay, 0, (int)SHRT_MAX);
+		item.ItemFlags[4] = (short)std::clamp(state.RoamTimer, 0, (int)SHRT_MAX);
 		item.ItemFlags[5] = EncodeWreckingBallSector(state.RoamTargetX);
 		item.ItemFlags[6] = EncodeWreckingBallSector(state.RoamTargetZ);
-		item.ItemFlags[7] = (short)std::clamp(state.RoamWaitTimer, 0, (int)std::numeric_limits<short>::max());
+		item.ItemFlags[7] = (short)std::clamp(state.RoamWaitTimer, 0, (int)SHRT_MAX);
 	}
 
 	static void RestoreWreckingBallState(const ItemInfo& item, WreckingBallState& state)
@@ -228,7 +229,7 @@ namespace TEN::Entities::Traps
 			}
 		}
 
-		int closestAnchor = -1;
+		int closestAnchor = NO_VALUE;
 		float closestDistance = FLT_MAX;
 		for (int i = 0; i < g_Level.NumItems; i++)
 		{
@@ -264,7 +265,7 @@ namespace TEN::Entities::Traps
 		if (!state.Links.empty())
 			return;
 
-		int closestLink = -1;
+		int closestLink = NO_VALUE;
 		float closestDistance = FLT_MAX;
 		for (int i = 0; i < g_Level.NumItems; i++)
 		{
@@ -309,14 +310,13 @@ namespace TEN::Entities::Traps
 		int   anchorPosY = anchor.Pose.Position.y;
 		short currentRoom = room;
 
-		int currentCeiling = GetCeiling(
-			GetFloor(currentX, anchorPosY, currentZ, &currentRoom),
-			currentX, anchorPosY, currentZ);
+        auto currentPoint = GetPointCollision(Vector3i(currentX, anchorPosY, currentZ), currentRoom);
+		int currentCeiling = currentPoint.GetCeilingHeight();
+		currentRoom = currentPoint.GetSector().RoomNumber;
 
-		short newRoom = currentRoom;
-		int newCeiling = GetCeiling(
-			GetFloor(newX, anchorPosY, newZ, &newRoom),
-			newX, anchorPosY, newZ);
+        auto newPoint = GetPointCollision(Vector3i(newX, anchorPosY, newZ), currentRoom);
+		int newCeiling = newPoint.GetCeilingHeight();
+		short newRoom = newPoint.GetSector().RoomNumber;
 
 		if (newCeiling == NO_HEIGHT || currentCeiling == NO_HEIGHT)
 			return false;
@@ -337,19 +337,19 @@ namespace TEN::Entities::Traps
 	// lets its roam countdown take over instead of grinding at the rail edge.
 	static bool IsTileTravelReachable(const ItemInfo& anchor, int startX, int startZ, int targetX, int targetZ, int moveAxis = 0)
 	{
-		int curX = (startX & ~0x3FF) | 512;
-		int curZ = (startZ & ~0x3FF) | 512;
-		int dstX = (targetX & ~0x3FF) | 512;
-		int dstZ = (targetZ & ~0x3FF) | 512;
+		int currentX = (startX & ~0x3FF) | 512;
+		int currentZ = (startZ & ~0x3FF) | 512;
+		int destinationX = (targetX & ~0x3FF) | 512;
+		int destinationZ = (targetZ & ~0x3FF) | 512;
 		short room = anchor.RoomNumber;
 
 		if (moveAxis == 0)
-			moveAxis = (std::abs(dstX - curX) > std::abs(dstZ - curZ)) ? 1 : 2;
+			moveAxis = (std::abs(destinationX - currentX) > std::abs(destinationZ - currentZ)) ? 1 : 2;
 
-		while (curX != dstX || curZ != dstZ)
+		while (currentX != destinationX || currentZ != destinationZ)
 		{
-			int dx = dstX - curX;
-			int dz = dstZ - curZ;
+			int dx = destinationX - currentX;
+			int dz = destinationZ - currentZ;
 
 			bool moved = false;
 			for (int attempt = 0; attempt < 2; attempt++)
@@ -357,20 +357,20 @@ namespace TEN::Entities::Traps
 				int axis = (attempt == 0) ? moveAxis : (moveAxis == 1 ? 2 : 1);
 				if (axis == 1 && dx != 0)
 				{
-					int nextX = curX + (dx > 0 ? CLICK(1) : -CLICK(1));
-					if (IsCeilingSafeForAnchor(anchor, curX, curZ, nextX, curZ, room))
+					int nextX = currentX + (dx > 0 ? CLICK(1) : -CLICK(1));
+					if (IsCeilingSafeForAnchor(anchor, currentX, currentZ, nextX, currentZ, room))
 					{
-						curX = nextX;
+						currentX = nextX;
 						moved = true;
 						break;
 					}
 				}
 				else if (axis == 2 && dz != 0)
 				{
-					int nextZ = curZ + (dz > 0 ? CLICK(1) : -CLICK(1));
-					if (IsCeilingSafeForAnchor(anchor, curX, curZ, curX, nextZ, room))
+					int nextZ = currentZ + (dz > 0 ? CLICK(1) : -CLICK(1));
+					if (IsCeilingSafeForAnchor(anchor, currentX, currentZ, currentX, nextZ, room))
 					{
-						curZ = nextZ;
+						currentZ = nextZ;
 						moved = true;
 						break;
 					}
@@ -443,22 +443,22 @@ namespace TEN::Entities::Traps
 		auto& anchor = g_Level.Items[state.BaseObject];
 		int   moveSpeed = PropertyHandler::Get(item, PropName_MovementSpeed, MOVE_SPEED);
 
-		int dx = targetX - item.Pose.Position.x;
-		int dz = targetZ - item.Pose.Position.z;
+		int destinationX = targetX - item.Pose.Position.x;
+		int destinationZ = targetZ - item.Pose.Position.z;
 		short room = anchor.RoomNumber;
 
 		// Lock the travel axis once per pursuit. Completing it first enforces an L-shaped path.
 		if (state.MoveAxis == 0)
-			state.MoveAxis = (std::abs(dx) > std::abs(dz)) ? 1 : 2;
+			state.MoveAxis = (std::abs(destinationX) > std::abs(destinationZ)) ? 1 : 2;
 
 		auto tryMoveAxis = [&](int axis)
 		{
 			if (axis == 1)
 			{
-				if (dx == 0)
+				if (destinationX == 0)
 					return false;
 
-				int step = std::clamp(dx, -moveSpeed, moveSpeed);
+				int step = std::clamp(destinationX, -moveSpeed, moveSpeed);
 				int newX = item.Pose.Position.x + step;
 				if (!IsCeilingSafeForAnchor(anchor, item.Pose.Position.x, item.Pose.Position.z, newX, item.Pose.Position.z, room))
 					return false;
@@ -468,10 +468,10 @@ namespace TEN::Entities::Traps
 				return true;
 			}
 
-			if (dz == 0)
+			if (destinationZ == 0)
 				return false;
 
-			int step = std::clamp(dz, -moveSpeed, moveSpeed);
+			int step = std::clamp(destinationZ, -moveSpeed, moveSpeed);
 			int newZ = item.Pose.Position.z + step;
 			if (!IsCeilingSafeForAnchor(anchor, item.Pose.Position.x, item.Pose.Position.z, item.Pose.Position.x, newZ, room))
 				return false;
@@ -649,8 +649,7 @@ namespace TEN::Entities::Traps
 		{
 			int floorY = GetPointCollision(wreckingBall).GetFloorHeight();
 			float dynDist = (float)(floorY - anchor.Pose.Position.y);
-			if (dynDist < 256.0f)
-				dynDist = 256.0f; // FAILSAFE: Prevent zero or negative distance.
+			dynDist = std::max(dynDist, (float)CLICK(1)); // FAILSAFE: Prevent zero or negative distance.
 
 			// Allow distance/radius override via properties; otherwise scale to floor below ball.
 			float propDist = PropertyHandler::Get(wreckingBall, PropName_DownwardLightDistance, 0.0f);
@@ -668,7 +667,7 @@ namespace TEN::Entities::Traps
 			auto downColor = PropertyHandler::Get(wreckingBall, PropName_DownwardLightColor, ScriptColor(128, 128, 128));
 			float intensity = PropertyHandler::Get(wreckingBall, PropName_DownwardLightIntensity, 5.0f);
 
-			Vector3 dir(0.0f, 1.0f, 0.0f);
+			auto dir = Vector3::UnitY;
 			Color color(
 				(downColor.GetR() / (float)UCHAR_MAX) * intensity,
 				(downColor.GetG() / (float)UCHAR_MAX) * intensity,
@@ -1098,12 +1097,9 @@ namespace TEN::Entities::Traps
 		SpawnUnderwaterDiveBubbles(item, state);
 
 		short room = item.RoomNumber;
-		int   height = GetFloorHeight(
-			GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &room),
-			item.Pose.Position.x,
-			item.Pose.Position.y,
-			item.Pose.Position.z);
-
+		auto pointCollision = GetPointCollision(item);
+		int height = pointCollision.GetFloorHeight();
+		
 		if (height - item.Pose.Position.y < 1536 && item.Animation.ActiveState != WRECKINGBALL_STATE_IDLE)
 			item.Animation.TargetState = WRECKINGBALL_STATE_IDLE;
 
