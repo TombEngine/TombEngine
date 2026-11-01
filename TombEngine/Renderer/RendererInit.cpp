@@ -58,11 +58,8 @@ namespace TEN::Renderer
 		_stHUD.Projection = Matrix::CreateOrthographicOffCenter(0, DISPLAY_SPACE_RES.x, 0, DISPLAY_SPACE_RES.y, 0, 1.0f);
 		UpdateConstantBuffer(&_stHUD, _cbHUD.get());
 		_currentCausticsFrame = 0;
-
-		// Needed by SetBlendMode() while the progress screen renders during shader loading.
 		_cbPerDraw = CreateConstantBuffer<CPerDrawBuffer>();
 
-		// Create the HUD bars (loading bar included) so the progress bar can render.
 		InitializeGameBars();
 
 		// Load remaining shaders, updating the progress screen after each one.

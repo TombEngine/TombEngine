@@ -1584,10 +1584,6 @@ namespace TEN::Renderer
 		SetCullMode(CullMode::None, true);
 		SetDepthState(DepthState::None, true);
 		DrawLoadingBar(percentage, true);
-
-		// The string renderer multiplies by ScreenFadeCurrent (0 until gameplay starts),
-		// so temporarily force full opacity so the pre-compile text is visible.
-		float prevScreenFade = ScreenFadeCurrent;
 		ScreenFadeCurrent = 1.0f;
 
 		// Centered text just above the loading bar, using the engine's string system.
@@ -1598,8 +1594,6 @@ namespace TEN::Renderer
 			0.5f,
 			(int)PrintStringFlags::Center);
 		DrawAllStrings();
-
-		ScreenFadeCurrent = prevScreenFade;
 
 		_graphicsDevice->Present();
 

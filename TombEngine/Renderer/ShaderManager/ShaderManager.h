@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "Renderer/Graphics/IGraphicsDevice.h"
-#include <functional>
 
 using namespace TEN::Renderer::Graphics;
 
