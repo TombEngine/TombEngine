@@ -444,6 +444,7 @@ namespace TEN::Renderer
 		void DrawBats(RenderView& view, RendererPass rendererPass);
 		void DrawRats(RenderView& view, RendererPass rendererPass);
 		void DrawScarabs(RenderView& view, RendererPass rendererPass);
+		void DrawTr3Bats(RenderView& view, RendererPass rendererPass);
 		void DrawSpiders(RenderView& view, RendererPass rendererPass);
 		bool DrawGunFlashes(RenderView& view);
 		void DrawGunShells(RenderView& view, RendererPass rendererPass);
@@ -773,6 +774,7 @@ namespace TEN::Renderer
 
 		void ChangeScreenResolution(int width, int height, bool windowed, bool resyncWindow = true);
 		void FlipRooms(short roomNumber1, short roomNumber2);
+		void UpdateRoomCrossReferences(short roomNumber);
 		void UpdateLaraAnimations(bool force);
 		void UpdateItemAnimations(int itemNumber, bool force);
 		std::vector<BoundingSphere> GetSpheres(int itemNumber);
