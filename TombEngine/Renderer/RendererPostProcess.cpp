@@ -238,14 +238,15 @@ namespace TEN::Renderer
 
 			BindRenderTargetAsTexture(TextureRegister::ColorMap, _postProcessRenderTarget[currentRenderTarget]->GetRenderTarget(), SamplerStateRegister::PointWrap);
 
-			// Bind GBuffer depth at slot t1 so PSLensFlare can occlude flares
-			// behind opaque scene geometry (rooms, statics, moveables).
-			BindRenderTargetAsTexture(TextureRegister::NormalMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
+			// Bind GBuffer depth at slot t6 (GBufferDepthMap) so PSLensFlare can occlude
+			// flares behind opaque scene geometry (rooms, statics, moveables) and the
+			// horizon mesh. PSLensFlare samples DepthTexture from register(t6).
+			BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 
 			DrawTriangles(3, 0);
 
 			// Unbind depth SRV so the depth target can be safely re-bound elsewhere.
-			_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::NormalMap);
+			_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::GBufferDepthMap);
 
 			destRenderTarget = (destRenderTarget) == 1 ? 0 : 1;
 			currentRenderTarget = (currentRenderTarget == 1) ? 0 : 1;
