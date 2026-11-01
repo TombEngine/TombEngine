@@ -166,7 +166,7 @@ namespace TEN::Scripting
 	void LensFlare::SetSunSpriteID(int spriteID)
 	{
 		// Sprite ID out of range; return early.
-		if (spriteID < 0 || g_Level.Sprites.size() > spriteID)
+		if (spriteID < 0 || spriteID >= (int)g_Level.Sprites.size())
 		{
 			TENLog("Sun sprite ID out of range.");
 			return;
