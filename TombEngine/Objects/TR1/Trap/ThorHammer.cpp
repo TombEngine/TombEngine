@@ -5,7 +5,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/effects/effects.h"
 #include "Game/Lara/lara.h"
 #include "Game/Setup.h"
@@ -174,7 +174,7 @@ namespace TEN::Entities::Traps
 			playerItem->Pose.Scale = Vector3(1.0f, 0.1f, 1.0f);
 
 			DoDamage(playerItem, INT_MAX);
-			SetAnimation(playerItem, LA_BOULDER_DEATH);
+			SetAnimation(playerItem, LA_BOULDER_DEATH, 0, GetInternalBlendDuration());
 		}
 		else if (playerItem->HitPoints > 0)
 		{

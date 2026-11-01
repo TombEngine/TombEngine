@@ -33,6 +33,10 @@ namespace TEN::Entities::Traps
 		item.Status = ITEM_INVISIBLE;
 		item.ItemFlags[0] = 1024;
 		item.ItemFlags[2] = 0;
+
+		// Immediately set spike state to fully protruded if OCB is 1 and object was pre-activated.
+		if (item.TriggerFlags == 1 && item.Flags & IFLAG_REVERSE)
+			item.ItemFlags[1] = 5120;
 	}
 
 	ContainmentType TestBoundsCollideTeethSpikes(ItemInfo* item, ItemInfo* collidingItem)
@@ -63,16 +67,12 @@ namespace TEN::Entities::Traps
 		if (TriggerActive(&item) && item.ItemFlags[2] == 0)
 		{
 			// Get current item bounds and radius.
-			const auto& bounds = GetClosestKeyframe(item).BoundingBox;
+			const auto& bounds = GetFrame(item).BoundingBox;
 			int radius = std::max(abs(bounds.X2 - bounds.X1), abs(bounds.Z2 - bounds.Z1)) / 2;
 
 			// Play sound only if spikes are just emerging.
-			if (item.ItemFlags[0] == 1024 && item.TriggerFlags != 1)
+			if (item.ItemFlags[0] == 1024 && item.ItemFlags[1] != 5120)
 				SoundEffect(SFX_TR4_TEETH_SPIKES, &item.Pose);
-
-			// Immediately set spike state to fully protruded if flag is set.
-			if (item.TriggerFlags == 1)
-				item.ItemFlags[1] = 5120;
 
 			// Kill enemies.
 			item.Animation.Velocity.z = VEHICLE_COLLISION_TERMINAL_VELOCITY;
@@ -89,7 +89,7 @@ namespace TEN::Entities::Traps
 				float dot = Vector3::UnitX.Dot(normal);
 				float angle = acos(dot / sqrt(normal.LengthSquared() * Vector3::UnitX.LengthSquared()));
 
-				const auto& playerBounds = GetClosestKeyframe(*LaraItem).BoundingBox;
+				const auto& playerBounds = GetFrame(*LaraItem).BoundingBox;
 
 				int bloodCount = 0;
 
@@ -160,7 +160,7 @@ namespace TEN::Entities::Traps
 
 					if (item.Pose.Position.y >= LaraItem->Pose.Position.y && heightFromFloor < CLICK(1))
 					{
-						SetAnimation(LaraItem, LA_SPIKE_DEATH);
+						SetAnimation(LaraItem, LA_SPIKE_DEATH, 0, GetInternalBlendDuration());
 						LaraItem->Animation.IsAirborne = false;
 
 						Camera.flags = CF_FOLLOW_CENTER;
@@ -219,7 +219,10 @@ namespace TEN::Entities::Traps
 				item.ItemFlags[0] += (item.ItemFlags[0] >> 3) + 32;
 				item.ItemFlags[1] -= item.ItemFlags[0];
 				if (item.ItemFlags[1] < 0)
+				{
+					item.ItemFlags[0] = 1024;
 					item.ItemFlags[1] = 0;
+				}
 			}
 		}
 

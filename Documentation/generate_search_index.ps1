@@ -92,7 +92,7 @@ function Get-NearestSectionName {
 $resolvedDocRoot = (Resolve-Path $DocRoot).Path
 
 if (-not $OutputFile) {
-    $OutputFile = Join-Path $resolvedDocRoot "search-index.js"
+    $OutputFile = Join-Path $resolvedDocRoot "resources\search-index.js"
 }
 
 $regexOptions = [System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [System.Text.RegularExpressions.RegexOptions]::Singleline

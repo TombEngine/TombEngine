@@ -1,10 +1,11 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+# local asset_root = module and '../' or ''
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=$(ldoc.doc_charset)"/>
 <head>
     <title>$(ldoc.title)</title>
-    <link rel="stylesheet" href="$(ldoc.css)" type="text/css" />
+    <link rel="stylesheet" href="$(asset_root)resources/ldoc.css" type="text/css" />
 # if ldoc.custom_css then -- add custom CSS file if configured.
     <link rel="stylesheet" href="$(ldoc.custom_css)" type="text/css" />
 # end
@@ -28,9 +29,8 @@
 # local iter = ldoc.modules.iter
 # local function M(txt,item) return ldoc.markup(txt,item,ldoc.plain) end
 # local nowrap = ldoc.wrap and '' or 'nowrap'
-# local asset_root = module and '../' or ''
 # local index_path = module and '../index.html' or 'index.html'
-# local logo_path = module and '../TEN%20logo.png' or 'TEN%20logo.png'
+# local logo_path = module and '../resources/TEN%20logo.png' or 'resources/TEN%20logo.png'
 
 <!-- Menu -->
 
@@ -323,7 +323,7 @@
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 <script type="text/javascript">window.TENDocRoot = '$(asset_root)';</script>
-<script type="text/javascript" src="$(asset_root)search-index.js"></script>
-<script type="text/javascript" src="$(asset_root)docs-search.js"></script>
+<script type="text/javascript" src="$(asset_root)resources/search-index.js"></script>
+<script type="text/javascript" src="$(asset_root)resources/docs-search.js"></script>
 </body>
 </html>

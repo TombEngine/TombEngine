@@ -95,7 +95,7 @@ namespace TEN::Entities::Creatures::TR5
 			// HACK: Reset Lara enemy in case no AI_AMBUSH object is present.
 			// Technically it's illegal, but TEN code forces enemy to Lara after calling GetAITarget, resulting
 			// in Larson never running away.
-			if (item->AIBits & AMBUSH && creature->Enemy->ObjectNumber != GAME_OBJECT_ID::ID_AI_AMBUSH)
+			if (item->AIBits & AMBUSH && creature->Enemy && creature->Enemy->ObjectNumber != GAME_OBJECT_ID::ID_AI_AMBUSH)
 				creature->Enemy = nullptr;
 
 			if (AI.ahead)
@@ -108,7 +108,7 @@ namespace TEN::Entities::Creatures::TR5
 			{
 				// Set Larson to attack if player is moving fast enough and close enough, or if Larson was hit,
 				// or if player is directly visible.
-				if ((AI.distance < LARSON_ALERT_RANGE && creature->Enemy->Animation.Velocity.z > 20.0f) ||
+				if ((AI.distance < LARSON_ALERT_RANGE && creature->Enemy && creature->Enemy->Animation.Velocity.z > 20.0f) ||
 					(TargetVisible(item, &AI) != 0) ||
 					item->HitStatus)
 				{
@@ -116,7 +116,7 @@ namespace TEN::Entities::Creatures::TR5
 					creature->Alerted = true;
 
 					// creature->Enemy will contain AI object when Larson is patrolling or guarding, so we reset it.
-					if (!creature->Enemy->IsLara())
+					if (!creature->Enemy.IsLara())
 						creature->Enemy = nullptr;
 				}
 			}

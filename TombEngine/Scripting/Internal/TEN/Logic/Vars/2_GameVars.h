@@ -30,7 +30,7 @@
 //
 // If you try to save a variable of an unsupported type (like a function or userdata), an error will be raised when you attempt to save the game.
 // 
-// <h2>Note:</h2>
+// <h3>Notes</h3>
 //
 // - GameVars is created automatically. Never assign a value to GameVars.<br>
 // For example, do not write:

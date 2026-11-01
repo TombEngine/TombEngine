@@ -7,6 +7,8 @@ namespace TEN::Renderer::ConstantBuffers
 
 	struct alignas(16) CHUDBarBuffer
 	{
+		Matrix Transform;
+		//--
 		Vector2 BarStartUV;
 		Vector2 BarScale;
 		//--

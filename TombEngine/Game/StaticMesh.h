@@ -2,8 +2,10 @@
 
 #include "Math/Math.h"
 #include "Objects/objectslist.h"
+#include "Scripting/Internal/TEN/Properties/PropertyMap.h"
 
 using namespace TEN::Math;
+using namespace TEN::Scripting::Properties;
 
 enum GAME_OBJECT_ID : short;
 
@@ -28,6 +30,8 @@ enum GAME_OBJECT_ID : short;
 		Pose  Pose		 = Pose::Zero;
 		int	  RoomNumber = 0;
 		Color Color		 = SimpleMath::Color();
+
+		PropertyMap Properties = {};
 
 		int	 HitPoints = 0;
 		int	 Flags	   = 0;

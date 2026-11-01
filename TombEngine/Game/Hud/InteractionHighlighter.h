@@ -43,6 +43,7 @@ namespace TEN::Hud
 		// Utilities
 
 		bool TestInteractionConditions(ItemInfo& actor, ItemInfo& item, InteractionMode mode);
+		bool IsEnabled() const;
 
 	public:
 		// Utilities

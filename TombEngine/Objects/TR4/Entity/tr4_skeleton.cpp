@@ -142,25 +142,28 @@ namespace TEN::Entities::TR4
 		}
 	}
 
-	void TriggerRiseEffect(ItemInfo* item)
+	void TriggerRiseEffect(const ItemInfo& item)
 	{
-		int fxNumber = CreateNewEffect(item->RoomNumber);
+		int fxNumber = CreateNewEffect(item.RoomNumber, ID_BODY_PART,
+			Pose(
+				Vector3(
+					(byte)GetRandomControl() + item.Pose.Position.x - 128,
+					GetPointCollision(item).GetFloorHeight(),
+					(byte)GetRandomControl() + item.Pose.Position.z - 128),
+				EulerAngles(0, 2 * GetRandomControl(), 0)));
+
 		if (fxNumber == NO_VALUE)
 			return;
 
-		auto* fx = &EffectList[fxNumber];
+		auto& fx = g_Level.Items[fxNumber];
+		auto& fxInfo = GetFXInfo(fx);
 
-		fx->pos.Position.x = (byte)GetRandomControl() + item->Pose.Position.x - 128;
-		fx->pos.Position.y = GetPointCollision(*item).GetFloorHeight();
-		fx->pos.Position.z = (byte)GetRandomControl() + item->Pose.Position.z - 128;
-		fx->roomNumber = item->RoomNumber;
-		fx->pos.Orientation.y = 2 * GetRandomControl();
-		fx->speed = GetRandomControl() / 2048;
-		fx->fallspeed = -(GetRandomControl() / 1024);
-		fx->frameNumber = Objects[103].meshIndex;
-		fx->objectNumber = ID_BODY_PART;
-		fx->color = NEUTRAL_COLOR;
-		fx->flag2 = 0x601;
+		fx.Animation.Velocity.z = GetRandomControl() / 2048;
+		fx.Animation.Velocity.y = -(GetRandomControl() / 1024);
+		fx.ObjectNumber = ID_BODY_PART;
+		fx.Model.MeshIndex = { Objects[GAME_OBJECT_ID::ID_SKELETON].meshIndex };
+		fx.Model.Color = NEUTRAL_COLOR;
+		fxInfo.Flag2 = BODY_NO_BOUNCE | BODY_NO_BOUNCE_ALT;
 
 		auto* spark = GetFreeParticle();
 		spark->on = 1;
@@ -173,12 +176,12 @@ namespace TEN::Entities::TR4
 		spark->fadeToBlack = 8;
 		spark->colFadeSpeed = (GetRandomControl() & 3) + 4;
 		spark->life = spark->sLife = (GetRandomControl() & 7) + 16;
-		spark->x = fx->pos.Position.x;
-		spark->y = fx->pos.Position.y;
-		spark->z = fx->pos.Position.z;
-		spark->xVel = phd_sin(fx->pos.Orientation.y) * 4096;
+		spark->x = fx.Pose.Position.x;
+		spark->y = fx.Pose.Position.y;
+		spark->z = fx.Pose.Position.z;
+		spark->xVel = phd_sin(fx.Pose.Orientation.y) * 4096;
 		spark->yVel = 0;
-		spark->zVel = phd_cos(fx->pos.Orientation.y) * 4096;
+		spark->zVel = phd_cos(fx.Pose.Orientation.y) * 4096;
 		spark->blendMode = BlendMode::Additive;
 		spark->friction = 68;
 		spark->flags = 26;
@@ -203,7 +206,7 @@ namespace TEN::Entities::TR4
 
 		auto* item = &g_Level.Items[itemNumber];
 		auto* creature = GetCreatureInfo(item);
-		auto* enemyItem = creature->Enemy;
+		auto* enemyItem = creature->Enemy.Get();
 
 		bool jumpLeft = false;
 		bool jumpRight = false;
@@ -293,7 +296,7 @@ namespace TEN::Entities::TR4
 		else
 		{
 			AI_INFO laraAI;
-			if (creature->Enemy->IsLara())
+			if (creature->Enemy.IsLara())
 			{
 				laraAI.distance = AI.distance;
 				laraAI.angle = AI.angle;
@@ -315,7 +318,7 @@ namespace TEN::Entities::TR4
 
 			angle = CreatureTurn(item, creature->MaxTurn);
 
-			auto* tempEnemy = creature->Enemy;
+			auto* tempEnemy = creature->Enemy.Get();
 
 			creature->Enemy = LaraItem;
 
@@ -779,7 +782,7 @@ namespace TEN::Entities::TR4
 
 			case SKELETON_STATE_SUBTERRANEAN:
 				if (item->Animation.FrameNumber < 32)
-					TriggerRiseEffect(item);
+					TriggerRiseEffect(*item);
 				
 				break;
 

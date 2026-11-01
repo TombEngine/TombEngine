@@ -36,7 +36,7 @@ namespace TEN::Entities::TR4
             item->MeshBits |= 2;
 
             auto pos =  GetJointPosition(item, 0);
-            byte color = (GetRandomControl() & 0x1F) + 192;
+            unsigned char color = (GetRandomControl() & 0x1F) + 192;
             SpawnDynamicLight(pos.x, pos.y, pos.z, (GetRandomControl() & 3) + 16, color, color, 0);
 
             int height = GetPointCollision(*item).GetFloorHeight();

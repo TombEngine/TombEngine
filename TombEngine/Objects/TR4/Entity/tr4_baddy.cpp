@@ -29,9 +29,9 @@ ID_BADDY1
 2 - Jumps to the left 1 pow
 3 - ducks when triggered
 4 - Climbs up 4 clicks when triggered
-101-104 – Slides to the left while crouching when triggered (eg. train level – just doesn’t work in trainmode)
+101-104 - Slides to the left while crouching when triggered (eg. train level - just doesn't work in trainmode)
 1004 - Climbs up 6 clicks when triggered
-1000 – N x 1000 – Is activated once the baddy with the previous thousand is dead and needs no trigger (have tested up to 20.000). Must be placed in room 2 of a level.
+1000 - N x 1000 - Is activated once the baddy with the previous thousand is dead and needs no trigger (have tested up to 20.000). Must be placed in room 2 of a level.
 This means that:
 2000 - Attacks Lara after she kills 1st baddy triggered
 3000 - Same as above but after she kills 2nd baddy triggered
@@ -50,7 +50,9 @@ ID_BADDY2
 13 - Crouches when triggered and draws uzi
 14 - Climbs up 4 clicks when triggered and draws uzi
 101 - Slides to the left while crouching when triggered (eg. Train level)
-101-104 - Slides to the left while crouching when triggered. The setup requires an enemy jeep and an AI_X1 nullmesh with the same OCB as the jeep and the baddy. It works only in trainmode. When triggered, the baddy will ride the roof of the enemy jeep parallel to the railtracks, until they reach the AI_X1 nullmesh. The baddy will jump off in the direction he’s placed in the map, while the jeep will fall back.
+101-104 - Slides to the left while crouching when triggered. The setup requires an enemy jeep and an AI_X1 nullmesh with the same OCB as the jeep and the baddy.
+It works only in trainmode. When triggered, the baddy will ride the roof of the enemy jeep parallel to the railtracks, until they reach the AI_X1 nullmesh.
+The baddy will jump off in the direction he's placed in the map, while the jeep will fall back.
 */
 
 namespace TEN::Entities::TR4
@@ -322,7 +324,7 @@ namespace TEN::Entities::TR4
 		if (creature->Enemy && (creature->Enemy->Flags & IFLAG_KILLED))
 			creature->Enemy = nullptr;
 
-		auto* enemyItem = creature->Enemy;
+		auto* enemyItem = creature->Enemy.Get();
 
 		short angle = 0;
 		short tilt = 0;
@@ -399,9 +401,9 @@ namespace TEN::Entities::TR4
 		if (item->ItemFlags[1] != item->RoomNumber)
 		{
 			ItemInfo* currentItem = nullptr;
-			for (short itemNum = g_Level.Rooms[item->RoomNumber].itemNumber; itemNum != NO_VALUE; itemNum = currentItem->NextItem)
+			for (int itemNumber : g_Level.Rooms[item->RoomNumber].itemNumbers)
 			{
-				currentItem = &g_Level.Items[itemNum];
+				auto* currentItem = &g_Level.Items[itemNumber];
 
 				if (SameZone(creature, currentItem) && item->Floor <= item->Pose.Position.y &&
 					(currentItem->ObjectNumber == ID_SMALLMEDI_ITEM || currentItem->ObjectNumber == ID_BIGMEDI_ITEM || currentItem->ObjectNumber == ID_UZI_AMMO_ITEM))
@@ -512,7 +514,7 @@ namespace TEN::Entities::TR4
 			CreatureAIInfo(item, &AI);
 
 			AI_INFO laraAI;
-			if (creature->Enemy->IsLara())
+			if (creature->Enemy.IsLara())
 			{
 				laraAI.angle = AI.angle;
 				laraAI.ahead = AI.ahead;
@@ -932,11 +934,31 @@ namespace TEN::Entities::TR4
 
 				break;
 
-			case BADDY_STATE_MONKEY_IDLE:
+			case BADDY_STATE_MONKEY_GRAB:
 				creature->MaxTurn = 0;
+				creature->LOT.IsJumping = true;
+				creature->LOT.IsMonkeying = false;
 				creature->Flags = 0;
 				joint1 = 0;
 				joint2 = 0;
+				break;
+
+			case BADDY_STATE_MONKEY_IDLE:
+				creature->MaxTurn = 0;
+				creature->LOT.IsJumping = true;
+				creature->LOT.IsMonkeying = true;
+				creature->Flags = 0;
+				joint1 = 0;
+				joint2 = 0;
+
+				// If we are no longer under a valid monkey-swing sector, land.
+				if (!probe.GetBottomSector().Flags.Monkeyswing)
+				{
+					item->Animation.TargetState = BADDY_STATE_MONKEY_FALL_LAND;
+					creature->LOT.IsMonkeying = false;
+					creature->LOT.IsJumping = false;
+					break;
+				}
 
 				probe = GetPointCollision(*item);
 
@@ -951,9 +973,8 @@ namespace TEN::Entities::TR4
 				{
 					item->Animation.TargetState = BADDY_STATE_MONKEY_PUSH_OFF;
 				}
-				else if (item->BoxNumber != creature->LOT.TargetBox &&
-					creature->MonkeySwingAhead ||
-					probe.GetCeilingHeight() != (probe.GetFloorHeight() - CLICK(6)))
+				else if ((item->BoxNumber != creature->LOT.TargetBox && creature->MonkeySwingAhead) ||
+						 probe.GetCeilingHeight() != (probe.GetFloorHeight() - CLICK(6)))
 				{
 					item->Animation.TargetState = BADDY_STATE_MONKEY_FORWARD;
 				}
@@ -973,6 +994,17 @@ namespace TEN::Entities::TR4
 				creature->Flags = 0;
 				joint1 = 0;
 				joint2 = 0;
+
+				probe = GetPointCollision(*item);
+
+				// Don't allow continued monkey movement outside flagged sectors.
+				if (!probe.GetBottomSector().Flags.Monkeyswing)
+				{
+					item->Animation.TargetState = BADDY_STATE_MONKEY_FALL_LAND;
+					creature->LOT.IsMonkeying = false;
+					creature->LOT.IsJumping = false;
+					break;
+				}
 
 				if (item->BoxNumber == creature->LOT.TargetBox || !creature->MonkeySwingAhead)
 				{
@@ -1003,6 +1035,8 @@ namespace TEN::Entities::TR4
 
 			case BADDY_STATE_MONKEY_PUSH_OFF:
 				creature->MaxTurn = ANGLE(7.0f);
+				creature->LOT.IsJumping = true;
+				creature->LOT.IsMonkeying = true;
 
 				if (!creature->Flags)
 				{
@@ -1013,9 +1047,31 @@ namespace TEN::Entities::TR4
 						LaraItem->Animation.Velocity.y = 2;
 						LaraItem->Animation.Velocity.y = 1;
 						LaraItem->Pose.Position.y += CLICK(0.75f);
+						
 						Lara.Control.HandStatus = HandStatus::Free;
 						creature->Flags = 1;
 					}
+				}
+
+				break;
+
+			case BADDY_STATE_MONKEY_FALL_LAND:
+				creature->MaxTurn = 0;
+				creature->LOT.IsJumping = false;
+				creature->LOT.IsMonkeying = false;
+				creature->Flags = 0;
+				joint1 = 0;
+				joint2 = 0;
+
+				if (item->Animation.FrameNumber == GetAnimData(*item).EndFrameNumber)
+				{
+					creature->JumpAhead = false;
+					creature->MonkeySwingAhead = false;
+
+					// Force actual exit from landing state.
+					SetAnimation(item, BADDY_ANIM_STAND_IDLE);
+					item->Animation.ActiveState = BADDY_STATE_IDLE;
+					item->Animation.TargetState = BADDY_STATE_IDLE;
 				}
 
 				break;

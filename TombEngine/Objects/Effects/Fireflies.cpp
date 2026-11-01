@@ -219,7 +219,8 @@ namespace TEN::Effects::Fireflies
                 }
 
                 if ((targetItem->ItemFlags[FirefliesItemFlags::LightIndex1] == firefly.Number || targetItem->ItemFlags[FirefliesItemFlags::LightIndex2] == firefly.Number) &&
-                    targetItem->ItemFlags[FirefliesItemFlags::Light] == 1)
+                    targetItem->ItemFlags[FirefliesItemFlags::Light] == 1 &&
+                    targetItem->ItemFlags[FirefliesItemFlags::TriggerFlags] >= 0)
                 {
                     float totalCycleDuration = 2 * (LIGHT_ALPHA_CYCLE_DURATION + ALPHA_PAUSE_DURATION);
                     float alphaTime = fmod(frameCounter, totalCycleDuration);

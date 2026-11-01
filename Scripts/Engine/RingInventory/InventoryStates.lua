@@ -211,7 +211,7 @@ local UpdateActionLabel = function(itemSelected, override, transitionType)
         string = Flow.GetString("actions_select")
     end
 
-    local actionString = Input.GetActionBinding(ActionID.SELECT)..": "..string
+    local actionString = Flow.GetString("actions_action")..": "..string
 
     Text.SetText("CONTROLS_SELECT", actionString, true, transitionType)
 end
@@ -243,12 +243,6 @@ local BeginSaveSetup = function(selectedRing, selectedItem, instantOpen)
     inventoryMode = InventoryStates.MODE.SAVE_MENU
 end
 
-local UpdateInventoryTextsForSelectedItem = function(selectedItem, itemTransitionType, controlsTransitionType)
-    Text.SetItemLabel(selectedItem, itemTransitionType)
-    UpdateActionLabel(selectedItem, nil, controlsTransitionType or itemTransitionType)
-    ShowSelectedAmmoName(selectedItem)
-end
-
 local UpdateBackLabel = function(label)
     local backstring
 
@@ -258,8 +252,15 @@ local UpdateBackLabel = function(label)
         backstring = "close"
     end
 
-    local string = Input.GetActionBinding(ActionID.DESELECT)..": "..Flow.GetString(backstring)
+    local string = Flow.GetString("actions_inventory")..": "..Flow.GetString(backstring)
     Text.SetText("CONTROLS_BACK", string, true)
+end
+
+local UpdateInventoryTextsForSelectedItem = function(selectedItem, itemTransitionType, controlsTransitionType)
+    Text.SetItemLabel(selectedItem, itemTransitionType)
+    UpdateActionLabel(selectedItem, nil, controlsTransitionType or itemTransitionType)
+    UpdateBackLabel()
+    ShowSelectedAmmoName(selectedItem)
 end
 
 InventoryStates.StartRingNavigation = function(ring, direction)
@@ -362,6 +363,7 @@ local ResetInventorySession = function()
     InventoryData.SetChosenItem()
     InventoryStates.SetInventoryClosed(true)
     InventoryData.ClearAll()
+    LevelFuncs.Engine.RingInventory.RestoreSnapshot()
     Flow.SetFreezeMode(Flow.FreezeMode.NONE)
 end
 
@@ -379,6 +381,8 @@ end
 
 local HandleInventoryOpening = function(state)
     TEN.View.SetPostProcessMode(View.PostProcessMode.NONE)
+    TEN.View.SetPostProcessTint(COLOR_MAP.itemSelected)
+    TEN.View.SetDOF(View.DOFMode.NONE)
     Text.Setup()
 
     if Save.IsQuickSaveEnabled() then
@@ -630,8 +634,10 @@ local HandleStatisticsClose = function(state)
             InventoryStates.SetMode(InventoryStates.MODE.ITEM_SELECTED)
         else
             if Statistics.IsEndStatisticsEnabled() then
+                local endLevel = Statistics.GetEndLevel() or 999
+                Statistics.SetEndStatistics(false, nil)
+                Flow.EndLevel(endLevel)
                 InventoryStates.SetMode(InventoryStates.MODE.INVENTORY_EXIT)
-                Statistics.SetEndStatistics(false)
             else
                 InventoryStates.SetMode(InventoryStates.MODE.INVENTORY)
             end

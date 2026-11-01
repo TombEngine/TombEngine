@@ -110,7 +110,6 @@ table.index td { text-align: left; vertical-align: top; }
     background-color: #f0f0f0;
     border-left: 2px solid #cccccc;
     display: flex;
-    width: 100%;
 }
 
 #navigation {

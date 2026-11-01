@@ -6,8 +6,8 @@
 #include "Game/collision/Point.h"
 #include "Game/control/flipeffect.h"
 #include "Game/items.h"
-#include "Game/lara/lara.h"
-#include "Game/lara/lara_helpers.h"
+#include "Game/Lara/lara.h"
+#include "Game/Lara/lara_helpers.h"
 #include "Game/Setup.h"
 #include "Sound/sound.h"
 
@@ -15,18 +15,16 @@ using namespace TEN::Collision::Point;
 
 namespace TEN::Animation
 {
-	void MoveOriginCommand::Execute(ItemInfo& item, bool isFrameBased) const
+	void MoveRootCommand::Execute(ItemInfo& item, bool isFrameBased) const
 	{
 		if (isFrameBased)
 			return;
 
-		item.Pose.Translate(item.Pose.Orientation.y, _relOffset.z, _relOffset.y, _relOffset.x);
+		item.Pose.Translate(item.Pose.Orientation.y, _translation.z, _translation.y, _translation.x);
 
 		if (item.IsLara())
 		{
-			// NOTE: GameBoundingBox constructor always clamps to last frame to avoid errors.
-			auto bounds = GameBoundingBox(&item);
-			UpdateLaraRoom(&item, -bounds.GetHeight() / 2, -_relOffset.x, -_relOffset.z);
+			UpdateLaraRoom(&item, -item.GetObb().Extents.y, -_translation.x, -_translation.z);
 		}
 		else
 		{

@@ -44,25 +44,27 @@ namespace TEN::Collision::Point
 		return *_sector;
 	}
 
-	FloorInfo& PointCollisionData::GetBottomSector()
+	FloorInfo& PointCollisionData::GetBottomSector(bool ignoreBridges)
 	{
-		if (_bottomSector != nullptr)
-			return *_bottomSector;
+		auto* cachedBottomSector = ignoreBridges ? _bottomSectorNoBridges : _bottomSector;
+		if (cachedBottomSector != nullptr)
+			return *cachedBottomSector;
 
 		// Set bottom sector.
 		auto* bottomSector = &GetSector();
-		auto roomNumberBelow = bottomSector->GetNextRoomNumber(_position, true);
+		auto roomNumberBelow = ignoreBridges ? bottomSector->GetNextRoomNumber(_position.x, _position.z, true) : bottomSector->GetNextRoomNumber(_position, true);
+
 		while (roomNumberBelow.has_value())
 		{
 			int roomNumber = roomNumberBelow.value_or(bottomSector->RoomNumber);
 			auto& room = g_Level.Rooms[roomNumber];
 
 			bottomSector = Room::GetSector(&room, _position.x - room.Position.x, _position.z - room.Position.z);
-			roomNumberBelow = bottomSector->GetNextRoomNumber(_position, true);
+			roomNumberBelow = ignoreBridges ? bottomSector->GetNextRoomNumber(_position.x, _position.z, true) : bottomSector->GetNextRoomNumber(_position, true);
 		}
-		_bottomSector = bottomSector;
 
-		return *_bottomSector;
+		cachedBottomSector = bottomSector;
+		return *cachedBottomSector;
 	}
 
 	FloorInfo& PointCollisionData::GetTopSector()

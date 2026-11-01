@@ -48,7 +48,7 @@ namespace TEN::Entities::Creatures::TR2
 			GetCreatureMood(item, &AI, true);
 			CreatureMood(item, &AI, true);
 
-			bool laraAlive = creature->Enemy && creature->Enemy->IsLara() && creature->Enemy->HitPoints > 0;
+			bool laraAlive = creature->Enemy && creature->Enemy.IsLara() && creature->Enemy->HitPoints > 0;
 
 			angle = CreatureTurn(item, creature->MaxTurn);
 
@@ -110,7 +110,7 @@ namespace TEN::Entities::Creatures::TR2
 				break;
 			}
 
-			if (creature->Enemy && creature->Enemy->IsLara() && creature->Enemy->HitPoints <= 0 && laraAlive)
+			if (creature->Enemy && creature->Enemy.IsLara() && creature->Enemy->HitPoints <= 0 && laraAlive)
 			{
 				CreatureKill(item, SHARK_KILL_ANIM, LEA_SHARK_DEATH, SHARK_KILL_STATE, LS_WATER_DEATH);
 				return;

@@ -8,8 +8,8 @@
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/effects/Blood.h"
-#include "Game/effects/Bubble.h"
-#include "Game/effects/Drip.h"
+#include "Game/effects/bubble.h"
+#include "Game/effects/drip.h"
 #include "Game/effects/explosion.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/Light.h"
@@ -59,8 +59,6 @@ constexpr int WIBBLE_MAX = UCHAR_MAX - WIBBLE_SPEED + 1;
 Particle Particles[MAX_PARTICLES];
 ParticleDynamic ParticleDynamics[MAX_PARTICLE_DYNAMICS];
 
-FX_INFO EffectList[MAX_SPAWNED_ITEM_COUNT];
-
 GameBoundingBox DeadlyBounds;
 
 int Wibble = 0;
@@ -104,11 +102,11 @@ void DetatchSpark(int number, SpriteEnumFlag type)
 						sptr->on = false;
 					else
 					{
-						auto* fx = &EffectList[number];
+						auto* fx = &g_Level.Items[number];
 
-						sptr->x += fx->pos.Position.x;
-						sptr->y += fx->pos.Position.y;
-						sptr->z += fx->pos.Position.z;
+						sptr->x += fx->Pose.Position.x;
+						sptr->y += fx->Pose.Position.y;
+						sptr->z += fx->Pose.Position.z;
 						sptr->flags &= ~SP_FX;
 					}
 
@@ -438,7 +436,10 @@ void UpdateSparks()
 			}
 
 			if (spark.flags & SP_SOUND)
-				SoundEffect(spark.sound, &Pose(Vector3(spark.x, spark.y, spark.z)), SoundEnvironment::Always);
+			{
+				auto sparkPose = Pose(Vector3(spark.x, spark.y, spark.z));
+				SoundEffect(spark.sound, &sparkPose, SoundEnvironment::Always);
+			}
 
 			if (spark.flags & SP_LIGHT)
 			{
@@ -454,9 +455,9 @@ void UpdateSparks()
 						int random = GetRandomControl();
 						int colorOffset = (random % 21) - 10; // Random change between -10 and +10
 
-						byte r = std::clamp(spark.r + colorOffset, 0, 255);
-						byte g = std::clamp(spark.g + colorOffset, 0, 255);
-						byte b = std::clamp(spark.b + colorOffset, 0, 255);
+						unsigned char r = std::clamp(spark.r + colorOffset, 0, 255);
+						unsigned char g = std::clamp(spark.g + colorOffset, 0, 255);
+						unsigned char b = std::clamp(spark.b + colorOffset, 0, 255);
 
 						// Reset flicker timer
 						spark.lightFlicker = spark.lightFlickerS;
@@ -526,7 +527,7 @@ void UpdateSparks()
 				int y = spark.y + (random & 0xF0);
 				int z = spark.z + ((random >> 4) & 0xF0);
 
-				byte r, g, b;
+				unsigned char r, g, b;
 
 				int dl = spark.sLife - spark.life - 1;
 				if (dl >= 2)
@@ -593,11 +594,15 @@ void UpdateSparks()
 
 void TriggerRicochetSpark(const GameVector& pos, short angle, bool sound)
 {
-	int count = Random::GenerateInt(3, 8);
+	int maxCount = g_GameFlow->GetSettings()->Effects.RicochetCount;
+	int count = Random::GenerateInt(maxCount / 2, maxCount);
 	TriggerRicochetSpark(pos, angle, count);
 
-	if (sound)
-		SoundEffect(SFX_TR4_WEAPON_RICOCHET, &Pose(pos.ToVector3i()));
+	if (sound && g_GameFlow->GetSettings()->Effects.RicochetSound)
+	{
+		auto soundPose = Pose(pos.ToVector3i());
+		SoundEffect(SFX_TR4_WEAPON_RICOCHET, &soundPose);
+	}
 }
 
 void TriggerGlow(const GameVector& pos, const Vector3& color, int scale)
@@ -1083,8 +1088,8 @@ void TriggerExplosionSmoke(int x, int y, int z, int uw)
 
 void TriggerSuperJetFlame(ItemInfo* item, int yvel, int deadly)
 {
-	long dx = LaraItem->Pose.Position.x - item->Pose.Position.x;
-	long dz = LaraItem->Pose.Position.z - item->Pose.Position.z;
+	int dx = LaraItem->Pose.Position.x - item->Pose.Position.x;
+	int dz = LaraItem->Pose.Position.z - item->Pose.Position.z;
 
 	if (dx >= -BLOCK(16) && dx <= BLOCK(16) &&
 		dz >= -BLOCK(16) && dz <= BLOCK(16))
@@ -1725,9 +1730,9 @@ void TriggerMetalSparks(int x, int y, int z, int xv, int yv, int zv, const Vecto
 		spark->scalar = 2;
 		spark->z = ((r >> 6) & 7) + z - 3;
 		spark->flags = 2;
-		spark->xVel = (byte)(r >> 2) + xv - 128;
-		spark->yVel = (byte)(r >> 4) + yv - 128;
-		spark->zVel = (byte)(r >> 6) + zv - 128;
+		spark->xVel = (unsigned char)(r >> 2) + xv - 128;
+		spark->yVel = (unsigned char)(r >> 4) + yv - 128;
+		spark->zVel = (unsigned char)(r >> 6) + zv - 128;
 		spark->sSize = ((r >> 9) & 3) + 4;
 		spark->size = ((r >> 9) & 3) + 4;
 		spark->dSize = ((r >> 9) & 1) + 1;
@@ -2048,4 +2053,10 @@ void SpawnPlayerWaterSurfaceEffects(const ItemInfo& item, int waterHeight, int w
 			item.RoomNumber, Random::GenerateFloat(112.0f, 128.0f),
 			flags);
 	}
+}
+
+FXInfo& GetFXInfo(ItemInfo& fx)
+{
+	TENAssert(fx.Data.is<FXInfo>(), "GetFXInfo called on item without FXInfo data.");
+	return static_cast<FXInfo&>(fx.Data);
 }

@@ -21,4 +21,5 @@ int GetCurrentScreenRefreshRate();
 void PauseGameThread();
 void ResumeGameThread();
 void WaitIfGamePaused();
+void ApplyPendingWindowResize();
 void EngineClose();

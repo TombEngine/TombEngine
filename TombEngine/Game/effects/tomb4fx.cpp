@@ -7,9 +7,9 @@
 #include "Game/collision/floordata.h"
 #include "Game/collision/Point.h"
 #include "Game/effects/effects.h"
-#include "Game/effects/Bubble.h"
+#include "Game/effects/bubble.h"
 #include "Game/effects/debris.h"
-#include "Game/effects/Drip.h"
+#include "Game/effects/drip.h"
 #include "Game/effects/Ripple.h"
 #include "Game/effects/smoke.h"
 #include "Game/effects/Splash.h"
@@ -61,7 +61,7 @@ int GetFreeFireSpark()
 	int minLife = 4095;
 	int i = 0;
 
-	FIRE_SPARKS* spark = &FireSparks[NextFireSpark];
+	auto* spark = &FireSparks[NextFireSpark];
 	while (spark->on)
 	{
 		if (spark->life < minLife)
@@ -167,6 +167,7 @@ void TriggerGlobalFireSmoke()
 	spark->gravity = -16 - (GetRandomControl() & 0xF);
 	spark->maxYvel = -8 - (GetRandomControl() & 7);
 	spark->dSize = spark->sSize = spark->size = (GetRandomControl() & 0x7F) + 128;
+	spark->StoreInterpolationData();
 }
 
 void TriggerGlobalFireFlame()
@@ -213,6 +214,7 @@ void TriggerGlobalFireFlame()
 
 	spark->sSize = spark->size = (GetRandomControl() & 0x1F) + 128;
 	spark->dSize = spark->size;
+	spark->StoreInterpolationData();
 }
 
 void TriggerPilotFlame(int itemNumber, int nodeIndex)
@@ -419,7 +421,7 @@ void UpdateFireSparks(bool recursive)
 
 	for (int i = 0; i < MAX_SPARKS_FIRE; i++)
 	{
-		FIRE_SPARKS* spark = &FireSparks[i];
+		auto* spark = &FireSparks[i];
 
 		if (spark->on)
 		{
@@ -467,9 +469,9 @@ void UpdateFireSparks(bool recursive)
 			if (spark->flags & SP_ROTATE)
 				spark->rotAng = (spark->rotAng + spark->rotAdd) & 0xFFF;
 
-			float alpha = fmin(1, fmax(0, 1 - (spark->life / (float)spark->sLife)));
-			int sprite = (int)Lerp(Objects[ID_FIRE_SPRITES].meshIndex, Objects[ID_FIRE_SPRITES].meshIndex + (-Objects[ID_FIRE_SPRITES].nmeshes) - 1, alpha);
-			spark->def = sprite;
+			int spriteCount = -Objects[ID_FIRE_SPRITES].nmeshes - 1;
+			float normalizedAge = (spark->sLife - spark->life) / (float)spark->sLife;
+			spark->def = Objects[ID_FIRE_SPRITES].meshIndex + (int)round(Lerp(0.0f, (float)spriteCount, normalizedAge));
 
 			int dl = ((spark->sLife - spark->life) << 16) / spark->sLife;
 			spark->velocity.y += spark->gravity;
@@ -535,7 +537,7 @@ void UpdateSmoke()
 {
 	for (int i = 0; i < MAX_SPARKS_SMOKE; i++)
 	{
-		SMOKE_SPARKS* spark = &SmokeSparks[i];
+		auto* spark = &SmokeSparks[i];
 
 		if (spark->on)
 		{
@@ -633,7 +635,7 @@ void UpdateSmoke()
 	}
 }
 
-void TriggerGunSmoke(int x, int y, int z, short xv, short yv, short zv, byte initial, LaraWeaponType weaponType, byte count)
+void TriggerGunSmoke(int x, int y, int z, short xv, short yv, short zv, unsigned char initial, LaraWeaponType weaponType, unsigned char count)
 {
 	TriggerGunSmokeParticles(x, y, z, xv, yv, zv, initial, weaponType, count);
 }
@@ -1083,19 +1085,19 @@ void UpdateGunShells()
 	}
 }
 
-void AddWaterSparks(int x, int y, int z, int num)
+void AddWaterSparks(int x, int y, int z, int num, unsigned char r, unsigned char g, unsigned char b)
 {
 	for (int i = 0; i < num; i++)
 	{
 		auto* spark = GetFreeParticle();
 
 		spark->on = 1;
-		spark->sR = 227;
-		spark->sG = 227;
-		spark->sB = 227;
-		spark->dR = 148;
-		spark->dG = 148;
-		spark->dB = 148;
+		spark->sR = r;
+		spark->sG = g;
+		spark->sB = b;
+		spark->dR = r / 2;
+		spark->dG = g / 2;
+		spark->dB = b / 2;
 		spark->colFadeSpeed = 4;
 		spark->fadeToBlack = 8;
 		spark->life = 10;
@@ -1139,7 +1141,7 @@ void SomeSparkEffect(int x, int y, int z, int count)
 		spark->friction = 5;
 		int random = GetRandomControl() & 0xFFF;
 		spark->xVel = -128 * phd_sin(random << 4);
-		spark->yVel = -640 - (byte)GetRandomControl();
+		spark->yVel = -640 - (unsigned char)GetRandomControl();
 		spark->zVel = 128 * phd_cos(random << 4);
 		spark->flags = 0;
 		spark->x = x + (spark->xVel >> 3);
@@ -1255,41 +1257,45 @@ void ExplodingDeath(short itemNumber, short flags)
 		{
 			auto bonePos = GetJointPosition(item, i, Vector3i::Zero);
 
-			short fxNumber = CreateNewEffect(item->RoomNumber);
+			short fxNumber = CreateNewEffect(item->RoomNumber, ID_BODY_PART, item->Pose);
 			if (fxNumber != NO_VALUE)
 			{
-				auto* fx = &EffectList[fxNumber];
+				auto& fx = g_Level.Items[fxNumber];
+				auto& fxInfo = GetFXInfo(fx);
 
-				fx->pos.Position.x = bonePos.x;
-				fx->pos.Position.y = bonePos.y - BODY_PART_SPAWN_VERTICAL_OFFSET;
-				fx->pos.Position.z = bonePos.z;
+				fx.Pose.Position.x = bonePos.x;
+				fx.Pose.Position.y = bonePos.y - BODY_PART_SPAWN_VERTICAL_OFFSET;
+				fx.Pose.Position.z = bonePos.z;
 
-				fx->roomNumber = item->RoomNumber;
-				fx->pos.Orientation.x = 0;
-				fx->pos.Orientation.y = Random::GenerateAngle();
+				fx.Pose.Orientation.x = 0;
+				fx.Pose.Orientation.y = Random::GenerateAngle();
+				fx.Pose.Orientation.z = 0;
+				fx.Pose.Scale = Vector3::One;
+
+				fx.RoomNumber = item->RoomNumber;
 
 				if (!(flags & BODY_NO_RAND_VELOCITY))
 				{
 					if (flags & BODY_MORE_RAND_VELOCITY)
-						fx->speed = GetRandomControl() >> 12;
+						fx.Animation.Velocity.z = GetRandomControl() >> 12;
 					else
-						fx->speed = GetRandomControl() >> 8;
+						fx.Animation.Velocity.z = GetRandomControl() >> 8;
 				}
 
 				if (flags & BODY_NO_VERTICAL_VELOCITY)
-					fx->fallspeed = 0;
+					fx.Animation.Velocity.y = 0;
 				else
 				{
 					if (flags & BODY_LESS_IMPULSE)
-						fx->fallspeed = -(GetRandomControl() >> 8);
+						fx.Animation.Velocity.y = -(GetRandomControl() >> 8);
 					else
-						fx->fallspeed = -(GetRandomControl() >> 12);
+						fx.Animation.Velocity.y = -(GetRandomControl() >> 12);
 				}
 
-				fx->objectNumber = ID_BODY_PART;
-				fx->color = item->Model.Color;
-				fx->flag2 = flags;
-				fx->frameNumber = item->Model.MeshIndex[i];
+				fx.ObjectNumber = ID_BODY_PART;
+				fx.Model.Color = item->Model.Color;
+				fx.Model.MeshIndex = { item->Model.MeshIndex[i] };
+				fxInfo.Flag2 = flags;
 			}
 		}
 		else
@@ -1447,7 +1453,7 @@ void UpdateShockwaves()
 
 		if (LaraItem->HitPoints > 0 && shockwave.damage)
 		{
-			const auto& bounds = GetClosestKeyframe(*LaraItem).BoundingBox;
+			const auto& bounds = GetFrame(*LaraItem).BoundingBox;
 			int dx = LaraItem->Pose.Position.x - shockwave.x;
 			int dz = LaraItem->Pose.Position.z - shockwave.z;
 			float dist = sqrt(SQUARE(dx) + SQUARE(dz));

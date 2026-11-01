@@ -231,7 +231,7 @@ namespace TEN::Scripting::Collision
 
 	/// Get the material type of the floor at this probe.
 	// @function Probe:GetFloorMaterialType
-	// @treturn Collision.MaterialType Floor material type. _nil: no floor exists._
+	// @treturn Collision.FloorMaterialType Floor material type. _nil: no floor exists._
 	sol::optional<MaterialType> Probe::GetFloorMaterialType()
 	{
 		if (_pointCollision.IsWall())
@@ -244,7 +244,7 @@ namespace TEN::Scripting::Collision
 
 	/// Get the material type of the ceiling at this probe.
 	// @function Probe:GetCeilingMaterialType
-	// @treturn Collision.MaterialType Ceiling material type. _nil: no ceiling exists._
+	// @treturn Collision.FloorMaterialType Ceiling material type. _nil: no ceiling exists._
 	sol::optional<MaterialType> Probe::GetCeilingMaterialType()
 	{
 		if (_pointCollision.IsWall())
@@ -316,7 +316,7 @@ namespace TEN::Scripting::Collision
 	// @treturn bool Monkey swing sector status. _true: is a monkey swing, false: isn't a monkey swing._
 	bool Probe::IsMonkeySwing()
 	{
-		const auto& sector = _pointCollision.GetTopSector();
+		const auto& sector = _pointCollision.GetBottomSector();
 		return sector.Flags.Monkeyswing;
 	}
 

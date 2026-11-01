@@ -9,10 +9,7 @@
 // Layout matches the C++ CPerDrawBuffer struct one-to-one.
 cbuffer CBPerDraw : register(b2)
 {
-    float4       MaterialParameters0;
-    float4       MaterialParameters1;
-    float4       MaterialParameters2;
-    float4       MaterialParameters3;
+    float4       MaterialProperties[4];
     unsigned int MaterialTypeAndFlags;
     unsigned int BlendMode;
     int          AlphaTest;

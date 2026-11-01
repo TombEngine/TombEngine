@@ -30,6 +30,30 @@ Texture2D EmissiveTexture : register(t11);
 Texture2D LegacyReflectionsTexture : register(t12);
 Texture2DArray SkyboxReflectionsTexture : register(t13);
 
+float GetEmissiveIntensity()
+{
+    int materialType = MaterialTypeAndFlags & MATERIAL_FLAG_MASK;
+    return (materialType == MATERIAL_DEFAULT) ? MaterialProperties[0].x : 1.0f;
+}
+
+float3 GetReflectionTint()
+{
+    return saturate(MaterialProperties[0].rgb);
+}
+
+float GetReflectionVerticalMask(float3 worldPosition)
+{
+    float verticalOffset = MaterialProperties[1].x;
+    float verticalBias = MaterialProperties[2].x;
+
+    if (abs(verticalBias) <= EPSILON)
+        return 1.0f;
+
+    float feather = abs(verticalBias);
+    float signedDistance = (verticalBias < 0.0f) ? (worldPosition.y - verticalOffset) : (verticalOffset - worldPosition.y);
+    return saturate(signedDistance / feather);
+}
+
 float2 ToCentralSquare(float2 uvEnv, float aspect)
 {
     if (aspect >= 1.0)
@@ -64,7 +88,10 @@ float3 CalculateSkyBoxReflections(float3 worldPosition, float3 normal, float spe
     uv.y = 1.0f - uv.y;
     
     float3 reflectedColor = SkyboxReflectionsTexture.Sample(AnisotropicClampSampler, float3(uv, slice)).rgb;
-    return lerp(pixelColor, reflectedColor, saturate(specular));
+    reflectedColor *= GetReflectionTint();
+
+    float reflectionAmount = saturate(specular) * MaterialProperties[0].a * GetReflectionVerticalMask(worldPosition);
+    return lerp(pixelColor, reflectedColor, reflectionAmount);
 }
 
 float3 CalculateLegacyReflections(float3 worldPosition, float3 normal, float specular, float3 pixelColor)
@@ -82,7 +109,10 @@ float3 CalculateLegacyReflections(float3 worldPosition, float3 normal, float spe
 
     // Sample legacy reflection buffer
     float3 reflectedColor = LegacyReflectionsTexture.Sample(AnisotropicClampSampler, uv).rgb;
-    return lerp(pixelColor, reflectedColor, specular);
+    reflectedColor *= GetReflectionTint();
+
+    float reflectionAmount = saturate(specular) * MaterialProperties[0].a * GetReflectionVerticalMask(worldPosition);
+    return lerp(pixelColor, reflectedColor, reflectionAmount);
 }
 
 

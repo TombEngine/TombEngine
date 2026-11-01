@@ -61,7 +61,7 @@ namespace TEN::Entities::Switches
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* switchItem = &g_Level.Items[itemNumber];
 		
-		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem, InteractionMode::Activation);
+		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem, InteractionMode::Activation, InteractionType::Use, Vector3(CLICK(2.5f), -CLICK(1), 0));
 
 		int doSwitch = 0;
 
@@ -131,10 +131,11 @@ namespace TEN::Entities::Switches
 
 			if (GetSwitchTrigger(switchItem, ItemNos, 0))
 			{
-				if (!TriggerActive(&g_Level.Items[ItemNos[0]]))
+				auto& targetItem = g_Level.Items[ItemNos[0]];
+				if (!TriggerActive(&targetItem))
 				{
-					g_Level.Items[ItemNos[0]].Animation.AnimNumber = 0;
-					g_Level.Items[ItemNos[0]].Animation.FrameNumber = 0;
+					targetItem.Animation.AnimNumber = doSwitch >= 0 ? 4 : 0;
+					targetItem.Animation.FrameNumber = 0;
 				}
 			}
 		}

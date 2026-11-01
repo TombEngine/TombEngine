@@ -7,7 +7,7 @@
 
 namespace TEN::Renderer 
 {
-	void Renderer::ChangeScreenResolution(int width, int height, bool windowed) 
+	void Renderer::ChangeScreenResolution(int width, int height, bool windowed, bool resyncWindow)
 	{
 		_graphicsDevice->UnbindAllRenderTargets();
 		_graphicsDevice->Flush();
@@ -16,7 +16,7 @@ namespace TEN::Renderer
 
 		_isWindowed = windowed;
 
-		InitializeScreen(width, height, true);
+		InitializeScreen(width, height, true, resyncWindow);
 	}
 
 	std::string Renderer::GetDefaultAdapterName()

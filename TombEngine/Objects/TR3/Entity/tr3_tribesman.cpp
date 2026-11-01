@@ -321,7 +321,7 @@ namespace TEN::Entities::Creatures::TR3
 				creature->MaxTurn = ANGLE(4.0f);
 				creature->Flags = item->Animation.FrameNumber;
 
-				if (creature->Enemy->IsLara())
+				if (creature->Enemy.IsLara())
 				{
 					if (item->TouchBits.Test(TribesmanAxeAttackJoints) &&
 						creature->Flags >= TribesmanAxeHit[item->Animation.ActiveState][0] &&
@@ -663,7 +663,7 @@ namespace TEN::Entities::Creatures::TR3
 				break;
 
 			case TRIBESMAN_STATE_AXE_ATTACK_HIGH_CONTINUE:
-				if (creature->Enemy->IsLara())
+				if (creature->Enemy.IsLara())
 				{
 					if (!(creature->Flags & 0xf000) &&
 						item->TouchBits.Test(TribesmanDartAttackJoints))

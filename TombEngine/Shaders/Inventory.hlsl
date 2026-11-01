@@ -83,7 +83,7 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
     float roughness = ORSH.y;
     float specular = ORSH.z;
 	
-    float3 emissive = EmissiveTexture.Sample(AnisotropicClampSampler, input.UV).xyz;
+    float3 emissive = EmissiveTexture.Sample(AnisotropicClampSampler, input.UV).xyz * GetEmissiveIntensity();
 	
     float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
     float3 normal = UnpackNormalMap(NormalTexture.Sample(AnisotropicClampSampler, input.UV));

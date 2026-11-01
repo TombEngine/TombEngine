@@ -7,7 +7,7 @@
 #include "Renderer/Graphics/Vertices/Vertex.h"
 #include "Renderer/Graphics/IVertexBuffer.h"
 #include "Renderer/Graphics/VRAMAllocation.h"
-#include "Specific/fast_vector.h"
+#include "Specific/Structures/fast_vector.h"
 
 using namespace TEN::Renderer::Graphics::Vertices;
 

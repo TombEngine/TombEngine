@@ -17,6 +17,7 @@ struct PixelShaderInput
 
 cbuffer HUDBarBuffer : register(b11)
 {
+	float4x4 Transform;
 	float2 BarStartUV;
 	float2 BarScale;
 	//------------
@@ -31,7 +32,8 @@ Texture2D Texture : register(t5);
 PixelShaderInput VS(VertexShaderInput input)
 {
 	PixelShaderInput output;
-	output.Position = mul(mul(float4(input.Position, 1.0f), View), Projection);
+	float4 position = mul(float4(input.Position, 1.0f), Transform);
+	output.Position = mul(mul(position, View), Projection);
 	output.Color = input.Color;
 	output.UV = input.UV;
 	return output;

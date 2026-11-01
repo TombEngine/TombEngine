@@ -200,7 +200,7 @@ namespace TEN::Entities::Creatures::TR2
 		auto extraHeadRot = EulerAngles::Identity;
 		auto extraTorsoRot = EulerAngles::Identity;
 
-		bool isPlayerAlive = ((creature->Enemy != nullptr) && creature->Enemy->IsLara() && (creature->Enemy->HitPoints > 0));
+		bool isPlayerAlive = ((creature->Enemy != nullptr) && creature->Enemy.IsLara() && (creature->Enemy->HitPoints > 0));
 
 		if (item->HitPoints <= 0)
 		{

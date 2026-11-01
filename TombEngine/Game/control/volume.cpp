@@ -200,14 +200,14 @@ namespace TEN::Control::Volumes
 								SaveGame::Statistics.Level.TimeTaken
 							});
 
-						HandleEvent(set.Events[(int)EventType::Enter], activator);
+						HandleEvent(set.Events[(int)EventType::VolumeEnter], activator);
 					}
 					else
 					{
 						entryPtr->Status = VolumeStateStatus::Inside;
 						entryPtr->Timestamp = SaveGame::Statistics.Level.TimeTaken;
 
-						HandleEvent(set.Events[(int)EventType::Inside], activator);
+						HandleEvent(set.Events[(int)EventType::VolumeInside], activator);
 					}
 				}
 				else if (entryPtr != nullptr)
@@ -220,7 +220,7 @@ namespace TEN::Control::Volumes
 						entryPtr->Status = VolumeStateStatus::Leaving;
 						entryPtr->Timestamp = SaveGame::Statistics.Level.TimeTaken;
 
-						HandleEvent(set.Events[(int)EventType::Leave], activator);
+						HandleEvent(set.Events[(int)EventType::VolumeLeave], activator);
 					}
 				}
 			}

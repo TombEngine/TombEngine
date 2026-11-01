@@ -1,8 +1,6 @@
 #pragma once
 
-#include "Specific/RGBAColor8Byte.h"
-
-typedef unsigned int D3DCOLOR;
+#include "Specific/Structures/RGBAColor8Byte.h"
 
 namespace sol { class state; }
 namespace sol { template <typename T> struct as_table_t; }

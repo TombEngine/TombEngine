@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Scripting/Internal/TEN/Types/Rotation/Rotation.h"
 
 namespace sol { class state; }

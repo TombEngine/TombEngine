@@ -32,14 +32,44 @@ namespace TEN::Renderer
 	using namespace TEN::Math;
 	using namespace TEN::SpotCam;
 
+	constexpr auto AIR_BAR_POS		= Vector2(630.0f, 30.0f);
+	constexpr auto EXPOSURE_BAR_POS = Vector2(630.0f, 70.0f);
+	constexpr auto HEALTH_BAR_POS	= Vector2(20.0f, 30.0f);
+	constexpr auto STAMINA_BAR_POS	= Vector2(630.0f, 50.0f);
+	constexpr auto LOADING_BAR_POS	= Vector2(325.0f, 550.0f);
+
+	constexpr auto AIR_BAR_VERT_POS		 = Vector2(DISPLAY_SPACE_RES.x * 0.5f, 30.0f);
+	constexpr auto HEALTH_BAR_VERT_POS	 = Vector2(DISPLAY_SPACE_RES.x * 0.5f, 50.0f);
+	constexpr auto STAMINA_BAR_VERT_POS  = Vector2(DISPLAY_SPACE_RES.x * 0.5f, 70.0f);
+	constexpr auto EXPOSURE_BAR_VERT_POS = Vector2(DISPLAY_SPACE_RES.x * 0.5f, 90.0f);
+	constexpr auto LOADING_BAR_VERT_POS	 = Vector2(DISPLAY_SPACE_RES.x * 0.5f, 550.0f);
+
+	static Matrix GetHudBarTransform(IGraphicsDevice& graphicsDevice, const RendererHudBar& bar)
+	{
+		float screenAspect = (float)graphicsDevice.GetScreenWidth() / (float)graphicsDevice.GetScreenHeight();
+		auto scale = Vector2::One;
+		auto sourcePivot = bar.Position;
+		auto targetPivot = bar.Position;
+
+		if (screenAspect >= 1.0f)
+		{
+			scale.y = screenAspect / DISPLAY_SPACE_ASPECT;
+		}
+		else
+		{
+			scale.x = DISPLAY_SPACE_ASPECT / screenAspect;
+			sourcePivot = Vector2(bar.Position.x + (bar.Size.x * 0.5f), bar.Position.y);
+			targetPivot = bar.VerticalPosition;
+		}
+
+		auto sourcePivot3D = Vector3(sourcePivot.x, HUD_ZERO_Y + sourcePivot.y, 0.0f);
+		auto targetPivot3D = Vector3(targetPivot.x, HUD_ZERO_Y + targetPivot.y, 0.0f);
+
+		return Matrix::CreateTranslation(-sourcePivot3D) * Matrix::CreateScale(scale.x, scale.y, 1.0f) * Matrix::CreateTranslation(targetPivot3D);
+	}
+
 	void Renderer::InitializeGameBars()
 	{
-		constexpr auto AIR_BAR_POS		= Vector2(630.0f, 30.0f);
-		constexpr auto EXPOSURE_BAR_POS = Vector2(630.0f, 70.0f);
-		constexpr auto HEALTH_BAR_POS	= Vector2(20.0f, 30.0f);
-		constexpr auto STAMINA_BAR_POS	= Vector2(630.0f, 50.0f);
-		constexpr auto LOADING_BAR_POS	= Vector2(325.0f, 550.0f);
-
 		static const auto AIR_BAR_COLORS = std::array<Vector4, RendererHudBar::COLOR_COUNT>
 		{
 			// Top
@@ -110,11 +140,11 @@ namespace TEN::Renderer
 			Vector4(0.0f, 0.18f, 0.38f, 1.0f)
 		};
 
-		g_AirBar = new RendererHudBar(_graphicsDevice.get(), AIR_BAR_POS, RendererHudBar::SIZE_DEFAULT, 1, AIR_BAR_COLORS);
-		g_ExposureBar = new RendererHudBar(_graphicsDevice.get(), EXPOSURE_BAR_POS, RendererHudBar::SIZE_DEFAULT, 1, EXPOSURE_BAR_COLORS);
-		g_HealthBar = new RendererHudBar(_graphicsDevice.get(), HEALTH_BAR_POS, RendererHudBar::SIZE_DEFAULT, 1, HEALTH_BAR_COLORS);
-		g_StaminaBar = new RendererHudBar(_graphicsDevice.get(), STAMINA_BAR_POS, RendererHudBar::SIZE_DEFAULT, 1, STAMINA_BAR_COLORS);
-		g_LoadingBar = new RendererHudBar(_graphicsDevice.get(), LOADING_BAR_POS, RendererHudBar::SIZE_DEFAULT, 1, LOADING_BAR_COLORS);
+		g_AirBar = new RendererHudBar(_graphicsDevice.get(), AIR_BAR_POS, AIR_BAR_VERT_POS, RendererHudBar::SIZE_DEFAULT, 1, AIR_BAR_COLORS);
+		g_ExposureBar = new RendererHudBar(_graphicsDevice.get(), EXPOSURE_BAR_POS, EXPOSURE_BAR_VERT_POS, RendererHudBar::SIZE_DEFAULT, 1, EXPOSURE_BAR_COLORS);
+		g_HealthBar = new RendererHudBar(_graphicsDevice.get(), HEALTH_BAR_POS, HEALTH_BAR_VERT_POS, RendererHudBar::SIZE_DEFAULT, 1, HEALTH_BAR_COLORS);
+		g_StaminaBar = new RendererHudBar(_graphicsDevice.get(), STAMINA_BAR_POS, STAMINA_BAR_VERT_POS, RendererHudBar::SIZE_DEFAULT, 1, STAMINA_BAR_COLORS);
+		g_LoadingBar = new RendererHudBar(_graphicsDevice.get(), LOADING_BAR_POS, LOADING_BAR_VERT_POS, RendererHudBar::SIZE_DEFAULT, 1, LOADING_BAR_COLORS);
 	}
 
 	void Renderer::DrawBar(float percent, const RendererHudBar& bar, GAME_OBJECT_ID textureSlot, int frame, bool isPoisoned)
@@ -138,9 +168,11 @@ namespace TEN::Renderer
 
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Hud, _cbHUD.get());
 
-		RendererSprite* borderSprite = &_sprites[Objects[ID_BAR_BORDER_GRAPHICS].meshIndex];
+		auto* borderSprite = &_sprites[Objects[ID_BAR_BORDER_GRAPHICS].meshIndex];
+		_stHUDBar.Transform = GetHudBarTransform(*_graphicsDevice, bar);
 		_stHUDBar.BarStartUV = borderSprite->UV[0];
 		_stHUDBar.BarScale = Vector2(borderSprite->Width / (float)borderSprite->Texture->GetWidth(), borderSprite->Height / (float)borderSprite->Texture->GetHeight());
+
 		UpdateConstantBuffer(&_stHUDBar, _cbHUDBar.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
@@ -152,8 +184,6 @@ namespace TEN::Renderer
 		BindTexture(static_cast<TextureRegister>(0), _sprites[Objects[textureSlot].meshIndex].Texture, SamplerStateRegister::AnisotropicClamp);
 
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
-
-		
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 		_graphicsDevice->BindVertexBuffer(bar.InnerVertexBuffer.get());
 		_graphicsDevice->BindIndexBuffer(bar.InnerIndexBuffer.get());
@@ -182,6 +212,8 @@ namespace TEN::Renderer
 	{
 		if (!g_GameFlow->GetSettings()->Hud.LoadingBar)
 			return;
+
+		_stHUDBar.Transform = GetHudBarTransform(*_graphicsDevice, *g_LoadingBar);
 
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
 	
@@ -305,9 +337,9 @@ namespace TEN::Renderer
 			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
-			_primitiveBatch->Begin();
+            BeginPrimitiveBatch();
 			_primitiveBatch->DrawQuad(vertices[0], vertices[1], vertices[2], vertices[3]);
-			_primitiveBatch->End();
+            EndPrimitiveBatch();
 		}
 		else
 		{
@@ -348,15 +380,15 @@ namespace TEN::Renderer
 				_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 				_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
-				_primitiveBatch->Begin();
+                BeginPrimitiveBatch();
 
 				BindTexture(TextureRegister::ColorMap, spriteToDraw.SpritePtr->Texture, SamplerStateRegister::AnisotropicClamp);
 				SetBlendMode(spriteToDraw.BlendMode);
 			}
 			else if (texture2DPtr != spriteToDraw.SpritePtr->Texture || _lastBlendMode != spriteToDraw.BlendMode)
 			{
-				_primitiveBatch->End();
-				_primitiveBatch->Begin();
+                EndPrimitiveBatch();
+                BeginPrimitiveBatch();
 
 				BindTexture(TextureRegister::ColorMap, spriteToDraw.SpritePtr->Texture, SamplerStateRegister::AnisotropicClamp);
 				SetBlendMode(spriteToDraw.BlendMode);
@@ -402,7 +434,7 @@ namespace TEN::Renderer
 		}
 		
 		if (texture2DPtr != nullptr)
-			_primitiveBatch->End();
+            EndPrimitiveBatch();
 	}
 
 	void Renderer::DrawFullScreenQuad(ITextureBase* texture, Vector3 color, bool fit, float customAspect)
@@ -462,9 +494,9 @@ namespace TEN::Renderer
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
-		_primitiveBatch->Begin();
+        BeginPrimitiveBatch();
 		_primitiveBatch->DrawQuad(vertices[0], vertices[1], vertices[2], vertices[3]);
-		_primitiveBatch->End();
+        EndPrimitiveBatch();
 	}
 
 	void Renderer::DrawFullScreenSprite(RendererSprite* sprite, DirectX::SimpleMath::Vector3 color, bool fit)
@@ -536,9 +568,9 @@ namespace TEN::Renderer
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
-		_primitiveBatch->Begin();
+        BeginPrimitiveBatch();
 		_primitiveBatch->DrawQuad(vertices[0], vertices[1], vertices[2], vertices[3]);
-		_primitiveBatch->End();
+        EndPrimitiveBatch();
 	}
 
 	void Renderer::AddDisplaySprite(const RendererSprite& sprite, const Vector2& pos2D, short orient, const Vector2& size, const Vector4& color,
@@ -560,8 +592,6 @@ namespace TEN::Renderer
 
 	void Renderer::CollectDisplaySprites(RenderView& renderView)
 	{
-		constexpr auto DISPLAY_SPACE_ASPECT = DISPLAY_SPACE_RES.x / DISPLAY_SPACE_RES.y;
-
 		// Calculate screen aspect ratio.
 		auto screenRes = GetScreenResolution().ToVector2();
 		float screenAspect = screenRes.x / screenRes.y;
@@ -573,6 +603,10 @@ namespace TEN::Renderer
 		{
 			// If sprite is a video texture, bypass it if texture is inactive.
 			if (displaySprite.SpriteID == VIDEO_SPRITE_ID && (_videoSprite.Texture == nullptr || !_videoSprite.Texture->IsValid()))
+				continue;
+
+			// If sprite is not a video texture and no sprites present, bypass it.
+			if (displaySprite.SpriteID != VIDEO_SPRITE_ID && _sprites.empty())
 				continue;
 
 			const auto& sprite = displaySprite.SpriteID == VIDEO_SPRITE_ID ? _videoSprite : _sprites[Objects[displaySprite.ObjectID].meshIndex + displaySprite.SpriteID];

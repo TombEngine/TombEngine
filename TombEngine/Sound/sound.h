@@ -76,7 +76,7 @@ enum class SoundPlayMode
 	Looped
 };
 
-enum class ReverbType
+enum class ReverbType : int
 {
 	Outside,  // 0x00   no reverberation
 	Small,	  // 0x01   little reverberation
@@ -119,9 +119,9 @@ struct SoundTrackSlot
 struct SampleInfo
 {
 	short Number;
-	byte Volume;
-	byte Radius;
-	byte Randomness;
+	unsigned char Volume;
+	unsigned char Radius;
+	unsigned char Randomness;
 	signed char Pitch;
 	short Flags;
 };
@@ -185,6 +185,7 @@ void ResumeAllSounds(SoundPauseMode mode);
 void PlaySoundSources();
 void SayNo(std::optional<Vector3i> referencePosition = std::nullopt);
 int  GetShatterSound(int shatterID);
+bool IsWeaponFiredNearby(Pose& position);
 
 void PlaySoundTrack(const std::string& trackName, SoundTrackType type, std::optional<QWORD> pos = std::nullopt, int forceFadeInTime = 0);
 void PlaySoundTrack(const std::string& trackName, short mask = 0);

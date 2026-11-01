@@ -6,7 +6,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/control/control.h"
 #include "Game/control/trigger.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
@@ -494,7 +494,7 @@ void KeyHoleCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 
 	if ((player->Control.IsMoving && player->Context.InteractedItem == itemNumber) ||
 		((IsHeld(In::Action) || g_Gui.GetInventoryItemChosen() != NO_VALUE) &&
-			(player->Control.Look.OpticRange == 0 && isPlayerAvailable)))
+			(player->Control.HandStatus == HandStatus::Free && player->Control.Look.OpticRange == 0 && isPlayerAvailable)))
 	{
 		if (TestLaraPosition(activeBounds, keyHoleItem, laraItem))
 		{

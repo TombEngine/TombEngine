@@ -32,10 +32,10 @@ namespace TEN::Entities::Switches
 	};
 	const auto FullBlockSwitchPos = Vector3i::Zero;
 
-	byte SequenceUsed[6];
-	byte SequenceResults[3][3][3];
-	byte Sequences[3];
-	byte CurrentSequence;
+	unsigned char SequenceUsed[6];
+	unsigned char SequenceResults[3][3][3];
+	unsigned char Sequences[3];
+	unsigned char CurrentSequence;
 
 	void FullBlockSwitchCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 	{

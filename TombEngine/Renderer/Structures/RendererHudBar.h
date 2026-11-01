@@ -16,6 +16,10 @@ namespace TEN::Renderer::Structures
 		static constexpr auto COLOR_COUNT = 5;
 		static constexpr auto SIZE_DEFAULT = Vector2(150.0f, 10.0f);
 
+		Vector2 Size = Vector2::Zero;
+		Vector2 Position = Vector2::Zero;
+		Vector2 VerticalPosition = Vector2::Zero;
+
 		std::unique_ptr<IVertexBuffer> VertexBufferBorder;
 		std::unique_ptr<IIndexBuffer>  IndexBufferBorder;
 		std::unique_ptr<IVertexBuffer> InnerVertexBuffer;
@@ -30,7 +34,8 @@ namespace TEN::Renderer::Structures
 			| /   \ |
 			3-------4
 		*/
-		RendererHudBar(IGraphicsDevice* devicePtr, const Vector2& pos, const Vector2& size, int borderSize, std::array<Vector4, COLOR_COUNT> colors)
+		RendererHudBar(IGraphicsDevice* devicePtr, const Vector2& pos, const Vector2& verticalPos, const Vector2& size, int borderSize, std::array<Vector4, COLOR_COUNT> colors)
+			: Size(size), Position(pos), VerticalPosition(verticalPos)
 		{
 			constexpr auto VERTEX_COUNT = 5;
 			constexpr auto UV_COUNT = 5;
@@ -171,6 +176,11 @@ namespace TEN::Renderer::Structures
 
 			VertexBufferBorder = devicePtr->CreateVertexBuffer((int)borderVertices.size(), sizeof(Vertex), borderVertices.data());
 			IndexBufferBorder = devicePtr->CreateIndexBuffer((int)barBorderIndices.size(), barBorderIndices.data());
+		}
+
+		RendererHudBar(IGraphicsDevice* devicePtr, const Vector2& pos, const Vector2& size, int borderSize, std::array<Vector4, COLOR_COUNT> colors)
+			: RendererHudBar(devicePtr, pos, pos, size, borderSize, colors)
+		{
 		}
 	};
 }

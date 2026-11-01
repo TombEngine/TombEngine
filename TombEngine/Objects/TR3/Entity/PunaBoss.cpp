@@ -234,6 +234,9 @@ namespace TEN::Entities::Creatures::TR3
 		}
 		else
 		{
+			if (creature.Enemy == nullptr)
+				return;
+
 			auto target = GameVector(Geometry::TranslatePoint(origin.ToVector3(), pos - origin.ToVector3(), PUNA_ATTACK_RANGE), creature.Enemy->RoomNumber);
 
 			auto origin1 = GameVector(Geometry::TranslatePoint(origin.ToVector3(), pos - origin.ToVector3(), PUNA_ATTACK_RANGE / 4), creature.Enemy->RoomNumber);

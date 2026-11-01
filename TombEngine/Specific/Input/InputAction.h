@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Game/control/control.h"
+
 namespace TEN::Input
 {
 	typedef enum class ActionID
@@ -56,12 +58,22 @@ namespace TEN::Input
 		Inventory,
 		Save,
 		Load,
+		
+		// Agnostic menu navigation
+
+		MenuUp,
+		MenuDown,
+		MenuLeft,
+		MenuRight,
 
 		// Keyboard
 
 		A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
 		Num1, Num2, Num3, Num4, Num5, Num6, Num7, Num8, Num9, Num0,
-		Return, Escape, Backspace, Tab, Space, Home, End, Delete,
+		F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
+		Return, Escape, Backspace, Tab, Space,
+		PageUp, PageDown, Insert, Home, End, Delete,
+		PauseKey, PrintScreen, ScrollLock, CapsLock, NumLock,
 		Minus, Equals, BracketLeft, BracketRight, Backslash, Semicolon, Apostrophe, Comma, Period, Slash,
 		ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
 		Ctrl, Shift, Alt,
@@ -73,16 +85,49 @@ namespace TEN::Input
 		MouseClickRight,
 		MouseScrollUp,
 		MouseScrollDown,
-		// TODO: Another time. There's some complexity involved. -- Sezz 2025.03.05
-		/*MouseScrollLeft,
-		MouseScrollRight,
 		MouseUp,
 		MouseDown,
 		MouseLeft,
-		MouseRight,*/
+		MouseRight,
 
-		// TODO: Can add raw gamepad actions too, however, we MUST ditch OIS in favour of SDL for it.
-		// It's a FAR better library which can also be used for window management. -- Sezz 2025.05.03
+		// Gamepad
+
+		GamepadSouth,
+		GamepadEast,
+		GamepadWest,
+		GamepadNorth,
+		GamepadBack,
+		GamepadGuide,
+		GamepadStart,
+		GamepadLeftStick,
+		GamepadLeftStickUp,
+		GamepadLeftStickDown,
+		GamepadLeftStickLeft,
+		GamepadLeftStickRight,
+		GamepadRightStick,
+		GamepadRightStickUp,
+		GamepadRightStickDown,
+		GamepadRightStickLeft,
+		GamepadRightStickRight,
+		GamepadLeftShoulder,
+		GamepadRightShoulder,
+		GamepadDPadUp,
+		GamepadDPadDown,
+		GamepadDPadLeft,
+		GamepadDPadRight,
+		GamepadRightPaddle1,
+		GamepadLeftPaddle1,
+		GamepadRightPaddle2,
+		GamepadLeftPaddle2,
+		GamepadTouchpad,
+		GamepadMisc1,
+		GamepadMisc2,
+		GamepadMisc3,
+		GamepadMisc4,
+		GamepadMisc5,
+		GamepadMisc6,
+		GamepadLeftTrigger,
+		GamepadRightTrigger,
 
 		Count
 	} In;
@@ -93,10 +138,11 @@ namespace TEN::Input
 		Vehicle,
 		Quick,
 		Menu,
+		MenuNavigation,
 
 		Keyboard,
 		Mouse,
-		//Gamepad
+		Gamepad
 	};
 
 	extern const std::vector<std::vector<ActionID>> ACTION_ID_GROUPS;
@@ -112,9 +158,17 @@ namespace TEN::Input
 		ActionID	 _id 			 = In::Forward;
 		float		 _value			 = 0.0f;
 		float		 _prevValue		 = 0.0f;
+		FreezeMode	 _mode			 = FreezeMode::None;
 		unsigned int _timeActive	 = 0;			// Time in game frames.
 		unsigned int _prevTimeActive = 0;			// Time in game frames.
 		unsigned int _timeInactive	 = 0;			// Time in game frames.
+
+		bool IsClickedRaw() const;
+		bool IsHeldRaw(float delaySec = 0.0f) const;
+		bool IsReleasedRaw(float delaySecMax = FLT_MAX) const;
+
+		FreezeMode GetCurrentMode() const;
+		bool IsMatchingMode() const;
 
 	public:
 		// Constructors

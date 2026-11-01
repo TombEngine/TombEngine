@@ -5,14 +5,14 @@ constexpr auto NUM_RATS = 32;
 
 struct RatData
 {
-	byte On;
+	unsigned char On;
 	Pose Pose;
 	short RoomNumber;
 
 	short Velocity;
 	short VerticalVelocity;
 
-	byte Flags;
+	unsigned char Flags;
 	
 	Matrix Transform	 = Matrix::Identity;
 	Matrix PrevTransform = Matrix::Identity;

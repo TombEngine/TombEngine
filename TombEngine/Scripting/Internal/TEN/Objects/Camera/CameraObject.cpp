@@ -1,12 +1,12 @@
 #include "framework.h"
 #include "CameraObject.h"
-#include "Game/camera.h"
 
+#include "Game/camera.h"
+#include "Game/LevelCamera.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/ScriptAssert.h"
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
-#include "Specific/LevelCameraInfo.h"
 #include "Specific/level.h"
 
 /***

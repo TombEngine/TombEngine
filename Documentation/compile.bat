@@ -1,6 +1,7 @@
 @echo off
 setlocal
 set DOC_DIR=.\doc
+set RESOURCES_DIR=%DOC_DIR%\resources
 set LDOC_DIR=.\compiler\ldoc
 set LUA_PATH=.\compiler\?.lua
 set LUA_CPATH=.\compiler\?.dll
@@ -15,6 +16,7 @@ if "%~1"=="" (
 echo Building LDoc documentation...
 rmdir /s /q %DOC_DIR%
 mkdir %DOC_DIR%
+mkdir %RESOURCES_DIR%
 
 echo Running LDoc compiler...
 .\compiler\lua.exe %LDOC_DIR%\ldoc.lua %ARG%
@@ -32,8 +34,13 @@ if %ERRORLEVEL% neq 0 (
     exit /b %ERRORLEVEL%
 )
 
+echo Moving CSS to resources folder...
+if exist "%DOC_DIR%\ldoc.css" (
+    move /Y "%DOC_DIR%\ldoc.css" "%RESOURCES_DIR%\ldoc.css" >nul
+)
+
 echo Copying TEN logo asset...
-copy /Y "..\TEN logo.png" "%DOC_DIR%\TEN logo.png" >nul
+copy /Y "..\TEN logo.png" "%RESOURCES_DIR%\TEN logo.png" >nul
 
 if %ERRORLEVEL% neq 0 (
     echo TEN logo copy failed with error code %ERRORLEVEL%
@@ -41,7 +48,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 echo Copying documentation search script...
-copy /Y ".\docs-search.js" "%DOC_DIR%\docs-search.js" >nul
+copy /Y ".\docs-search.js" "%RESOURCES_DIR%\docs-search.js" >nul
 
 if %ERRORLEVEL% neq 0 (
     echo Documentation search script copy failed with error code %ERRORLEVEL%
@@ -49,7 +56,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 echo Generating documentation search index...
-powershell.exe -ExecutionPolicy Bypass -File "generate_search_index.ps1" -DocRoot "%DOC_DIR%"
+powershell.exe -ExecutionPolicy Bypass -File "generate_search_index.ps1" -DocRoot "%DOC_DIR%" -OutputFile "%RESOURCES_DIR%\search-index.js"
 
 if %ERRORLEVEL% neq 0 (
     echo Documentation search index generation failed with error code %ERRORLEVEL%

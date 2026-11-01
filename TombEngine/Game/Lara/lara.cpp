@@ -9,10 +9,10 @@
 #include "Game/collision/Point.h"
 #include "Game/control/flipeffect.h"
 #include "Game/control/volume.h"
-#include "Game/effects/Hair.h"
+#include "Game/effects/hair.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/tomb4fx.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Game/items.h"
 #include "Game/Lara/lara_basic.h"
 #include "Game/Lara/lara_cheat.h"
@@ -238,7 +238,7 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 					}
 					else
 					{
-						SetAnimation(item, LA_FREEFALL_DIVE);
+						SetAnimation(item, LA_FREEFALL_DIVE, 0, 15, BezierCurve2::EaseOut);
 						item->Animation.Velocity.y = item->Animation.Velocity.y * (3 / 8.0f);
 						item->Pose.Orientation.x = ANGLE(-45.0f);
 					}

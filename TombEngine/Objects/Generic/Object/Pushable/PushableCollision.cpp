@@ -158,19 +158,19 @@ namespace TEN::Entities::Generic
 		switch (quadrant)
 		{
 		case NORTH:
-			playerOffset.z = GetClosestKeyframe(*LaraItem).RootOffset.z - BLOCK(1);
+			playerOffset.z = GetFrame(*LaraItem).RootPosition.z - BLOCK(1);
 			break;
 
 		case EAST:
-			playerOffset.x = GetClosestKeyframe(*LaraItem).RootOffset.z - BLOCK(1);
+			playerOffset.x = GetFrame(*LaraItem).RootPosition.z - BLOCK(1);
 			break;
 
 		case SOUTH:
-			playerOffset.z = -GetClosestKeyframe(*LaraItem).RootOffset.z + BLOCK(1);
+			playerOffset.z = -GetFrame(*LaraItem).RootPosition.z + BLOCK(1);
 			break;
 
 		case WEST:
-			playerOffset.x = -GetClosestKeyframe(*LaraItem).RootOffset.z + BLOCK(1);
+			playerOffset.x = -GetFrame(*LaraItem).RootPosition.z + BLOCK(1);
 			break;
 
 		default:

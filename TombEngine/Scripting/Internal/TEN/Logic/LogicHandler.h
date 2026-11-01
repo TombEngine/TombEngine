@@ -5,8 +5,12 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Internal/LuaHandler.h"
 #include "Scripting/Internal/ScriptUtil.h"
-#include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 #include "Scripting/Internal/TEN/Logic/CallbackPoint.h"
+#include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
+
+using CallbackSet = std::unordered_set<std::string>;
+using CallbackRegistry = std::array<CallbackSet, (int)TEN::Scripting::CallbackPoint::Count>;
+using LevelFuncCallbackRegistry = std::array<sol::protected_function, (int)LevelFuncCallbackPoint::Count>;
 
 class LevelFunc;
 
@@ -51,31 +55,11 @@ private:
 	// "LevelFuncs.MyLevel.CoolFuncs"
 	std::unordered_map<std::string, std::unordered_map<std::string, std::string>> _levelFuncs_tablesOfNames = {};
 
-	std::unordered_set<std::string> _callbacksPreStart	  = {};
-	std::unordered_set<std::string> _callbacksPostStart	  = {};
-	std::unordered_set<std::string> _callbacksPreLoop	  = {};
-	std::unordered_set<std::string> _callbacksPostLoop	  = {};
-	std::unordered_set<std::string> _callbacksPreLoad	  = {};
-	std::unordered_set<std::string> _callbacksPostLoad	  = {};
-	std::unordered_set<std::string> _callbacksPreSave	  = {};
-	std::unordered_set<std::string> _callbacksPostSave	  = {};
-	std::unordered_set<std::string> _callbacksPreEnd	  = {};
-	std::unordered_set<std::string> _callbacksPostEnd	  = {};
-	std::unordered_set<std::string> _callbacksPreUseItem  = {};
-	std::unordered_set<std::string> _callbacksPostUseItem = {};
-	std::unordered_set<std::string> _callbacksPreFreeze	  = {};
-	std::unordered_set<std::string> _callbacksPostFreeze  = {};
-
-	sol::protected_function	_onStart   = {};
-	sol::protected_function	_onLoop	   = {};
-	sol::protected_function	_onLoad	   = {};
-	sol::protected_function	_onSave	   = {};
-	sol::protected_function	_onEnd	   = {};
-	sol::protected_function	_onUseItem = {};
-	sol::protected_function	_onFreeze  = {};
+	// Lists of TEN.Logic callbacks and LevelFuncs callbacks.
+	CallbackRegistry _callbackSets = {};
+	LevelFuncCallbackRegistry _levelFuncCallbacks = {};
 
 	std::optional<CallbackPoint> _lastCallbackPoint = std::nullopt;
-	std::unordered_map<CallbackPoint, std::unordered_set<std::string>*> _callbacks;
 
 	std::vector<std::variant<std::string, unsigned int>> _savedVarPath;
 
@@ -86,7 +70,8 @@ private:
 	unsigned int _functionCallCount = 0;
 
 	void PerformConsoleInput();
-	void PerformCallbacks(CallbackPoint point, int argument = NO_VALUE);
+	void PerformMoveableCallbacks(CallbackPoint point, short itemNumber);
+	void PerformMoveableCallbacks(LevelFuncCallbackPoint callback, CallbackPoint prePoint, CallbackPoint postPoint, short itemNumber, bool postLoop);
 
 	std::string GetRequestedPath() const;
 
@@ -100,19 +85,19 @@ private:
 public:	
 	LogicHandler(sol::state* lua, sol::table& parent);
 
-	template <typename ... Ts> sol::protected_function_result CallLevelFuncBase(const sol::protected_function& func, Ts ... vs)
+	template <typename ... Ts> sol::protected_function_result CallLevelFuncBase(const sol::protected_function& func, Ts&& ... vs)
 	{
 		bool insideFunction = _insideFunction;
 		_insideFunction = true;
 		_functionCallCount++;
 
-		auto funcResult = func.call(vs...);
+		auto funcResult = func.call(std::forward<Ts>(vs)...);
 		
 		_insideFunction = insideFunction;
 		return funcResult;
 	}
 
-	template <typename ... Ts> sol::protected_function_result CallLevelFuncByName(const std::string& name, Ts ... vs)
+	template <typename ... Ts> sol::protected_function_result CallLevelFuncByName(const std::string& name, Ts&& ... vs)
 	{
 		auto func = _levelFuncs_luaFunctions[name];
 
@@ -122,7 +107,7 @@ public:
 			return sol::protected_function_result();
 		}
 
-		auto funcResult = CallLevelFuncBase(func, vs...);
+		auto funcResult = CallLevelFuncBase(func, std::forward<Ts>(vs)...);
 
 		if (!funcResult.valid())
 		{
@@ -133,9 +118,9 @@ public:
 		return funcResult;
 	}
 
-	template <typename ... Ts> sol::protected_function_result CallLevelFunc(const sol::protected_function& func, Ts ... vs)
+	template <typename ... Ts> sol::protected_function_result CallLevelFunc(const sol::protected_function& func, Ts&& ... vs)
 	{
-		auto funcResult = CallLevelFuncBase(func, vs...);
+		auto funcResult = CallLevelFuncBase(func, std::forward<Ts>(vs)...);
 
 		if (!funcResult.valid())
 		{
@@ -146,6 +131,27 @@ public:
 		return funcResult;
 	}
 
+	template <typename ... Ts> void PerformCallbacks(CallbackPoint point, Ts&& ... vs)
+	{
+		auto& callbacks = _callbackSets[(int)point];
+		if (callbacks.empty())
+			return;
+
+		_lastCallbackPoint = point;
+
+		for (const auto& name : callbacks)
+			CallLevelFuncByName(name, std::forward<Ts>(vs)...);
+
+		_lastCallbackPoint = std::nullopt;
+	}
+
+	template <typename ... Ts> void PerformLevelFuncCallback(LevelFuncCallbackPoint callback, Ts&& ... vs)
+	{
+		auto& func = _levelFuncCallbacks[(int)callback];
+		if (func.valid())
+			CallLevelFunc(func, std::forward<Ts>(vs)...);
+	}
+
 	void FreeLevelScripts() override;
 
 	void LogPrint(sol::variadic_args args);
@@ -153,6 +159,7 @@ public:
 
 	void AddCallback(CallbackPoint point, const LevelFunc& levelFunc);
 	void RemoveCallback(CallbackPoint point, const LevelFunc& levelFunc);
+	bool HasCallback(CallbackPoint point, const LevelFunc& levelFunc);
 	void HandleEvent(const std::string& name, EventType type, sol::optional<Moveable&> activator);
 	void EnableEvent(const std::string& name, EventType type);
 	void DisableEvent(const std::string& name, EventType type);
@@ -176,35 +183,8 @@ public:
 	void SetGlobalVariables(const std::vector<SavedVar>& vars) override;
 	void ResetVariables();
 
-	void SetCallbackStrings(const std::vector<std::string>& preStart,
-							const std::vector<std::string>& postStart,
-							const std::vector<std::string>& preEnd,
-							const std::vector<std::string>& postEnd,
-							const std::vector<std::string>& preSave,
-							const std::vector<std::string>& postSave,
-							const std::vector<std::string>& preLoad,
-							const std::vector<std::string>& postLoad,
-							const std::vector<std::string>& preLoop,
-							const std::vector<std::string>& postLoop,
-							const std::vector<std::string>& preUseItem,
-							const std::vector<std::string>& postUseItem,
-							const std::vector<std::string>& preBreak,
-							const std::vector<std::string>& postBreak) override;
-
-	void GetCallbackStrings(std::vector<std::string>& preStart,
-							std::vector<std::string>& postStart,
-							std::vector<std::string>& preEnd,
-							std::vector<std::string>& postEnd,
-							std::vector<std::string>& preSave,
-							std::vector<std::string>& postSave,
-							std::vector<std::string>& preLoad,
-							std::vector<std::string>& postLoad,
-							std::vector<std::string>& preLoop,
-							std::vector<std::string>& postLoop,
-							std::vector<std::string>& preUseItem,
-							std::vector<std::string>& postUseItem,
-							std::vector<std::string>& preBreak,
-							std::vector<std::string>& postBreak) const override;
+	void SetCallbackStrings(const CallbackStringLists& callbackLists) override;
+	void GetCallbackStrings(CallbackStringLists& callbackLists) const override;
 
 	void InitCallbacks() override;
 	void OnStart() override;
@@ -212,6 +192,9 @@ public:
 	void OnLoop(float deltaTime, bool postLoop) override;
 	void OnSave() override;
 	void OnEnd(GameStatus reason) override;
-	void OnUseItem(GAME_OBJECT_ID item) override;
+	void OnUseItem(short itemNumber, GAME_OBJECT_ID item) override;
+	void OnPickup(short itemNumber, bool postLoop) override;
+	void OnVehicleEnter(short itemNumber, bool postLoop) override;
+	void OnVehicleLeave(short itemNumber, bool postLoop) override;
 	void OnFreeze() override;
 };
