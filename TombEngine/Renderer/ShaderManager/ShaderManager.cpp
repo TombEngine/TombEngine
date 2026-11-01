@@ -161,7 +161,23 @@ namespace TEN::Renderer::Utils
 
 		// Reset compile counter.
 		_compileCounter = 0;
-		_progressCallback = progressCallback;
+		auto lastProgressUpdate = std::chrono::steady_clock::now() - std::chrono::milliseconds(100);
+		auto lastProgressPercentage = 0.0f;
+		_progressCallback = [&progressCallback, &lastProgressUpdate, &lastProgressPercentage](float percentage)
+		{
+			if (!progressCallback)
+				return;
+
+			SDL_PumpEvents();
+
+			auto now = std::chrono::steady_clock::now();
+			if (now - lastProgressUpdate < std::chrono::milliseconds(100))
+				return;
+
+			progressCallback(percentage);
+			lastProgressUpdate = now;
+			lastProgressPercentage = percentage;
+		};
 
 		// LoadAAShaders should always be the first in the list, so that when AA settings are changed,
 		// they recompile with the same index as before.
@@ -169,6 +185,9 @@ namespace TEN::Renderer::Utils
 		LoadAAShaders(width, height, recompileAAShaders); 
 		LoadCommonShaders();
 		LoadPostprocessShaders();
+
+		if (progressCallback && lastProgressPercentage < 100.0f)
+			progressCallback(100.0f);
 
 		_progressCallback = nullptr;
 	}
