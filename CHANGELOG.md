@@ -9,12 +9,14 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 * Added Discord integration.
 * Added BATS_EMITTER_TR3 object from TR3.
+* Added properties for [PUNA_BOSS](https://tombengine.com/asset/enemy/puna/) and restored missing lightning effect on the headdress.
 
 ### Bug fixes
 
 * Fixed GUARD enemies not being alerted by player gunfire.
 * Fixed static meshes in flipped rooms being lit with ambient light of the original room.
 * Fixed flyby camera roll persisting after the sequence ends.
+* Fixed [PUNA_BOSS](https://tombengine.com/asset/enemy/puna/) incorrect death effect.
 
 ### Lua API Changes
 
