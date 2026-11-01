@@ -9,6 +9,16 @@ namespace TEN::Platform
 		Error
 	};
 
+	// Memory of the graphics adapter reported by the operating system; zero where it is not available.
+	struct VideoMemoryInfo
+	{
+		unsigned long long DedicatedVideoMemory = 0;
+		unsigned long long SharedSystemMemory   = 0;
+		unsigned long long ProcessUsage         = 0; // Video memory used by the process, all allocations included.
+		unsigned long long ProcessBudget        = 0; // Video memory the process can use before the system evicts it.
+		unsigned long long AdapterUsage         = 0; // Dedicated video memory used by every process.
+	};
+
 	class ISubsystem
 	{
 	public:
@@ -21,6 +31,7 @@ namespace TEN::Platform
 		virtual SDL_Window*                 GetSDL3Window() = 0;
 		virtual std::string                 GetBinaryPath(bool includeExeName) = 0;
 		virtual std::vector<unsigned short> GetProductOrFileVersion(bool productVersion) = 0;
+		virtual VideoMemoryInfo             GetVideoMemoryInfo(const std::string& adapterName) = 0;
 
 		// Setters
 

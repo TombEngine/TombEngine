@@ -7,9 +7,31 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### New features
 
+* Added a rendering hardware interface with Vulkan, Direct3D 12, DirectX 11 and OpenGL 4.5 backends, validated with the rhitest command line mode.
+* Added GLM 1.0.1, stb_image and Dear ImGui 1.91.8 to the bundled libraries, and updated SDL to 3.4.18.
+* Moved skeleton posing from the renderer to the game: joint positions, collision spheres, hair and animation blends of moveables are now always up to date, including moveables that were not drawn in the previous frame.
 * Bundled libVLC 3.0.23 with its plugins and BASS 2.4.18 on every platform, so video playback no longer needs a manual installation of the libVLC plugins.
 
-## [Version 2.0]
+## [Version 2.0.2]
+
+### New features
+
+* Added Discord integration.
+* Added BATS_EMITTER_TR3 object from TR3.
+
+### Bug fixes
+
+* Fixed GUARD enemies not being alerted by player gunfire.
+* Fixed static meshes in flipped rooms being lit with ambient light of the original room.
+* Fixed flyby camera roll persisting after the sequence ends.
+
+### Lua API Changes
+
+* Added `ParticleGroup:IsActive` method to check if the group's emitter is currently running.
+* Added `ParticleGroup:IsValid` method to check if the group still exists and is usable.
+* Added `Flow.Settings.Effects.waterEffectStrength` and `Flow.Settings.Effects.waterEffectDepth` settings to customize underwater wave effect.
+
+## [Version 2.0.1]
 
 ### New features
 

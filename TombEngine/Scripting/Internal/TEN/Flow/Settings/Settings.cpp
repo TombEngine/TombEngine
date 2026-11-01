@@ -319,7 +319,15 @@ namespace TEN::Scripting
 
 		/// Explosion shockwave toggle.
 		// @tfield[opt=true] bool explosionShockwave Enables shockwave generation for generic explosion effects.
-		"explosionShockwave", &EffectsSettings::ExplosionShockwave);
+		"explosionShockwave", &EffectsSettings::ExplosionShockwave,
+
+		/// Water effect strength.
+		// @tfield[opt=1.0] float waterEffectStrength Strength multiplier applied to water vertex movement and refraction. Valid range is 0.0 to 1.0.
+		"waterEffectStrength", &EffectsSettings::WaterEffectStrength,
+
+		/// Water effect depth.
+		// @tfield[opt=3072.0] float waterEffectDepth Depth in world units at which water vertex movement and refraction reach full strength.
+		"waterEffectDepth", &EffectsSettings::WaterEffectDepth);
 	}
 
 	/// Graphics

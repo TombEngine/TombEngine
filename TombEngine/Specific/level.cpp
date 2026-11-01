@@ -4,6 +4,7 @@
 #include <lz4.h>
 
 #include "Game/Animation/Animation.h"
+#include "Game/Animation/Skeleton.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/control/volume.h"
@@ -550,6 +551,7 @@ void LoadObjects()
 	}
 
 	InitializeObjects();
+	InitializeSkeletons();
 
 	int staticCount = ReadCount();
 	TENLog("Static count: " + std::to_string(staticCount), LogLevel::Info);
