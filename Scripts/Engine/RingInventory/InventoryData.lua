@@ -14,17 +14,15 @@ local Utilities = require("Engine.RingInventory.Utilities")
 --Pointers to tables
 local COLOR_MAP = Settings.ColorMap
 local RING_CENTER = Ring.CENTERS
-local RING_TYPE = Ring.TYPE
 local TYPE = PickupData.TYPE
-local RING = Ring.TYPE
 
 -- Inventory Module
 local InventoryData = {}
 
 -- Instance data (private)
 local rings = {}
-local selectedRingType = RING.MAIN
-local previousRingType = RING.MAIN
+local selectedRingType = Ring.DEFAULT_TYPE
+local previousRingType = Ring.DEFAULT_TYPE
 local chosenItem = nil
 local openAtItem = nil
 local combineCount = 0
@@ -36,8 +34,8 @@ local gameflowOverrides = nil
 function InventoryData.Reset()
     InventoryData.ClearAll()
     rings = {}
-    selectedRingType = RING.MAIN
-    previousRingType = RING.MAIN
+    selectedRingType = Ring.DEFAULT_TYPE
+    previousRingType = Ring.DEFAULT_TYPE
     chosenItem = nil
     openAtItem = nil
     gameflowOverrides = nil
@@ -80,7 +78,7 @@ end
 -- Switch to a different ring
 function InventoryData.SwitchToRingType(ringType)
     local isValid = false
-    for _, value in pairs(RING_TYPE) do
+    for _, value in pairs(Ring.TYPE) do
         if value == ringType then
             isValid = true
             break
@@ -126,7 +124,7 @@ function InventoryData.SetupSecondaryRing(ringType, item, keepCurrentRing)
     end
 
     -- Special handling for ammo ring
-    if ringType == RING.AMMO then
+    if ringType == Ring.AMMO_TYPE then
         local weaponSlot = PickupData.WEAPON_SET[item:GetObjectID()].slot
         local ammoType = Lara:GetAmmoType(weaponSlot)
         local objectID = PickupData.AMMO_TYPE_TO_OBJECT[ammoType]
@@ -162,7 +160,7 @@ function InventoryData.RemoveRing(ringType)
         
         -- If we removed the selected ring, switch to main
         if selectedRingType == ringType then
-            selectedRingType = RING.MAIN
+            selectedRingType = Ring.DEFAULT_TYPE
         end
         return true
     end
@@ -249,7 +247,7 @@ function InventoryData.Construct(ringType, selectedWeapon)
     local selectedWeaponID = selectedWeapon and selectedWeapon:GetObjectID()
     local items = PickupData.CONSTANTS
     
-    if ringType == RING.AMMO or ringType == RING.COMBINE then
+    if ringType == Ring.AMMO_TYPE or ringType == Ring.COMBINE_TYPE then
         InventoryData.Clear(ringType)
     else
         InventoryData.ClearAll()
@@ -262,7 +260,7 @@ function InventoryData.Construct(ringType, selectedWeapon)
 
         local objectID = data:GetObjectID()
         
-        if data:GetType() == TYPE.AMMO and ringType ~= RING.AMMO then
+        if data:GetType() == TYPE.AMMO and ringType ~= Ring.AMMO_TYPE then
             local weaponPresent = TEN.Inventory.GetItemCount(PickupData.AMMO_SET[objectID].weapon)
             if weaponPresent ~= 0 then
                 goto continue
@@ -280,9 +278,9 @@ function InventoryData.Construct(ringType, selectedWeapon)
         local ammoRing = false
         local shouldInsert = false
         
-        if ringType == RING.COMBINE then
+        if ringType == Ring.COMBINE_TYPE then
             if data.combine == true then
-                data.ringName = RING.COMBINE
+                data.ringName = Ring.COMBINE_TYPE
                 
                 if chosenItem:GetObjectID() == objectID then
                     goto continue
@@ -296,9 +294,9 @@ function InventoryData.Construct(ringType, selectedWeapon)
             else
                 goto continue
             end
-        elseif ringType == RING.AMMO then
+        elseif ringType == Ring.AMMO_TYPE then
             if data.type == TYPE.AMMO and PickupData.WEAPON_AMMO_LOOKUP[selectedWeaponID] and Utilities.Contains(PickupData.WEAPON_AMMO_LOOKUP[selectedWeaponID], objectID) then
-                data.ringName = RING.AMMO
+                data.ringName = Ring.AMMO_TYPE
                 ammoRing = true
                 shouldInsert = true
             else
@@ -371,14 +369,19 @@ function InventoryData.OpenAtItem(itemID, repositionRings)
     ring:SetTargetAngle(angle)
     
     if repositionRings then
-        local ringPosition = RING_CENTER[RING.MAIN]
+        local ringPosition = RING_CENTER[Ring.DEFAULT_TYPE]
         selectedRingType = ringType
+        local base = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[selectedRingType]
         
         for rType, r in pairs(rings) do
-            local offset = (rType - selectedRingType) * 1000  -- RING_POSITION_OFFSET
-            local position = Vec3(ringPosition.x, ringPosition.y + offset, ringPosition.z)
-            r:SetPosition(position)
-            r:Translate(position, Ring.RING_RADIUS, angle)
+            -- Only the main rings need repositioning
+            if Utilities.Contains(Ring.PRIMARY_TYPES, rType) then
+                local order = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[rType]
+                local offset = (order - base) * Ring.RING_POSITION_PRIMARY_OFFSET_Y
+                local position = Vec3(ringPosition.x, ringPosition.y + offset, ringPosition.z)
+                r:SetPosition(position)
+                r:Translate(position, Ring.RING_RADIUS, angle)
+            end
         end
     end
 end
@@ -397,7 +400,7 @@ function InventoryData.Clear(ringType)
 
     -- If we cleared the selected ring, switch to main
         if selectedRingType == ringType then
-            selectedRingType = RING.MAIN
+            selectedRingType = Ring.DEFAULT_TYPE
         end
     end
 end

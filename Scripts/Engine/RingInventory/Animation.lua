@@ -197,7 +197,7 @@ function Animation.Inventory(mode, selectedRing, selectedItem)
             allMotionComplete = false
         end
 
-        local ammoRing = InventoryData.GetRing(Ring.TYPE.AMMO)
+        local ammoRing = InventoryData.GetRing(Ring.AMMO_TYPE)
         local ringAnimation =
         {
             {key = "ringRadius", start = 0, finish = Ring.RING_RADIUS},

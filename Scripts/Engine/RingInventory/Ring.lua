@@ -15,27 +15,56 @@ local Ring = {}
 Ring.__index = Ring
 
 -- Class Constants
-local RING_POSITION_OFFSET = 1000
+Ring.RING_POSITION_PRIMARY = Vec3(0, 200, 1024) -- Position on the screen of whatever ring is currently focused
+Ring.RING_POSITION_PRIMARY_OFFSET_Y = Constants.RING_OFFSET_Y
+Ring.RING_POSITION_SECONDARY = Vec3(0, 230, 1024)
 Ring.RING_RADIUS = -Constants.RING_RADIUS
 
 Ring.TYPE =
 {
-	PUZZLE = 1,
-    MAIN = 2,
-	OPTIONS = 3,
-	COMBINE = 4,
-	AMMO = 5
+	PUZZLE = "PUZZLE_RING",
+    MAIN = "MAIN_RING",
+	OPTIONS = "OPTIONS_RING",
+	COMBINE = "COMBINE_RING",
+	AMMO = "AMMO_RING"
 }
 
--- Default center positions for different ring types
-Ring.CENTERS =
-{
-    [Ring.TYPE.PUZZLE] = Vec3(0, -800, 1024),
-    [Ring.TYPE.MAIN] = Vec3(0, 200, 1024),
-    [Ring.TYPE.OPTIONS] = Vec3(0, 1200, 1024),
-    [Ring.TYPE.COMBINE] = Vec3(0, 230, 1024),
-    [Ring.TYPE.AMMO] = Vec3(0, 230, 1024)
+--Pointers to specific rings
+Ring.PRIMARY_TYPES = {
+    Ring.TYPE.PUZZLE,
+    Ring.TYPE.MAIN,
+    Ring.TYPE.OPTIONS
 }
+Ring.DEFAULT_TYPE = Ring.TYPE.MAIN
+Ring.COMBINE_TYPE = Ring.TYPE.COMBINE
+Ring.AMMO_TYPE = Ring.TYPE.AMMO
+
+
+--Internal variables for arithmetics, based on the order of the rings defined above
+Ring.PRIMARY_TYPES__TYPE_TO_ORDER = {}
+Ring.PRIMARY_TYPES__ORDER_TO_TYPE = {}
+for order, ringName in pairs(Ring.PRIMARY_TYPES) do
+    Ring.PRIMARY_TYPES__TYPE_TO_ORDER[ringName] = order
+    Ring.PRIMARY_TYPES__ORDER_TO_TYPE[order] = ringName
+end
+
+-- Default center positions for different ring types
+Ring.CENTERS = {}
+-- Center position for main rings
+local ringPosition = Ring.RING_POSITION_PRIMARY
+local base = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[Ring.DEFAULT_TYPE]
+for order, ringName in ipairs(Ring.PRIMARY_TYPES) do
+    local offset = (order - base) * Ring.RING_POSITION_PRIMARY_OFFSET_Y
+    local position = Vec3(ringPosition.x, ringPosition.y + offset, ringPosition.z)
+
+    Ring.CENTERS[ringName] = position
+end
+-- Center position for secondary rings
+-- (ie. every ring that has not had its position defined based on their order, which is done right above for main rings only)
+for _, ringName in pairs(Ring.TYPE) do
+    Ring.CENTERS[ringName] = Ring.CENTERS[ringName] or Ring.RING_POSITION_SECONDARY
+end
+
 
 -- Constructor
 function Ring.Create(ringType, centerPosition)
@@ -222,7 +251,7 @@ end
 
 function Ring:OffsetPosition(direction)
     self.previousPosition = self.position 
-    self.position = Vec3(self.previousPosition.x, self.previousPosition.y - direction * RING_POSITION_OFFSET, self.previousPosition.z)
+    self.position = Vec3(self.previousPosition.x, self.previousPosition.y - direction * Ring.RING_POSITION_PRIMARY_OFFSET_Y, self.previousPosition.z)
 end
 
 -- Get ring position

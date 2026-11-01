@@ -5,6 +5,7 @@
 --External Modules
 local Interpolate = require("Engine.RingInventory.Interpolate")
 local InventoryData
+local InventoryStates
 local Ring
 local Settings = require("Engine.RingInventory.Settings")
 local Utilities = require("Engine.RingInventory.Utilities")
@@ -143,31 +144,16 @@ function Sprites.Update(selectedRing)
         InventoryData = require("Engine.RingInventory.InventoryData")
     end
 
+    if not InventoryStates then
+        InventoryStates = require("Engine.RingInventory.InventoryStates")
+    end
+
     local selectedRingType = selectedRing:GetType()
 
     if arrowVisible then
 
-        local isPuzzle  = selectedRingType == Ring.TYPE.PUZZLE
-        local isMain    = selectedRingType == Ring.TYPE.MAIN
-        local isOptions = selectedRingType == Ring.TYPE.OPTIONS
- 
-        -- Up arrow: visible only from MAIN (if PUZZLE has items) or OPTIONS
-        if isOptions then
-            arrowUpTarget = 255
-        elseif isMain then
-            arrowUpTarget = InventoryData.GetRing(Ring.TYPE.PUZZLE):IsEmpty() and 0 or 255
-        else
-            arrowUpTarget = 0
-        end
-
-        -- Down arrow: visible only from MAIN (if OPTIONS has items) or PUZZLE
-        if isPuzzle then
-            arrowDownTarget = 255
-        elseif isMain then
-            arrowDownTarget = InventoryData.GetRing(Ring.TYPE.OPTIONS):IsEmpty() and 0 or 255
-        else
-            arrowDownTarget = 0
-        end
+        arrowUpTarget = InventoryStates.GetNeighbourRingType(selectedRingType, -1) and 255 or 0
+        arrowDownTarget = InventoryStates.GetNeighbourRingType(selectedRingType, 1) and 255 or 0
 
     end
   
