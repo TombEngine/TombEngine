@@ -1122,7 +1122,7 @@ namespace TEN::Renderer
 			if (isFrameCached[frameNumber])
 				return;
 
-			UpdateAnimation(nullptr, moveableObject, anim.Frames[frameNumber], UINT_MAX);
+			UpdateAnimation(moveableObject, anim.Frames[frameNumber]);
 			std::copy(moveableObject.AnimationTransforms.begin(), moveableObject.AnimationTransforms.begin() + boneCount, frameBones[frameNumber].begin());
 			isFrameCached[frameNumber] = true;
 		};
