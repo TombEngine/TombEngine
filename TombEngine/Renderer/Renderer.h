@@ -65,6 +65,8 @@ struct CAMERA_INFO;
 
 namespace TEN::Renderer
 {
+	using namespace std::chrono;
+	using namespace TEN::Benchmark;
 	using namespace TEN::Effects::Electricity;
 	using namespace TEN::Gui;
 	using namespace TEN::Hud;
@@ -285,8 +287,8 @@ namespace TEN::Renderer
 		int _timeDraw;
 		int _timeFrame;
 
-		TEN::Benchmark::BenchmarkFrameStats _frameStats = {};
-		std::chrono::steady_clock::time_point _lastPresentTime = {};
+		BenchmarkFrameStats _frameStats = {};
+		steady_clock::time_point _lastPresentTime = {};
 		float _fps;
 		int _currentCausticsFrame;
 
@@ -508,7 +510,7 @@ namespace TEN::Renderer
 		void ResetScissor();
 		void ResetDebugVariables();
 		void CollectFrameStats(const RenderView& view);
-		void RecordBenchmarkFrame(std::chrono::steady_clock::time_point renderStartTime, std::chrono::steady_clock::time_point presentStartTime);
+		void RecordFrameStats(steady_clock::time_point renderStartTime, steady_clock::time_point presentStartTime);
 		float CalculateFrameRate();
 		void InterpolateCamera(float interpFactor);
 		void CopyRenderTarget(IRenderSurface2D* source, IRenderSurface2D* dest, RenderView& view);

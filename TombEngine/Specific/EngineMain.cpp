@@ -20,6 +20,7 @@
 #include "Scripting/Internal/LanguageScript.h"
 #include "Video/Video.h"
 
+using namespace TEN::Benchmark;
 using namespace TEN::Renderer;
 using namespace TEN::Input;
 using namespace TEN::Utils;
@@ -222,7 +223,7 @@ static void HandleWindowFocusLost(SDL_Window* window)
 		(SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) != 0;
 
 	// Benchmarks keep running in the background, so a focus change does not invalidate the measurement.
-	if ((!DebugMode || isMinimized) && ThreadSuspendCount == 0 && !TEN::Benchmark::IsBenchmarkActive())
+	if ((!DebugMode || isMinimized) && ThreadSuspendCount == 0 && !IsBenchmarkActive())
 	{
 		TENLog("Suspending game thread.", LogLevel::Info);
 
@@ -321,7 +322,7 @@ int main(int argc, char* argv[])
 	g_Platform->InstallCrashHandler();
 
 	if (benchmarkDuration > 0.0f)
-		TEN::Benchmark::InitializeBenchmark(benchmarkDuration, GameDirectory);
+		InitializeBenchmark(benchmarkDuration, GameDirectory);
 
 	// Initialize SDL3.
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS))
@@ -526,7 +527,7 @@ int main(int argc, char* argv[])
 	bool running = true;
 	while (running && !ThreadEnded && DoTheGame)
 	{
-		TEN::Benchmark::UpdateBenchmark();
+		UpdateBenchmark();
 
 		auto event = SDL_Event{};
 		while (SDL_PollEvent(&event))
@@ -579,7 +580,7 @@ int main(int argc, char* argv[])
 
 	TENLog("Cleaning up and exiting...", LogLevel::Info);
 
-	TEN::Benchmark::ShutdownBenchmark();
+	ShutdownBenchmark();
 
 	SDL_DestroyWindow(sdlWindow);
 	EngineClose();

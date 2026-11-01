@@ -3756,8 +3756,8 @@ namespace TEN::Renderer
 
 	void Renderer::Render(float interpFactor)
 	{
-		auto renderStartTime = std::chrono::steady_clock::now();
-		bool captureScreenshot = TEN::Benchmark::ConsumeBenchmarkScreenshotRequest(GlobalCounter);
+		auto renderStartTime = steady_clock::now();
+		bool captureScreenshot = ConsumeBenchmarkScreenshotRequest(GlobalCounter);
 
 		InterpolateCamera(interpFactor);
 		RenderScene(_backBuffer.get(), _gameCamera);
@@ -3765,11 +3765,11 @@ namespace TEN::Renderer
 		if (captureScreenshot)
 			_graphicsDevice->SaveScreenshot(_backBuffer->GetRenderTarget(), g_GameFlow->GetGameDir() + "Logs/Benchmark.png");
 
-		auto presentStartTime = std::chrono::steady_clock::now();
+		auto presentStartTime = steady_clock::now();
 		_graphicsDevice->ClearState();
 		_graphicsDevice->Present(); // 1 0
 
-		RecordBenchmarkFrame(renderStartTime, presentStartTime);
+		RecordFrameStats(renderStartTime, presentStartTime);
 	}
 
 	void Renderer::DrawMesh(RendererItem* itemToDraw, RendererMesh* mesh, RendererObjectType type, int boneIndex, bool skinned, RenderView& view, RendererPass rendererPass)

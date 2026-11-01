@@ -47,7 +47,7 @@ namespace TEN::Renderer
 
 	void Renderer::CollectFrameStats(const RenderView& view)
 	{
-		if (!TEN::Benchmark::IsBenchmarkActive())
+		if (!IsBenchmarkActive())
 			return;
 
 		_frameStats.DrawCalls = _numDrawCalls;
@@ -60,20 +60,20 @@ namespace TEN::Renderer
 		_frameStats.SortedFaces = (int)view.TransparentSortKeys.size();
 	}
 
-	void Renderer::RecordBenchmarkFrame(std::chrono::steady_clock::time_point renderStartTime, std::chrono::steady_clock::time_point presentStartTime)
+	void Renderer::RecordFrameStats(steady_clock::time_point renderStartTime, steady_clock::time_point presentStartTime)
 	{
-		if (!TEN::Benchmark::IsBenchmarkActive())
+		if (!IsBenchmarkActive())
 			return;
 
-		using ms = std::chrono::duration<float, std::milli>;
+		using ms = duration<float, std::milli>;
 
-		auto now = std::chrono::steady_clock::now();
+		auto now = steady_clock::now();
 		_frameStats.CpuRenderTime = ms(presentStartTime - renderStartTime).count();
 		_frameStats.PresentTime = ms(now - presentStartTime).count();
 		_frameStats.CpuFrameTime = (_lastPresentTime.time_since_epoch().count() == 0) ? 0.0f : ms(now - _lastPresentTime).count();
 		_lastPresentTime = now;
 
-		TEN::Benchmark::RecordBenchmarkFrame(_frameStats);
+		RecordBenchmarkFrame(_frameStats);
 	}
 
 	void Renderer::PrintDebugMessage(const char* msg, va_list args)
