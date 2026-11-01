@@ -3,6 +3,12 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): <https://github.com/TombEngine/TombEditorReleases>
 
+## [Version 2.1.0]
+
+### New features
+
+* Added GLM 1.0.1, stb_image and Dear ImGui 1.91.8 to the bundled libraries, and updated SDL to 3.4.18.
+
 ## [Version 2.0]
 
 ### New features
