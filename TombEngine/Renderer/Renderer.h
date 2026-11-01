@@ -63,6 +63,7 @@
 #include "Renderer/Structures/RendererObject.h"
 #include "Renderer/Structures/RendererSortedBatch.h"
 #include "Renderer/Structures/RendererStar.h"
+#include "Specific/Benchmark.h"
 #include "Specific/level.h"
 #include "Specific/Structures/fast_vector.h"
 
@@ -76,6 +77,8 @@ struct CAMERA_INFO;
 
 namespace TEN::Renderer
 {
+	using namespace std::chrono;
+	using namespace TEN::Benchmark;
 	using namespace TEN::Effects::Electricity;
 	using namespace TEN::Gui;
 	using namespace TEN::Hud;
@@ -346,6 +349,9 @@ namespace TEN::Renderer
 		int _timeRoomsCollector;
 		int _timeDraw;
 		int _timeFrame;
+
+		BenchmarkFrameStats _frameStats = {};
+		steady_clock::time_point _lastPresentTime = {};
 		float _fps;
 		int _currentCausticsFrame;
 
@@ -435,7 +441,7 @@ namespace TEN::Renderer
 		void BindMaterial(int materialIndex, bool force);
 		void BuildHierarchy(RendererObject* obj);
 		void BuildHierarchyRecursive(RendererObject* obj, RendererBone* node, RendererBone* parentNode);
-		void UpdateAnimation(RendererItem* rendererItem, RendererObject& rendererObject, const FrameData& frame, int mask, bool useObjectWorldRotation = false, const MoveableAnimBlendData* blend = nullptr, const RootMotionData* rootMotionOffset = nullptr);
+		void UpdateAnimation(RendererObject& rendererObject, const FrameData& frame);
 		bool CheckPortal(short parentRoomNumber, RendererDoor* door, Vector4 viewPort, Vector4* clipPort, RenderView& renderView);
 		void GetVisibleRooms(short from, short to, Vector4 viewPort, bool water, int count, bool onlyRooms, RenderView& renderView);
 		void CollectMirrors(RenderView& renderView);
@@ -592,6 +598,7 @@ namespace TEN::Renderer
 		void DrawBats(RenderView& view, RendererPass rendererPass);
 		void DrawRats(RenderView& view, RendererPass rendererPass);
 		void DrawScarabs(RenderView& view, RendererPass rendererPass);
+		void DrawTr3Bats(RenderView& view, RendererPass rendererPass);
 		void DrawSpiders(RenderView& view, RendererPass rendererPass);
 		bool DrawGunFlashes(RenderView& view);
 		void DrawGunShells(RenderView& view, RendererPass rendererPass);
@@ -650,6 +657,8 @@ namespace TEN::Renderer
 		void ResetItems();
 		void ResetScissor();
 		void ResetDebugVariables();
+		void CollectFrameStats(const RenderView& view);
+		void RecordFrameStats(steady_clock::time_point renderStartTime, steady_clock::time_point presentStartTime);
 		float CalculateFrameRate();
 		void InterpolateCamera(float interpFactor);
 		void CopyRenderTarget(IRenderSurface2D* source, IRenderSurface2D* dest, RenderView& view);
@@ -925,10 +934,10 @@ namespace TEN::Renderer
 
 		void ChangeScreenResolution(int width, int height, bool windowed, bool resyncWindow = true);
 		void FlipRooms(short roomNumber1, short roomNumber2);
+		void UpdateRoomCrossReferences(short roomNumber);
 		void UpdateLaraAnimations(bool force);
 		void UpdateItemAnimations(int itemNumber, bool force);
 		std::vector<BoundingSphere> GetSpheres(int itemNumber);
-		void GetBoneMatrix(short itemNumber, int jointIndex, Matrix* outMatrix);
 		SkinningMode GetSkinningMode(const RendererObject& obj, int skinIndex);
 		void DrawObjectIn2DSpace(int objectNumber, Vector2 pos2D, EulerAngles orient, float scale1, float opacity = 1.0f, int meshBits = NO_JOINT_BITS);
 		void DrawObjectIn3DSpace(const DisplayItem& item);
@@ -946,8 +955,6 @@ namespace TEN::Renderer
 		std::optional<Vector2>		Get2DPosition(const Vector3& pos) const;
 		std::pair<Vector3, Vector3> GetRay(const Vector2& pos) const;
 		std::optional<std::pair<Vector2, Vector2>> GetDisplayItemBounds(const DisplayItem& item) const;
-		Vector3	   GetMoveableBonePosition(int itemNumber, int boneID, const Vector3& relOffset = Vector3::Zero);
-		Quaternion GetMoveableBoneOrientation(int itemNumber, int boneID);
 
 		void AddDisplaySprite(const RendererSprite& sprite, const Vector2& pos2D, short orient, const Vector2& size, const Vector4& color,
 			int priority, BlendMode blendMode, const Vector2& aspectCorrection, RenderView& renderView);

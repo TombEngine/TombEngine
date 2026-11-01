@@ -45,6 +45,37 @@ namespace TEN::Renderer
 		_currentLineHeight;
 	}
 
+	void Renderer::CollectFrameStats(const RenderView& view)
+	{
+		if (!IsBenchmarkActive())
+			return;
+
+		_frameStats.DrawCalls = _numDrawCalls;
+		_frameStats.ShadowMapDrawCalls = _numShadowMapDrawCalls;
+		_frameStats.Triangles = _numTriangles;
+		_frameStats.ConstantBufferUpdates = _numConstantBufferUpdates;
+		_frameStats.ConstantBufferBytes = _numConstantBufferBytes;
+		_frameStats.PerDrawUpdates = _numPerDrawUpdates;
+		_frameStats.RoomsDrawn = (int)view.RoomsToDraw.size();
+		_frameStats.SortedFaces = (int)view.TransparentSortKeys.size();
+	}
+
+	void Renderer::RecordFrameStats(steady_clock::time_point renderStartTime, steady_clock::time_point presentStartTime)
+	{
+		if (!IsBenchmarkActive())
+			return;
+
+		using ms = duration<float, std::milli>;
+
+		auto now = steady_clock::now();
+		_frameStats.CpuRenderTime = ms(presentStartTime - renderStartTime).count();
+		_frameStats.PresentTime = ms(now - presentStartTime).count();
+		_frameStats.CpuFrameTime = (_lastPresentTime.time_since_epoch().count() == 0) ? 0.0f : ms(now - _lastPresentTime).count();
+		_lastPresentTime = now;
+
+		RecordBenchmarkFrame(_frameStats);
+	}
+
 	void Renderer::PrintDebugMessage(const char* msg, va_list args)
 	{
 		constexpr auto LINE_X_POS	= DISPLAY_SPACE_RES.x / 100;

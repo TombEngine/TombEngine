@@ -14,8 +14,19 @@ namespace TEN::Video
 	VideoHandler g_VideoPlayer = {};
 
 	static const std::string			  VIDEO_PATH	   = "FMV/";
+	static const std::string			  VIDEO_PLUGIN_PATH		  = "plugins"; // Bundled libVLC 3 plugins, next to the executable.
 	static const std::string			  VIDEO_PLUGIN_CACHE_PATH = "plugins/plugins.dat";
 	static const std::vector<std::string> VIDEO_EXTENSIONS = { ".mp4", ".avi", ".mkv", ".mov" };
+
+	// libVLC 3 copies whole decoded planes, whose height is aligned and padded with extra lines, so the frame buffer
+	// reserves those lines below the visible frame.
+	static unsigned int GetFrameLineCount(unsigned int height)
+	{
+		constexpr auto LINE_ALIGNMENT = 32;
+		constexpr auto EXTRA_LINES	  = 64;
+
+		return (((height + LINE_ALIGNMENT - 1) / LINE_ALIGNMENT) * LINE_ALIGNMENT) + EXTRA_LINES;
+	}
 
 	int VideoHandler::GetPosition() const
 	{
@@ -142,7 +153,7 @@ namespace TEN::Video
 		if (_player == nullptr)
 			return;
 
-		libvlc_media_player_set_position(_player, std::clamp(pos, 0.0f, 1.0f), false);
+		libvlc_media_player_set_position(_player, std::clamp(pos, 0.0f, 1.0f));
 		HandleError();
 	}
 
@@ -171,8 +182,9 @@ namespace TEN::Video
 		auto pluginCachePath = g_Platform->GetBinaryPath(false) + VIDEO_PLUGIN_CACHE_PATH;
 
 		std::vector<const char*> vlcArgs;
-		vlcArgs.push_back("--vout=vdummy");		 // Use dummy video output (headless); --vout=none breaks VLC 4.0 decoder device.
+		vlcArgs.push_back("--vout=vdummy");		 // Use dummy video output (headless).
 		vlcArgs.push_back("--aout=adummy");		 // Default to silent; libvlc_audio_set_callbacks overrides to amem per-player when audio is needed.
+		vlcArgs.push_back("--audio-resampler=speex"); // Otherwise the nearest-neighbor resampler, which has a higher priority, is used.
 		vlcArgs.push_back("--no-video-title");	 // Disable video title display.
 		vlcArgs.push_back("--no-media-library"); // Disable media library to increase loading speed.
 
@@ -185,6 +197,11 @@ namespace TEN::Video
 			TENLog("Rebuilding video plugin cache", LogLevel::Info);
 			vlcArgs.push_back("--reset-plugins-cache");
 		}
+
+		// Bundled libVLC builds look for plugins in their install path, except on Windows where they look next to the
+		// library; the variable points all of them to the bundled plugins.
+		auto pluginPath = g_Platform->GetBinaryPath(false) + VIDEO_PLUGIN_PATH;
+		SDL_setenv_unsafe("VLC_PLUGIN_PATH", pluginPath.c_str(), 1);
 
 		_vlcInstance = libvlc_new((int)vlcArgs.size(), vlcArgs.data());
 
@@ -214,7 +231,7 @@ namespace TEN::Video
 		if (_player != nullptr)
 		{
 			if (libvlc_media_player_is_playing(_player))
-				libvlc_media_player_stop_async(_player);
+				libvlc_media_player_stop(_player);
 
 			while (libvlc_media_player_is_playing(_player))
 				std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -279,7 +296,7 @@ namespace TEN::Video
 		_fileName = fullVideoName;
 		_needRender = _updateInput = false;
 
-		auto* media = libvlc_media_new_path(_fileName.c_str());
+		auto* media = libvlc_media_new_path(_vlcInstance, _fileName.c_str());
 		if (media == nullptr)
 		{
 			TENLog("Failed to create media from path: " + _fileName, LogLevel::Error);
@@ -287,7 +304,7 @@ namespace TEN::Video
 		}
 
 		// VLC requires to initialize media. Load into player and release right away.
-		_player = libvlc_media_player_new_from_media(_vlcInstance, media);
+		_player = libvlc_media_player_new_from_media(media);
 		libvlc_media_release(media);
 
 		if (_player == nullptr)
@@ -299,7 +316,9 @@ namespace TEN::Video
 		// Route sound data to BASS when not in silent mode.
 		if (!_silent)
 		{
-			libvlc_audio_set_format_callbacks(_player, OnAudioSetup, nullptr);
+			// The libVLC 3 audio memory output only supports 16-bit integer samples; the format is set directly, as it
+			// may not start the audio callbacks after a format callback.
+			libvlc_audio_set_format(_player, "S16N", SOUND_SAMPLE_RATE, SOUND_CHANNEL_COUNT);
 			libvlc_audio_set_callbacks(_player, Sound_VideoPlayCallback, nullptr, nullptr, Sound_VideoFlushCallback, nullptr, this);
 		}
 
@@ -431,11 +450,11 @@ namespace TEN::Video
 			return;
 
 		// Reset playback to start if video is looped.
-		if (_looped && !interruptPlayback && (state == libvlc_Stopping || state == libvlc_Stopped))
+		if (_looped && !interruptPlayback && (state == libvlc_Ended || state == libvlc_Stopped))
 			libvlc_media_player_play(_player);
 
 		// If user pressed a key to break out from video, video has finished playback, or VLC failed, stop and delete it.
-		if (interruptPlayback || state == libvlc_Error || state == libvlc_Stopping || state == libvlc_Stopped)
+		if (interruptPlayback || state == libvlc_Error || state == libvlc_Ended || state == libvlc_Stopped)
 		{
 			Stop();
 			ClearAction(In::Pause); // HACK: Otherwise pause key won't work after video ends.
@@ -465,7 +484,7 @@ namespace TEN::Video
 		}
 
 		// Reset playback to start if video is looped.
-		if (_looped && (state == libvlc_Stopping || state == libvlc_Stopped))
+		if (_looped && (state == libvlc_Ended || state == libvlc_Stopped))
 			libvlc_media_player_play(_player);
 
 		HandleError();
@@ -502,7 +521,7 @@ namespace TEN::Video
 		// Only allocate CPU buffer here (called from VLC thread).
 		// GPU texture creation is deferred to Update() on the main thread
 		// to avoid D3D11 context calls from non-main threads.
-		_frameBuffer.resize(_size.x * _size.y * 4);
+		_frameBuffer.resize(_size.x * GetFrameLineCount(_size.y) * 4);
 
 		return true;
 	}
@@ -527,7 +546,7 @@ namespace TEN::Video
 
 		DeinitializeVideoTexture();
 
-		libvlc_media_player_stop_async(_player);
+		libvlc_media_player_stop(_player);
 		libvlc_media_player_release(_player);
 
 		_player = nullptr;
@@ -585,21 +604,12 @@ namespace TEN::Video
 		TENLog("VLC: " + std::string(logMgs), logLevel);
 	}
 
-	int VideoHandler::OnAudioSetup(void** data, char* format, unsigned* rate, unsigned* channels)
-	{
-		strncpy(format, "FL32", 4); // 32-bit float, little-endian (default format)
-		*rate = SOUND_SAMPLE_RATE;
-		*channels = SOUND_CHANNEL_COUNT;
-
-		return 0;
-	}
-
 	unsigned int VideoHandler::OnVideoSetup(void** data, char* chroma, unsigned* width, unsigned* height, unsigned* pitches, unsigned* lines)
 	{
 		strncpy(chroma, "BGRA", 4);
 
 		*pitches = *width * 4;
-		*lines = *height;
+		*lines = GetFrameLineCount(*height);
 
 		auto* player = static_cast<VideoHandler*>(*data);
 

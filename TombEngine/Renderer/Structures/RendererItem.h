@@ -20,6 +20,7 @@ namespace TEN::Renderer::Structures
 		Matrix	AnimationTransforms[BONE_COUNT_MAX] = {};
 
 		Quaternion BoneOrientations[BONE_COUNT_MAX] = {};
+		std::array<Quaternion, BONE_COUNT_MAX> ExtraRotations = {}; // Previous extra rotations, from which wheels keep spinning.
 
 		Vector4 Color        = NEUTRAL_COLOR;
 		Vector4 AmbientLight = NEUTRAL_COLOR;

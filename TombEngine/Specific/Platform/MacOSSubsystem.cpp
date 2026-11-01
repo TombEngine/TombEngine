@@ -66,6 +66,12 @@ namespace TEN::Platform
 		return (pos != std::string::npos) ? result.substr(0, pos + 1) : std::string();
 	}
 
+	VideoMemoryInfo MacOSSubsystem::GetVideoMemoryInfo(const std::string& adapterName)
+	{
+		// Not reported yet.
+		return {};
+	}
+
 	std::vector<unsigned short> MacOSSubsystem::GetProductOrFileVersion(bool productVersion)
 	{
 		// Version info is not embedded in Mach-O binaries in the same way as PE files.
