@@ -1,6 +1,6 @@
 /*
 	BASSmix 2.4 C/C++ header file
-	Copyright (c) 2005-2022 Un4seen Developments Ltd.
+	Copyright (c) 2005-2026 Un4seen Developments Ltd.
 
 	See the BASSMIX.CHM file for more detailed documentation
 */
@@ -15,7 +15,6 @@
 #endif
 
 #ifdef __OBJC__
-typedef int BOOL32;
 #define BOOL BOOL32 // override objc's BOOL
 #endif
 
@@ -31,6 +30,7 @@ extern "C" {
 #define BASS_CONFIG_MIXER_BUFFER	0x10601
 #define BASS_CONFIG_MIXER_POSEX		0x10602
 #define BASS_CONFIG_SPLIT_BUFFER	0x10610
+#define BASS_CONFIG_SPLIT_PRIORITY	0x10611
 
 // BASS_Mixer_StreamCreate flags
 #define BASS_MIXER_RESUME			0x1000	// resume stalled immediately upon new/unpaused source
@@ -46,14 +46,11 @@ extern "C" {
 #define BASS_MIXER_CHAN_LIMIT		0x4000	// limit mixer processing to the amount available from this source
 #define BASS_MIXER_CHAN_MATRIX		0x10000	// matrix mixing
 #define BASS_MIXER_CHAN_PAUSE		0x20000	// don't process the source
+#define BASS_MIXER_CHAN_AUTOFREE	0x40000 // automatically free the source when it ends
+#define BASS_MIXER_CHAN_RAMPOUT		0x80000	// ramp-out when pausing
+#define BASS_MIXER_CHAN_NORAMP		0x100000 // don't ramp vol/pan/matrix changes
 #define BASS_MIXER_CHAN_DOWNMIX		0x400000 // downmix to stereo/mono
 #define BASS_MIXER_CHAN_NORAMPIN	0x800000 // don't ramp-in the start
-#define BASS_MIXER_BUFFER		BASS_MIXER_CHAN_BUFFER
-#define BASS_MIXER_LIMIT		BASS_MIXER_CHAN_LIMIT
-#define BASS_MIXER_MATRIX		BASS_MIXER_CHAN_MATRIX
-#define BASS_MIXER_PAUSE		BASS_MIXER_CHAN_PAUSE
-#define BASS_MIXER_DOWNMIX		BASS_MIXER_CHAN_DOWNMIX
-#define BASS_MIXER_NORAMPIN		BASS_MIXER_CHAN_NORAMPIN
 
 // Mixer attributes
 #define BASS_ATTRIB_MIXER_LATENCY	0x15000
@@ -67,10 +64,13 @@ extern "C" {
 // BASS_Split_StreamCreate flags
 #define BASS_SPLIT_SLAVE		0x1000	// only read buffered data
 #define BASS_SPLIT_POS			0x2000
+#define BASS_SPLIT_DSP			0x4000
+#define BASS_SPLIT_AUTORESET	0x8000
 
 // Splitter attributes
-#define BASS_ATTRIB_SPLIT_ASYNCBUFFER		0x15010
-#define BASS_ATTRIB_SPLIT_ASYNCPERIOD		0x15011
+#define BASS_ATTRIB_SPLIT_ASYNCBUFFER	0x15010
+#define BASS_ATTRIB_SPLIT_ASYNCPERIOD	0x15011
+#define BASS_ATTRIB_SPLIT_PRIORITY		0x15012
 
 // Envelope node
 typedef struct {
@@ -89,6 +89,8 @@ typedef struct {
 #define BASS_SYNC_MIXER_ENVELOPE		0x10200
 #define BASS_SYNC_MIXER_ENVELOPE_NODE	0x10201
 #define BASS_SYNC_MIXER_QUEUE			0x10202
+#define BASS_SYNC_MIXER_STALL			0x10203
+#define BASS_SYNC_MIXER_RESUME			0x10204
 
 // Additional BASS_Mixer_ChannelSetPosition flag
 #define BASS_POS_MIXER_RESET	0x10000 // flag: clear mixer's playback buffer
@@ -100,12 +102,19 @@ typedef struct {
 #define BASS_CTYPE_STREAM_MIXER	0x10800
 #define BASS_CTYPE_STREAM_SPLIT	0x10801
 
+typedef DWORD (CALLBACK MIXERLATENCYPROC)(HSTREAM handle, void *user);
+/* Latency providing callback function.
+handle : The mixer to provide the latency of
+user   : The 'user' parameter value given when calling BASS_Mixer_StreamSetLatency
+RETURN : The latency in bytes */
+
 DWORD BASSMIXDEF(BASS_Mixer_GetVersion)(void);
 
 HSTREAM BASSMIXDEF(BASS_Mixer_StreamCreate)(DWORD freq, DWORD chans, DWORD flags);
 BOOL BASSMIXDEF(BASS_Mixer_StreamAddChannel)(HSTREAM handle, DWORD channel, DWORD flags);
 BOOL BASSMIXDEF(BASS_Mixer_StreamAddChannelEx)(HSTREAM handle, DWORD channel, DWORD flags, QWORD start, QWORD length);
 DWORD BASSMIXDEF(BASS_Mixer_StreamGetChannels)(HSTREAM handle, DWORD *channels, DWORD count);
+BOOL BASSMIXDEF(BASS_Mixer_StreamSetLatency)(HSTREAM handle, MIXERLATENCYPROC *proc, void *user);
 
 HSTREAM BASSMIXDEF(BASS_Mixer_ChannelGetMixer)(DWORD handle);
 DWORD BASSMIXDEF(BASS_Mixer_ChannelIsActive)(DWORD handle);
@@ -119,6 +128,7 @@ BOOL BASSMIXDEF(BASS_Mixer_ChannelGetLevelEx)(DWORD handle, float *levels, float
 DWORD BASSMIXDEF(BASS_Mixer_ChannelGetData)(DWORD handle, void *buffer, DWORD length);
 HSYNC BASSMIXDEF(BASS_Mixer_ChannelSetSync)(DWORD handle, DWORD type, QWORD param, SYNCPROC *proc, void *user);
 BOOL BASSMIXDEF(BASS_Mixer_ChannelRemoveSync)(DWORD channel, HSYNC sync);
+BOOL BASSMIXDEF(BASS_Mixer_ChannelSetMap)(DWORD handle, const int *chanmap);
 BOOL BASSMIXDEF(BASS_Mixer_ChannelSetMatrix)(DWORD handle, const void *matrix);
 BOOL BASSMIXDEF(BASS_Mixer_ChannelSetMatrixEx)(DWORD handle, const void *matrix, float time);
 BOOL BASSMIXDEF(BASS_Mixer_ChannelGetMatrix)(DWORD handle, void *matrix);
