@@ -43,6 +43,7 @@ namespace TEN::Platform
 		SDL_Window*                 GetSDL3Window();
 		std::string                 GetBinaryPath(bool includeExeName) override;
 		std::vector<unsigned short> GetProductOrFileVersion(bool productVersion) override;
+		VideoMemoryInfo             GetVideoMemoryInfo(const std::string& adapterName) override;
 
 		// Setters
 
