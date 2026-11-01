@@ -134,7 +134,6 @@ namespace TEN::Renderer::Utils
 	void ShaderManager::LoadBootstrapShaders()
 	{
 		// Load only the shaders required to render the pre-compile progress bar.
-		Load(Shader::Rooms, "Rooms", "", ShaderType::PixelAndVertex, {});
 		Load(Shader::Hud, "HUD", "", ShaderType::Vertex, {});
 		Load(Shader::HudDTexture, "HUD", "TexturedHUD", ShaderType::Pixel, {});
 		Load(Shader::HudBarColor, "HUD", "TexturedHUDBar", ShaderType::Pixel, {});
@@ -213,8 +212,7 @@ namespace TEN::Renderer::Utils
 		{
 			float total = (float)((int)Shader::Count - 1);
 			float percentage = (_compileCounter * 100.0f) / total;
-			if (percentage < 0.0f) percentage = 0.0f;
-			if (percentage > 100.0f) percentage = 100.0f;
+			percentage = std::clamp(percentage, 0.0f, 100.0f);
 			_progressCallback(percentage);
 		}
 	}

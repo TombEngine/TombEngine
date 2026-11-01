@@ -48,8 +48,8 @@ namespace TEN::Renderer
 		inputLayoutItems.push_back({ VertexInputFormat::VI_R32_Uint, 0, "EFFECTS" });
 		inputLayoutItems.push_back({ VertexInputFormat::VI_R32_Uint, 1, "EFFECTS" });
 
-		auto roomShader = _shaders.Get(Shader::Rooms);
-		_vertexInputLayout = _graphicsDevice->CreateInputLayout(inputLayoutItems, (IShader*)roomShader);
+		auto hudShader = _shaders.Get(Shader::Hud);
+		_vertexInputLayout = _graphicsDevice->CreateInputLayout(inputLayoutItems, (IShader*)hudShader);
 
 		// Prepare HUD constant buffer (needed by the pre-compile loading bar).
 		_cbHUDBar = CreateConstantBuffer<CHUDBarBuffer>();
