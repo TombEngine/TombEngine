@@ -134,9 +134,22 @@ namespace TEN::Renderer::Utils
 	void ShaderManager::LoadBootstrapShaders()
 	{
 		// Load only the shaders required to render the pre-compile progress bar.
+		auto compileCounter = _compileCounter;
+
+		constexpr auto HUD_SHADER_CACHE_INDEX = 17;
+		constexpr auto HUD_TEXTURED_SHADER_CACHE_INDEX = 19;
+		constexpr auto HUD_TEXTURED_BAR_SHADER_CACHE_INDEX = 20;
+
+		_compileCounter = HUD_SHADER_CACHE_INDEX;
 		Load(Shader::Hud, "HUD", "", ShaderType::Vertex, {});
+
+		_compileCounter = HUD_TEXTURED_SHADER_CACHE_INDEX;
 		Load(Shader::HudDTexture, "HUD", "TexturedHUD", ShaderType::Pixel, {});
+
+		_compileCounter = HUD_TEXTURED_BAR_SHADER_CACHE_INDEX;
 		Load(Shader::HudBarColor, "HUD", "TexturedHUDBar", ShaderType::Pixel, {});
+
+		_compileCounter = compileCounter;
 	}
 
 	void ShaderManager::LoadShaders(int width, int height, bool recompileAAShaders, std::function<void(float)> progressCallback)
