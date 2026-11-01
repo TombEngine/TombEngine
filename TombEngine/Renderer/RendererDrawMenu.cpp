@@ -1583,7 +1583,7 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::Opaque, true);
 		SetCullMode(CullMode::None, true);
 		SetDepthState(DepthState::None, true);
-		DrawLoadingBar(percentage);
+		DrawLoadingBar(percentage, true);
 
 		// The string renderer multiplies by ScreenFadeCurrent (0 until gameplay starts),
 		// so temporarily force full opacity so the pre-compile text is visible.

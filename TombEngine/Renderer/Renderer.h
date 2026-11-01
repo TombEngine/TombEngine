@@ -471,7 +471,7 @@ namespace TEN::Renderer
 		void DrawParticleGroupMeshes(RenderView& view, RendererPass rendererPass);
 		void PrepareStreamers(RenderView& view);
 		void PrepareFootprints(RenderView& view);
-		void DrawLoadingBar(float percent);
+		void DrawLoadingBar(float percent, bool ignoreHudSetting = false);
 		void RenderShaderCompileScreen(float percentage);
 		void DrawPostprocess(IRenderSurface2D* renderTarget, RenderView& view, SceneRenderMode renderMode);
 		void RenderInventoryScene(IRenderSurface2D* renderTarget, ITextureBase* background, float backgroundFade);
