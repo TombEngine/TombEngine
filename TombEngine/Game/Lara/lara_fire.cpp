@@ -702,8 +702,7 @@ void HandleWeapon(ItemInfo& laraItem)
 	else if (player.Control.HandStatus == HandStatus::WeaponReady)
 	{
 		// Remastered controls: weapons stay drawn while Draw is held and are holstered on release. -- divezzi, 12.10.26
-		bool isHolsterRequested = g_Configuration.IsUsingRemasteredControls() ? !IsRemasteredDrawHeld(player) : IsHeld(In::Draw);
-		if (isHolsterRequested ||
+		if (IsRemasteredHolsterRequested(player) ||
 			player.Control.Weapon.RequestGunType != player.Control.Weapon.GunType)
 		{
 			player.Control.HandStatus = HandStatus::WeaponUndraw;

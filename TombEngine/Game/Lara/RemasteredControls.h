@@ -9,6 +9,10 @@ constexpr auto PLAYER_REMASTERED_SPRINT_LEAN_CLAMP = ANGLE(16.1f);
 
 bool  IsRemasteredGrabHeld();
 bool  IsRemasteredVehicleFireHeld();
+bool  IsRemasteredLookHeld(const LaraInfo& player);
+void  ResetRemasteredLookToggle(LaraInfo& player);
+void  ApplyRemasteredLookAxisCoeff(const ItemInfo& item, Vector2& axisCoeff);
+int   GetRemasteredOpticsWheelZoom();
 bool  DoesPlayerRemasteredSolverOwnHeading(const ItemInfo& item);
 bool  DoesPlayerRemasteredCameraAssistApply(const ItemInfo& item);
 short GetPlayerHeadingAngleY(const ItemInfo& item);
@@ -28,6 +32,7 @@ bool  HandleRemasteredCrawlSafetyGrabTurn(ItemInfo& item, CollisionInfo& coll);
 
 bool  NeedsSecondWeaponPass(const ItemInfo& laraItem, const LaraInfo& player);
 bool  IsRemasteredDrawHeld(const LaraInfo& player);
+bool  IsRemasteredHolsterRequested(const LaraInfo& player);
 void  UpdateRemasteredDrawToggle(LaraInfo& player);
 void  SetRemasteredDrawToggle(ItemInfo& laraItem);
 void  SetRemasteredHolsters(LaraInfo& player, LaraWeaponType weaponType);

@@ -510,6 +510,9 @@ void HandlePlayerLookAround(ItemInfo& item, bool invertXAxis)
 		axisCoeff.y = AxisMap[AxisID::Move].x;
 	}
 
+	// Remastered controls fix: without it, Look and optics ignore the right stick, the mouse and the Y axis invert. -- divezzi, 31.10.26
+	ApplyRemasteredLookAxisCoeff(item, axisCoeff);
+
 	// Determine turn rate base values.
 	short turnRateMax = isSlow ? (TURN_RATE_MAX / 2) : TURN_RATE_MAX;
 	short turnRateAccel = isSlow ? (TURN_RATE_ACCEL / 2) : TURN_RATE_ACCEL;

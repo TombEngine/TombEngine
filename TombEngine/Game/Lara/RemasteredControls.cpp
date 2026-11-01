@@ -266,6 +266,11 @@ static RemasteredInputScope GetPlayerRemasteredTurnParams(const ItemInfo& item, 
 	if (IsPlayerRemasteredDirectionPushed())
 		return RemasteredInputScope::None;
 
+	// Optics: the stick moves the view, and the player keeps her heading.
+	const auto& player = GetLaraInfo(item);
+	if (player.Control.Look.IsUsingBinoculars || player.Control.Look.IsUsingLasersight)
+		return RemasteredInputScope::None;
+
 	if (IsPlayerRemasteredWeaponReady(item))
 	{
 		switch (item.Animation.ActiveState)
@@ -768,14 +773,19 @@ static void UpdatePlayerRemasteredSprintToggle(ItemInfo& item, PlayerInput& inpu
 }
 
 // Look toggle: a press latches Look and the next press releases it. The latched Look is written held, never clicked.
-// Off while locked on a target, where each press switches target, and in states that cannot look.
+// Off while locked on a target, where each press switches target, unless a lasersight weapon is ready.
+// Off in binoculars without the sight, where a Look press closes them, and in states that cannot look.
 static void UpdateRemasteredLookToggle(ItemInfo& item, PlayerInput& input, PlayerInput& heldWithoutClickInput)
 {
 	auto& player = GetLaraInfo(item);
 	auto& remastered = player.Control.Remastered;
 
-	if (!g_Configuration.EnableLookToggle || IsPlayerLockedOnTarget(item) ||
-		player.Control.Look.Mode == LookMode::None)
+	bool isLasersightReady = (player.Control.HandStatus == HandStatus::WeaponReady &&
+							  player.Weapons[(int)player.Control.Weapon.GunType].HasLasersight);
+	bool isUsingBinocularsOnly = (player.Control.Look.IsUsingBinoculars && !player.Control.Look.IsUsingLasersight);
+
+	if (!g_Configuration.EnableLookToggle || (IsPlayerLockedOnTarget(item) && !isLasersightReady) ||
+		player.Control.Look.Mode == LookMode::None || isUsingBinocularsOnly)
 	{
 		remastered.IsLookToggled = false;
 		return;
@@ -786,6 +796,74 @@ static void UpdateRemasteredLookToggle(ItemInfo& item, PlayerInput& input, Playe
 
 	input.Look = (remastered.IsLookToggled || IsPushed(In::Look));
 	heldWithoutClickInput.Look = true;
+}
+
+// Look outside the player's tick: the latched Look under the Look toggle, otherwise the Look key.
+bool IsRemasteredLookHeld(const LaraInfo& player)
+{
+	if (!g_Configuration.IsUsingRemasteredControls() || !g_Configuration.EnableLookToggle)
+		return IsHeld(In::Look);
+
+	return (player.Control.Remastered.IsLookToggled || IsPushed(In::Look));
+}
+
+void ResetRemasteredLookToggle(LaraInfo& player)
+{
+	if (!g_Configuration.IsUsingRemasteredControls())
+		return;
+
+	player.Control.Remastered.IsLookToggled = false;
+}
+
+// Look and optics: the right stick and mouse also turn the view, on the axes the look mode allows and not on an axis
+// with a direction cleared this tick. Up aims up on every input unless the camera Y axis is inverted.
+void ApplyRemasteredLookAxisCoeff(const ItemInfo& item, Vector2& axisCoeff)
+{
+	// At the default sensitivity, 50 pixels of sideways mouse movement in one tick give the full turn rate.
+	constexpr auto MOUSE_AXIS_COEFF = 16.0f;
+
+	if (!g_Configuration.IsUsingRemasteredControls())
+		return;
+
+	const auto& player = GetLaraInfo(item);
+	auto lookMode = player.Control.Look.Mode;
+
+	auto viewAxis = GetCameraAxis() + (GetMouseAxis() * MOUSE_AXIS_COEFF);
+	if (IsCleared(In::Forward) || IsCleared(In::Back) ||
+		(lookMode != LookMode::Free && lookMode != LookMode::Vertical))
+	{
+		viewAxis.y = 0.0f;
+	}
+
+	if (IsCleared(In::Left) || IsCleared(In::Right) ||
+		(lookMode != LookMode::Free && lookMode != LookMode::Horizontal))
+	{
+		viewAxis.x = 0.0f;
+	}
+
+	// NOTE: A positive x coefficient aims down. Forward on the keys and left stick is positive,
+	// up on the right stick and mouse is negative.
+	float upCoeff = axisCoeff.x - viewAxis.y;
+	axisCoeff.x = std::clamp(g_Configuration.InvertCameraYAxis ? upCoeff : -upCoeff, -1.0f, 1.0f);
+	axisCoeff.y = std::clamp(axisCoeff.y + viewAxis.x, -1.0f, 1.0f);
+}
+
+// Optics zoom from the mouse wheel: 1 zooms in, -1 zooms out, 0 while a zoom action is cleared this tick.
+int GetRemasteredOpticsWheelZoom()
+{
+	if (!g_Configuration.IsUsingRemasteredControls() ||
+		IsCleared(In::StepLeft) || IsCleared(In::StepRight) || IsCleared(In::Walk) || IsCleared(In::Sprint))
+	{
+		return 0;
+	}
+
+	if (IsHeld(In::MouseScrollUp))
+		return 1;
+
+	if (IsHeld(In::MouseScrollDown))
+		return -1;
+
+	return 0;
 }
 
 // Crouch stages: standing, crouched, on knees. A press on knees rises one stage to the crouch.
@@ -1402,6 +1480,15 @@ bool NeedsSecondWeaponPass(const ItemInfo& laraItem, const LaraInfo& player)
 bool IsRemasteredDrawHeld(const LaraInfo& player)
 {
 	return (IsHeld(In::Draw) || player.Control.Remastered.IsDrawToggled);
+}
+
+// Remastered controls: weapons stay drawn while Draw is held and are holstered on release. -- divezzi, 12.10.26
+bool IsRemasteredHolsterRequested(const LaraInfo& player)
+{
+	if (!g_Configuration.IsUsingRemasteredControls())
+		return IsHeld(In::Draw);
+
+	return !IsRemasteredDrawHeld(player);
 }
 
 void UpdateRemasteredDrawToggle(LaraInfo& player)

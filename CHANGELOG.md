@@ -195,7 +195,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `CustomDiary:UnlockPage` function to unlock individual pages in the order the function is called. The unlock mode is detected automatically on the first unlock call.
 * Added optional `area` parameter for text entries in the `CustomDiary` module to enable automatic word wrapping.
 * Updated `EmitLight()`, `EmitSpotLight()` and `EmitFogBulb()` to accept fractional values, allowing smooth scaling of radius/falloff/distance.
-* Updated `Lara:SetWeaponType` and `Lara:SetLaserSight` to keep drawn weapon out in Remastered control mode as long as Draw input action is held.
+* Updated `Lara:SetWeaponType` to keep drawn weapon out in Remastered control mode as long as Draw input action is held.
 * Updated `Input.GetActionBinding` to return gamepad binding in Remastered control mode if gamepad was used last.
 * Removed `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
 * Renamed `ENTER`, `INSIDE` and `LEAVE` entries in `Logic.EventType` enum to `VOLUME_ENTER`, `VOLUME_INSIDE` and `VOLUME_LEAVE`.

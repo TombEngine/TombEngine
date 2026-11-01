@@ -412,11 +412,6 @@ void LaraObject::SetLaserSight(LaraWeaponType weaponType, TypeOrNil<bool> activa
 			lara->Control.Weapon.LastGunType = weaponType;
 		else
 			lara->Control.Weapon.RequestGunType = weaponType;
-
-		// Remastered controls: the drawn weapon stays out until the player holds Draw. -- divezzi, 12.10.26
-		if (convertedActivate)
-			SetRemasteredDrawToggle(*_moveable);
-
 		break;
 
 	default:
