@@ -3854,6 +3854,10 @@ namespace TEN::Renderer
 			_stInstancedSpriteBuffer.Sprites[0].IsBillboard = 1;
 			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = 0;
 			_stInstancedSpriteBuffer.Sprites[0].RenderType = 0;
+			// Reset per-vertex data so the sprite uses its packed UV rect instead of
+			// inheriting a non-zero value left on this shared slot by the sorted-sprite
+			// pass, which would sample the full atlas quad.
+			_stInstancedSpriteBuffer.Sprites[0].PerVertexData = 0;
 
 			// NOTE: Strange packing due to particular HLSL 16-byte alignment requirements.
 			_stInstancedSpriteBuffer.Sprites[0].UV[0].x = rDrawSprite.Sprite->UV[0].x;
