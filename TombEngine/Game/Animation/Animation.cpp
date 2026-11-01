@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Game/Animation/Animation.h"
 
+#include "Game/Animation/Skeleton.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/box.h"
@@ -350,14 +351,11 @@ namespace TEN::Animation
 				item.Pose.Translate(player.Control.MoveAngle, item.Animation.Velocity.z, vertVelocity, item.Animation.Velocity.x);
 				item.Pose.Orientation += rootMotion.Rotation;
 			}
-
-			g_Renderer.UpdateLaraAnimations(true);
 		}
 		else
 		{
 			item.Pose.Translate(item.Pose.Orientation.y, item.Animation.Velocity.z, vertVelocity, item.Animation.Velocity.x);
 			item.Pose.Orientation += rootMotion.Rotation;
-			g_Renderer.UpdateItemAnimations(item.Index, true);
 		}
 
 		// Draw debug.
@@ -534,8 +532,16 @@ namespace TEN::Animation
 		if (incorrectBone || Objects[item.ObjectNumber].Hidden || item.Status == ITEM_INVISIBLE)
 			return Geometry::TranslatePoint(item.Pose.Position, item.Pose.Orientation, relOffset);
 
-		// Use matrices done in renderer to transform relative offset.
-		return Vector3i(g_Renderer.GetMoveableBonePosition(item.Index, boneID, relOffset.ToVector3()));
+		return Vector3i(Vector3::Transform(relOffset.ToVector3(), GetJointMatrix(item, boneID)));
+	}
+
+	// World matrix of a joint in the current pose of the item.
+	Matrix GetJointMatrix(const ItemInfo& item, int boneID)
+	{
+		auto pose = SkeletonPose{};
+		GetItemPose(item, pose);
+
+		return (pose.Transforms[std::clamp(boneID, 0, BONE_COUNT_MAX - 1)] * GetItemWorldMatrix(item));
 	}
 
 	Vector3i GetJointPosition(ItemInfo* item, int boneID, const Vector3i& relOffset)
@@ -572,7 +578,10 @@ namespace TEN::Animation
 
 	Quaternion GetBoneOrientation(const ItemInfo& item, int boneID)
 	{
-		return g_Renderer.GetMoveableBoneOrientation(item.Index, boneID);
+		auto pose = SkeletonPose{};
+		GetItemPose(item, pose);
+
+		return pose.Orientations[std::clamp(boneID, 0, BONE_COUNT_MAX - 1)];
 	}
 
 	void SetAnimationFromSlot(ItemInfo& item, GAME_OBJECT_ID animObjectID, int animNumber, int frameNumber, int blendFrameCount, const BezierCurve2& blendCurve)
