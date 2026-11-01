@@ -9,10 +9,12 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 * Added Discord integration.
 * Added BATS_EMITTER_TR3 object from TR3.
+* Added the [turn switch and obelisk puzzle from TR4](https://tombengine.com/docs/tr4-obelisk-puzzle-tomb-engine-setup-guide/).
 
 ### Bug fixes
 
 * Fixed GUARD enemies not being alerted by player gunfire.
+* Fixed TURN_SWITCH interaction highlight icon position.
 * Fixed static meshes in flipped rooms being lit with ambient light of the original room.
 * Fixed flyby camera roll persisting after the sequence ends.
 
@@ -135,6 +137,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed crashes when shooting if the gunflash object is missing.
 * Fixed crashes and missing textures while rendering swarm objects with alpha blended textures.
 * Fixed vertex move effect speed in water rooms while turning camera on the x-axis.
+* Fixed `TURN_SWITCH` not rotating the `OBELISK` correctly.
 
 ### Lua API changes
 
