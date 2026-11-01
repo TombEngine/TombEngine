@@ -3,6 +3,12 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): <https://github.com/TombEngine/TombEditorReleases>
 
+## [Version 2.1.0]
+
+### New features
+
+* Added a rendering hardware interface with Vulkan, Direct3D 12, DirectX 11 and OpenGL 4.5 backends, validated with the rhitest command line mode.
+
 ## [Version 2.0]
 
 ### New features
