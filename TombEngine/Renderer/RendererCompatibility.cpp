@@ -658,13 +658,13 @@ namespace TEN::Renderer
 			if (obj->nmeshes > 0)
 			{
 				_moveableObjects[MoveablesIds[i]] = RendererObject();
-				RendererObject &moveable = *_moveableObjects[MoveablesIds[i]];
+				RendererObject& moveable = *_moveableObjects[MoveablesIds[i]];
 				moveable.Id = MoveablesIds[i];
 				moveable.Hidden = obj->Hidden;
 				moveable.ShadowType = obj->shadowType;
-													   
+
 				for (int j = 0; j < obj->nmeshes; j++)
-				{              
+				{
 					// HACK: mesh pointer 0 is the placeholder for Lara's body parts and is right hand with pistols
 					// We need to override the bone index because the engine will take mesh 0 while drawing pistols anim,
 					// and vertices have bone index 0 and not 10.
@@ -683,114 +683,112 @@ namespace TEN::Renderer
 					auto* mesh = GetRendererMeshFromTrMesh(&moveable, &g_Level.Meshes[obj->skinIndex], 0, false, false, &lastVertex, &lastIndex);
 					_meshes.push_back(mesh);
 				}
-				else
+
+				for (int j = 0; j < obj->nmeshes; j++)
 				{
-					for (int j = 0; j < obj->nmeshes; j++)
+					moveable.LinearizedBones.push_back(new RendererBone(j));
+					moveable.AnimationTransforms.push_back(Matrix::Identity);
+					moveable.BindPoseTransforms.push_back(Matrix::Identity);
+				}
+
+				if (obj->nmeshes > 1)
+				{
+					int* bone = &g_Level.Bones[obj->boneIndex];
+
+					std::stack<RendererBone*> stack;
+
+					RendererBone* currentBone = moveable.LinearizedBones[0];
+					RendererBone* stackBone = moveable.LinearizedBones[0];
+
+					for (int mi = 0; mi < obj->nmeshes - 1; mi++)
 					{
-						moveable.LinearizedBones.push_back(new RendererBone(j));
-						moveable.AnimationTransforms.push_back(Matrix::Identity);
-						moveable.BindPoseTransforms.push_back(Matrix::Identity);
-					}
+						int j = mi + 1;
 
-					if (obj->nmeshes > 1)
-					{
-						int *bone = &g_Level.Bones[obj->boneIndex];
+						int opcode = *(bone++);
+						int linkX = *(bone++);
+						int linkY = *(bone++);
+						int linkZ = *(bone++);
 
-						std::stack<RendererBone *> stack;
+						unsigned char flags = opcode & 0x1C;
 
-						RendererBone *currentBone = moveable.LinearizedBones[0];
-						RendererBone *stackBone = moveable.LinearizedBones[0];
+						moveable.LinearizedBones[j]->ExtraRotationFlags = flags;
 
-						for (int mi = 0; mi < obj->nmeshes - 1; mi++)
+						switch (opcode & 0x03)
 						{
-							int j = mi + 1;
+						case 0:
+							moveable.LinearizedBones[j]->Parent = currentBone;
+							moveable.LinearizedBones[j]->Translation = Vector3(linkX, linkY, linkZ);
+							currentBone->Children.push_back(moveable.LinearizedBones[j]);
+							currentBone = moveable.LinearizedBones[j];
+							break;
 
-							int opcode = *(bone++);
-							int linkX = *(bone++);
-							int linkY = *(bone++);
-							int linkZ = *(bone++);
+						case 1:
+							if (stack.empty())
+								continue;
 
-							unsigned char flags = opcode & 0x1C;
+							currentBone = stack.top();
+							stack.pop();
 
-							moveable.LinearizedBones[j]->ExtraRotationFlags = flags;
+							moveable.LinearizedBones[j]->Parent = currentBone;
+							moveable.LinearizedBones[j]->Translation = Vector3(linkX, linkY, linkZ);
+							currentBone->Children.push_back(moveable.LinearizedBones[j]);
+							currentBone = moveable.LinearizedBones[j];
+							break;
 
-							switch (opcode & 0x03)
-							{
-							case 0:
-								moveable.LinearizedBones[j]->Parent = currentBone;
-								moveable.LinearizedBones[j]->Translation = Vector3(linkX, linkY, linkZ);
-								currentBone->Children.push_back(moveable.LinearizedBones[j]);
-								currentBone = moveable.LinearizedBones[j];
-								break;
+						case 2:
+							stack.push(currentBone);
 
-							case 1:
-								if (stack.empty())
-									continue;
+							moveable.LinearizedBones[j]->Translation = Vector3(linkX, linkY, linkZ);
+							moveable.LinearizedBones[j]->Parent = currentBone;
+							currentBone->Children.push_back(moveable.LinearizedBones[j]);
+							currentBone = moveable.LinearizedBones[j];
+							break;
 
-								currentBone = stack.top();
-								stack.pop();
+						case 3:
+							if (stack.empty())
+								continue;
 
-								moveable.LinearizedBones[j]->Parent = currentBone;
-								moveable.LinearizedBones[j]->Translation = Vector3(linkX, linkY, linkZ);
-								currentBone->Children.push_back(moveable.LinearizedBones[j]);
-								currentBone = moveable.LinearizedBones[j];
-								break;
+							RendererBone* theBone = stack.top();
+							stack.pop();
 
-							case 2:
-								stack.push(currentBone);
-
-								moveable.LinearizedBones[j]->Translation = Vector3(linkX, linkY, linkZ);
-								moveable.LinearizedBones[j]->Parent = currentBone;
-								currentBone->Children.push_back(moveable.LinearizedBones[j]);
-								currentBone = moveable.LinearizedBones[j];
-								break;
-
-							case 3:
-								if (stack.empty())
-									continue;
-
-								RendererBone *theBone = stack.top();
-								stack.pop();
-
-								moveable.LinearizedBones[j]->Translation = Vector3(linkX, linkY, linkZ);
-								moveable.LinearizedBones[j]->Parent = theBone;
-								theBone->Children.push_back(moveable.LinearizedBones[j]);
-								currentBone = moveable.LinearizedBones[j];
-								stack.push(theBone);
-								break;
-							}
+							moveable.LinearizedBones[j]->Translation = Vector3(linkX, linkY, linkZ);
+							moveable.LinearizedBones[j]->Parent = theBone;
+							theBone->Children.push_back(moveable.LinearizedBones[j]);
+							currentBone = moveable.LinearizedBones[j];
+							stack.push(theBone);
+							break;
 						}
 					}
+				}
 
-					for (int n = 0; n < obj->nmeshes; n++)
-					{
-						moveable.LinearizedBones[n]->Transform = Matrix::CreateTranslation(
-							moveable.LinearizedBones[n]->Translation.x,
-							moveable.LinearizedBones[n]->Translation.y,
-							moveable.LinearizedBones[n]->Translation.z);
-					}
+				for (int n = 0; n < obj->nmeshes; n++)
+				{
+					moveable.LinearizedBones[n]->Transform = Matrix::CreateTranslation(
+						moveable.LinearizedBones[n]->Translation.x,
+						moveable.LinearizedBones[n]->Translation.y,
+						moveable.LinearizedBones[n]->Translation.z);
+				}
 
-					moveable.Skeleton = moveable.LinearizedBones[0];
-					BuildHierarchy(&moveable);
+				moveable.Skeleton = moveable.LinearizedBones[0];
+				BuildHierarchy(&moveable);
 
-					// Fix player skin joints and hair units.
-					if (MoveablesIds[i] == ID_LARA_SKIN_JOINTS)
-					{
-						BackupObjectVertices(ID_LARA_SKIN_JOINTS);
-						isSkinPresent = true;
+				// Fix player skin joints and hair units.
+				if (MoveablesIds[i] == ID_LARA_SKIN_JOINTS)
+				{
+					BackupObjectVertices(ID_LARA_SKIN_JOINTS);
+					isSkinPresent = true;
 
-						auto& jointsMoveable = moveable;
-						auto& skinMoveable = GetRendererObject(GAME_OBJECT_ID::ID_LARA_SKIN);
-						ProcessSkinJoints(jointsMoveable, const_cast<RendererObject&>(skinMoveable), *obj);
-					}
-					else if ((MoveablesIds[i] == ID_HAIR_PRIMARY || MoveablesIds[i] == ID_HAIR_SECONDARY) && isSkinPresent)
-					{
-						BackupObjectVertices((GAME_OBJECT_ID)MoveablesIds[i]);
-						bool isYoung = (g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() == LaraType::Young);
-						bool isSecond = isYoung && MoveablesIds[i] == ID_HAIR_SECONDARY;
-						auto& skinMoveable = GetRendererObject(GAME_OBJECT_ID::ID_LARA_SKIN);
-						ProcessHair((GAME_OBJECT_ID)MoveablesIds[i], const_cast<RendererObject&>(skinMoveable), isSecond);
-					}
+					auto& jointsMoveable = moveable;
+					auto& skinMoveable = GetRendererObject(GAME_OBJECT_ID::ID_LARA_SKIN);
+					ProcessSkinJoints(jointsMoveable, const_cast<RendererObject&>(skinMoveable), *obj);
+				}
+				else if ((MoveablesIds[i] == ID_HAIR_PRIMARY || MoveablesIds[i] == ID_HAIR_SECONDARY) && isSkinPresent)
+				{
+					BackupObjectVertices((GAME_OBJECT_ID)MoveablesIds[i]);
+					bool isYoung = (g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() == LaraType::Young);
+					bool isSecond = isYoung && MoveablesIds[i] == ID_HAIR_SECONDARY;
+					auto& skinMoveable = GetRendererObject(GAME_OBJECT_ID::ID_LARA_SKIN);
+					ProcessHair((GAME_OBJECT_ID)MoveablesIds[i], const_cast<RendererObject&>(skinMoveable), isSecond);
 				}
 			}
 		}

@@ -934,11 +934,31 @@ namespace TEN::Entities::TR4
 
 				break;
 
-			case BADDY_STATE_MONKEY_IDLE:
+			case BADDY_STATE_MONKEY_GRAB:
 				creature->MaxTurn = 0;
+				creature->LOT.IsJumping = true;
+				creature->LOT.IsMonkeying = false;
 				creature->Flags = 0;
 				joint1 = 0;
 				joint2 = 0;
+				break;
+
+			case BADDY_STATE_MONKEY_IDLE:
+				creature->MaxTurn = 0;
+				creature->LOT.IsJumping = true;
+				creature->LOT.IsMonkeying = true;
+				creature->Flags = 0;
+				joint1 = 0;
+				joint2 = 0;
+
+				// If we are no longer under a valid monkey-swing sector, land.
+				if (!probe.GetBottomSector().Flags.Monkeyswing)
+				{
+					item->Animation.TargetState = BADDY_STATE_MONKEY_FALL_LAND;
+					creature->LOT.IsMonkeying = false;
+					creature->LOT.IsJumping = false;
+					break;
+				}
 
 				probe = GetPointCollision(*item);
 
@@ -953,9 +973,8 @@ namespace TEN::Entities::TR4
 				{
 					item->Animation.TargetState = BADDY_STATE_MONKEY_PUSH_OFF;
 				}
-				else if (item->BoxNumber != creature->LOT.TargetBox &&
-					creature->MonkeySwingAhead ||
-					probe.GetCeilingHeight() != (probe.GetFloorHeight() - CLICK(6)))
+				else if ((item->BoxNumber != creature->LOT.TargetBox && creature->MonkeySwingAhead) ||
+						 probe.GetCeilingHeight() != (probe.GetFloorHeight() - CLICK(6)))
 				{
 					item->Animation.TargetState = BADDY_STATE_MONKEY_FORWARD;
 				}
@@ -975,6 +994,17 @@ namespace TEN::Entities::TR4
 				creature->Flags = 0;
 				joint1 = 0;
 				joint2 = 0;
+
+				probe = GetPointCollision(*item);
+
+				// Don't allow continued monkey movement outside flagged sectors.
+				if (!probe.GetBottomSector().Flags.Monkeyswing)
+				{
+					item->Animation.TargetState = BADDY_STATE_MONKEY_FALL_LAND;
+					creature->LOT.IsMonkeying = false;
+					creature->LOT.IsJumping = false;
+					break;
+				}
 
 				if (item->BoxNumber == creature->LOT.TargetBox || !creature->MonkeySwingAhead)
 				{
@@ -1005,6 +1035,8 @@ namespace TEN::Entities::TR4
 
 			case BADDY_STATE_MONKEY_PUSH_OFF:
 				creature->MaxTurn = ANGLE(7.0f);
+				creature->LOT.IsJumping = true;
+				creature->LOT.IsMonkeying = true;
 
 				if (!creature->Flags)
 				{
@@ -1015,9 +1047,31 @@ namespace TEN::Entities::TR4
 						LaraItem->Animation.Velocity.y = 2;
 						LaraItem->Animation.Velocity.y = 1;
 						LaraItem->Pose.Position.y += CLICK(0.75f);
+						
 						Lara.Control.HandStatus = HandStatus::Free;
 						creature->Flags = 1;
 					}
+				}
+
+				break;
+
+			case BADDY_STATE_MONKEY_FALL_LAND:
+				creature->MaxTurn = 0;
+				creature->LOT.IsJumping = false;
+				creature->LOT.IsMonkeying = false;
+				creature->Flags = 0;
+				joint1 = 0;
+				joint2 = 0;
+
+				if (item->Animation.FrameNumber == GetAnimData(*item).EndFrameNumber)
+				{
+					creature->JumpAhead = false;
+					creature->MonkeySwingAhead = false;
+
+					// Force actual exit from landing state.
+					SetAnimation(item, BADDY_ANIM_STAND_IDLE);
+					item->Animation.ActiveState = BADDY_STATE_IDLE;
+					item->Animation.TargetState = BADDY_STATE_IDLE;
 				}
 
 				break;

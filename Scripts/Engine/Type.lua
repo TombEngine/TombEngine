@@ -1,5 +1,5 @@
 -----<style>table.function_list td.name {min-width: 335px;}</style>
---- This molule contains functions that allow to check the data type of a variable. It also contains functions that allow to check if the variable is a TEN primitive class or a LevelFuncs.
+--- This module contains functions that allow to check the data type of a variable. It also contains functions that allow to check if the variable is a TEN primitive class or a LevelFuncs.
 --
 --
 -- To use the functions within the scripts, the module must be called:
@@ -238,7 +238,14 @@ Type.IsEnumValue = function (variable, enumTable, showError)
     else
         showError = true
     end
-    if not Type.IsTable(enumTable) or type(variable) ~= "number" or debug.getmetatable(enumTable).__type ~= "readonly" then
+
+    local isTable = type(enumTable) == "table"
+    local metatable = isTable and debug.getmetatable(enumTable) or nil
+
+    if not isTable
+        or type(variable) ~= "number"
+        or not metatable
+        or metatable.__type ~= "readonly" then
         if showError then
             TEN.Util.PrintLog("Error in Type.IsEnumValue(): enumTable must be a Enum and variable must be a number.", TEN.Util.LogLevel.ERROR)
         end

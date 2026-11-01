@@ -69,7 +69,7 @@ namespace TEN::Entities::Traps
 		const auto& anim = GetAnimData(item);
 
 
-		if (IsSoundEffectCommandActive(item, SFX_TR1_SLAMDOOR_CLOSE) && (PropertyHandler::Get(item, PropName_SparkEffect, (bool)item.TriggerFlags, true)))
+		if (IsSoundEffectCommandActive(item, SFX_TR2_SLAM_DOOR_CLOSE) && (PropertyHandler::Get(item, PropName_SparkEffect, (bool)item.TriggerFlags, true)))
 		{
 			SpawnSlammingDoorSparks(Vector3i(130, 0, 560), item);   // right door
 			SpawnSlammingDoorSparks(Vector3i(-130, 0, 560), item);  // left door

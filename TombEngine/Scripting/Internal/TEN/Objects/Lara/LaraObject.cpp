@@ -584,18 +584,18 @@ int LaraObject::GetWeaponMode(TypeOrNil<LaraWeaponType> weaponType) const
 	switch (weapon)
 	{
 	case::LaraWeaponType::HK:
-		if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_1)
+		switch (player.Weapons[(int)LaraWeaponType::HK].WeaponMode)
 		{
+		default:
+		case LaraWeaponTypeCarried::WTYPE_AMMO_1:
 			weaponMode = PlayerWeaponMode::Rapid;
 			break;
-		}
-		else if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_2)
-		{
+
+		case LaraWeaponTypeCarried::WTYPE_AMMO_2:
 			weaponMode = PlayerWeaponMode::Burst;
 			break;
-		}
-		else if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_3)
-		{
+
+		case LaraWeaponTypeCarried::WTYPE_AMMO_3:
 			weaponMode = PlayerWeaponMode::Sniper;
 			break;
 		}

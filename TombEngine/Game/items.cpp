@@ -12,6 +12,7 @@
 #include "Game/effects/tomb4fx.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/pickup/pickup.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
@@ -615,6 +616,8 @@ void InitializeItemArray(int totalItem)
 	FreeItemSlots.reserve(totalItem - g_Level.NumItems);
 	for (int i = g_Level.NumItems; i < totalItem; i++)
 		FreeItemSlots.push_back(i);
+
+	RPickups.clear();
 }
 
 short SpawnItem(const ItemInfo& item, GAME_OBJECT_ID objectID)

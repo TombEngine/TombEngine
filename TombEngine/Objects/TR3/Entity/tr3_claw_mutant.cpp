@@ -175,8 +175,9 @@ namespace TEN::Entities::Creatures::TR3
 
 		fx.Pose.Position = jointPos;
 		fx.Pose.Orientation = orient;
-		fx.Model.Color = Vector4::One;
-		fx.Model.MeshIndex = { (int)Objects[ID_ENERGY_BUBBLES].meshIndex };
+
+		// Missile mesh is hidden; only the plasma particle trail is visible, as in original TR3.
+		fx.Model.Color = Vector4(1.0f, 1.0f, 1.0f, 0.0f);
 		fx.Animation.Velocity.z = CLAW_MUTANT_PLASMA_VELOCITY;
 		fxInfo.Flag2 = CLAW_MUTANT_PLASMA_ATTACK_DAMAGE;
 		fxInfo.Flag1 = (int)MissileType::ClawMutantPlasma;

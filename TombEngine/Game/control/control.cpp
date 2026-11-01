@@ -47,6 +47,7 @@
 #include "Objects/Generic/Object/objects.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Objects/Generic/Switches/generic_switch.h"
+#include "Objects/TR3/Emitter/tr3_bats_emitter.h"
 #include "Objects/TR3/Entity/SophiaLeigh.h"
 #include "Objects/TR3/Entity/FishSwarm.h"
 #include "Objects/TR4/Entity/tr4_beetle_swarm.h"
@@ -65,6 +66,7 @@
 #include "Scripting/Internal/TEN/Properties/PropertyUtils.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Specific/Discord.h"
 #include "Specific/EngineMain.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
@@ -95,6 +97,7 @@ using namespace TEN::Entities::Effects;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::Traps;
+using namespace TEN::Entities::TR3;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Control::Volumes;
@@ -104,6 +107,7 @@ using namespace TEN::Math;
 using namespace TEN::Renderer;
 using namespace TEN::Scripting::Properties;
 using namespace TEN::SpotCam;
+using namespace TEN::Utils::Discord;
 using namespace TEN::Video;
 
 constexpr auto DEATH_NO_INPUT_TIMEOUT = 10 * FPS;
@@ -222,6 +226,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateRats();
 	UpdateRipples();
 	UpdateBats();
+	UpdateTr3Bats();
 	UpdateSpiders();
 	UpdateSparkParticles();
 	UpdateSmokeParticles();
@@ -437,6 +442,9 @@ GameStatus DoLevel(int levelIndex, bool loadGame)
 	// Initialize game variables and optionally load game.
 	InitializeOrLoadGame(loadGame);
 
+	// Refresh Discord presence.
+	UpdateDiscordPresence(levelIndex);
+
 	// DoGameLoop() returns only when level has ended.
 	return DoGameLoop(levelIndex);
 }
@@ -506,6 +514,7 @@ void DeInitialize()
 	g_VideoPlayer.DeInitialize();
 	Sound_DeInit();
 	DeinitializeInput();
+	DeInitializeDiscord();
 
 	delete g_GameScript;
 	g_GameScript = nullptr;

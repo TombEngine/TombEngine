@@ -1993,6 +1993,7 @@ void GetCarriedItems()
 	}
 }
 
+// Customize the AI behaviur of enemies placing AI objects on the same square
 void GetAIPickups()
 {
 	for (int i = 0; i < g_Level.NumItems; ++i)

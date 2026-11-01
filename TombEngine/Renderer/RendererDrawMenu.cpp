@@ -1024,7 +1024,7 @@ namespace TEN::Renderer
 
 			_stObjects.BoneLightModes[0] = (int)LightMode::Dynamic;
 
-			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+            UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
 			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
@@ -1079,7 +1079,7 @@ namespace TEN::Renderer
 
 			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
 
-			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+            UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
 			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
@@ -1192,7 +1192,7 @@ namespace TEN::Renderer
 
 			_stObjects.BoneLightModes[0] = (int)LightMode::Dynamic;
 
-			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+            UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
 			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
@@ -1247,7 +1247,7 @@ namespace TEN::Renderer
 
 			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
 
-			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+            UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
 			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
@@ -1282,6 +1282,8 @@ namespace TEN::Renderer
 		auto texture = SetTextureOrDefault(g_GameFlow->GetGameDir() + g_GameFlow->IntroImagePath.c_str());
 		if (texture == nullptr || !texture->IsValid())
 			return;
+
+		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
 
 		int timeout = 20;
 		float currentFade = FADE_FACTOR;
@@ -1380,6 +1382,8 @@ namespace TEN::Renderer
 
 	void Renderer::RenderInventoryScene(IRenderSurface2D* renderTarget, ITextureBase* background, float backgroundFade)
 	{
+		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
+
 		// Set basic render states
 		SetBlendMode(BlendMode::Opaque, true);
 		SetDepthState(DepthState::Write, true);
@@ -1557,6 +1561,8 @@ namespace TEN::Renderer
 
 	void Renderer::RenderLoadingScreen(float percentage)
 	{
+		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
+
 		// Set basic render states.
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
@@ -1745,9 +1751,11 @@ namespace TEN::Renderer
 			PrintDebugMessage("    Movables: %d", _numSortedMoveablesDrawCalls);
 			PrintDebugMessage("    Statics: %d", _numSortedStaticsDrawCalls);
 			PrintDebugMessage("    Sprites: %d", _numSortedSpritesDrawCalls);
+			PrintDebugMessage("SORTED faces: %d", (int)view.TransparentSortKeys.size());
 			PrintDebugMessage("SHADOW MAP draw calls: %d", _numShadowMapDrawCalls);
 			PrintDebugMessage("DEBRIS draw calls: %d", _numDebrisDrawCalls);
-			PrintDebugMessage("Constant buffer updates: %d", _numConstantBufferUpdates);
+            PrintDebugMessage("Constant buffer updates: %d (PerDraw: %d)", _numConstantBufferUpdates, _numPerDrawUpdates);
+            PrintDebugMessage("Constant buffer upload: %.2f MiB", (double)_numConstantBufferBytes / (1024.0 * 1024.0));
 			PrintDebugMessage("Material updates: %d requested, %d executed", _numRequestedMaterialsUpdates, _numExecutedMaterialsUpdates);
 			break;
 

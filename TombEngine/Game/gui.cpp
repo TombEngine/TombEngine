@@ -729,6 +729,7 @@ namespace TEN::Gui
 				{
 					g_Renderer.ChangeScreenResolution(CurrentSettings.Configuration.ScreenWidth, CurrentSettings.Configuration.ScreenHeight,
 						CurrentSettings.Configuration.EnableWindowedMode);
+					RebuildDisplayResolutions();
 				}
 
 				g_Renderer.ReloadShaders(shouldRecompileAAShaders);
@@ -2292,6 +2293,13 @@ namespace TEN::Gui
 		case ID_FLARE_INV_ITEM:
 			if (player.Control.HandStatus != HandStatus::Free)
 				return;
+
+			// Prevent flare drawing whilst using Kayak
+			if (player.Context.Vehicle != NO_VALUE &&
+				g_Level.Items[player.Context.Vehicle].ObjectNumber == ID_KAYAK)
+			{
+				return;
+			}
 
 			if (!TestState(item.Animation.ActiveState, CRAWL_STATES))
 			{

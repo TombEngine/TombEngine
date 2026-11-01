@@ -128,11 +128,12 @@ namespace TEN::Renderer::Native::DirectX11
 		void SetScissor(RendererRectangle rectangle) override;
 		void SetScissor(RendererViewport viewport) override;
 
-		void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType) override;
+		void BindTexture(TextureRegister registerType, ITextureBase* texture) override;
+		void BindSamplers(bool pointFilter) override;
 		void UnbindTexture(ShaderStage stage, TextureRegister registerType) override;
 
 		std::unique_ptr<IConstantBuffer> CreateConstantBuffer(int size, std::string name) override;
-		void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data) override;
+		void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data, int size = 0) override;
 		void BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer) override;
 
 		std::unique_ptr<IStructuredBuffer> CreateStructuredBuffer(int stride, int elementCount, std::wstring name) override;

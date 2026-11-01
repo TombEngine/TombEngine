@@ -185,6 +185,7 @@ void ResumeAllSounds(SoundPauseMode mode);
 void PlaySoundSources();
 void SayNo(std::optional<Vector3i> referencePosition = std::nullopt);
 int  GetShatterSound(int shatterID);
+bool IsWeaponFiredNearby(Pose& position);
 
 void PlaySoundTrack(const std::string& trackName, SoundTrackType type, std::optional<QWORD> pos = std::nullopt, int forceFadeInTime = 0);
 void PlaySoundTrack(const std::string& trackName, short mask = 0);

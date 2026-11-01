@@ -179,7 +179,7 @@ WeaponInfo Weapons[(int)LaraWeaponType::NumWeapons] =
 		0,
 		3,
 		16,
-		0, // FIRE / SILENCER_FIRE
+		SFX_TR4_HK_FIRE, // FIRE / SILENCER_FIRE
 		0
 	},
 
@@ -213,7 +213,7 @@ WeaponInfo Weapons[(int)LaraWeaponType::NumWeapons] =
 		0,
 		0,
 		0,
-		0,
+		NO_VALUE,
 		0
 	},
 
@@ -230,7 +230,7 @@ WeaponInfo Weapons[(int)LaraWeaponType::NumWeapons] =
 		0,
 		2,
 		0,
-		SFX_TR4_UZI_FIRE,
+		NO_VALUE,
 		0
 	},
 
@@ -247,7 +247,7 @@ WeaponInfo Weapons[(int)LaraWeaponType::NumWeapons] =
 		0,
 		2,
 		9,
-		0,
+		SFX_TR4_GRENADEGUN_FIRE,
 		30
 	},
 
@@ -264,7 +264,7 @@ WeaponInfo Weapons[(int)LaraWeaponType::NumWeapons] =
 		0,
 		2,
 		10,
-		0,
+		SFX_TR4_HARPOON_FIRE_DRY,
 		0
 	},
 
@@ -281,7 +281,7 @@ WeaponInfo Weapons[(int)LaraWeaponType::NumWeapons] =
 		0,
 		2,
 		12,
-		77,
+		SFX_TR4_BAZOOKA_FIRE,
 		30
 	},
 
