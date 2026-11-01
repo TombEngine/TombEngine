@@ -172,6 +172,7 @@ xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
 
 if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" %ScriptsDir%
 if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" %ScriptsDir%
+xcopy /D /Y "$(SolutionDir)Scripts\WeatherPresets.lua" %ScriptsDir%
 if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" %ScriptsDir%</Command>
       <Message>Generating documentation, FlatBuffers code and copying needed files...</Message>
     </PreBuildEvent>
@@ -244,6 +245,7 @@ xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
 
 if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" %ScriptsDir%
 if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" %ScriptsDir%
+xcopy /D /Y "$(SolutionDir)Scripts\WeatherPresets.lua" %ScriptsDir%
 if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" %ScriptsDir%</Command>
       <Message>Generating documentation, FlatBuffers code and copying needed files...</Message>
     </PreBuildEvent>
@@ -329,6 +331,7 @@ xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
 
 if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" %ScriptsDir%
 if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" %ScriptsDir%
+xcopy /D /Y "$(SolutionDir)Scripts\WeatherPresets.lua" %ScriptsDir%
 if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" %ScriptsDir%</Command>
     </PreBuildEvent>
     <PreBuildEvent>
@@ -415,6 +418,7 @@ xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" "%ScriptsDir%"
 
 if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" "%ScriptsDir%"
 if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" "%ScriptsDir%"
+xcopy /D /Y "$(SolutionDir)Scripts\WeatherPresets.lua" "%ScriptsDir%"
 if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" "%ScriptsDir%"</Command>
     </PreBuildEvent>
     <PreBuildEvent>
