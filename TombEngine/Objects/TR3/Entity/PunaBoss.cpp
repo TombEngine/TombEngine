@@ -4,6 +4,7 @@
 #include "Game/effects/effects.h"
 #include "Game/effects/Electricity.h"
 #include "Game/effects/item_fx.h"
+#include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/misc.h"
 #include "Game/Setup.h"
@@ -43,6 +44,15 @@ namespace TEN::Entities::Creatures::TR3
 
 	const auto PunaBossHeadBite = CreatureBiteInfo(Vector3::Zero, 8);
 	const auto PunaBossHandBite = CreatureBiteInfo(Vector3::Zero, 14);
+
+	const auto PunaBossHeadArcBites = std::array
+	{
+		CreatureBiteInfo(Vector3(120.0f, 68.0f, 136.0f), 8),
+		CreatureBiteInfo(Vector3(128.0f, -64.0f, 136.0f), 8),
+		CreatureBiteInfo(Vector3(8.0f, -120.0f, 136.0f), 8),
+		CreatureBiteInfo(Vector3(-128.0f, -64.0f, 136.0f), 8),
+		CreatureBiteInfo(Vector3(-124.0f, 64.0f, 126.0f), 8)
+	};
 
 	enum PunaState
 	{
@@ -224,8 +234,8 @@ namespace TEN::Entities::Creatures::TR3
 		const auto& creature = *GetCreatureInfo(&item);
 
 		auto origin = GameVector(GetJointPosition(&item, bite), item.RoomNumber);
-		auto punaLightningColor = PropertyHandler::Get(item, "PunaLightningColor", ScriptColor(PUNA_LIGHTNING_COLOR));
 		auto punaSummonColor = PropertyHandler::Get(item, "PunaSummonColor", ScriptColor(PUNA_SUMMON_COLOR));
+		auto punaLightningColor = PropertyHandler::Get(item, "PunaLightningColor", ScriptColor(PUNA_LIGHTNING_COLOR));
 
 		if (isSummon)
 		{
@@ -286,6 +296,64 @@ namespace TEN::Entities::Creatures::TR3
 		}
 	}
 
+	static void SpawnPunaHeadElectricity(ItemInfo& item)
+	{
+		int dx = std::abs(LaraItem->Pose.Position.x - item.Pose.Position.x);
+		int dz = std::abs(LaraItem->Pose.Position.z - item.Pose.Position.z);
+
+		if (dx > PUNA_ATTACK_RANGE || dz > PUNA_ATTACK_RANGE)
+			return;
+
+		auto punaLightningColor = PropertyHandler::Get(item, "PunaLightningColor", ScriptColor(PUNA_LIGHTNING_COLOR));
+
+		// Cache color components to avoid redundant getter calls and float conversions
+		float r = punaLightningColor.GetR();
+		float g = punaLightningColor.GetG();
+		float b = punaLightningColor.GetB();
+		Color pointLightColor(r / 255.0f, g / 255.0f, b / 255.0f);
+
+		int flags = (int)ElectricityFlags::ThinIn | (int)ElectricityFlags::ThinOut | (int)ElectricityFlags::SparkEnd;
+		bool isHeadAttackState = (item.Animation.ActiveState == PUNA_STATE_HEAD_ATTACK);
+
+		if (isHeadAttackState)
+		{
+			auto headCenter = GetJointPosition(&item, PunaBossHeadBite).ToVector3();
+			auto lightAccumulator = Vector3::Zero;
+
+			for (const auto& jointId : PunaBossHeadArcBites)
+			{
+				auto start = GetJointPosition(&item, jointId).ToVector3();
+				lightAccumulator += (start + headCenter) / 2.0f;
+
+				SpawnElectricity(start, headCenter, Random::GenerateInt(6, 12), r, g, b, 20, flags, 2, 5);
+			}
+
+			auto avgLightPos = lightAccumulator / (float)PunaBossHeadArcBites.size();
+
+			// Lock X and Y to the head center, preserving only the averaged Z depth
+			avgLightPos.x = headCenter.x;
+			avgLightPos.y = headCenter.y;
+
+			SpawnDynamicPointLight(avgLightPos, pointLightColor, BLOCK(1));
+		}
+		else
+		{
+			static int ringStartIndex = 0;
+
+			// Safely wrap around using modulo instead of branching
+			ringStartIndex %= (PunaBossHeadArcBites.size() - 1);
+
+			auto ringStart = GetJointPosition(&item, PunaBossHeadArcBites[ringStartIndex]).ToVector3();
+			auto ringEnd = GetJointPosition(&item, PunaBossHeadArcBites[ringStartIndex + 1]).ToVector3();
+			auto lightPos = (ringStart + ringEnd) / 2.0f;
+
+			SpawnElectricity(ringStart, ringEnd, Random::GenerateInt(6, 12), r, g, b, 20, flags, 2, 5);
+			SpawnDynamicPointLight(lightPos, pointLightColor, BLOCK(1));
+
+			ringStartIndex++;
+		}
+	}
+
 	void InitializePuna(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
@@ -327,7 +395,6 @@ namespace TEN::Entities::Creatures::TR3
 		auto punaAlertRange = PropertyHandler::Get<float>(item, "PunaAlertRange", 2.5f);
 		auto punaTurnRate = PropertyHandler::Get<float>(item, "PunaTurnRate", 3.0f);
 		
-
 		static auto targetPos = Vector3i::Zero;
 
 		auto headOrient = EulerAngles::Identity;
@@ -514,6 +581,9 @@ namespace TEN::Entities::Creatures::TR3
 		CreatureJoint(&item, 1, headOrient.y);
 		CreatureJoint(&item, 2, headOrient.x, PUNA_HEAD_X_ANGLE_MAX);
 		CreatureAnimation(itemNumber, headingAngle, 0);
+
+		if (item.GetFlagField((int)BossItemFlags::ExplodeCount) == 0)
+			SpawnPunaHeadElectricity(item);
 
 		// Emit sound while chair is rotating.
 		if (prevYOrient != item.Pose.Orientation.y && !hasTurned)
