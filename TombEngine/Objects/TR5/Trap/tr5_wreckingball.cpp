@@ -668,7 +668,7 @@ namespace TEN::Entities::Traps
 			float intensity = PropertyHandler::Get(wreckingBall, PropName_DownwardLightIntensity, 5.0f);
 
 			auto dir = Vector3::UnitY;
-			Color color(
+			auto color = Color(
 				(downColor.GetR() / (float)UCHAR_MAX) * intensity,
 				(downColor.GetG() / (float)UCHAR_MAX) * intensity,
 				(downColor.GetB() / (float)UCHAR_MAX) * intensity);
@@ -710,7 +710,7 @@ namespace TEN::Entities::Traps
 			Vector3 dir(sin(angle), 0.0f, cos(angle));
 			dir.Normalize();
 
-			Color color(
+			auto color = Color(
 				(alarmColor.GetR() / (float)UCHAR_MAX) * intensity,
 				(alarmColor.GetG() / (float)UCHAR_MAX) * intensity,
 				(alarmColor.GetB() / (float)UCHAR_MAX) * intensity);
@@ -736,15 +736,11 @@ namespace TEN::Entities::Traps
 		anchor.Pose.Position.x = item.Pose.Position.x;
 		anchor.Pose.Position.z = item.Pose.Position.z;
 
-		short room = anchor.RoomNumber;
-		anchor.Pose.Position.y = GetCeiling(
-			GetFloor(anchor.Pose.Position.x, anchor.Pose.Position.y, anchor.Pose.Position.z, &room),
-			anchor.Pose.Position.x,
-			anchor.Pose.Position.y,
-			anchor.Pose.Position.z);
+		auto pointColl = GetPointCollision(anchor);
+		anchor.Pose.Position.y = pointColl.GetCeilingHeight();
 
-		if (room != anchor.RoomNumber)
-			ItemNewRoom(state.BaseObject, room);
+		if (pointColl.GetRoomNumber() != anchor.RoomNumber)
+			ItemNewRoom(state.BaseObject, pointColl.GetRoomNumber());
 
 		SpawnAnchorSpotlights(anchor, item, state.RotatingSpotlightAngle, state.AlarmFlashTimer, state.AlarmFlashPeriod, state.AlarmFlashOn);
 	}
@@ -828,10 +824,9 @@ namespace TEN::Entities::Traps
 			link.Flags &= ~IFLAG_INVISIBLE;
 			link.Status = ITEM_ACTIVE;
 
-			short room = link.RoomNumber;
-			GetFloor(link.Pose.Position.x, link.Pose.Position.y, link.Pose.Position.z, &room);
-			if (room != link.RoomNumber)
-				ItemNewRoom(linkNumber, room);
+			auto pointColl = GetPointCollision(link);
+			if (pointColl.GetRoomNumber() != link.RoomNumber)
+				ItemNewRoom(linkNumber, pointColl.GetRoomNumber());
 		}
 	}
 
@@ -868,23 +863,23 @@ namespace TEN::Entities::Traps
 			return;
 
 		int roamX, roamZ;
-			if (FindRandomReachableTile(anchor, roamX, roamZ))
-			{
-				int pauseMin = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamPauseMin, 0.5f)) * FPS);
-				int pauseMax = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamPauseMax, 1.5f)) * FPS);
-				if (pauseMin > pauseMax)
-					std::swap(pauseMin, pauseMax);
-				if (pauseMin == 0)
-					pauseMin = 1;
+		if (FindRandomReachableTile(anchor, roamX, roamZ))
+		{
+			int pauseMin = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamPauseMin, 0.5f)) * FPS);
+			int pauseMax = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamPauseMax, 1.5f)) * FPS);
+			if (pauseMin > pauseMax)
+				std::swap(pauseMin, pauseMax);
+			if (pauseMin == 0)
+				pauseMin = 1;
 
-				state.RoamTargetX = roamX;
-				state.RoamTargetZ = roamZ;
-				state.PhaseState = WreckingBallState::Phase::Roaming;
-				state.MoveAxis = 0;
-				state.Timer = 0;
-				state.RoamTimer = 0;
-				state.RoamWaitTimer = Random::GenerateInt(pauseMin, pauseMax);
-			}
+			state.RoamTargetX = roamX;
+			state.RoamTargetZ = roamZ;
+			state.PhaseState = WreckingBallState::Phase::Roaming;
+			state.MoveAxis = 0;
+			state.Timer = 0;
+			state.RoamTimer = 0;
+			state.RoamWaitTimer = Random::GenerateInt(pauseMin, pauseMax);
+		}
 	}
 
 	static void UpdateHorizontalMovement(ItemInfo& item, WreckingBallState& state)
@@ -1096,9 +1091,8 @@ namespace TEN::Entities::Traps
 		// Emit a dense bubble column every frame the ball is underwater during the drop.
 		SpawnUnderwaterDiveBubbles(item, state);
 
-		short room = item.RoomNumber;
-		auto pointCollision = GetPointCollision(item);
-		int height = pointCollision.GetFloorHeight();
+		auto pointColl = GetPointCollision(item);
+		int height = pointColl.GetFloorHeight();
 		
 		if (height - item.Pose.Position.y < 1536 && item.Animation.ActiveState != WRECKINGBALL_STATE_IDLE)
 			item.Animation.TargetState = WRECKINGBALL_STATE_IDLE;
@@ -1106,8 +1100,9 @@ namespace TEN::Entities::Traps
 		if (height < item.Pose.Position.y)
 		{
 			item.Pose.Position.y = height;
-			if (room != item.RoomNumber)
-				ItemNewRoom(item.Index, room);
+
+			if (pointColl.GetRoomNumber() != item.RoomNumber)
+				ItemNewRoom(item.Index, pointColl.GetRoomNumber());
 
 			// Crush any shatterable statics and enemies beneath the ball as it slams into the floor.
 			ShatterStaticsOnBallImpact(item);
@@ -1292,10 +1287,9 @@ namespace TEN::Entities::Traps
 			return;
 		}
 
-		short room = item.RoomNumber;
-		GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &room);
-		if (room != item.RoomNumber)
-			ItemNewRoom(itemNumber, room);
+		auto pointColl = GetPointCollision(item);
+		if (pointColl.GetRoomNumber() != item.RoomNumber)
+			ItemNewRoom(itemNumber, pointColl.GetRoomNumber());
 
 		switch (state.PhaseState)
 		{
