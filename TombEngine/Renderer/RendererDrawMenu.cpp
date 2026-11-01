@@ -1590,7 +1590,7 @@ namespace TEN::Renderer
 		_stringsToDraw.clear();
 		AddString(g_GameFlow->GetString(STRING_COMPILING_SHADERS),
 			Vector2(DISPLAY_SPACE_RES.x * 0.5f, DISPLAY_SPACE_RES.y * 0.85f),
-			Color(0.5f, 0.5f, 0.5f, 0.5f),
+			Color(0.7f, 0.7f, 0.7f, 1.0f),
 			0.5f,
 			(int)PrintStringFlags::Center);
 		DrawAllStrings();
