@@ -20,6 +20,28 @@ using namespace TEN::Input;
 
 namespace TEN::Entities::TR4
 {
+	static bool AreObelisksAligned()
+	{
+		const ItemInfo* obelisks[3] = {};
+
+		for (int i = 0; i < g_Level.NumItems; i++)
+		{
+			const auto& candidate = g_Level.Items[i];
+			if (candidate.ObjectNumber != ID_OBELISK)
+				continue;
+
+			const auto ocb = candidate.TriggerFlags;
+			if (ocb < 1 || ocb > 3 || obelisks[ocb - 1] != nullptr)
+				return false;
+
+			obelisks[ocb - 1] = &candidate;
+		}
+
+		return	obelisks[0] != nullptr && obelisks[0]->Pose.Orientation.y == ANGLE(180.0f) &&
+				obelisks[1] != nullptr && obelisks[1]->Pose.Orientation.y == 0 &&
+				obelisks[2] != nullptr && obelisks[2]->Pose.Orientation.y == ANGLE(90.0f);
+	}
+
 	void InitializeObelisk(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
@@ -42,28 +64,6 @@ namespace TEN::Entities::TR4
 	void InitializeObeliskCage(short itemNumber)
 	{
 		g_Level.Items[itemNumber].ItemFlags[0] = 0;
-	}
-
-	bool AreObelisksAligned()
-	{
-		const ItemInfo* obelisks[3] = {};
-
-		for (int i = 0; i < g_Level.NumItems; i++)
-		{
-			const auto& candidate = g_Level.Items[i];
-			if (candidate.ObjectNumber != ID_OBELISK)
-				continue;
-
-			const auto ocb = candidate.TriggerFlags;
-			if (ocb < 1 || ocb > 3 || obelisks[ocb - 1] != nullptr)
-				return false;
-
-			obelisks[ocb - 1] = &candidate;
-		}
-
-		return obelisks[0] != nullptr && obelisks[0]->Pose.Orientation.y == ANGLE(180.0f) &&
-			obelisks[1] != nullptr && obelisks[1]->Pose.Orientation.y == 0 &&
-			obelisks[2] != nullptr && obelisks[2]->Pose.Orientation.y == ANGLE(90.0f);
 	}
 
 	void ObeliskControl(short itemNumber)
