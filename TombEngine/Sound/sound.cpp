@@ -5,6 +5,7 @@
 #include "Game/collision/collide_room.h"
 #include "Game/gui.h"
 #include "Game/Lara/lara.h"
+#include "Game/Lara/lara_fire.h"
 #include "Game/room.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
@@ -1299,6 +1300,21 @@ int GetShatterSound(int shatterID)
 		return fxID;
 
 	return SFX_TR4_SMASH_ROCK;
+}
+
+bool IsWeaponFiredNearby(Pose& position)
+{
+	for (int w = (int)LaraWeaponType::Pistol; w <= (int)LaraWeaponType::RocketLauncher; w++)
+	{
+		int sampleNum = Weapons[w].SampleNum;
+		if (sampleNum == NO_VALUE)
+			continue;
+
+		if (Sound_EffectIsPlaying(sampleNum, &position) != SOUND_NO_CHANNEL)
+			return true;
+	}
+
+	return false;
 }
 
 void PlaySoundSources()

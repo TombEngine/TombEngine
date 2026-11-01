@@ -175,7 +175,7 @@ namespace TEN::Scripting::Input
 
 	/// Returns the time for which a key has been held.
 	// @function GetActionTimeActive
-	// @tparam Input.ActionID actionID Action ID to clear.
+	// @tparam Input.ActionID actionID Action ID to check.
 	// @treturn int Time in game frames for which the specified key has been held.
 	static int GetActionTimeActive(int actionID)
 	{

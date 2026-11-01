@@ -254,7 +254,7 @@ bool TestLaraHang(ItemInfo* item, CollisionInfo* coll)
 				if (item->Animation.ActiveState == LS_SHIMMY_LEFT ||
 					item->Animation.ActiveState == LS_SHIMMY_RIGHT)
 				{
-					SetAnimation(item, LA_REACH_TO_HANG, 21);
+					SetAnimation(item, LA_REACH_TO_HANG, 21, GetInternalBlendDuration());
 				}
 
 				result = true;
@@ -1109,7 +1109,8 @@ void TestLaraWaterDepth(ItemInfo* item, CollisionInfo* coll)
 		item->Animation.Velocity.y = 0.0f;
 		item->Pose.Position = coll->Setup.PrevPosition;
 	}
-	else if (pointColl.GetWaterBottomHeight() <= (LARA_HEIGHT - (LARA_HEADROOM / 2)))
+	else if (TestEnvironment(ENV_FLAG_WATER, pointColl.GetRoomNumber()) &&
+			 pointColl.GetWaterBottomHeight() <= (LARA_HEIGHT - (LARA_HEADROOM / 2)))
 	{
 		SetAnimation(item, LA_UNDERWATER_TO_STAND);
 		ResetPlayerLean(item);

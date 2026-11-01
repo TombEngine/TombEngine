@@ -729,6 +729,7 @@ namespace TEN::Gui
 				{
 					g_Renderer.ChangeScreenResolution(CurrentSettings.Configuration.ScreenWidth, CurrentSettings.Configuration.ScreenHeight,
 						CurrentSettings.Configuration.EnableWindowedMode);
+					RebuildDisplayResolutions();
 				}
 
 				g_Renderer.ReloadShaders(shouldRecompileAAShaders);

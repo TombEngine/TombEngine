@@ -296,7 +296,7 @@ namespace TEN::Renderer
 			_stPerDraw.MaterialTypeAndFlags = materialTypeAndFlags;
 			_stPerDraw.MaterialProperties   = materialProperties;
 
-			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+            InvalidatePerDrawBuffer();
 
 			_lastMaterialIndex = materialIndex;
 
@@ -316,7 +316,7 @@ namespace TEN::Renderer
 			_graphicsDevice->SetBlendMode(blendMode);
 
 			_stPerDraw.BlendMode = (unsigned int)blendMode;
-			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+            InvalidatePerDrawBuffer();
 			
 			_lastBlendMode = blendMode;
 		}
@@ -373,7 +373,7 @@ namespace TEN::Renderer
 		{
 			_stPerDraw.AlphaTest = (int)mode;
 			_stPerDraw.AlphaThreshold = threshold;
-			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+            InvalidatePerDrawBuffer();
 		}
 	}
 

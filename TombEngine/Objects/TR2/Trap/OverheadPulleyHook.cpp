@@ -12,6 +12,8 @@ using namespace TEN::Collision::Sphere;
 
 namespace TEN::Entities::Traps
 {
+	constexpr int OVERHEAD_PULLEY_HOOK_HARM_DAMAGE = 200;
+
 	constexpr int FIRST_DAMAGE_FRAME_START = 54;
 	constexpr int FIRST_DAMAGE_FRAME_END = 66;
 	constexpr int SECOND_DAMAGE_FRAME_START = 114;
@@ -32,7 +34,7 @@ namespace TEN::Entities::Traps
 		}
 		else
 		{
-			item.ItemFlags[3] = PropertyHandler::Get(item, PropName_Damage, item.TriggerFlags, true);
+			item.ItemFlags[3] = PropertyHandler::Get(item, PropName_Damage, OVERHEAD_PULLEY_HOOK_HARM_DAMAGE);
 		}
 
 		AnimateItem(&item);
