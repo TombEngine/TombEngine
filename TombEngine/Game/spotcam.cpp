@@ -506,6 +506,7 @@ namespace TEN::SpotCam
 		SpotcamOverlay = false;
 		SpotcamDontDrawLara = false;
 		AlterFOV(LastFOV);
+		AlterRoll(0);
 		g_Renderer.RestoreDOF();
 	}
 	
@@ -679,6 +680,7 @@ namespace TEN::SpotCam
 				Lara.Control.IsLocked = false;
 				Camera.speed = 1;
 				AlterFOV(LastFOV);
+				AlterRoll(0);
 				g_Renderer.RestoreDOF();
 				CalculateCamera(LaraCollision);
 				RunHeavyTriggers = false;
