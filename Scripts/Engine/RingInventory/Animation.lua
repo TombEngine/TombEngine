@@ -32,7 +32,7 @@ function Animation.SaveItemData(selectedItem)
 
     local displayItem = selectedItem:GetDisplayItem()
     itemRotationOld = Utilities.CopyRotation(displayItem:GetRotation())
-    itemRotation = Utilities.CopyRotation(selectedItem:GetRotation())
+    itemRotation = Utilities.CopyRotation(selectedItem:GetRotation() + Rotation(0, 180, 0))
 end
 
 function Animation.SetItemStartPos(selectedItem)

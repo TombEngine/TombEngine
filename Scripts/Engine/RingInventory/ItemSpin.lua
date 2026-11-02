@@ -132,7 +132,7 @@ function ItemSpin.UpdateRing(ringState)
                         displayItem:SetRotation(Rotation(currentRotation.x, newY, currentRotation.z))
                     end
                 else
-                    local targetAngle = Utilities.GetRingItemAngle(i, itemCount, ringAngle) + item.rotation.y
+                    local targetAngle = Utilities.GetRingItemAngle(i, itemCount, ringAngle) + item.rotation.y + 180
                     local isJustDeselected = (not isFirstFrame) and previousItem and item == previousItem
 
                     -- Initialize state on first frame

@@ -168,7 +168,7 @@ function Examine.SetScale(scaleValue)
 end
 
 function Examine.ResetExamine(item)
-    Examine.SetRotation(item:GetRotation())
+    Examine.SetRotation(item:GetRotation() + Rotation(0, 180, 0))
     Examine.SetScale(item:GetScale())
 end
 
