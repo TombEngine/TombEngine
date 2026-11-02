@@ -336,6 +336,11 @@ namespace TEN::Input
 		return source;
 	}
 
+	static bool IsGamepadKey(int keyID)
+	{
+		return (keyID >= KEY_OFFSET_GAMEPAD);
+	}
+
 	void DefaultConflict()
 	{
 		for (const auto& actionIDGroup : ACTION_ID_GROUPS)
@@ -345,6 +350,15 @@ namespace TEN::Input
 				g_Bindings.SetConflict(actionID, false);
 
 				int key = g_Bindings.GetBoundKeyID(BindingProfileID::Default, actionID);
+
+				// Custom binding replaces default binding of same device.
+				int customKey = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, actionID);
+				if (customKey != KEY_UNASSIGNED && IsGamepadKey(customKey) == IsGamepadKey(key))
+				{
+					g_Bindings.SetConflict(actionID, true);
+					continue;
+				}
+
 				for (auto conflictActionID : actionIDGroup)
 				{
 					if (key != g_Bindings.GetBoundKeyID(BindingProfileID::Custom, conflictActionID))
@@ -357,24 +371,32 @@ namespace TEN::Input
 		}
 	}
 
+	static int GetActiveBoundKeyID(BindingProfileID profileID, ActionID actionID)
+	{
+		if (profileID == BindingProfileID::Default && g_Bindings.TestConflict(actionID))
+			return KEY_UNASSIGNED;
+
+		return g_Bindings.GetBoundKeyID(profileID, actionID);
+	}
+
 	static void SetDiscreteAxisValues(unsigned int keyID)
 	{
 		for (int i = 0; i < (int)BindingProfileID::Count; i++)
 		{
 			auto profileID = (BindingProfileID)i;
-			if (g_Bindings.GetBoundKeyID(profileID, In::Forward) == keyID)
+			if (GetActiveBoundKeyID(profileID, In::Forward) == keyID)
 			{
 				AxisMap[AxisID::Move].y = 1.0f;
 			}
-			else if (g_Bindings.GetBoundKeyID(profileID, In::Back) == keyID)
+			else if (GetActiveBoundKeyID(profileID, In::Back) == keyID)
 			{
 				AxisMap[AxisID::Move].y = -1.0f;
 			}
-			else if (g_Bindings.GetBoundKeyID(profileID, In::Left) == keyID)
+			else if (GetActiveBoundKeyID(profileID, In::Left) == keyID)
 			{
 				AxisMap[AxisID::Move].x = -1.0f;
 			}
-			else if (g_Bindings.GetBoundKeyID(profileID, In::Right) == keyID)
+			else if (GetActiveBoundKeyID(profileID, In::Right) == keyID)
 			{
 				AxisMap[AxisID::Move].x = 1.0f;
 			}
@@ -615,10 +637,7 @@ namespace TEN::Input
 		for (int i = (int)BindingProfileID::Count - 1; i >= 0; i--)
 		{
 			auto profileID = (BindingProfileID)i;
-			if (profileID == BindingProfileID::Default && g_Bindings.TestConflict(actionID))
-				continue;
-
-			int newKeyID = g_Bindings.GetBoundKeyID(profileID, actionID);
+			int newKeyID = GetActiveBoundKeyID(profileID, actionID);
 			if (newKeyID == KEY_UNASSIGNED)
 				continue;
 
