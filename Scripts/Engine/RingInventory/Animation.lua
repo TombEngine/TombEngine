@@ -163,7 +163,7 @@ function Animation.Inventory(mode, selectedRing, selectedItem)
             {key = "ringAngle", start = targetAngle, finish = targetAngle + 360 * Settings.Animation.ringChangeSpins },
             {key = "ringCenter", start = ring:GetPreviousPosition(), finish = ring:GetPosition()},
             }
-            if not Animation.PerformBatchMotion("RingChange"..ringType, ringChange, Settings.Animation.inventoryAnimTime, true, ring) then
+            if not Animation.PerformBatchMotion("RingChange"..ringType, ringChange, Settings.Animation.ringChangeAnimTime, true, ring) then
                 allMotionComplete = false
             end
         end
