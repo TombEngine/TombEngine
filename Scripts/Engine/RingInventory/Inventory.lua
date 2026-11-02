@@ -342,6 +342,9 @@ end
 --- Duration of the per-item spin or presentation animation.
 -- @tfield[opt=0.2] float itemAnimTime Time in seconds for an individual item to animate into its focused pose.
 
+--- Number of ring-spins during a ring-change animation.
+-- @tfield[opt=1] integer ringChangeSpins Number of spins the ring will do on itself during a ring-change animation. Can be negative to flip the spin direction.
+
 --- Skip the ring collapse animation when closing the inventory.
 -- @tfield[opt=false] bool skipRingClose If true, the inventory closes instantly without playing the ring-retract animation.
 
