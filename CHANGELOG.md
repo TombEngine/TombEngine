@@ -17,6 +17,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed TURN_SWITCH interaction highlight icon position.
 * Fixed static meshes in flipped rooms being lit with ambient light of the original room.
 * Fixed flyby camera roll persisting after the sequence ends.
+* Fixed default keys still triggering actions that were rebound to other keys.
 
 ### Lua API Changes
 
