@@ -469,6 +469,17 @@ namespace TEN::Entities::Traps
 		}
 	}
 
+	static void CollectCreatures(const RoomData& room, std::vector<ItemInfo*>& items)
+	{
+		for (int roomItemNumber : room.itemNumbers)
+		{
+			auto& entity = g_Level.Items[roomItemNumber];
+
+			if (entity.IsLara() || entity.IsCreature())
+				items.push_back(&entity);
+		}
+	}
+
 	static bool CheckCollisions(
 		const ItemInfo& item,
 		const Vector3& center,
@@ -481,33 +492,10 @@ namespace TEN::Entities::Traps
 		auto nearbyItems = std::vector<ItemInfo*>{};
 
 		const auto& room = g_Level.Rooms[item.RoomNumber];
-		int itemNum = room.itemNumber;
-
-		while (itemNum != NO_VALUE)
-		{
-			auto& entity = g_Level.Items[itemNum];
-
-			if (entity.IsLara() || entity.IsCreature())
-				nearbyItems.push_back(&entity);
-
-			itemNum = entity.NextItem;
-		}
+		CollectCreatures(room, nearbyItems);
 
 		for (int neighborRoomNumber : room.NeighborRoomNumbers)
-		{
-			const auto& neighborRoom = g_Level.Rooms[neighborRoomNumber];
-			itemNum = neighborRoom.itemNumber;
-
-			while (itemNum != NO_VALUE)
-			{
-				auto& entity = g_Level.Items[itemNum];
-
-				if (entity.IsLara() || entity.IsCreature())
-					nearbyItems.push_back(&entity);
-
-				itemNum = entity.NextItem;
-			}
-		}
+			CollectCreatures(g_Level.Rooms[neighborRoomNumber], nearbyItems);
 
 		bool isKilling = false;
 
@@ -600,11 +588,9 @@ namespace TEN::Entities::Traps
 			auto collisionPos = effectiveCenter;
 
 			const auto& room = g_Level.Rooms[item.RoomNumber];
-			int itemNum = room.itemNumber;
-
-			while (itemNum != NO_VALUE)
+			for (int roomItemNumber : room.itemNumbers)
 			{
-				auto& entity = g_Level.Items[itemNum];
+				auto& entity = g_Level.Items[roomItemNumber];
 
 				if ((entity.IsLara() || entity.IsCreature()) &&
 					IsEntityInField(item, effectiveCenter, entity, halfSpanX, halfSpanZ, cosY, sinY, isWallMode))
@@ -615,9 +601,8 @@ namespace TEN::Entities::Traps
 						(float)entity.Pose.Position.z);
 					break;
 				}
-
-				itemNum = entity.NextItem;
 			}
+
 			float r = Random::GenerateInt(32, 128) / 255.0f;
 			float g = Random::GenerateInt(128, 192) / 255.0f;
 			float b = Random::GenerateInt(192, 255) / 255.0f;

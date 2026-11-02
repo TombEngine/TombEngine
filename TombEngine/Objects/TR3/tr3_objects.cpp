@@ -58,7 +58,7 @@
 #include "Objects/TR3/Trap/DrillBit.h"
 #include "Objects/TR3/Trap/ElectricCleaner.h"
 #include "Objects/TR3/Trap/ElectricField.h"
-#include "Objects/TR3/Trap/Fusebox.h" 
+
 #include "Objects/TR3/Trap/HeavyStamper.h"
 #include "Objects/TR3/Trap/SpikedFrame.h"
 #include "Objects/TR3/Trap/train.h"
