@@ -1213,6 +1213,7 @@ struct ModernControlData
 	int	 CrouchStage			= 0;
 	bool IsCrouchStageUp		= false;
 	bool IsCrouchStageUpPending = false;
+	bool IsCrouchStageReached	= false;
 	bool IsSprintToggled		= false;
 	bool IsLookToggled			= false;
 	bool WasInVehicle			= false;

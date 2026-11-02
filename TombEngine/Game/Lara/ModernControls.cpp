@@ -256,6 +256,31 @@ namespace TEN::Controls::Modern
 		}
 	}
 
+	static bool IsCrouchOrCrawlState(const ItemInfo& item)
+	{
+		return (TestState(item.Animation.ActiveState, CROUCH_STATES) || TestState(item.Animation.ActiveState, CRAWL_STATES));
+	}
+
+	// Standing states whose stock routines take the player low while Crouch is held.
+	static bool IsCrouchEntryState(const ItemInfo& item)
+	{
+		switch (item.Animation.ActiveState)
+		{
+		case LS_IDLE:
+		case LS_RUN_FORWARD:
+		case LS_TURN_LEFT_SLOW:
+		case LS_TURN_RIGHT_SLOW:
+		case LS_TURN_LEFT_FAST:
+		case LS_TURN_RIGHT_FAST:
+		case LS_SPRINT:
+		case LS_SPRINT_SLIDE:
+			return true;
+
+		default:
+			return false;
+		}
+	}
+
 	// Walk with a pure sideways push, read from the raw keys. The stock crawl turn plays.
 	static bool IsCrawlTurnHeld()
 	{
@@ -956,6 +981,28 @@ namespace TEN::Controls::Modern
 		return 0;
 	}
 
+	// A toggled crouch that has taken the player low ends when she stands up by any way other than a Crouch press,
+	// such as the fly cheat, a knock-down or an object moving her, so she does not crouch again on her own.
+	static void UpdateCrouchToggleRelease(ItemInfo& item)
+	{
+		auto& modern = GetLaraInfo(item).Control.Modern;
+
+		if (!g_Configuration.EnableCrouchToggle || modern.CrouchStage == 0)
+		{
+			modern.IsCrouchStageReached = false;
+		}
+		else if (IsCrouchOrCrawlState(item))
+		{
+			modern.IsCrouchStageReached = true;
+		}
+		else if (modern.IsCrouchStageReached && IsCrouchEntryState(item))
+		{
+			modern.CrouchStage = 0;
+			modern.IsCrouchStageUpPending = false;
+			modern.IsCrouchStageReached = false;
+		}
+	}
+
 	// Crouch stages: standing, crouched, on knees. A press on knees rises one stage to the crouch.
 	static void UpdateCrouchStages(ItemInfo& item, PlayerInput& input)
 	{
@@ -982,6 +1029,8 @@ namespace TEN::Controls::Modern
 				modern.CrouchStage = 0;
 			}
 		}
+
+		UpdateCrouchToggleRelease(item);
 
 		if (modern.IsCrouchStageUpPending)
 		{
