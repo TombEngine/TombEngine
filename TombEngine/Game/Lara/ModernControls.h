@@ -14,6 +14,7 @@ namespace TEN::Controls::Modern
 	bool  IsVehicleFireHeld();
 	bool  IsVehicleDiveHeld(const LaraInfo& player);
 	bool  IsLookHeld(const LaraInfo& player);
+	bool  IsLookAroundHeld(const LaraInfo& player);
 	void  ResetLookToggle(LaraInfo& player);
 	void  ApplyLookAxisCoeff(const ItemInfo& item, Vector2& axisCoeff);
 	int   GetOpticsWheelZoom();

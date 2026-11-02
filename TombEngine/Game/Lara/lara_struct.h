@@ -1215,6 +1215,7 @@ struct ModernControlData
 	bool IsCrouchStageUpPending = false;
 	bool IsSprintToggled		= false;
 	bool IsLookToggled			= false;
+	bool WasInVehicle			= false;
 	bool IsDrawToggled			= false;
 	bool IsJumpRollSpent		= false;
 

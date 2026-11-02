@@ -443,8 +443,9 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.PrevFrameNumber = item->Animation.FrameNumber;
 	coll->Setup.PrevState = item->Animation.ActiveState;
 
+	// Remastered controls fix: without it, Toggle Look works as Hold in vehicles. -- divezzi, 02.11.26
 	// Handle look-around.
-	if (((IsHeld(In::Look) && CanPlayerLookAround(*item)) ||
+	if (((Modern::IsLookAroundHeld(player) && CanPlayerLookAround(*item)) ||
 			(player.Control.Look.IsUsingBinoculars || player.Control.Look.IsUsingLasersight)) &&
 		player.ExtraAnim == NO_VALUE)
 	{

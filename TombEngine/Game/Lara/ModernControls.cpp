@@ -839,8 +839,25 @@ namespace TEN::Controls::Modern
 		heldWithoutClickInput.Look = true;
 	}
 
+	// Look toggle in a vehicle, which skips the input rewrite: a press latches Look and the next press releases it.
+	// A script clear of Look releases it, and so does a Brake press, which every vehicle's dismount reads, so she can get off.
+	// Look-around reads the latch through IsLookAroundHeld().
+	static void UpdateVehicleLookToggle(ItemInfo& item)
+	{
+		auto& modern = GetLaraInfo(item).Control.Modern;
+
+		if (!g_Configuration.EnableLookToggle || IsCleared(In::Look) || IsClicked(In::Brake))
+		{
+			modern.IsLookToggled = false;
+			return;
+		}
+
+		if (IsClicked(In::Look) && !IsPushed(In::Look))
+			modern.IsLookToggled = !modern.IsLookToggled;
+	}
+
 	// Look starting this tick, by a press or the toggle, turns the orbit camera behind the player, where it stays after Look.
-	// In a vehicle, which skips the toggle, a press does it, also in vehicles where she cannot look.
+	// In a vehicle a press does it, also in vehicles where she cannot look.
 	// Not on a target switch, with a lasersight weapon ready, in optics or in a flyby.
 	static void ResetCameraOnLookStart(const ItemInfo& item, bool wasLookToggled)
 	{
@@ -869,6 +886,15 @@ namespace TEN::Controls::Modern
 			return IsHeld(In::Look);
 
 		return (player.Control.Modern.IsLookToggled || IsPushed(In::Look));
+	}
+
+	// Look inside the player's tick: on foot the Look action the input rewrite wrote; in a vehicle, which skips it, IsLookHeld().
+	bool IsLookAroundHeld(const LaraInfo& player)
+	{
+		if (player.Context.Vehicle == NO_VALUE)
+			return IsHeld(In::Look);
+
+		return IsLookHeld(player);
 	}
 
 	void ResetLookToggle(LaraInfo& player)
@@ -1327,10 +1353,20 @@ namespace TEN::Controls::Modern
 		player.Control.Modern.BackResolution = ModernBackResolution::None;
 		player.Control.Modern.IsCrouchStageUp = false;
 
-		// Vehicles skip the input rewrite, but a Look press still turns the camera behind the player.
-		if (player.Context.Vehicle != NO_VALUE)
+		// Getting on or off a vehicle releases the Look toggle.
+		bool isInVehicle = (player.Context.Vehicle != NO_VALUE);
+		if (isInVehicle != player.Control.Modern.WasInVehicle)
 		{
-			ResetCameraOnLookStart(item, player.Control.Modern.IsLookToggled);
+			player.Control.Modern.IsLookToggled = false;
+			player.Control.Modern.WasInVehicle = isInVehicle;
+		}
+
+		// Vehicles skip the input rewrite, but the Look toggle still latches and a Look press still turns the camera behind the player.
+		if (isInVehicle)
+		{
+			bool wasLookToggled = player.Control.Modern.IsLookToggled;
+			UpdateVehicleLookToggle(item);
+			ResetCameraOnLookStart(item, wasLookToggled);
 			return;
 		}
 
