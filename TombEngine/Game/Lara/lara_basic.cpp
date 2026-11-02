@@ -23,6 +23,7 @@
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Controls;
 using namespace TEN::Entities::Player;
 using namespace TEN::Input;
 
@@ -163,7 +164,7 @@ void lara_as_walk_forward(ItemInfo* item, CollisionInfo* coll)
 
 	if (IsHeld(In::Forward))
 	{
-		if (IsRemasteredGrabHeld())
+		if (Modern::IsGrabHeld())
 		{
 			auto vaultContext = TestLaraVault(item, coll);
 			if (vaultContext.has_value())
@@ -301,7 +302,7 @@ void lara_as_run_forward(ItemInfo* item, CollisionInfo* coll)
 
 	if (IsHeld(In::Forward))
 	{
-		if (IsRemasteredGrabHeld())
+		if (Modern::IsGrabHeld())
 		{
 			auto vaultContext = TestLaraVault(item, coll);
 			if (vaultContext.has_value())
@@ -361,7 +362,7 @@ void lara_col_run_forward(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	// Remastered controls: a run off a ledge with the grab button held turns into a reach back to the ledge. -- divezzi, 11.10.26
-	if (TestRemasteredSafetyGrab(*item, *coll))
+	if (Modern::TestSafetyGrab(*item, *coll))
 		return;
 
 	if (CanFall(*item, *coll))
@@ -501,7 +502,7 @@ void lara_as_idle(ItemInfo* item, CollisionInfo* coll)
 
 	if (IsHeld(In::Forward))
 	{
-		if (IsRemasteredGrabHeld())
+		if (Modern::IsGrabHeld())
 		{
 			auto vaultContext = TestLaraVault(item, coll);
 			if (vaultContext.has_value())
@@ -835,7 +836,7 @@ void lara_as_turn_slow(ItemInfo* item, CollisionInfo* coll)
 
 	if (IsHeld(In::Forward))
 	{
-		if (IsRemasteredGrabHeld())
+		if (Modern::IsGrabHeld())
 		{
 			auto vaultContext = TestLaraVault(item, coll);
 			if (vaultContext.has_value())
@@ -1182,7 +1183,7 @@ void lara_as_turn_fast(ItemInfo* item, CollisionInfo* coll)
 
 	if (IsHeld(In::Forward))
 	{
-		if (IsRemasteredGrabHeld())
+		if (Modern::IsGrabHeld())
 		{
 			auto vaultContext = TestLaraVault(item, coll);
 			if (vaultContext.has_value())
@@ -1634,7 +1635,7 @@ void lara_as_wade_forward(ItemInfo* item, CollisionInfo* coll)
 
 	if (IsHeld(In::Forward))
 	{
-		if (IsRemasteredGrabHeld())
+		if (Modern::IsGrabHeld())
 		{
 			auto vaultContext = TestLaraVault(item, coll);
 			if (vaultContext.has_value())
@@ -1729,7 +1730,7 @@ void lara_as_sprint(ItemInfo* item, CollisionInfo* coll)
 		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_TURN_RATE_MAX);
 		// Remastered controls: the sprint lean limit is larger under Remastered controls. -- divezzi, 10.10.26
 		HandlePlayerLean(item, coll, LARA_LEAN_RATE,
-						 g_Configuration.IsUsingRemasteredControls() ? PLAYER_REMASTERED_SPRINT_LEAN_CLAMP : LARA_LEAN_MAX);
+						 g_Configuration.IsUsingRemasteredControls() ? Modern::SPRINT_LEAN_CLAMP : LARA_LEAN_MAX);
 	}
 
 	if (IsHeld(In::Jump) || player.Control.IsRunJumpQueued)

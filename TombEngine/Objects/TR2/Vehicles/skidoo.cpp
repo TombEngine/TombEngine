@@ -25,6 +25,7 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
+using namespace TEN::Controls;
 using namespace TEN::Input;
 using namespace TEN::Math;
 
@@ -677,7 +678,7 @@ namespace TEN::Entities::Vehicles
 		AimWeapon(*laraItem, lara->RightArm, weapon);
 
 		// Remastered controls: the skidoo guns fire on Action. -- divezzi, 12.10.26
-		if (IsRemasteredVehicleFireHeld() && !skidooItem->ItemFlags[0])
+		if (Modern::IsVehicleFireHeld() && !skidooItem->ItemFlags[0])
 		{
 			auto angles = EulerAngles(
 				lara->RightArm.Orientation.x,

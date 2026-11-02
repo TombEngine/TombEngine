@@ -34,6 +34,7 @@
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Sphere;
+using namespace TEN::Controls;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Streamer;
 using namespace TEN::Input;
@@ -1009,7 +1010,7 @@ namespace TEN::Entities::Vehicles
 			DoCurrent(UPVItem, laraItem);
 
 			// Remastered controls: the harpoon fires on Action. -- divezzi, 12.10.26
-			if (IsRemasteredVehicleFireHeld() &&
+			if (Modern::IsVehicleFireHeld() &&
 				UPV->Flags & UPV_FLAG_CONTROL &&
 				!UPV->HarpoonTimer)
 			{

@@ -19,6 +19,7 @@
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Controls;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 
@@ -116,7 +117,7 @@ void TightropeCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* col
 
 				// Remastered controls: each tightrope starts with the turn latch released. -- divezzi, 11.10.26
 				if (g_Configuration.IsUsingRemasteredControls())
-					laraInfo->Control.Remastered.IsTightropeTurnLatched = false;
+					laraInfo->Control.Modern.IsTightropeTurnLatched = false;
 			}
 			else
 			{
@@ -140,7 +141,7 @@ void HorizontalBarCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo*
 	auto* laraInfo = GetLaraInfo(laraItem);
 	auto* barItem = &g_Level.Items[itemNumber];
 
-	if (IsRemasteredGrabHeld() &&
+	if (Modern::IsGrabHeld() &&
 		laraItem->Animation.ActiveState == LS_REACH &&
 		laraItem->Animation.AnimNumber == LA_REACH &&
 		laraInfo->Control.HandStatus == HandStatus::Free)

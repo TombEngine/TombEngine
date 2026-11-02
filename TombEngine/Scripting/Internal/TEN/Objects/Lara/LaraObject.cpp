@@ -33,6 +33,7 @@
 #include "Specific/clock.h"
 #include "Specific/level.h"
 
+using namespace TEN::Controls;
 using namespace TEN::Effects::Hair;
 using namespace TEN::Gui;
 using namespace TEN::Hud;
@@ -324,7 +325,7 @@ void LaraObject::SetWeaponType(LaraWeaponType weaponType, sol::optional<bool> ac
 
 			// Remastered controls: the drawn weapon stays out until the player holds Draw. -- divezzi, 12.10.26
 			if (activate.value_or(false))
-				SetRemasteredDrawToggle(*_moveable);
+				Modern::SetDrawToggle(*_moveable);
 
 			if (lara->Control.HandStatus == HandStatus::Free &&
 				lara->Control.Weapon.GunType == lara->Control.Weapon.RequestGunType)

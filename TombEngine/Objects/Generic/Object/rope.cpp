@@ -16,6 +16,7 @@
 #include "Game/camera.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 
+using namespace TEN::Controls;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Generic
@@ -171,7 +172,7 @@ namespace TEN::Entities::Generic
 		auto* ropeItem = &g_Level.Items[itemNumber];
 		auto* rope = &Ropes[ropeItem->TriggerFlags];
 		
-		if (IsRemasteredGrabHeld() &&
+		if (Modern::IsGrabHeld() &&
 			laraInfo->Control.HandStatus == HandStatus::Free &&
 			(laraItem->Animation.ActiveState == LS_REACH || laraItem->Animation.ActiveState == LS_JUMP_UP) &&
 			laraItem->Animation.IsAirborne &&

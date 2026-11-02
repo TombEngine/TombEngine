@@ -20,6 +20,7 @@
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Controls;
 using namespace TEN::Entities::Player;
 using namespace TEN::Input;
 
@@ -413,7 +414,7 @@ void lara_as_crawl_idle(ItemInfo* item, CollisionInfo* coll)
 		return;
 
 	// Remastered controls: after the crawl grab's turn, the player hangs from the edge she now faces. -- divezzi, 11.10.26
-	if (g_Configuration.IsUsingRemasteredControls() && HandleRemasteredCrawlSafetyGrabHang(*item, *coll))
+	if (g_Configuration.IsUsingRemasteredControls() && Modern::HandleCrawlSafetyGrabHang(*item, *coll))
 		return;
 
 	if (IsHeld(In::Left) || IsHeld(In::Right))
@@ -428,7 +429,7 @@ void lara_as_crawl_idle(ItemInfo* item, CollisionInfo* coll)
 		}
 
 		// Remastered controls: a crouch press on knees rises to the crouch without drawing a weapon. -- divezzi, 10.10.26
-		if (g_Configuration.IsUsingRemasteredControls() && HandleRemasteredCrouchStageUp(*item))
+		if (g_Configuration.IsUsingRemasteredControls() && Modern::HandleCrouchStageUp(*item))
 			return;
 
 		if ((IsHeld(In::Sprint) && CanCrouchRoll(*item, *coll)) ||
@@ -450,7 +451,7 @@ void lara_as_crawl_idle(ItemInfo* item, CollisionInfo* coll)
 		{
 			auto crawlVaultContext = TestLaraCrawlVault(item, coll);
 
-			if ((IsRemasteredGrabHeld() || IsHeld(In::Jump)) && crawlVaultContext.Success)
+			if ((Modern::IsGrabHeld() || IsHeld(In::Jump)) && crawlVaultContext.Success)
 			{
 				item->Animation.TargetState = crawlVaultContext.TargetState;
 				ResetPlayerTurnRateY(*item);
@@ -465,12 +466,12 @@ void lara_as_crawl_idle(ItemInfo* item, CollisionInfo* coll)
 			}
 
 			// Remastered controls: at a crawlspace edge with nothing to vault, the grab button turns the player around to hang from it. -- divezzi, 11.10.26
-			if (g_Configuration.IsUsingRemasteredControls() && HandleRemasteredCrawlSafetyGrabTurn(*item, *coll))
+			if (g_Configuration.IsUsingRemasteredControls() && Modern::HandleCrawlSafetyGrabTurn(*item, *coll))
 				return;
 		}
 		else if (IsHeld(In::Back))
 		{
-			if (IsRemasteredGrabHeld() && TestLaraCrawlToHang(item, coll))
+			if (Modern::IsGrabHeld() && TestLaraCrawlToHang(item, coll))
 			{
 				item->Animation.TargetState = LS_CRAWL_TO_HANG;
 				DoLaraCrawlToHangSnap(item, coll);

@@ -41,6 +41,7 @@
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Control::Volumes;
+using namespace TEN::Controls;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Drip;
 using namespace TEN::Entities::Player;
@@ -92,7 +93,7 @@ void HandleLaraMovementParameters(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	// Remastered controls: the heading solver turns the player in its states, so the turn rate is zeroed there. -- divezzi, 10.10.26
-	if (g_Configuration.IsUsingRemasteredControls() && DoesPlayerRemasteredSolverOwnHeading(*item))
+	if (g_Configuration.IsUsingRemasteredControls() && Modern::DoesSolverOwnHeading(*item))
 		lara->Control.TurnRate = 0;
 
 	// Apply and reset turn rate.
@@ -511,7 +512,7 @@ void HandlePlayerLookAround(ItemInfo& item, bool invertXAxis)
 	}
 
 	// Remastered controls fix: without it, Look and optics ignore the right stick, the mouse and the Y axis invert. -- divezzi, 31.10.26
-	ApplyRemasteredLookAxisCoeff(item, axisCoeff);
+	Modern::ApplyLookAxisCoeff(item, axisCoeff);
 
 	// Determine turn rate base values.
 	short turnRateMax = isSlow ? (TURN_RATE_MAX / 2) : TURN_RATE_MAX;
@@ -1301,13 +1302,13 @@ void ModulateLaraTurnRateY(ItemInfo* item, short accelRate, short minTurnRate, s
 	}
 
 	// Remastered controls: in turn states, the turn keys turn the player at the full rate, since the stick's x axis is camera-relative. -- divezzi, 12.10.26
-	bool isUnscaledTurn = GetRemasteredUnscaledTurnAxisCoeff(*item, axisCoeff);
+	bool isUnscaledTurn = Modern::GetUnscaledTurnAxisCoeff(*item, axisCoeff);
 
 	lara->Control.TurnRate/*.y*/ = ModulateLaraTurnRate(lara->Control.TurnRate/*.y*/, accelRate, minTurnRate, maxTurnRate, axisCoeff, invert);
 
 	// Remastered controls: the armed turn does not overshoot the heading it turns to. -- divezzi, 12.10.26
 	if (isUnscaledTurn)
-		ClampRemasteredArmedTurnRate(*item);
+		Modern::ClampArmedTurnRate(*item);
 }
 
 static short ResetPlayerTurnRate(short turnRate, short decelRate)
@@ -1336,7 +1337,7 @@ void ModulateLaraSwimTurnRates(ItemInfo* item, CollisionInfo* coll)
 	auto* lara = GetLaraInfo(item);
 
 	// Remastered controls: the stick steers in water, so the Forward it holds does not pitch the player down here. -- divezzi, 12.10.26
-	if (DoesRemasteredSolverOwnWaterHeading(*item))
+	if (Modern::DoesSolverOwnWaterHeading(*item))
 		return;
 
 	/*if ((IsHeld(In::Forward) || IsHeld(In::Back)))

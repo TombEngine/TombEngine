@@ -29,6 +29,7 @@
 #include "Specific/Video/Video.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Controls;
 using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Input;
 using namespace TEN::Renderer;
@@ -1281,7 +1282,7 @@ namespace TEN::Gui
 
 				// Remastered controls: puts the camera behind Lara on a mode change. -- divezzi, 08.10.26
 				if (hasControlModeChanged && LaraItem != nullptr)
-					ResetRemasteredCameraOrient(*LaraItem);
+					Modern::ResetCameraOrient(*LaraItem);
 
 				// Rumble if setting was changed.
 				if (indicateRumble)

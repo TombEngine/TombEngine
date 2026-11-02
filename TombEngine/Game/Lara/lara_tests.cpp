@@ -26,6 +26,7 @@
 using namespace TEN::Animation;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
+using namespace TEN::Controls;
 using namespace TEN::Entities::Player;
 using namespace TEN::Input;
 using namespace TEN::Math;
@@ -281,7 +282,7 @@ bool TestLaraHangJump(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	if (!IsRemasteredGrabHeld() || item->HitPoints <= 0 || lara->Control.HandStatus != HandStatus::Free || coll->HitStatic)
+	if (!Modern::IsGrabHeld() || item->HitPoints <= 0 || lara->Control.HandStatus != HandStatus::Free || coll->HitStatic)
 		return false;
 
 	if (CanGrabMonkeySwing(*item, *coll))
@@ -346,7 +347,7 @@ bool TestLaraHangJumpUp(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	if (!IsRemasteredGrabHeld() || item->HitPoints <= 0 || lara->Control.HandStatus != HandStatus::Free || coll->HitStatic)
+	if (!Modern::IsGrabHeld() || item->HitPoints <= 0 || lara->Control.HandStatus != HandStatus::Free || coll->HitStatic)
 		return false;
 
 	if (CanGrabMonkeySwing(*item, *coll))
@@ -927,7 +928,7 @@ bool TestLaraWaterClimbOut(ItemInfo* item, CollisionInfo* coll)
 	auto* lara = GetLaraInfo(item);
 	const auto& settings = g_GameFlow->GetSettings()->Animations;
 
-	if (coll->CollisionType != CollisionType::Front || !IsRemasteredGrabHeld())
+	if (coll->CollisionType != CollisionType::Front || !Modern::IsGrabHeld())
 		return false;
 
 	if (lara->Control.HandStatus != HandStatus::Free &&
@@ -1032,7 +1033,7 @@ bool TestLaraLadderClimbOut(ItemInfo* item, CollisionInfo* coll) // NEW function
 {
 	auto* lara = GetLaraInfo(item);
 
-	if (!IsRemasteredGrabHeld() || !lara->Control.CanClimbLadder || coll->CollisionType != CollisionType::Front)
+	if (!Modern::IsGrabHeld() || !lara->Control.CanClimbLadder || coll->CollisionType != CollisionType::Front)
 	{
 		return false;
 	}
@@ -1615,7 +1616,7 @@ bool TestAndDoLaraLadderClimb(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	if (!IsRemasteredGrabHeld() || !IsHeld(In::Forward) || lara->Control.HandStatus != HandStatus::Free)
+	if (!Modern::IsGrabHeld() || !IsHeld(In::Forward) || lara->Control.HandStatus != HandStatus::Free)
 		return false;
 
 	if (TestEnvironment(ENV_FLAG_SWAMP, item) && lara->Context.WaterSurfaceDist < -CLICK(3))
@@ -1768,7 +1769,7 @@ CrawlVaultTestResult TestLaraCrawlExitJump(ItemInfo* item, CollisionInfo* coll)
 
 CrawlVaultTestResult TestLaraCrawlVault(ItemInfo* item, CollisionInfo* coll)
 {
-	if (!(IsRemasteredGrabHeld() || IsHeld(In::Jump)))
+	if (!(Modern::IsGrabHeld() || IsHeld(In::Jump)))
 		return CrawlVaultTestResult{ false };
 
 	// Crawl vault exit down 1 step.

@@ -18,6 +18,7 @@
 #include "Specific/level.h"
 
 using namespace TEN::Collision::Sphere;
+using namespace TEN::Controls;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
@@ -73,7 +74,7 @@ namespace TEN::Entities::Generic
 		g_Hud.InteractionHighlighter.Test(*laraItem, poleItem);
 
 		// Mount while grounded.
-		if (IsRemasteredGrabHeld() && isFacingPole &&
+		if (Modern::IsGrabHeld() && isFacingPole &&
 			TestState(laraItem->Animation.ActiveState, VPoleGroundedMountStates) &&
 			player.Control.HandStatus == HandStatus::Free ||
 			(player.Control.IsMoving && player.Context.InteractedItem == itemNumber))
@@ -112,7 +113,7 @@ namespace TEN::Entities::Generic
 		}
 
 		// Mount while airborne.
-		if (IsRemasteredGrabHeld() && isFacingPole &&
+		if (Modern::IsGrabHeld() && isFacingPole &&
 			TestState(laraItem->Animation.ActiveState, VPoleAirborneMountStates) &&
 			laraItem->Animation.IsAirborne &&
 			laraItem->Animation.Velocity.y > 0.0f &&

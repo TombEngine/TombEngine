@@ -1020,7 +1020,7 @@ enum class TorchState
 };
 
 // Remastered controls: how a rearward push is resolved this tick. -- divezzi, 09.10.26
-enum class RemasteredBackResolution
+enum class ModernBackResolution
 {
 	None,
 	TankBack,
@@ -1203,9 +1203,9 @@ struct LookControlData
 };
 
 // Remastered controls: all player state of the Remastered scheme, kept together and read only under Remastered controls. -- divezzi, 10.10.26
-struct RemasteredControlData
+struct ModernControlData
 {
-	RemasteredBackResolution BackResolution = RemasteredBackResolution::None;
+	ModernBackResolution BackResolution = ModernBackResolution::None;
 
 	bool  IsArmedTurning	= false;
 	short ArmedTurnErrorY	= 0;
@@ -1323,7 +1323,7 @@ struct PlayerControlData
 	bool CanLook		= false;
 	bool CanMonkeySwing = false;
 
-	RemasteredControlData Remastered = {};
+	ModernControlData Modern = {};
 };
 
 // TODO: Refactor status handling to use floats.

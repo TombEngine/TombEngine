@@ -5,34 +5,37 @@ struct CollisionInfo;
 struct ItemInfo;
 struct LaraInfo;
 
-constexpr auto PLAYER_REMASTERED_SPRINT_LEAN_CLAMP = ANGLE(16.1f);
+namespace TEN::Controls::Modern
+{
+	constexpr auto SPRINT_LEAN_CLAMP = ANGLE(16.1f);
 
-bool  IsRemasteredGrabHeld();
-bool  IsRemasteredVehicleFireHeld();
-bool  IsRemasteredLookHeld(const LaraInfo& player);
-void  ResetRemasteredLookToggle(LaraInfo& player);
-void  ApplyRemasteredLookAxisCoeff(const ItemInfo& item, Vector2& axisCoeff);
-int   GetRemasteredOpticsWheelZoom();
-bool  DoesPlayerRemasteredSolverOwnHeading(const ItemInfo& item);
-bool  DoesPlayerRemasteredCameraAssistApply(const ItemInfo& item);
-short GetPlayerHeadingAngleY(const ItemInfo& item);
-bool  HandlePlayerRemasteredDiagonalStep(const ItemInfo& item, CollisionInfo& coll);
-void  ApplyRemasteredInput(ItemInfo& item);
-void  HandlePlayerRemasteredHeading(ItemInfo& item);
-bool  DoesRemasteredSolverOwnWaterHeading(const ItemInfo& item);
-void  HandleRemasteredWaterHeading(ItemInfo& item);
-bool  TestRemasteredSafetyGrab(ItemInfo& item, CollisionInfo& coll);
-bool  HandleRemasteredTightropeIdle(ItemInfo& item);
+	bool  IsGrabHeld();
+	bool  IsVehicleFireHeld();
+	bool  IsLookHeld(const LaraInfo& player);
+	void  ResetLookToggle(LaraInfo& player);
+	void  ApplyLookAxisCoeff(const ItemInfo& item, Vector2& axisCoeff);
+	int   GetOpticsWheelZoom();
+	bool  DoesSolverOwnHeading(const ItemInfo& item);
+	bool  DoesCameraAssistApply(const ItemInfo& item);
+	short GetPlayerHeadingAngleY(const ItemInfo& item);
+	bool  HandleDiagonalStep(const ItemInfo& item, CollisionInfo& coll);
+	void  ApplyInput(ItemInfo& item);
+	void  HandleHeading(ItemInfo& item);
+	bool  DoesSolverOwnWaterHeading(const ItemInfo& item);
+	void  HandleWaterHeading(ItemInfo& item);
+	bool  TestSafetyGrab(ItemInfo& item, CollisionInfo& coll);
+	bool  HandleTightropeIdle(ItemInfo& item);
 
-bool  GetRemasteredUnscaledTurnAxisCoeff(const ItemInfo& item, float& axisCoeff);
-void  ClampRemasteredArmedTurnRate(ItemInfo& item);
-bool  HandleRemasteredCrawlSafetyGrabHang(ItemInfo& item, CollisionInfo& coll);
-bool  HandleRemasteredCrouchStageUp(ItemInfo& item);
-bool  HandleRemasteredCrawlSafetyGrabTurn(ItemInfo& item, CollisionInfo& coll);
+	bool  GetUnscaledTurnAxisCoeff(const ItemInfo& item, float& axisCoeff);
+	void  ClampArmedTurnRate(ItemInfo& item);
+	bool  HandleCrawlSafetyGrabHang(ItemInfo& item, CollisionInfo& coll);
+	bool  HandleCrouchStageUp(ItemInfo& item);
+	bool  HandleCrawlSafetyGrabTurn(ItemInfo& item, CollisionInfo& coll);
 
-bool  NeedsSecondWeaponPass(const ItemInfo& laraItem, const LaraInfo& player);
-bool  IsRemasteredDrawHeld(const LaraInfo& player);
-bool  IsRemasteredHolsterRequested(const LaraInfo& player);
-void  UpdateRemasteredDrawToggle(LaraInfo& player);
-void  SetRemasteredDrawToggle(ItemInfo& laraItem);
-void  SetRemasteredHolsters(LaraInfo& player, LaraWeaponType weaponType);
+	bool  NeedsSecondWeaponPass(const ItemInfo& laraItem, const LaraInfo& player);
+	bool  IsDrawHeld(const LaraInfo& player);
+	bool  IsHolsterRequested(const LaraInfo& player);
+	void  UpdateDrawToggle(LaraInfo& player);
+	void  SetDrawToggle(ItemInfo& laraItem);
+	void  SetHolsters(LaraInfo& player, LaraWeaponType weaponType);
+}

@@ -23,6 +23,7 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
+using namespace TEN::Controls;
 using namespace TEN::Entities::Player;
 using namespace TEN::Input;
 
@@ -41,7 +42,7 @@ bool LaraDeflectEdge(ItemInfo* item, CollisionInfo* coll)
 	auto* lara = GetLaraInfo(item);
 
 	// Remastered controls fix: without it, diagonal steps and walls deflect the player every tick against the heading solver. -- divezzi, 10.10.26
-	if (HandlePlayerRemasteredDiagonalStep(*item, *coll))
+	if (Modern::HandleDiagonalStep(*item, *coll))
 		return false;
 
 	if (coll->CollisionType == CollisionType::Front || coll->CollisionType == CollisionType::TopFront)

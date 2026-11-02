@@ -18,6 +18,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Controls;
 using namespace TEN::Entities::Player;
 using namespace TEN::Input;
 
@@ -85,7 +86,7 @@ void lara_as_jump_forward(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsRemasteredGrabHeld() &&
+	if (Modern::IsGrabHeld() &&
 		player.Control.HandStatus == HandStatus::Free)
 	{
 		item->Animation.TargetState = LS_REACH;
@@ -687,7 +688,7 @@ void lara_as_fall_back(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsRemasteredGrabHeld() &&
+	if (Modern::IsGrabHeld() &&
 		player.Control.HandStatus == HandStatus::Free)
 	{
 		item->Animation.TargetState = LS_REACH;

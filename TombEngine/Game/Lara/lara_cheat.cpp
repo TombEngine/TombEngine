@@ -12,6 +12,7 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/Input/Input.h"
 
+using namespace TEN::Controls;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Player
@@ -21,7 +22,7 @@ namespace TEN::Entities::Player
 		float baseVel = g_GameFlow->GetSettings()->Physics.SwimVelocity;
 
 		// Remastered controls: the heading solver turns and pitches the player, as in the underwater swim. -- divezzi, 12.10.26
-		if (!DoesRemasteredSolverOwnWaterHeading(*item))
+		if (!Modern::DoesSolverOwnWaterHeading(*item))
 		{
 			if (IsHeld(In::Forward))
 			{

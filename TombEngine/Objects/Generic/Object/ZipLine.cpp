@@ -17,6 +17,7 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
+using namespace TEN::Controls;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
@@ -54,7 +55,7 @@ namespace TEN::Entities::Traps
 
 		g_Hud.InteractionHighlighter.Test(*laraItem, zipLineItem, InteractionMode::Custom);
 
-		if ((IsRemasteredGrabHeld() &&
+		if ((Modern::IsGrabHeld() &&
 			laraItem->Animation.ActiveState == LS_IDLE &&
 			!laraItem->Animation.IsAirborne &&
 			player.Control.HandStatus == HandStatus::Free) ||

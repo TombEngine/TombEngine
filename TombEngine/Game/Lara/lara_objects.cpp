@@ -19,6 +19,7 @@
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Controls;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Entities::Player;
 using namespace TEN::Input;
@@ -240,7 +241,7 @@ void lara_as_horizontal_bar_swing(ItemInfo* item, CollisionInfo* coll)
 {
 	ModulateLaraTurnRateY(item, 0, 0, 0);
 
-	if (IsRemasteredGrabHeld())
+	if (Modern::IsGrabHeld())
 	{
 		if (IsHeld(In::Jump))
 		{
@@ -310,7 +311,7 @@ void lara_as_tightrope_idle(ItemInfo* item, CollisionInfo* coll)
 	DoLaraTightropeLean(item);
 
 	// Remastered controls: a held push back turns the player once; held on after the turn, she walks. -- divezzi, 11.10.26
-	if (g_Configuration.IsUsingRemasteredControls() && HandleRemasteredTightropeIdle(*item))
+	if (g_Configuration.IsUsingRemasteredControls() && Modern::HandleTightropeIdle(*item))
 		return;
 
 	if (IsHeld(In::Forward))
@@ -380,7 +381,7 @@ void lara_as_tightrope_walk(ItemInfo* item, CollisionInfo* coll)
 
 	// Remastered controls: after the turn, a held push back keeps the player walking. -- divezzi, 11.10.26
 	if (IsHeld(In::Forward) ||
-		(g_Configuration.IsUsingRemasteredControls() && lara->Control.Remastered.IsTightropeTurnLatched &&
+		(g_Configuration.IsUsingRemasteredControls() && lara->Control.Modern.IsTightropeTurnLatched &&
 		 IsHeld(In::Back) && !IsHeld(In::Roll)))
 	{
 		item->Animation.TargetState = LS_TIGHTROPE_WALK;
@@ -466,7 +467,7 @@ void lara_col_rope_idle(ItemInfo* item, CollisionInfo* coll)
 	auto* lara = GetLaraInfo(item);
 
 	// Remastered controls fix: without it, the player falls off a rope grabbed from a jump up. -- divezzi, 01.11.26
-	if (IsHeld(In::Action) || (g_Configuration.IsUsingRemasteredControls() && IsRemasteredGrabHeld()))
+	if (IsHeld(In::Action) || (g_Configuration.IsUsingRemasteredControls() && Modern::IsGrabHeld()))
 	{
 		UpdateRopeSwing(item);
 		RopeSwingCollision(item, coll, false);
@@ -923,7 +924,7 @@ void lara_as_zip_line(ItemInfo* item, CollisionInfo* coll)
 	lara->Control.Look.Mode = LookMode::Free;
 	Camera.targetAngle = ANGLE(70.0f);
 
-	if (!IsRemasteredGrabHeld())
+	if (!Modern::IsGrabHeld())
 	{
 		item->Animation.TargetState = LS_JUMP_FORWARD;
 		AnimateItem(item);

@@ -27,6 +27,7 @@
 #include "Specific/trutils.h"
 
 using namespace TEN::Collision::Point;
+using namespace TEN::Controls;
 using namespace TEN::Entities::Player;
 using namespace TEN::Hud;
 using namespace TEN::Utils;
@@ -122,7 +123,7 @@ void InitializeLara(bool restore)
 	Lara.Control.LockRefCameraOrient = false;
 
 	// Remastered controls: starts the camera behind Lara. -- divezzi, 08.10.26
-	ResetRemasteredCameraOrient(*LaraItem);
+	Modern::ResetCameraOrient(*LaraItem);
 
 	g_Hud.StatusBars.Initialize(*LaraItem);
 }

@@ -20,6 +20,7 @@
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Controls;
 using namespace TEN::Input;
 using namespace TEN::Math;
 
@@ -111,7 +112,7 @@ static void AnimateWeapon(ItemInfo& laraItem, LaraWeaponType weaponType, bool& h
 	int frame = arm.FrameNumber;
 
 	// Wind animation forward.
-	if ((IsRemasteredGrabHeld() && !player.TargetEntity) || arm.Locked)
+	if ((Modern::IsGrabHeld() && !player.TargetEntity) || arm.Locked)
 	{
 		// At or beyond DRAW_END (2) start frame AND before SHOOT_START (0) end frame; increment toward SHOOT_START (0) end frame.
 		if (frame >= 0 && frame < weaponAnimData.Draw1Anim2)
@@ -122,7 +123,7 @@ static void AnimateWeapon(ItemInfo& laraItem, LaraWeaponType weaponType, bool& h
 		else if (frame == weaponAnimData.Draw1Anim2)
 		{
 			// Shoot weapon.
-			if (IsRemasteredGrabHeld())
+			if (Modern::IsGrabHeld())
 			{
 				// HACK: Special case for revolver.
 				bool canShoot = (weaponType == LaraWeaponType::Revolver) ? isRightWeapon : true;
@@ -271,7 +272,7 @@ void HandlePistols(ItemInfo& laraItem, LaraWeaponType weaponType)
 	auto& weapon = Weapons[(int)weaponType];
 
 	FindNewTarget(laraItem, weapon);
-	if (IsRemasteredGrabHeld())
+	if (Modern::IsGrabHeld())
 		LaraTargetInfo(laraItem, weapon);
 
 	AimWeapon(laraItem, lara.LeftArm, weapon);

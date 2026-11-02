@@ -16,6 +16,7 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/Input/Input.h"
 
+using namespace TEN::Controls;
 using namespace TEN::Input;
 
 static void HandlePlayerOpticZoom(ItemInfo& item)
@@ -36,7 +37,7 @@ static void HandlePlayerOpticZoom(ItemInfo& item)
 		// NOTE: Zooming allowed with either StepLeft/StepRight or Walk/Sprint.
 		if ((IsHeld(In::StepLeft) && !IsHeld(In::StepRight)) ||
 			(IsHeld(In::Walk) && !IsHeld(In::Sprint)) ||
-			GetRemasteredOpticsWheelZoom() < 0)
+			Modern::GetOpticsWheelZoom() < 0)
 		{
 			player.Control.Look.OpticRange -= rangeRate;
 			if (player.Control.Look.OpticRange < OPTICS_RANGE_MIN)
@@ -50,7 +51,7 @@ static void HandlePlayerOpticZoom(ItemInfo& item)
 		}
 		else if ((IsHeld(In::StepRight) && !IsHeld(In::StepLeft)) ||
 				 (IsHeld(In::Sprint) && !IsHeld(In::Walk)) ||
-				 GetRemasteredOpticsWheelZoom() > 0)
+				 Modern::GetOpticsWheelZoom() > 0)
 		{
 			player.Control.Look.OpticRange += rangeRate;
 			if (player.Control.Look.OpticRange > OPTICS_RANGE_MAX)
@@ -165,7 +166,7 @@ static void ResetPlayerOpticAnimations(ItemInfo& item)
 	player.Inventory.IsBusy = false;
 
 	// Remastered controls fix: without it, the Look toggle stays on after optics close. -- divezzi, 01.11.26
-	ResetRemasteredLookToggle(player);
+	Modern::ResetLookToggle(player);
 
 	Camera.DisableInterpolation = true;
 	Camera.type = BinocularOldCamera;
@@ -214,17 +215,17 @@ bool HandlePlayerOptics(ItemInfo& item)
 
 	// Remastered controls fix: without it, releasing the Look key closes the sight while Look is toggled on. -- divezzi, 30.10.26
 	// If lasersight and Look is not held, exit optics.
-	if (player.Control.Look.IsUsingLasersight && !IsRemasteredLookHeld(player))
+	if (player.Control.Look.IsUsingLasersight && !Modern::IsLookHeld(player))
 		breakOptics = true;
 
 	// Remastered controls fix: without it, the sight flickers while Draw is held to aim. -- divezzi, 30.10.26
 	// If lasersight and weapon is holstered, exit optics.
-	if (player.Control.Look.IsUsingLasersight && IsRemasteredHolsterRequested(player))
+	if (player.Control.Look.IsUsingLasersight && Modern::IsHolsterRequested(player))
 		breakOptics = true;
 
 	// Remastered controls fix: without it, the sight opens on the Look key instead of the toggled Look. -- divezzi, 30.10.26
 	// Engage lasersight if available.
-	if (!breakOptics && !player.Control.Look.IsUsingLasersight && IsRemasteredLookHeld(player))
+	if (!breakOptics && !player.Control.Look.IsUsingLasersight && Modern::IsLookHeld(player))
 	{
 		if (player.Control.HandStatus == HandStatus::WeaponReady &&
 			((player.Control.Weapon.GunType == LaraWeaponType::HK       && player.Weapons[(int)LaraWeaponType::HK].HasLasersight) ||
