@@ -214,9 +214,11 @@ table LaraInventoryData {
 	has_torch: bool;
 	has_lasersight: bool;
 	has_silencer: bool;
+	has_hammer: bool;
 	total_small_medipacks: int32;
 	total_large_medipacks: int32;
 	total_flares: int32;
+	total_goldroses: int32;
 	total_secrets: uint32;
 	puzzles: [int32];
 	keys: [int32];

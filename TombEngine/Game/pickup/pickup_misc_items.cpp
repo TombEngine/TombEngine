@@ -97,6 +97,10 @@ bool TryModifyMiscCount(LaraInfo & lara, GAME_OBJECT_ID objectID, std::optional<
 		lara.Inventory.HasCompass = add;
 		break;
 
+	case ID_HAMMER_ITEM:
+         lara.Inventory.HasHammer = (modType == ModificationType::Set) ? (amount.value_or(0) != 0) : add;
+		break;
+
 	case ID_WATERSKIN1_EMPTY:
 		modifyWaterSkinAmount(lara.Inventory.SmallWaterskin, 1);
 		break;
@@ -158,12 +162,12 @@ bool TryModifyMiscCount(LaraInfo & lara, GAME_OBJECT_ID objectID, std::optional<
 
 bool TryAddMiscItem(LaraInfo& lara, GAME_OBJECT_ID objectID)
 {
-	return TryModifyMiscCount(lara, objectID, std::nullopt, ModificationType::Add);
+   return TryModifyMiscCount(lara, objectID, std::nullopt, ModificationType::Add);
 }
 
 bool TryRemoveMiscItem(LaraInfo& lara, GAME_OBJECT_ID objectID)
 {
-	return TryModifyMiscCount(lara, objectID, std::nullopt, ModificationType::Remove);
+   return TryModifyMiscCount(lara, objectID, std::nullopt, ModificationType::Remove);
 }
 
 std::optional<bool> HasMiscItem(LaraInfo& lara, GAME_OBJECT_ID objectID)
@@ -203,6 +207,9 @@ std::optional<bool> HasMiscItem(LaraInfo& lara, GAME_OBJECT_ID objectID)
 
 	case ID_COMPASS_ITEM:
 		return lara.Inventory.HasCompass;
+
+	case ID_HAMMER_ITEM:
+		return lara.Inventory.HasHammer;
 
 	case ID_WATERSKIN1_EMPTY:
 		return lara.Inventory.SmallWaterskin == 1;
