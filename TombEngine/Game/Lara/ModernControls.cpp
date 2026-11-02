@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Game/Lara/RemasteredControls.h"
+#include "Game/Lara/ModernControls.h"
 
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"

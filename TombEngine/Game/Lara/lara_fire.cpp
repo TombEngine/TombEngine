@@ -18,7 +18,7 @@
 #include "Game/Lara/lara_struct.h"
 #include "Game/Lara/lara_tests.h"
 #include "Game/Lara/lara_two_guns.h"
-#include "Game/Lara/RemasteredControls.h"
+#include "Game/Lara/ModernControls.h"
 #include "Game/misc.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"

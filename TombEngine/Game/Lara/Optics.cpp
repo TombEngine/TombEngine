@@ -11,7 +11,7 @@
 #include "Game/Lara/lara_one_gun.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/Lara/lara_two_guns.h"
-#include "Game/Lara/RemasteredControls.h"
+#include "Game/Lara/ModernControls.h"
 #include "Game/Setup.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/Input/Input.h"
