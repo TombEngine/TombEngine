@@ -13,7 +13,6 @@ local Utilities = require("Engine.RingInventory.Utilities")
 
 --Pointers to tables
 local COLOR_MAP = Settings.ColorMap
-local RING_CENTER = Ring.CENTERS
 local TYPE = PickupData.TYPE
 
 -- Inventory Module
@@ -44,8 +43,7 @@ end
 -- Get or create a ring by type
 function InventoryData.GetRing(ringType)
     if not rings[ringType] then
-        local center = RING_CENTER[ringType]
-        rings[ringType] = Ring.Create(ringType, center)
+        rings[ringType] = Ring.Create(ringType)
     end
     return rings[ringType]
 end
@@ -177,9 +175,12 @@ function InventoryData.ColorAll(color, selectedItemColor, omitSelectedRing)
 end
 
 -- Offset all rings
-function InventoryData.OffsetAll(direction)
-    for ringType, ring in pairs(rings) do
-        ring:OffsetPosition(direction)
+function InventoryData.OffsetAll(currentRing, targetRing)
+    local currentRingCenter = Ring:GetCenterByType(currentRing.type)
+    local targetRingCenter = Ring:GetCenterByType(targetRing.type)
+    local offsetPosition = targetRingCenter - currentRingCenter
+    for _, ring in pairs(rings) do
+        ring:OffsetPosition(offsetPosition)
     end
 end
 
@@ -319,7 +320,7 @@ function InventoryData.Construct(ringType, selectedWeapon)
             local ring = InventoryData.GetRing(data.ringName)
             
             -- Create display item
-            local displayItem = data:CreateDisplayItem(Ring.CENTERS[data.ringName])
+            local displayItem = data:CreateDisplayItem(ring:GetCenter())
             displayItem:SetColor(COLOR_MAP.itemHidden)
             -- Add item to ring
             ring:AddItem(data)
@@ -336,10 +337,10 @@ function InventoryData.Construct(ringType, selectedWeapon)
     -- Initialize ring positions
     if ringType then
         local ring = InventoryData.GetRing(ringType)
-        ring:SetPosition(RING_CENTER[ringType])
+        ring:SetPosition(ring:GetCenter())
     else
         for ringType, ring in pairs(rings) do
-            ring:SetPosition(RING_CENTER[ringType])
+            ring:SetPosition(ring:GetCenter())
         end
     end
 end
@@ -369,7 +370,7 @@ function InventoryData.OpenAtItem(itemID, repositionRings)
     ring:SetTargetAngle(angle)
     
     if repositionRings then
-        local ringPosition = RING_CENTER[Ring.DEFAULT_TYPE]
+        local ringPosition = ring:GetCenterByType(Ring.DEFAULT_TYPE)
         selectedRingType = ringType
         local base = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[selectedRingType]
         

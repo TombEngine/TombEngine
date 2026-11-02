@@ -67,7 +67,7 @@ end
 
 
 -- Constructor
-function Ring.Create(ringType, centerPosition)
+function Ring.Create(ringType)
     local self = setmetatable({}, Ring)
     
     -- Instance variables
@@ -75,8 +75,8 @@ function Ring.Create(ringType, centerPosition)
     self.items = {}
     self.selectedItemIndex = 1
     self.previousItemIndex = 1
-    self.position = centerPosition or Vec3(0, 0, 0)
-    self.previousPosition = centerPosition or Vec3(0, 0, 0)
+    self.position = Vec3(0, 0, 0)
+    self.previousPosition = Vec3(0, 0, 0)
     self.slice = 0
     self.visible = true
     
@@ -134,6 +134,18 @@ function Ring:Clear()
     self.currentAngle = 0
     self.previousAngle = 0
     self.targetAngle = 0
+end
+
+function Ring:GetCenterByType(name)
+    if Utilities.Contains(Ring.PRIMARY_TYPES, name) then
+        return Ring.CENTERS[name]
+    else
+        return Ring.RING_POSITION_SECONDARY
+    end
+end
+
+function Ring:GetCenter()
+    return Ring:GetCenterByType(self.type)
 end
 
 -- Get item by object ID
@@ -249,9 +261,9 @@ function Ring:SetPosition(position)
     self.position = position
 end
 
-function Ring:OffsetPosition(direction)
+function Ring:OffsetPosition(offsetPosition)
     self.previousPosition = self.position 
-    self.position = self.previousPosition - (Ring.RING_POSITION_PRIMARY_OFFSET * direction)
+    self.position = self.previousPosition - offsetPosition
 end
 
 -- Get ring position

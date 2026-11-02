@@ -73,7 +73,7 @@ function Animation.PerformBatchMotion(prefix, motionTable, time, clearProgress, 
     end
     
     if selectedRing and (interpolated.ringCenter or interpolated.ringRadius or interpolated.ringAngle) then
-        local center = interpolated.ringCenter and interpolated.ringCenter.output or Ring.CENTERS[ringName]
+        local center = interpolated.ringCenter and interpolated.ringCenter.output or selectedRing:GetCenter()
         local radius = interpolated.ringRadius and interpolated.ringRadius.output or Ring.RING_RADIUS
         local angle = interpolated.ringAngle and interpolated.ringAngle.output or 0
         selectedRing:Translate(center, radius, angle)
