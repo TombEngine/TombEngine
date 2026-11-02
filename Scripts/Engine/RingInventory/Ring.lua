@@ -7,6 +7,7 @@ local Constants = require("Engine.RingInventory.Constants")
 local RingLight = require("Engine.RingInventory.RingLight")
 local Settings = require("Engine.RingInventory.Settings")
 local Utilities = require("Engine.RingInventory.Utilities")
+local InventoryData
 
 --Pointer to tables
 
@@ -384,6 +385,14 @@ end
 
 function Ring:SetVisibility(visible)
     self.visible = visible
+end
+
+function Ring:IsFocused()
+    -- Maybe this should be a Ring property, rather than fetching InventoryData
+    if not InventoryData then
+        InventoryData = require("Engine.RingInventory.InventoryData")
+    end
+    return self.type == InventoryData.GetSelectedRing().type
 end
 
 --Draw items in the ring

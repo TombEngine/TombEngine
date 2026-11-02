@@ -103,6 +103,7 @@ function ItemSpin.UpdateRing(ringState)
 
     local selectedItem = ring:GetSelectedItem()
     local previousItem = ring:GetPreviousItem()
+    local ringIsFocused = ring:IsFocused()
     local ringAngle = ring:GetTargetAngle()
     local itemCount = #items
     local itemStates = ringState.itemStates
@@ -121,7 +122,7 @@ function ItemSpin.UpdateRing(ringState)
                 local id = item:GetObjectID()
                 local spinKey = ringState.ring:GetType() .. "Spin" .. id
 
-                if selectedItem and item == selectedItem then
+                if selectedItem and item == selectedItem and ringIsFocused then
                     -- Clear state and interpolation so next deselection starts fresh
                     itemStates[id] = nil
                     LevelVars.Engine.InterpolateProgress[spinKey] = nil
