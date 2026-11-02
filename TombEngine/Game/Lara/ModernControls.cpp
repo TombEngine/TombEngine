@@ -12,6 +12,7 @@
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/Lara/lara_tests.h"
+#include "Game/spotcam.h"
 #include "Math/Math.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
@@ -22,6 +23,7 @@ using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Input;
 using namespace TEN::Math;
+using namespace TEN::SpotCam;
 
 namespace TEN::Controls::Modern
 {
@@ -130,6 +132,13 @@ namespace TEN::Controls::Modern
 		const auto& player = GetLaraInfo(item);
 		return (player.Control.HandStatus == HandStatus::WeaponReady &&
 				player.Control.Weapon.GunType != LaraWeaponType::Torch);
+	}
+
+	// A lasersight weapon drawn and ready.
+	static bool IsLasersightReady(const LaraInfo& player)
+	{
+		return (player.Control.HandStatus == HandStatus::WeaponReady &&
+				player.Weapons[(int)player.Control.Weapon.GunType].HasLasersight);
 	}
 
 	// Weapons drawn or being drawn. A torch counts as holstered.
@@ -813,8 +822,7 @@ namespace TEN::Controls::Modern
 		auto& player = GetLaraInfo(item);
 		auto& modern = player.Control.Modern;
 
-		bool isLasersightReady = (player.Control.HandStatus == HandStatus::WeaponReady &&
-								  player.Weapons[(int)player.Control.Weapon.GunType].HasLasersight);
+		bool isLasersightReady = IsLasersightReady(player);
 		bool isUsingBinocularsOnly = (player.Control.Look.IsUsingBinoculars && !player.Control.Look.IsUsingLasersight);
 
 		if (!g_Configuration.EnableLookToggle || (IsPlayerLockedOnTarget(item) && !isLasersightReady) ||
@@ -829,6 +837,29 @@ namespace TEN::Controls::Modern
 
 		input.Look = (modern.IsLookToggled || IsPushed(In::Look));
 		heldWithoutClickInput.Look = true;
+	}
+
+	// Look starting this tick, by a press or the toggle, turns the orbit camera behind the player, where it stays after Look.
+	// In a vehicle, which skips the toggle, a press does it, also in vehicles where she cannot look.
+	// Not on a target switch, with a lasersight weapon ready, in optics or in a flyby.
+	static void ResetCameraOnLookStart(const ItemInfo& item, bool wasLookToggled)
+	{
+		const auto& player = GetLaraInfo(item);
+		bool isInVehicle = (player.Context.Vehicle != NO_VALUE);
+
+		bool isLookStarting = (g_Configuration.EnableLookToggle && !isInVehicle) ?
+			(!wasLookToggled && player.Control.Modern.IsLookToggled) :
+			(IsClicked(In::Look) && !IsPushed(In::Look));
+		if (!isLookStarting)
+			return;
+
+		if ((player.Control.Look.Mode == LookMode::None && !isInVehicle) || IsPlayerLockedOnTarget(item) || IsLasersightReady(player) ||
+			player.Control.Look.IsUsingBinoculars || player.Control.Look.IsUsingLasersight || UseSpotCam)
+		{
+			return;
+		}
+
+		ResetCameraOrient(item);
 	}
 
 	// Look outside the player's tick: the latched Look under the Look toggle, otherwise the Look key.
@@ -1100,7 +1131,11 @@ namespace TEN::Controls::Modern
 
 		ResetClearedLatches(item);
 		UpdateSprintToggle(item, input);
+
+		bool wasLookToggled = player.Control.Modern.IsLookToggled;
 		UpdateLookToggle(item, input, heldWithoutClickInput);
+		ResetCameraOnLookStart(item, wasLookToggled);
+
 		UpdateCrouchStages(item, input);
 		player.Control.RefMoveAxis = GetMoveAxis();
 		UpdateJumpRollLatch(item);
@@ -1280,8 +1315,12 @@ namespace TEN::Controls::Modern
 		player.Control.Modern.BackResolution = ModernBackResolution::None;
 		player.Control.Modern.IsCrouchStageUp = false;
 
+		// Vehicles skip the input rewrite, but a Look press still turns the camera behind the player.
 		if (player.Context.Vehicle != NO_VALUE)
+		{
+			ResetCameraOnLookStart(item, player.Control.Modern.IsLookToggled);
 			return;
+		}
 
 		auto input = ReadPlayerInput();
 		auto heldWithoutClickInput = PlayerInput{};

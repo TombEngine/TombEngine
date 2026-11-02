@@ -880,22 +880,26 @@ namespace TEN::Controls::Modern
 			// The mouse has no threshold, so a single pixel of movement turns the camera.
 			auto mouseAxis = GetCameraMousePixels() * (g_Configuration.MouseSensitivity * MOUSE_SENSITIVITY_SCALE * MOUSE_ROTATION_GAIN);
 
-			CameraAzimuth += (short)std::round(mouseAxis.x);
+			// The yaw wraps by design; the mouse step is rounded to int first, so a fast flick cannot overflow the cast.
+			CameraAzimuth = (short)(CameraAzimuth + (int)std::round(mouseAxis.x));
 			CameraAzimuth += ANGLE(stickAxis.x);
+
+			// The pitch is summed in int and clamped before it is stored, so a fast flick cannot wrap past the limits.
+			int altitude = CameraAltitude;
 
 			// Without inversion, pushing the stick up or moving the mouse forward aims the camera up.
 			if (g_Configuration.InvertCameraYAxis)
 			{
-				CameraAltitude += (short)std::round(mouseAxis.y);
-				CameraAltitude += ANGLE(stickAxis.y);
+				altitude += (int)std::round(mouseAxis.y);
+				altitude += ANGLE(stickAxis.y);
 			}
 			else
 			{
-				CameraAltitude -= (short)std::round(mouseAxis.y);
-				CameraAltitude -= ANGLE(stickAxis.y);
+				altitude -= (int)std::round(mouseAxis.y);
+				altitude -= ANGLE(stickAxis.y);
 			}
 
-			CameraAltitude = std::clamp(CameraAltitude, CAMERA_ALTITUDE_MIN, CAMERA_ALTITUDE_MAX);
+			CameraAltitude = (short)std::clamp(altitude, (int)CAMERA_ALTITUDE_MIN, (int)CAMERA_ALTITUDE_MAX);
 		}
 
 		ApplyCameraAssist(*LaraItem);
