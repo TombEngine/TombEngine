@@ -54,10 +54,13 @@ public:
 
 	// Lens flare getters
 	virtual bool  GetLensFlareEnabled() const = 0;
+	virtual bool  GetLensFlareEffects() const = 0;
 	virtual int	  GetLensFlareSunSpriteID() const = 0;
 	virtual short GetLensFlarePitch() const = 0;
 	virtual short GetLensFlareYaw() const = 0;
 	virtual Color GetLensFlareColor() const = 0;
+	virtual Color GetLensFlareEvaluatedColor() const = 0;
+	virtual int   GetLensFlareColorMode() const = 0;
 
 	// Starfield getters
 	virtual int	  GetStarfieldStarCount() const = 0;

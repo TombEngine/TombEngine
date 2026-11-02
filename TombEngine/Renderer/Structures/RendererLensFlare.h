@@ -13,5 +13,6 @@ namespace TEN::Renderer::Structures
 
 		float Distance = 0.0f;
 		bool  IsGlobal = false;
+		bool  EffectsEnabled = true;
 	};
 }

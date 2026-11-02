@@ -3,10 +3,12 @@
 #include "Math/Math.h"
 #include "Specific/Input/Input.h"
 #include "Renderer/RendererEnums.h"
+#include "Renderer/SkyQuality.h"
 #include "Sound/sound.h"
 
 using namespace TEN::Input;
 using namespace TEN::Math;
+using TEN::AtmosphericSkyQuality;
 
 enum class MenuOptionLoopingMode
 {
@@ -35,6 +37,7 @@ struct GameConfiguration
 	bool	   EnableAmbientOcclusion = false;
 	bool	   EnableHighFramerate    = true;
 	AntialiasingMode AntialiasingMode = AntialiasingMode::None;
+	AtmosphericSkyQuality AtmosphericSkyQuality = AtmosphericSkyQuality::Medium;
 
 	// Sound
 

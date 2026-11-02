@@ -576,7 +576,7 @@ namespace TEN::Renderer::Native::DirectX11
 		switch (primitiveType)
 		{
 		case PrimitiveType::TriangleList:
-			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); 
+			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			break;
 
 		case PrimitiveType::TriangleStrip:

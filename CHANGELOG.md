@@ -12,6 +12,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Moved skeleton posing from the renderer to the game: joint positions, collision spheres, hair and animation blends of moveables are now always up to date, including moveables that were not drawn in the previous frame.
 * Bundled libVLC 3.0.23 with its plugins and BASS 2.4.18 on every platform, so video playback no longer needs a manual installation of the libVLC plugins.
 * Added a benchmark mode (`benchmark <seconds>` command line argument) that logs frame timings to a CSV file, writes a summary and saves a screenshot.
+* Added a dynamic sky and weather system: volumetric clouds, atmospheric sky dome with day and night cycle, aurora, god rays, dust storms, underwater sky, weather presets and global wind.
 
 ## [Version 2.0.2]
 
