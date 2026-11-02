@@ -1137,7 +1137,12 @@ namespace TEN::Controls::Modern
 		ResetCameraOnLookStart(item, wasLookToggled);
 
 		UpdateCrouchStages(item, input);
-		player.Control.RefMoveAxis = GetMoveAxis();
+		player.Control.RefMoveAxis = GetHeldMoveAxis();
+
+		// A pending rise on knees centers the stick, so the rewrite leaves Forward and Back off until the rise plays.
+		if (player.Control.Modern.IsCrouchStageUp)
+			player.Control.RefMoveAxis = Vector2::Zero;
+
 		UpdateJumpRollLatch(item);
 
 		// Water: the solver turns the player, so the turn keys, side strokes and back stroke are dropped.
@@ -1179,6 +1184,13 @@ namespace TEN::Controls::Modern
 
 			if (input.Forward && input.Back)
 				input.Back = false;
+		}
+
+		// Forward and Back held together cancel each other, as Left and Right do. A script push of a direction keeps them.
+		if (input.Forward && input.Back && !IsDirectionPushed())
+		{
+			input.Forward = false;
+			input.Back = false;
 		}
 
 		if (!IsDirectionPushed() && !IsInCombatBackStance(item) &&
@@ -1454,14 +1466,15 @@ namespace TEN::Controls::Modern
 		item.Pose.Orientation.z = 0;
 	}
 
-	// Move axis without the components whose direction action is off, so a script clear or the Left+Right cancel stops it.
-	static Vector2 GetHeldMoveAxis()
+	// Move axis without the components whose direction action is off, and with Forward and Back canceling each other like
+	// Left and Right, so a script clear or a pair held together stops it.
+	Vector2 GetHeldMoveAxis()
 	{
 		auto axis = GetMoveAxis();
 		if (!IsHeld(In::Left) && !IsHeld(In::Right))
 			axis.x = 0.0f;
 
-		if (!IsHeld(In::Forward) && !IsHeld(In::Back))
+		if (IsHeld(In::Forward) == IsHeld(In::Back))
 			axis.y = 0.0f;
 
 		return axis;

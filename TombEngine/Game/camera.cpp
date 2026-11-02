@@ -605,7 +605,7 @@ namespace TEN::Controls::Modern
 		auto& player = GetLaraInfo(item);
 
 		float vel = Vector2(item.Animation.Velocity.x, item.Animation.Velocity.z).Length();
-		bool isStopped = (((GetMoveAxis() == Vector2::Zero && !IsHeld(In::StepLeft) && !IsHeld(In::StepRight)) || vel == 0.0f) &&
+		bool isStopped = (((GetHeldMoveAxis() == Vector2::Zero && !IsHeld(In::StepLeft) && !IsHeld(In::StepRight)) || vel == 0.0f) &&
 						  TestState(item.Animation.ActiveState, PLAYER_IDLE_STATE_IDS));
 
 		// NOTE: CalculateCamera() has already reset Camera.type to Chase; Camera.lastType holds this tick's camera type.

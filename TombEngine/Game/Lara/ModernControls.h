@@ -20,6 +20,7 @@ namespace TEN::Controls::Modern
 	bool  DoesSolverOwnHeading(const ItemInfo& item);
 	bool  DoesCameraAssistApply(const ItemInfo& item);
 	short GetPlayerHeadingAngleY(const ItemInfo& item);
+	Vector2 GetHeldMoveAxis();
 	bool  HandleDiagonalStep(const ItemInfo& item, CollisionInfo& coll);
 	void  ApplyInput(ItemInfo& item);
 	void  HandleHeading(ItemInfo& item);
