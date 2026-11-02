@@ -198,7 +198,7 @@ namespace TEN::Input
 		{ In::Deselect,       GK_EAST },
 		{ In::Pause,          GK_START },
 		{ In::Inventory,      GK_BACK },
-		{ In::Save,           KEY_UNASSIGNED },
+		{ In::Save,           GK_RSTICK },
 		{ In::Load,           KEY_UNASSIGNED }
 	};
 

@@ -810,11 +810,13 @@ namespace TEN::Controls::Modern
 		}
 	}
 
-	// Sprint toggle: a press while running latches the sprint, the next press or leaving the run releases it.
+	// Sprint toggle: a press while running or in the fly cheat latches the sprint.
+	// The next press or leaving those states releases it.
 	static void UpdateSprintToggle(ItemInfo& item, PlayerInput& input)
 	{
 		auto& modern = GetLaraInfo(item).Control.Modern;
-		bool isRunning = (item.Animation.ActiveState == LS_RUN_FORWARD || item.Animation.ActiveState == LS_SPRINT);
+		bool isSprintState = (item.Animation.ActiveState == LS_RUN_FORWARD || item.Animation.ActiveState == LS_SPRINT ||
+			item.Animation.ActiveState == LS_FLY_CHEAT);
 
 		if (!g_Configuration.EnableSprintToggle)
 		{
@@ -826,16 +828,16 @@ namespace TEN::Controls::Modern
 			{
 				modern.IsSprintToggled = false;
 			}
-			else if (isRunning)
+			else if (isSprintState)
 			{
 				modern.IsSprintToggled = true;
 			}
 		}
 
-		if (!isRunning)
+		if (!isSprintState)
 			modern.IsSprintToggled = false;
 
-		if (g_Configuration.EnableSprintToggle && isRunning)
+		if (g_Configuration.EnableSprintToggle && isSprintState)
 			input.Sprint = (modern.IsSprintToggled || IsPushed(In::Sprint));
 	}
 
