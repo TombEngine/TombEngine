@@ -130,6 +130,7 @@
 #define STRING_ACTIONS_SLOW				"actions_slow"
 #define STRING_ACTIONS_BRAKE			"actions_brake"
 #define STRING_ACTIONS_FIRE				"actions_fire"
+#define STRING_ACTIONS_FIRE_GRAB		"actions_fire_grab"
 #define STRING_RESET_TO_DEFAULTS        "reset_to_defaults"
 #define STRING_TITLE_ITEMS				"items"
 #define STRING_TITLE_PUZZLES			"puzzles"

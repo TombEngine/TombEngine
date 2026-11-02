@@ -476,6 +476,19 @@ namespace TEN::Input
 		}
 	}
 
+	// Mark default bindings overridden by custom ones on the same device, so only the key on the Controls page works.
+	static void DefaultRemasteredConflict(BindingProfileID defaultProfileID, BindingProfileID customProfileID)
+	{
+		for (const auto& actionIDGroup : ACTION_ID_GROUPS)
+		{
+			for (auto actionID : actionIDGroup)
+			{
+				if (g_Bindings.GetBoundKeyID(customProfileID, actionID) != KEY_UNASSIGNED)
+					g_Bindings.SetConflict(actionID, true, defaultProfileID);
+			}
+		}
+	}
+
 	void DefaultConflict()
 	{
 		for (const auto& actionIDGroup : ACTION_ID_GROUPS)
@@ -498,7 +511,13 @@ namespace TEN::Input
 
 		// Remastered controls: marks gamepad defaults overridden by custom gamepad bindings. -- divezzi, 08.10.26
 		if (g_Configuration.IsUsingRemasteredControls())
+		{
 			DefaultGamepadConflict();
+
+			// Remastered controls fix: without it, a default key still works after its action is rebound. -- divezzi, 01.11.26
+			DefaultRemasteredConflict(BindingProfileID::Default, BindingProfileID::Custom);
+			DefaultRemasteredConflict(BindingProfileID::DefaultGamepad, BindingProfileID::CustomGamepad);
+		}
 	}
 
 	static void SetRemasteredDPadAxisValues(int keyID)
@@ -564,24 +583,36 @@ namespace TEN::Input
 		return keyID;
 	}
 
+	// Same as GetBoundKeyID(), but under Remastered controls skips default bindings overridden by custom ones.
+	static int GetRemasteredBoundKeyID(BindingProfileID profileID, ActionID actionID)
+	{
+		bool isDefaultProfile = (profileID == BindingProfileID::Default || profileID == BindingProfileID::DefaultGamepad);
+		if (g_Configuration.IsUsingRemasteredControls() && isDefaultProfile && g_Bindings.TestConflict(actionID, profileID))
+			return KEY_UNASSIGNED;
+
+		return g_Bindings.GetBoundKeyID(profileID, actionID);
+	}
+
 	static void SetDiscreteAxisValues(unsigned int keyID)
 	{
 		for (int i = 0; i < (int)BindingProfileID::Count; i++)
 		{
 			auto profileID = (BindingProfileID)i;
-			if (g_Bindings.GetBoundKeyID(profileID, In::Forward) == keyID)
+
+			// Remastered controls fix: without it, a default movement key still moves the player after rebinding. -- divezzi, 01.11.26
+			if (GetRemasteredBoundKeyID(profileID, In::Forward) == keyID)
 			{
 				AxisMap[AxisID::Move].y = 1.0f;
 			}
-			else if (g_Bindings.GetBoundKeyID(profileID, In::Back) == keyID)
+			else if (GetRemasteredBoundKeyID(profileID, In::Back) == keyID)
 			{
 				AxisMap[AxisID::Move].y = -1.0f;
 			}
-			else if (g_Bindings.GetBoundKeyID(profileID, In::Left) == keyID)
+			else if (GetRemasteredBoundKeyID(profileID, In::Left) == keyID)
 			{
 				AxisMap[AxisID::Move].x = -1.0f;
 			}
-			else if (g_Bindings.GetBoundKeyID(profileID, In::Right) == keyID)
+			else if (GetRemasteredBoundKeyID(profileID, In::Right) == keyID)
 			{
 				AxisMap[AxisID::Move].x = 1.0f;
 			}

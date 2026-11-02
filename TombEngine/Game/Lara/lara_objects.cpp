@@ -465,7 +465,8 @@ void lara_col_rope_idle(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	if (IsHeld(In::Action))
+	// Remastered controls fix: without it, the player falls off a rope grabbed from a jump up. -- divezzi, 01.11.26
+	if (IsHeld(In::Action) || (g_Configuration.IsUsingRemasteredControls() && IsRemasteredGrabHeld()))
 	{
 		UpdateRopeSwing(item);
 		RopeSwingCollision(item, coll, false);

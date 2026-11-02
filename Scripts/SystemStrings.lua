@@ -13,6 +13,7 @@ local strings =
 	actions_deselect = { "Deselect" },
 	actions_draw = { "Draw" },
 	actions_fire = { "Fire" },
+	actions_fire_grab = { "Fire/Grab" },
 	actions_flare = { "Flare" },
 	actions_forward = { "Forward" },
 	actions_inventory = { "Inventory" },

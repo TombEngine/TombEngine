@@ -140,7 +140,14 @@ namespace TEN::Gui
 		switch (menu)
 		{
 		case Menu::VehicleActions:
-			return BuildContiguousActionIDs(In::Accelerate, (int)VehicleActionStrings.size());
+		{
+			// Remastered controls fix: without it, the Vehicle page Fire row rebinds Fire/Grab, not the vehicle guns. -- divezzi, 02.11.26
+			auto actionIDs = BuildContiguousActionIDs(In::Accelerate, (int)VehicleActionStrings.size());
+			if (g_Configuration.IsUsingRemasteredControls())
+				std::replace(actionIDs.begin(), actionIDs.end(), In::Fire, In::Action);
+
+			return actionIDs;
+		}
 
 		case Menu::QuickActions:
 			return BuildContiguousActionIDs(In::Flare, (int)QuickActionStrings.size());
@@ -178,7 +185,7 @@ namespace TEN::Gui
 		{
 			auto strings = GeneralActionStrings;
 			if (g_Configuration.IsUsingRemasteredControls())
-				strings.push_back(STRING_ACTIONS_FIRE);
+				strings.push_back(STRING_ACTIONS_FIRE_GRAB);
 
 			return strings;
 		}
