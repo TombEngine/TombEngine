@@ -539,7 +539,7 @@ local HandleInput = function(menuName)
 
     if itemCount == 0 then return end
 
-    if InputHelpers.GuiIsPulsed(ActionID.FORWARD, menu.inputTimer) then
+    if InputHelpers.GuiIsPulsed(ActionID.MENU_UP, menu.inputTimer) then
         if menu.sounds then PlaySoundEffect(menu.name, menu.sounds.menuSelect) end
         if menu.wrapAroundItems then
             menu.currentItem = (menu.currentItem - 2) % itemCount + 1
@@ -553,7 +553,7 @@ local HandleInput = function(menuName)
             PerformFunction(menu.itemChangeFunction)
         end
         
-    elseif InputHelpers.GuiIsPulsed(ActionID.BACK, menu.inputTimer) then
+    elseif InputHelpers.GuiIsPulsed(ActionID.MENU_DOWN, menu.inputTimer) then
         PlaySoundEffect(menu.name, menu.sounds.menuSelect)
         if menu.wrapAroundItems then
             menu.currentItem = menu.currentItem % itemCount + 1
@@ -566,7 +566,7 @@ local HandleInput = function(menuName)
         if previousItem ~= menu.currentItem and menu.itemChangeFunction then
             PerformFunction(menu.itemChangeFunction)
         end
-    elseif InputHelpers.GuiIsPulsed(ActionID.LEFT, menu.inputTimer) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
+    elseif InputHelpers.GuiIsPulsed(ActionID.MENU_LEFT, menu.inputTimer) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
         PlaySoundEffect(menu.name, menu.sounds.menuSelect)
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
@@ -580,7 +580,7 @@ local HandleInput = function(menuName)
                 PerformFunction(currentItem.onOptionChange)
 		    end
         end
-    elseif InputHelpers.GuiIsPulsed(ActionID.RIGHT, menu.inputTimer) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
+    elseif InputHelpers.GuiIsPulsed(ActionID.MENU_RIGHT, menu.inputTimer) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
         PlaySoundEffect(menu.name, menu.sounds.menuSelect)
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
