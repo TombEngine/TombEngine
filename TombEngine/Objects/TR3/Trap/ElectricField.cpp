@@ -450,7 +450,7 @@ namespace TEN::Entities::Traps
 				!player.Control.IsLow &&
 				!entity.Animation.IsAirborne)
 			{
-				SetAnimation(entity, ID_LARA_EXTRA_ANIMS, LEA_ELECTROCUTION_DEATH);
+				SetAnimationFromSlot(entity, ID_LARA_EXTRA_ANIMS, LEA_ELECTROCUTION_DEATH, 0 , 10, BezierCurve2::EaseIn);
 				entity.Animation.FrameNumber = 0;
 				player.Control.IsMoving = false;
 				player.Control.HandStatus = HandStatus::Busy;
