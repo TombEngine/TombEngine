@@ -42,6 +42,16 @@ namespace TEN::Controls::Modern
 		ArmedSynthesis
 	};
 
+	// Settings of the camera steering in underwater vehicles.
+	struct VehicleHeadingSetup
+	{
+		float YawRate		  = 0.0f; // Share of the remaining yaw error turned per tick.
+		float PitchRate		  = 0.0f; // Share of the remaining pitch error turned per tick.
+		short DiveCameraPitch = 0;	  // Camera pitch below which a vehicle at the surface dives.
+	};
+
+	constexpr auto VEHICLE_HEADING_SETUP = VehicleHeadingSetup{ 1.0f, 1.0f, ANGLE(-10.0f) };
+
 	// Grab and weapon button: Fire under Remastered controls, Action under Classic controls.
 	// A script clear of Action holds it off, and a script push of Action presses it.
 	bool IsGrabHeld()
@@ -72,6 +82,22 @@ namespace TEN::Controls::Modern
 			return true;
 
 		return IsHeld(In::Action);
+	}
+
+	// Surface dive in a vehicle: Forward under Classic controls; under Remastered controls, the camera pointed further
+	// down than its default view. A script clear of Forward holds it off, and a script push of Forward presses it.
+	bool IsVehicleDiveHeld(const LaraInfo& player)
+	{
+		if (!g_Configuration.IsUsingRemasteredControls())
+			return IsHeld(In::Forward);
+
+		if (IsCleared(In::Forward))
+			return false;
+
+		if (IsPushed(In::Forward))
+			return true;
+
+		return (player.Control.RefCameraOrient.x < VEHICLE_HEADING_SETUP.DiveCameraPitch);
 	}
 
 	// Steps an angle toward a target by a share of the remaining error, clamped between a minimum and a maximum step.
@@ -470,6 +496,14 @@ namespace TEN::Controls::Modern
 		return GetWaterTurnParams(item, rate, stepMax, isUnderwater);
 	}
 
+	// Heading a stick direction points to in the camera frame.
+	static short GetCameraRelativeAngleY(const LaraInfo& player, Vector2 dir)
+	{
+		dir.Normalize();
+		short moveAxisAngle = FROM_RAD(std::atan2(dir.x, dir.y));
+		return (short)(player.Control.RefCameraOrient.y + moveAxisAngle);
+	}
+
 	// Heading the stick points to, relative to the camera. The player's own heading when the stick is centered.
 	short GetPlayerHeadingAngleY(const ItemInfo& item)
 	{
@@ -477,13 +511,10 @@ namespace TEN::Controls::Modern
 			return item.Pose.Orientation.y;
 
 		const auto& player = GetLaraInfo(item);
-		auto dir = player.Control.RefMoveAxis;
-		if (dir == Vector2::Zero)
+		if (player.Control.RefMoveAxis == Vector2::Zero)
 			return item.Pose.Orientation.y;
 
-		dir.Normalize();
-		short moveAxisAngle = FROM_RAD(std::atan2(dir.x, dir.y));
-		return (short)(player.Control.RefCameraOrient.y + moveAxisAngle);
+		return GetCameraRelativeAngleY(player, player.Control.RefMoveAxis);
 	}
 
 	// A diagonal step or wall met within 45 degrees of square-on resets the side collision, so the player
@@ -1382,6 +1413,45 @@ namespace TEN::Controls::Modern
 		int pitchTurnSign = 0;
 		item.Pose.Orientation.x = ApproachHeadingAngle(item.Pose.Orientation.x, player.Control.RefCameraOrient.x, PITCH_RATE, PITCH_STEP_MAX, pitchTurnSign);
 		item.Pose.Orientation.z = 0;
+	}
+
+	// Move axis without the components whose direction action is off, so a script clear or the Left+Right cancel stops it.
+	static Vector2 GetHeldMoveAxis()
+	{
+		auto axis = GetMoveAxis();
+		if (!IsHeld(In::Left) && !IsHeld(In::Right))
+			axis.x = 0.0f;
+
+		if (!IsHeld(In::Forward) && !IsHeld(In::Back))
+			axis.y = 0.0f;
+
+		return axis;
+	}
+
+	// Underwater vehicle with the stick pushed: the yaw turn rate steps toward the heading the stick points to and, below
+	// the surface, the pitch turn rate toward the camera pitch, each capped by the vehicle's own maximum turn rate.
+	void HandleUnderwaterVehicleHeading(const ItemInfo& vehicleItem, LaraInfo& player, EulerAngles& turnRate, const EulerAngles& turnRateMax, bool isAtSurface)
+	{
+		if (!g_Configuration.IsUsingRemasteredControls() || IsDirectionPushed())
+			return;
+
+		auto axis = GetHeldMoveAxis();
+		if (axis == Vector2::Zero)
+			return;
+
+		const auto& orient = vehicleItem.Pose.Orientation;
+		short headingAngle = GetCameraRelativeAngleY(player, axis);
+		short yawAngle = ApproachHeadingAngle(orient.y, headingAngle, VEHICLE_HEADING_SETUP.YawRate, turnRateMax.y, player.Control.Modern.HeadingTurnSign);
+		turnRate.y = Geometry::GetShortestAngle(orient.y, yawAngle);
+
+		// At the surface the vehicle keeps its own pitch.
+		if (isAtSurface)
+			return;
+
+		// A positive camera elevation puts the camera below the vehicle, looking up, so it pitches up.
+		int pitchTurnSign = 0;
+		short pitchAngle = ApproachHeadingAngle(orient.x, player.Control.RefCameraOrient.x, VEHICLE_HEADING_SETUP.PitchRate, turnRateMax.x, pitchTurnSign);
+		turnRate.x = Geometry::GetShortestAngle(orient.x, pitchAngle);
 	}
 
 	// Remastered controls: turn states whose turn keys turn the player at the full rate, since the stick's x axis is camera-relative. -- divezzi, 12.10.26

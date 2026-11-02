@@ -629,7 +629,7 @@ namespace TEN::Entities::Vehicles
 
 			if (IsHeld(In::Accelerate))
 			{
-				if (IsHeld(In::Forward) &&
+				if (Modern::IsVehicleDiveHeld(*lara) &&
 					UPV->Flags & UPV_FLAG_SURFACE &&
 					UPVItem->Pose.Orientation.x > -UPV_X_ORIENT_DIVE_MAX)
 				{
@@ -702,7 +702,7 @@ namespace TEN::Entities::Vehicles
 			}
 			else if (IsHeld(In::Accelerate))
 			{
-				if (IsHeld(In::Forward) &&
+				if (Modern::IsVehicleDiveHeld(*lara) &&
 					UPVItem->Pose.Orientation.x > -UPV_X_ORIENT_DIVE_MAX &&
 					UPV->Flags & UPV_FLAG_SURFACE)
 				{
@@ -912,6 +912,13 @@ namespace TEN::Entities::Vehicles
 		if (!(UPV->Flags & UPV_FLAG_DEAD))
 		{
 			UPVControl(UPVItem, laraItem);
+
+			// Remastered controls fix: without it, holding W pitches the UPV down until it hits the floor. -- divezzi, 02.11.26
+			if (laraItem->Animation.ActiveState == UPV_STATE_MOVE || laraItem->Animation.ActiveState == UPV_STATE_IDLE)
+			{
+				Modern::HandleUnderwaterVehicleHeading(*UPVItem, *lara, UPV->TurnRate, EulerAngles(UPV_X_TURN_RATE_MAX, UPV_Y_TURN_RATE_MAX, 0),
+													   (UPV->Flags & UPV_FLAG_SURFACE) != 0);
+			}
 
 			UPVItem->Animation.Velocity.z = UPV->Velocity / VEHICLE_VELOCITY_SCALE;
 			UPVItem->Pose.Orientation += UPV->TurnRate;

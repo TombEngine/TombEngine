@@ -1,6 +1,7 @@
 #pragma once
 
 enum class LaraWeaponType;
+class EulerAngles;
 struct CollisionInfo;
 struct ItemInfo;
 struct LaraInfo;
@@ -11,6 +12,7 @@ namespace TEN::Controls::Modern
 
 	bool  IsGrabHeld();
 	bool  IsVehicleFireHeld();
+	bool  IsVehicleDiveHeld(const LaraInfo& player);
 	bool  IsLookHeld(const LaraInfo& player);
 	void  ResetLookToggle(LaraInfo& player);
 	void  ApplyLookAxisCoeff(const ItemInfo& item, Vector2& axisCoeff);
@@ -23,6 +25,7 @@ namespace TEN::Controls::Modern
 	void  HandleHeading(ItemInfo& item);
 	bool  DoesSolverOwnWaterHeading(const ItemInfo& item);
 	void  HandleWaterHeading(ItemInfo& item);
+	void  HandleUnderwaterVehicleHeading(const ItemInfo& vehicleItem, LaraInfo& player, EulerAngles& turnRate, const EulerAngles& turnRateMax, bool isAtSurface);
 	bool  TestSafetyGrab(ItemInfo& item, CollisionInfo& coll);
 	bool  HandleTightropeIdle(ItemInfo& item);
 

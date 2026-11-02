@@ -123,6 +123,7 @@ namespace TEN::Input
 	unsigned int GetActionTimeInactive(ActionID actionID);
 	bool		 IsCleared(ActionID actionID);
 	bool		 IsPushed(ActionID actionID);
+	ActionID	 GetRemasteredKeyActionID(ActionID actionID);
 
 	PlayerInput ReadPlayerInput();
 	void		ApplyClearedActions(PlayerInput& input);

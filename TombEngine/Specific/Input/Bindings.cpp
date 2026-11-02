@@ -367,6 +367,9 @@ namespace TEN::Input
 
 	const std::string& BindingManager::GetBoundKeyName(ActionID actionID)
 	{
+		// Remastered controls fix: without it, Lua names Faster's and Slower's own keys instead of Sprint's and Walk's. -- divezzi, 02.11.26
+		actionID = GetRemasteredKeyActionID(actionID);
+
 		// Remastered controls: names the gamepad binding when the gamepad was used last. -- divezzi, 08.10.26
 		bool isGamepadShown = g_Configuration.IsUsingRemasteredControls() && GetLastInputDevice() == InputDevice::Gamepad;
 		auto defaultProfileID = isGamepadShown ? BindingProfileID::DefaultGamepad : BindingProfileID::Default;

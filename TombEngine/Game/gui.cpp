@@ -145,7 +145,13 @@ namespace TEN::Gui
 			// Remastered controls fix: without it, the Vehicle page Fire row rebinds Fire/Grab, not the vehicle guns. -- divezzi, 02.11.26
 			auto actionIDs = BuildContiguousActionIDs(In::Accelerate, (int)VehicleActionStrings.size());
 			if (g_Configuration.IsUsingRemasteredControls())
+			{
 				std::replace(actionIDs.begin(), actionIDs.end(), In::Fire, In::Action);
+
+				// Remastered controls fix: without it, the Faster and Slower rows rebind keys the vehicles no longer read. -- divezzi, 02.11.26
+				std::replace(actionIDs.begin(), actionIDs.end(), In::Faster, In::Sprint);
+				std::replace(actionIDs.begin(), actionIDs.end(), In::Slower, In::Walk);
+			}
 
 			return actionIDs;
 		}

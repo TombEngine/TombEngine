@@ -836,6 +836,25 @@ namespace TEN::Input
 		}
 	}
 
+	// Action whose binding an action reads. Under Remastered controls, Faster reads Sprint's key and Slower reads Walk's.
+	ActionID GetRemasteredKeyActionID(ActionID actionID)
+	{
+		if (!g_Configuration.IsUsingRemasteredControls())
+			return actionID;
+
+		switch (actionID)
+		{
+		case In::Faster:
+			return In::Sprint;
+
+		case In::Slower:
+			return In::Walk;
+
+		default:
+			return actionID;
+		}
+	}
+
 	static float Key(ActionID actionID)
 	{
 		// Hard-wired directional inputs for menu navigation, unaffected by user bindings.
@@ -1010,8 +1029,9 @@ namespace TEN::Input
 		DefaultConflict();
 
 		// Update action map.
+		// Remastered controls fix: without it, Faster and Slower keep their own keys instead of Sprint's and Walk's. -- divezzi, 02.11.26
 		for (auto& [actionID, action] : ActionMap)
-			action.Update(Key(action.GetID()));
+			action.Update(Key(GetRemasteredKeyActionID(action.GetID())));
 
 		if (applyQueue)
 			ApplyActionQueue();
