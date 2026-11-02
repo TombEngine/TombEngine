@@ -39,7 +39,7 @@ function Animation.SetItemStartPos(selectedItem)
     if not selectedItem then return end
     local displayItem = selectedItem:GetDisplayItem()
     if displayItem then
-        itemStartPos = displayItem:GetPosition()
+        itemStartPos = displayItem:GetPosition() - TEN.Vec3(0, selectedItem.yOffset, 0)
     end
 end
 
