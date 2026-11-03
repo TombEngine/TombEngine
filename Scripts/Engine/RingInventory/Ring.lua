@@ -203,6 +203,14 @@ function Ring:SetSelectedItemByID(objectID)
     return false
 end
 
+function Ring:SetAngleToSelectedItem()
+    local itemIndex = self:GetSelectedItemIndex()
+    local angle = Utilities.GetSelectedRingAngle(itemIndex, self:GetItemCount())
+
+    self:SetCurrentAngle(angle)
+    self:SetTargetAngle(angle)
+end
+
 -- Get selected item index
 function Ring:GetSelectedItemIndex()
     return self.selectedItemIndex

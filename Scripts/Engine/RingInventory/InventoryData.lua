@@ -128,12 +128,7 @@ function InventoryData.SetupSecondaryRing(ringType, item, keepCurrentRing)
         local objectID = PickupData.AMMO_TYPE_TO_OBJECT[ammoType]
 
         newRing:SetSelectedItemByID(objectID)
-
-        local itemIndex = newRing:GetSelectedItemIndex()
-        local angle = Utilities.GetSelectedRingAngle(itemIndex, newRing:GetItemCount())
-    
-        newRing:SetCurrentAngle(angle)
-        newRing:SetTargetAngle(angle)
+        newRing:SetAngleToSelectedItem()
     end
     
     return newRing
@@ -333,15 +328,37 @@ function InventoryData.Construct(ringType, selectedWeapon)
         
         ::continue::
     end
-    
-    -- Initialize ring positions
-    if ringType then
-        local ring = InventoryData.GetRing(ringType)
-        ring:SetPosition(ring:GetCenter())
-    else
-        for ringType, ring in pairs(rings) do
-            ring:SetPosition(ring:GetCenter())
+
+    InventoryData.InitializeRingPositions(ringType)
+end
+
+function InventoryData.InitializeRingPositions(ringType)
+    local selectedRing = InventoryData.GetSelectedRing()
+    local base = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[selectedRing.type]
+
+    -- This works but... what the hell?
+    local ringReferencePosition = Ring:GetCenterByType(Ring.DEFAULT_TYPE)
+
+    for rType, r in pairs(rings) do
+
+        if ringType and ringType ~= rType then
+            goto continue
         end
+
+        local angle = r:GetTargetAngle()
+        local position = r:GetCenter()
+
+        -- Only the main rings need repositioning
+        if Utilities.Contains(Ring.PRIMARY_TYPES, rType) then
+            local order = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[rType]
+            local offset = Ring.RING_POSITION_PRIMARY_OFFSET * (order - base)
+            position = ringReferencePosition + offset
+        end
+
+        r:SetPosition(position)
+        r:Translate(position, Ring.RING_RADIUS, angle)
+
+        ::continue::
     end
 end
 
@@ -361,29 +378,11 @@ function InventoryData.OpenAtItem(itemID, repositionRings)
     
     -- Set selected item
     ring:SetSelectedItemByID(itemID)
-    
-    local itemIndex = ring:GetSelectedItemIndex()
-    local angle = Utilities.GetSelectedRingAngle(itemIndex, ring:GetItemCount())
-    
-    -- Store angle (you may want to make these instance variables)
-    ring:SetCurrentAngle(angle)
-    ring:SetTargetAngle(angle)
+    ring:SetAngleToSelectedItem()
     
     if repositionRings then
-        local ringPosition = ring:GetCenterByType(Ring.DEFAULT_TYPE)
-        selectedRingType = ringType
-        local base = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[selectedRingType]
-        
-        for rType, r in pairs(rings) do
-            -- Only the main rings need repositioning
-            if Utilities.Contains(Ring.PRIMARY_TYPES, rType) then
-                local order = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[rType]
-                local offset = Ring.RING_POSITION_PRIMARY_OFFSET * (order - base)
-                local position = ringPosition + offset
-                r:SetPosition(position)
-                r:Translate(position, Ring.RING_RADIUS, angle)
-            end
-        end
+        -- This works, but seems overkill: why recalculate entirely the ring positions, just to switch to the one with the item we're looking for?
+        InventoryData.InitializeRingPositions()
     end
 end
 
