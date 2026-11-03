@@ -9,6 +9,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 * Added Discord integration.
 * Added BATS_EMITTER_TR3 object from TR3.
+* Added the [turn switch and obelisk puzzle from TR4](https://tombengine.com/docs/tr4-obelisk-puzzle-tomb-engine-setup-guide/).
 * Added Remastered control mode, selectable in the Gameplay options menu:
   * Camera-relative player movement on land, in water and in fly mode.
   * Orbit camera with mouse look, camera collision and vertical axis inversion option, reset behind the player with Look input action.
@@ -26,6 +27,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Bug fixes
 
 * Fixed GUARD enemies not being alerted by player gunfire.
+* Fixed TURN_SWITCH interaction highlight icon position.
 * Fixed static meshes in flipped rooms being lit with ambient light of the original room.
 * Fixed flyby camera roll persisting after the sequence ends.
 
@@ -34,6 +36,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `ParticleGroup:IsActive` method to check if the group's emitter is currently running.
 * Added `ParticleGroup:IsValid` method to check if the group still exists and is usable.
 * Added `Flow.Settings.Effects.waterEffectStrength` and `Flow.Settings.Effects.waterEffectDepth` settings to customize underwater wave effect.
+* Fixed `Flow.DoesSaveGameExist` returning false for savegames of other levels, which prevented ring inventory from loading them.
+* Fixed ring inventory menus and `CustomDiary` page turning using movement actions instead of menu navigation actions.
 * Updated `Lara:SetWeaponType` to keep drawn weapon out in Remastered control mode until Draw input action is held and released.
 * Updated `Input.GetActionBinding` to return gamepad binding in Remastered control mode if gamepad was used last, and Sprint and Walk bindings for Faster and Slower actions.
 
@@ -150,6 +154,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed crashes when shooting if the gunflash object is missing.
 * Fixed crashes and missing textures while rendering swarm objects with alpha blended textures.
 * Fixed vertex move effect speed in water rooms while turning camera on the x-axis.
+* Fixed `TURN_SWITCH` not rotating the `OBELISK` correctly.
 
 ### Lua API changes
 
