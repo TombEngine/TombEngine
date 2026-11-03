@@ -6,21 +6,22 @@ namespace TEN::Scripting
 {
 	/// Constants for control modes.
 	// To be used with @{Flow.GetControlMode} and @{Flow.SetControlMode} functions, and with the `controlMode` fields of
-	// @{Flow.Settings} and @{Flow.Level}.
+	// @{Flow.Settings} and @{Flow.Level}. Each constant is a number; printing a value from @{Flow.GetControlMode}
+	// shows that number, so compare it with these constants instead of the number itself.
 	// @enum Flow.ControlMode
 	// @pragma nostrip
 
 	static const auto CONTROL_MODES = std::unordered_map<std::string, ScriptControlMode>
 	{
-		/// No mode is forced: the player chooses it in the options.
+		/// 0: no mode is forced: the player chooses it in the options.
 		// @mem DEFAULT
 		{ "DEFAULT", ScriptControlMode::Default },
 
-		/// Classic control mode.
+		/// 1: Classic control mode.
 		// @mem CLASSIC
 		{ "CLASSIC", ScriptControlMode::Classic },
 
-		/// Remastered control mode.
+		/// 2: Remastered control mode.
 		// @mem REMASTERED
 		{ "REMASTERED", ScriptControlMode::Remastered }
 	};

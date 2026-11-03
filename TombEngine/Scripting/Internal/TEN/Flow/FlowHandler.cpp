@@ -218,9 +218,14 @@ custom menu creation, photo mode or time freeze.
 
 /***
 Get the control mode in use.
-This is the mode set by the gameflow or a script, or else the player's choice. It is never `Flow.ControlMode.DEFAULT`.
+This is the mode set by the gameflow or a script, or else the player's choice: `Flow.ControlMode.CLASSIC` (1) or
+`Flow.ControlMode.REMASTERED` (2), never `Flow.ControlMode.DEFAULT` (0).
 @function GetControlMode
 @treturn Flow.ControlMode Control mode in use.
+@usage
+if TEN.Flow.GetControlMode() == TEN.Flow.ControlMode.REMASTERED then
+	print("Remastered controls are in use.")
+end
 */
 	tableFlow.set_function(ScriptReserved_GetControlMode, &FlowHandler::GetControlMode, this);
 
