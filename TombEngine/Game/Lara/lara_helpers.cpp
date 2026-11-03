@@ -361,6 +361,15 @@ void HandlePlayerQuickActions(ItemInfo& item)
 			player.Control.Weapon.RequestGunType = weaponType;
 	}
 
+	// Remastered controls: the mouse wheel scrolls through the weapons like Previous and Next Weapon. -- divezzi, 03.11.26
+	int wheelScroll = Modern::GetWeaponWheelScroll(player);
+	if (wheelScroll != 0)
+	{
+		auto weaponType = GetPlayerScrolledWeaponType(item, player.Control.Weapon.GunType, wheelScroll < 0);
+		if (weaponType != LaraWeaponType::None)
+			player.Control.Weapon.RequestGunType = weaponType;
+	}
+
 	auto requestedGunType = LaraWeaponType::None;
 
 	// Handle weapon requests.

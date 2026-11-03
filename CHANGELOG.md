@@ -16,6 +16,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
   * Camera-relative standing jumps and mid-air rolls.
   * Grabbing with Fire input action, with safety grab and crawlspace edge grab.
   * Hold-to-aim weapon handling with Draw input action and shooting with Fire input action.
+  * Weapon selection with mouse wheel.
   * Look, binoculars and lasersight aiming with right stick and mouse, and binoculars and lasersight zoom with mouse wheel.
   * Firing SNOWMOBILE and UPV weapons with Action input action.
   * Camera-relative UPV steering and diving.

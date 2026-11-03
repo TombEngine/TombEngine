@@ -986,6 +986,28 @@ namespace TEN::Controls::Modern
 		return 0;
 	}
 
+	// Weapon scroll from the mouse wheel: 1 selects the next weapon, -1 the previous one. 0 while the wheel serves something
+	// else: the lasersight zoom, or an action the player bound to it.
+	int GetWeaponWheelScroll(const LaraInfo& player)
+	{
+		if (!g_Configuration.IsUsingRemasteredControls() || player.Control.Look.IsUsingLasersight)
+			return 0;
+
+		for (const auto& [actionID, keyID] : g_Bindings.GetBindingProfile(BindingProfileID::Custom))
+		{
+			if (keyID == MK_AXIS_Z_NEG || keyID == MK_AXIS_Z_POS)
+				return 0;
+		}
+
+		if (IsHeld(In::MouseScrollUp))
+			return 1;
+
+		if (IsHeld(In::MouseScrollDown))
+			return -1;
+
+		return 0;
+	}
+
 	// A toggled crouch that has taken the player low ends when she stands up by any way other than a Crouch press,
 	// such as the fly cheat, a knock-down or an object moving her, so she does not crouch again on her own.
 	static void UpdateCrouchToggleRelease(ItemInfo& item)

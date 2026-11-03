@@ -19,6 +19,7 @@ namespace TEN::Controls::Modern
 	void  ResetLookToggle(LaraInfo& player);
 	void  ApplyLookAxisCoeff(const ItemInfo& item, Vector2& axisCoeff);
 	int   GetOpticsWheelZoom();
+	int   GetWeaponWheelScroll(const LaraInfo& player);
 	bool  DoesSolverOwnHeading(const ItemInfo& item);
 	bool  DoesCameraAssistApply(const ItemInfo& item);
 	short GetPlayerHeadingAngleY(const ItemInfo& item);
