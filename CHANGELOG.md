@@ -10,17 +10,17 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added Discord integration.
 * Added BATS_EMITTER_TR3 object from TR3.
 * Added the [turn switch and obelisk puzzle from TR4](https://tombengine.com/docs/tr4-obelisk-puzzle-tomb-engine-setup-guide/).
-* Added Remastered control mode, selectable in the Gameplay options menu:
+* Added I-III Remastered control mode, selectable in the Gameplay options menu:
   * Camera-relative player movement on land, in water and in fly mode.
   * Orbit camera with mouse look, camera collision and vertical axis inversion option, reset behind the player with Look input action.
   * Camera-relative standing jumps and mid-air rolls.
   * Grabbing with Fire input action, with safety grab and crawlspace edge grab.
   * Hold-to-aim weapon handling with Draw input action and shooting with Fire input action.
   * Look, binoculars and lasersight aiming with right stick and mouse, and binoculars and lasersight zoom with mouse wheel.
-  * Firing SNOWMOBILE and UPV weapons with Action input.
+  * Firing SNOWMOBILE and UPV weapons with Action input action.
   * Camera-relative UPV steering and diving.
   * Faster and Slower vehicle input actions follow Sprint and Walk bindings.
-  * Separate default key bindings for keyboard and gamepad, usable at the same time.
+  * Separate default key bindings for keyboard and gamepad, usable at the same time, with quick save on right stick click.
   * Toggle options for sprint, look, crouch and grab, and smooth sprint steps option.
 * Reorganized options menu into Controls, Display, Gameplay and Sound pages.
 
@@ -38,8 +38,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Flow.Settings.Effects.waterEffectStrength` and `Flow.Settings.Effects.waterEffectDepth` settings to customize underwater wave effect.
 * Fixed `Flow.DoesSaveGameExist` returning false for savegames of other levels, which prevented ring inventory from loading them.
 * Fixed ring inventory menus and `CustomDiary` page turning using movement actions instead of menu navigation actions.
-* Updated `Lara:SetWeaponType` to keep drawn weapon out in Remastered control mode until Draw input action is held and released.
-* Updated `Input.GetActionBinding` to return gamepad binding in Remastered control mode if gamepad was used last, and Sprint and Walk bindings for Faster and Slower actions.
+* Updated `Lara:SetWeaponType` to keep drawn weapon out in I-III Remastered control mode until Draw input action is held and released.
+* Updated `Input.GetActionBinding` to return gamepad binding in I-III Remastered control mode if gamepad was used last, and Sprint and Walk bindings for Faster and Slower actions.
 
 ## [Version 2.0.1]
 
