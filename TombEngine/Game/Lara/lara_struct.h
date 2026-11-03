@@ -1227,6 +1227,9 @@ struct ModernControlData
 	bool  IsSafetyGrabTurning	   = false;
 	bool  IsCrawlSafetyGrabTurning = false;
 	bool  IsTightropeTurnLatched   = false;
+
+	short VehicleBackAngleY	  = 0;
+	bool  IsVehicleBackLocked = false;
 };
 
 struct RopeControlData
