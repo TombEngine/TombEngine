@@ -19,6 +19,7 @@
 #include "Game/itemdata/creature_info.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_initialise.h"
+#include "Game/Lara/ModernControls.h"
 #include "Game/misc.h"
 #include "Game/Sink.h"
 #include "Game/spotcam.h"
@@ -53,6 +54,7 @@
 using namespace flatbuffers;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Control::Volumes;
+using namespace TEN::Controls;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Effects::Fireflies;
 using namespace TEN::Effects::Hair;
@@ -1770,6 +1772,9 @@ const std::vector<unsigned char> SaveGame::Build()
 	sgb.add_moveable_type_properties(moveableTypePropsOffset);
 	sgb.add_static_type_properties(staticTypePropsOffset);
 
+	// Remastered controls: saves the control mode set by a running script. -- divezzi, 02.11.26
+	sgb.add_script_control_mode(Modern::GetScriptControlModeID());
+
 	auto sg = sgb.Finish();
 	fbb.Finish(sg);
 
@@ -3121,6 +3126,9 @@ void SaveGame::Parse(const std::vector<unsigned char>& buffer, bool hubMode)
 
 	ParseEffects(s);
 	ParsePlayer(s);
+
+	// Remastered controls: restores the control mode set by a running script, outside hub loads. -- divezzi, 02.11.26
+	Modern::SetScriptControlModeID(s->script_control_mode());
 }
 
 bool SaveGame::LoadHeader(int slot, SaveGameHeader* header)

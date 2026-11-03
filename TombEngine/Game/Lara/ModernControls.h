@@ -1,6 +1,7 @@
 #pragma once
 
 enum class LaraWeaponType;
+enum class ScriptControlMode;
 class EulerAngles;
 struct CollisionInfo;
 struct ItemInfo;
@@ -28,6 +29,10 @@ namespace TEN::Controls::Modern
 	bool  DoesSolverOwnWaterHeading(const ItemInfo& item);
 	void  HandleWaterHeading(ItemInfo& item);
 	void  HandleUnderwaterVehicleHeading(const ItemInfo& vehicleItem, LaraInfo& player, EulerAngles& turnRate, const EulerAngles& turnRateMax, bool isAtSurface);
+	void  InitializeControlMode(bool clearScriptMode);
+	void  SetScriptControlMode(ScriptControlMode controlMode);
+	int   GetScriptControlModeID();
+	void  SetScriptControlModeID(int controlModeID);
 	bool  TestSafetyGrab(ItemInfo& item, CollisionInfo& coll);
 	bool  HandleTightropeIdle(ItemInfo& item);
 

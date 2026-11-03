@@ -65,6 +65,7 @@ local strings =
 	control_mode = { "Control Mode" },
 	control_mode_classic = { "Classic" },
 	control_mode_remastered = { "I-III Remastered" },
+	control_mode_forced = { "%s (Forced)" },
 	controls = { "Controls" },
 	decals = { "Weapon Decals" },
 	disabled = { "Disabled" },

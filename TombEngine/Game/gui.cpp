@@ -1142,10 +1142,15 @@ namespace TEN::Gui
 		{
 			switch (option)
 			{
-			// Remastered controls: cycles the control mode between Classic and Remastered. -- divezzi, 08.10.26
+			// Remastered controls: cycles the control mode between Classic and Remastered, unless the gameflow or a script sets it. -- divezzi, 02.11.26
 			case GameplaySettingsOption::ControlModeOption:
-				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.ControlMode = (ControlMode)(((int)CurrentSettings.Configuration.ControlMode + 1) % (int)ControlMode::Count);
+				if (!CurrentSettings.Configuration.IsControlModeForced())
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.ControlMode = (ControlMode)(((int)CurrentSettings.Configuration.ControlMode + 1) % (int)ControlMode::Count);
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
 				break;
 
 			case GameplaySettingsOption::AutoMonkeySwingJump:

@@ -38,6 +38,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Flow.Settings.Effects.waterEffectStrength` and `Flow.Settings.Effects.waterEffectDepth` settings to customize underwater wave effect.
 * Fixed `Flow.DoesSaveGameExist` returning false for savegames of other levels, which prevented ring inventory from loading them.
 * Fixed ring inventory menus and `CustomDiary` page turning using movement actions instead of menu navigation actions.
+* Added `Flow.SetControlMode` and `Flow.GetControlMode` functions, `Flow.ControlMode` constants, and `controlMode` fields in `Flow.Level` and `Flow.Settings.Gameplay` to set Classic or Remastered I-III control mode from scripts.
 * Updated `Lara:SetWeaponType` to keep drawn weapon out in I-III Remastered control mode until Draw input action is held and released.
 * Updated `Input.GetActionBinding` to return gamepad binding in I-III Remastered control mode if gamepad was used last, and Sprint and Walk bindings for Faster and Slower actions.
 

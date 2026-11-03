@@ -33,6 +33,7 @@ struct Level : public ScriptInterfaceLevel
 	std::vector<InventoryItem> InventoryObjects = {};
 
 	bool ResetHub = false;
+	sol::optional<ScriptControlMode> ForcedControlMode = sol::nullopt;
 
 	// TODO: Clean up this mess.
 
@@ -55,6 +56,7 @@ struct Level : public ScriptInterfaceLevel
 	int GetSecrets() const override;
 	std::string GetAmbientTrack() const override;
 	bool GetResetHubEnabled() const override;
+	ScriptControlMode GetScriptControlMode() const override;
 
 	// Horizon getters
 	bool GetHorizonEnabled(int index) const override;

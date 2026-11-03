@@ -54,6 +54,9 @@ namespace TEN::Controls::Modern
 
 	constexpr auto VEHICLE_HEADING_SETUP = VehicleHeadingSetup{ 1.0f, 1.0f, ANGLE(-20.0f) };
 
+	// Control mode set by a running script. Kept across levels and in savegames, and cleared with the game variables.
+	static auto RunningScriptControlMode = ScriptControlMode::Default;
+
 	// Grab and weapon button: Fire under Remastered controls, Action under Classic controls.
 	// A script clear of Action holds it off, and a script push of Action presses it.
 	bool IsGrabHeld()
@@ -1565,6 +1568,81 @@ namespace TEN::Controls::Modern
 			axis.y = 0.0f;
 
 		return axis;
+	}
+
+	static bool IsValidScriptControlMode(int controlModeID)
+	{
+		return (controlModeID >= 0 && controlModeID < (int)ScriptControlMode::Count);
+	}
+
+	// Control mode a gameflow entry or a script forces, or none for Default, which leaves the choice to the next one.
+	static std::optional<ControlMode> GetForcedControlMode(ScriptControlMode scriptControlMode)
+	{
+		switch (scriptControlMode)
+		{
+		case ScriptControlMode::Classic:
+			return ControlMode::Classic;
+
+		case ScriptControlMode::Remastered:
+			return ControlMode::RemasteredControls;
+
+		case ScriptControlMode::Default:
+			return std::nullopt;
+
+		default:
+			TENLog("Control mode " + std::to_string((int)scriptControlMode) + " does not exist.", LogLevel::Warning);
+			return std::nullopt;
+		}
+	}
+
+	// Picks the control mode set by a running script, the current level's gameflow entry or the gameflow settings, in that order.
+	// Reloads the bindings and puts the camera behind the player when the mode in use changes.
+	static void UpdateControlMode()
+	{
+		auto prevControlMode = g_Configuration.GetControlMode();
+
+		auto forcedControlMode = GetForcedControlMode(RunningScriptControlMode);
+		if (!forcedControlMode.has_value())
+			forcedControlMode = GetForcedControlMode(g_GameFlow->GetLevel(CurrentLevel)->GetScriptControlMode());
+
+		if (!forcedControlMode.has_value())
+			forcedControlMode = GetForcedControlMode(g_GameFlow->GetSettings()->Gameplay.ForcedControlMode.value_or(ScriptControlMode::Default));
+
+		g_Configuration.ForcedControlMode = forcedControlMode;
+		if (g_Configuration.GetControlMode() == prevControlMode)
+			return;
+
+		RefreshBindingsForControlMode();
+
+		if (LaraItem != nullptr)
+			ResetCameraOrient(*LaraItem);
+	}
+
+	// Level start: clears a mode set by a running script where the game variables are cleared, then applies the gameflow's.
+	void InitializeControlMode(bool clearScriptMode)
+	{
+		if (clearScriptMode)
+			RunningScriptControlMode = ScriptControlMode::Default;
+
+		UpdateControlMode();
+	}
+
+	// Default releases the mode set by a running script.
+	void SetScriptControlMode(ScriptControlMode controlMode)
+	{
+		RunningScriptControlMode = controlMode;
+		UpdateControlMode();
+	}
+
+	// Savegame form of the mode set by a running script.
+	int GetScriptControlModeID()
+	{
+		return (int)RunningScriptControlMode;
+	}
+
+	void SetScriptControlModeID(int controlModeID)
+	{
+		SetScriptControlMode(IsValidScriptControlMode(controlModeID) ? (ScriptControlMode)controlModeID : ScriptControlMode::Default);
 	}
 
 	// Underwater vehicle steering, each turn rate capped by the vehicle's own maximum. With Accelerate held, the yaw steps

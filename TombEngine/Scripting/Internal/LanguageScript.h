@@ -86,6 +86,7 @@
 #define STRING_CONTROL_MODE				"control_mode"
 #define STRING_CONTROL_MODE_CLASSIC		"control_mode_classic"
 #define STRING_CONTROL_MODE_REMASTERED	"control_mode_remastered"
+#define STRING_CONTROL_MODE_FORCED		"control_mode_forced"
 #define STRING_AUTO_MONKEY_SWING_JUMP	"auto_monkey_swing_jump"
 #define STRING_AUTO_TARGETING			"auto_targeting"
 #define STRING_TARGET_HIGHLIGHTER		"target_highlighter"

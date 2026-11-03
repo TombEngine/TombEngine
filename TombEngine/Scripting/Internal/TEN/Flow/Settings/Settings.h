@@ -9,6 +9,8 @@
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 #include "Specific/clock.h"
 
+enum class ScriptControlMode;
+
 using namespace TEN::Scripting::Types;
 
 namespace TEN::Scripting
@@ -62,6 +64,7 @@ namespace TEN::Scripting
 		bool SetEnemiesOnFireWithWeapons = true;
 		bool SetEnemiesOnFireWithDeathFlag = true;
 		bool EnableInventory = true;
+		sol::optional<ScriptControlMode> ForcedControlMode = sol::nullopt;
 
 		static void Register(sol::table& parent);
 	};

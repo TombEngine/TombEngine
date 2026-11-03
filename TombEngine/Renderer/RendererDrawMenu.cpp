@@ -91,9 +91,18 @@ namespace TEN::Renderer
 		}
 	}
 
-	inline const std::string Str_ControlMode(ControlMode controlMode)
+	inline const std::string Str_ControlMode(ControlMode controlMode, bool isForced)
 	{
-		return g_GameFlow->GetString(controlMode == ControlMode::RemasteredControls ? STRING_CONTROL_MODE_REMASTERED : STRING_CONTROL_MODE_CLASSIC);
+		constexpr auto BUFFER_SIZE = 128;
+
+		const char* name = g_GameFlow->GetString(controlMode == ControlMode::RemasteredControls ? STRING_CONTROL_MODE_REMASTERED : STRING_CONTROL_MODE_CLASSIC);
+		if (!isForced)
+			return name;
+
+		// Remastered controls: a mode set by the gameflow or a script reads "<mode> (Forced)". -- divezzi, 02.11.26
+		char buffer[BUFFER_SIZE];
+		snprintf(buffer, BUFFER_SIZE, g_GameFlow->GetString(STRING_CONTROL_MODE_FORCED), name);
+		return buffer;
 	}
 
 	inline const int GetEffectiveBoundKeyID(ActionID actionID)
@@ -247,7 +256,8 @@ namespace TEN::Renderer
 					{
 					case GameplaySettingsOption::ControlModeOption:
 						AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_CONTROL_MODE), optionColor, flags);
-						AddString(MenuRightSideEntry, y, Str_ControlMode(config.ControlMode), plainColor, flags);
+						AddString(MenuRightSideEntry, y, Str_ControlMode(config.GetControlMode(), config.IsControlModeForced()),
+							config.IsControlModeForced() ? disabledColor : plainColor, flags);
 						break;
 
 					// Target highlighter
