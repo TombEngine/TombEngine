@@ -906,6 +906,10 @@ namespace TEN::Input
 		if (keyID != KEY_UNASSIGNED && ActionMap[actionID].IsClicked())
 			UpdateLastInputDevice(actionID, keyID);
 
+		// Remastered controls fix: without it, Right Ctrl no longer confirms in menus, since Action is on E. -- divezzi, 02.11.26
+		if (actionID == In::Select && g_Configuration.IsUsingRemasteredControls())
+			value = std::max(value, KeyMap[SDL_SCANCODE_RCTRL]);
+
 		return value;
 	}
 
