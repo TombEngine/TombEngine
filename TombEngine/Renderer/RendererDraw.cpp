@@ -1969,7 +1969,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddDynamicSpotLight(const Vector3& pos, const Vector3& dir, float radius, float falloff, float distance, const Color& color, bool castShadows, int hash)
 	{
-		if (_isLocked || g_GameFlow->LastFreezeMode == FreezeMode::Full)
+		if (_isLocked)
 			return;
 
 		RendererLight dynamicLight = {};
@@ -2006,7 +2006,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddDynamicPointLight(const Vector3& pos, float radius, const Color& color, bool castShadows, int hash)
 	{
-		if (_isLocked || g_GameFlow->LastFreezeMode == FreezeMode::Full)
+		if (_isLocked)
 			return;
 
 		if (radius <= EPSILON)
@@ -2034,7 +2034,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddDynamicFogBulb(const Vector3& pos, float radius, float density, const Color& color, int hash)
 	{
-		if (_isLocked || g_GameFlow->LastFreezeMode == FreezeMode::Full)
+		if (_isLocked)
 			return;
 
 		auto dynamicLight = RendererLight{};
@@ -2057,8 +2057,13 @@ namespace TEN::Renderer
 
 	void Renderer::PrepareDynamicLight(RendererLight& light)
 	{
+		// Default to no interpolation.
+		light.PrevPosition = light.Position;
+		light.PrevDirection = light.Direction;
+
 		// If hash is provided, search for same light in previous buffer.
-		if (light.Hash != 0)
+		// Interpolation is not used in freeze mode, and buffers are not swapped there.
+		if (light.Hash != 0 && g_GameFlow->CurrentFreezeMode == FreezeMode::None)
 		{
 			// Determine previous buffer index.
 			const auto& prevList = _dynamicLights[1 - _dynamicLightList];
@@ -2105,11 +2110,22 @@ namespace TEN::Renderer
 
 	void Renderer::PrepareScene()
 	{
-		if (g_GameFlow->CurrentFreezeMode != FreezeMode::Full &&
-			g_Gui.GetInventoryMode() == InventoryMode::None)
+		if (g_Gui.GetInventoryMode() == InventoryMode::None)
 		{
-			_dynamicLightList ^= 1;
-			_dynamicLights[_dynamicLightList].clear();
+			if (g_GameFlow->CurrentFreezeMode == FreezeMode::None)
+			{
+				_dynamicLightList ^= 1;
+				_dynamicLights[_dynamicLightList].clear();
+				_frozenLightCount = -1;
+			}
+			else
+			{
+				// Keep last game frame's lights; discard only those spawned during previous freeze frame.
+				if (_frozenLightCount < 0)
+					_frozenLightCount = (int)_dynamicLights[_dynamicLightList].size();
+
+				_dynamicLights[_dynamicLightList].resize(_frozenLightCount);
+			}
 		}
 
 		_lines2DToDraw.clear();

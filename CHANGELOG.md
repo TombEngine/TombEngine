@@ -19,6 +19,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed UPV water surface dismount.
 * Fixed static meshes in flipped rooms being lit with ambient light of the original room.
 * Fixed flyby camera roll persisting after the sequence ends.
+* Fixed dynamic lights disappearing during freeze mode.
 
 ### Lua API Changes
 
