@@ -531,7 +531,7 @@ local function CalculateStopWatchHands()
     return angles
 end
 
-function InventoryData.SetItemRotations(timeCount)
+function InventoryData.SetSpecialItemsJointRotations(timeCount)
     local angles = CalculateStopWatchHands()
     local stopwatch = InventoryData.FindItem(TEN.Objects.ObjID.STOPWATCH_ITEM)
     if stopwatch then
