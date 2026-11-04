@@ -63,9 +63,14 @@ function InventoryData.GetSelectedRing()
     return InventoryData.GetRing(selectedRingType)
 end
 
--- Get selected ring type
+-- Get currently selected ring type
 function InventoryData.GetSelectedRingType()
     return selectedRingType
+end
+
+-- Get previous ring type
+function InventoryData.GetPreviousRing()
+    return InventoryData.GetRing(previousRingType)
 end
 
 -- Get previous ring type
@@ -90,9 +95,6 @@ function InventoryData.SwitchToRingType(ringType)
     previousRingType = selectedRingType
     selectedRingType = ringType
 
-    local ring = InventoryData.GetRing(ringType)
-
-    ItemSpin.StartSpin(ring)
     return true
 end
 
@@ -251,7 +253,6 @@ function InventoryData.Construct(ringType, selectedWeapon)
     
     for _, itemRow in ipairs(items) do
         local itemData = PickupData.ConvertRowData(itemRow)
-        itemData.rotation = Utilities.CopyRotation(itemData.rotation)
         local data = InventoryData.BuildItem(itemData)
 
         local objectID = data:GetObjectID()
@@ -314,9 +315,11 @@ function InventoryData.Construct(ringType, selectedWeapon)
             -- Get or create the ring for this item
             local ring = InventoryData.GetRing(data.ringName)
             
-            -- Create display item
-            local displayItem = data:CreateDisplayItem(ring:GetCenter())
-            displayItem:SetColor(COLOR_MAP.itemHidden)
+            -- TODO: if this is a color specific to the entire ring, maybe let the ring do that?
+            -- and then store both a base item color + an additional color that the ring will set? (similarly to how it's now done with item locations)
+            -- Only do this if really needed - check later how it's really used
+            data:SetColor(COLOR_MAP.itemHidden)
+
             -- Add item to ring
             ring:AddItem(data)
 
@@ -329,6 +332,7 @@ function InventoryData.Construct(ringType, selectedWeapon)
         ::continue::
     end
 
+    -- TODO: again, we should probably not manipulate display stuff in InventoryData at all, so this call should probably be moved somewhere else
     InventoryData.InitializeRingPositions(ringType)
 end
 
@@ -532,32 +536,38 @@ local function CalculateStopWatchHands()
 end
 
 function InventoryData.SetSpecialItemsJointRotations(timeCount)
-    local angles = CalculateStopWatchHands()
-    local stopwatch = InventoryData.FindItem(TEN.Objects.ObjID.STOPWATCH_ITEM)
-    if stopwatch then
-        local displayItem = stopwatch:GetDisplayItem()
-        displayItem:SetJointRotation(4, angles.hour_hand_angle)
-        displayItem:SetJointRotation(5, angles.minute_hand_angle)
-        displayItem:SetJointRotation(6, angles.second_hand_angle)
-    end
+    --[[
+        -- TODO
+        -- This function still has direct displayItem access, and fails for now
+        -- Check that later how to properly handle this
 
-    local compass = InventoryData.FindItem(TEN.Objects.ObjID.COMPASS_ITEM)
-    if compass then
-        local displayItem = compass:GetDisplayItem()
-        displayItem:SetJointRotation(1, CalculateCompassNeedle(timeCount))
-    end
-
-    local Examine = require("Engine.RingInventory.Examine")
-    if Examine.item and (Examine.item:GetObjectID() == TEN.Objects.ObjID.STOPWATCH_ITEM or Examine.item:GetObjectID() == TEN.Objects.ObjID.COMPASS_ITEM) then
-        local displayItem = Examine.item
-        if Examine.item:GetObjectID() == TEN.Objects.ObjID.STOPWATCH_ITEM then
+        local angles = CalculateStopWatchHands()
+        local stopwatch = InventoryData.FindItem(TEN.Objects.ObjID.STOPWATCH_ITEM)
+        if stopwatch then
+            local displayItem = stopwatch:GetDisplayItem()
             displayItem:SetJointRotation(4, angles.hour_hand_angle)
             displayItem:SetJointRotation(5, angles.minute_hand_angle)
             displayItem:SetJointRotation(6, angles.second_hand_angle)
-        else
+        end
+
+        local compass = InventoryData.FindItem(TEN.Objects.ObjID.COMPASS_ITEM)
+        if compass then
+            local displayItem = compass:GetDisplayItem()
             displayItem:SetJointRotation(1, CalculateCompassNeedle(timeCount))
         end
-    end
+
+        local Examine = require("Engine.RingInventory.Examine")
+        if Examine.item and (Examine.item:GetObjectID() == TEN.Objects.ObjID.STOPWATCH_ITEM or Examine.item:GetObjectID() == TEN.Objects.ObjID.COMPASS_ITEM) then
+            local displayItem = Examine.item
+            if Examine.item:GetObjectID() == TEN.Objects.ObjID.STOPWATCH_ITEM then
+                displayItem:SetJointRotation(4, angles.hour_hand_angle)
+                displayItem:SetJointRotation(5, angles.minute_hand_angle)
+                displayItem:SetJointRotation(6, angles.second_hand_angle)
+            else
+                displayItem:SetJointRotation(1, CalculateCompassNeedle(timeCount))
+            end
+        end
+    ]]
 
 end
 

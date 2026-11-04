@@ -66,7 +66,7 @@ function RingLighting.UpdateRingSelection(ringState)
     
     for i = 1, #ring.items do
         local currentItem = ring.items[i]
-        local displayItem = currentItem:GetDisplayItem()
+        local displayItem = currentItem:GetDisplayItem() -- TODO: remove direct access to displayItem
         
         if not displayItem then goto continue end
         
@@ -109,6 +109,9 @@ function RingLighting.ProcessItemFades()
             goto continue
         end
         
+        --[[
+         -- TODO: this has some direct displayItem access for Color manipulation, that will have to go as well
+         -- Commented out for now, because we're getting rid of the displayItem access so the code below will probably either interfere (if not fail)
         if state.isFading then
             local displayItem = state.item:GetDisplayItem()
             local currentColor = displayItem:GetColor()
@@ -124,7 +127,7 @@ function RingLighting.ProcessItemFades()
                 displayItem:SetColor(state.targetColor)
                 state.isFading = false
             end
-        end
+        end ]]
         
         ::continue::
     end

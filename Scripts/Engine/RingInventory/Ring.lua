@@ -8,6 +8,7 @@ local RingLight = require("Engine.RingInventory.RingLight")
 local Settings = require("Engine.RingInventory.Settings")
 local Utilities = require("Engine.RingInventory.Utilities")
 local InventoryData
+-- require("Addons.print_r")
 
 --Pointer to tables
 
@@ -74,6 +75,8 @@ function Ring.Create(ringType)
     -- Instance variables
     self.type = ringType
     self.items = {}
+    self.itemsPositions = {}
+    self.itemsRotations = {}
     self.selectedItemIndex = 1
     self.previousItemIndex = 1
     self.position = Vec3(0, 0, 0)
@@ -131,6 +134,8 @@ end
 function Ring:Clear()
     self:ClearDisplayItems()
     self.items = {}
+    self.itemsPositions = {}
+    self.itemsRotations = {}
     self.selectedItemIndex = 1
     self.currentAngle = 0
     self.previousAngle = 0
@@ -239,8 +244,7 @@ function Ring:SelectPrevious()
 end
 
 -- Translate items in a circle
-function Ring:Translate(center, radius, rotationOffset, alpha)
-    alpha = alpha or 1.0
+function Ring:Translate(center, radius, rotationOffset)
     center = center or self.position
     radius = radius or Ring.RING_RADIUS
     rotationOffset = rotationOffset or 0
@@ -249,14 +253,27 @@ function Ring:Translate(center, radius, rotationOffset, alpha)
     if itemCount == 0 then return end
 
     for i = 1, itemCount do
-        local currentItem = self.items[i].objectID
-        local currentDisplayItem = self.items[i]:GetDisplayItem()
-        if currentDisplayItem then
-            local angleDeg = (360 / itemCount) * (i - 1) + rotationOffset
-            local position = center:Translate(Rotation(0, angleDeg, 0), radius)
-            currentDisplayItem:SetPosition(Utilities.OffsetY(position, self.items[i].yOffset))
-        end
+        local currentItem = self.items[i]
+
+        local angleDeg = (360 / itemCount) * (i - 1) + rotationOffset
+        local position = center:Translate(TEN.Rotation(0, angleDeg, 0), radius)
+
+        local itemPosition = position
+        local itemRotation = TEN.Rotation(0, angleDeg, 0)
+
+        self.itemsPositions[currentItem.objectID] = itemPosition
+        self.itemsRotations[currentItem.objectID] = itemRotation
+        currentItem:SetWorldPosition(itemPosition)
+        currentItem:SetWorldRotation(itemRotation)
     end
+end
+
+function Ring:GetItemPosition(item)
+    return self.itemsPositions[item.objectID]
+end
+
+function Ring:GetItemRotation(item)
+    return self.itemsRotations[item.objectID]
 end
 
 -- Color items in the ring
