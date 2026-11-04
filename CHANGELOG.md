@@ -16,6 +16,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 * Fixed GUARD enemies not being alerted by player gunfire.
 * Fixed TURN_SWITCH interaction highlight icon position.
+* Fixed SPIKY_WALL default speed and collision with floor room geometry.
+* Fixed UPV water surface dismount.
 * Fixed static meshes in flipped rooms being lit with ambient light of the original room.
 * Fixed flyby camera roll persisting after the sequence ends.
 
@@ -24,6 +26,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `ParticleGroup:IsActive` method to check if the group's emitter is currently running.
 * Added `ParticleGroup:IsValid` method to check if the group still exists and is usable.
 * Added `Flow.Settings.Effects.waterEffectStrength` and `Flow.Settings.Effects.waterEffectDepth` settings to customize underwater wave effect.
+* Fixed `Flow.DoesSaveGameExist` returning false for savegames of other levels, which prevented ring inventory from loading them.
+* Fixed ring inventory menus and `CustomDiary` page turning using movement actions instead of menu navigation actions.
 
 ## [Version 2.0.1]
 
