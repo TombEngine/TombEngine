@@ -15,6 +15,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 * Fixed GUARD enemies not being alerted by player gunfire.
 * Fixed TURN_SWITCH interaction highlight icon position.
+* Fixed SPIKY_WALL default speed and collision with floor room geometry.
 * Fixed static meshes in flipped rooms being lit with ambient light of the original room.
 * Fixed flyby camera roll persisting after the sequence ends.
 

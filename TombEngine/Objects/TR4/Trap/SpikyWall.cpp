@@ -25,13 +25,14 @@ using namespace TEN::Math;
 
 namespace TEN::Entities::Traps
 {
+	constexpr auto SPIKY_WALL_DEFAULT_SPEED = 8;
 	constexpr auto SPIKY_WALL_HARM_DAMAGE = 15;
 
 	void InitializeSpikyWall(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
 
-		item.ItemFlags[0] = item.TriggerFlags;
+		item.ItemFlags[0] = item.TriggerFlags ? item.TriggerFlags : SPIKY_WALL_DEFAULT_SPEED;
 		item.ItemFlags[1] = 0;
 	}
 
@@ -42,7 +43,7 @@ namespace TEN::Entities::Traps
 		if (!TriggerActive(&item))
 			return;
 
-		item.ItemFlags[0] = item.TriggerFlags;
+		item.ItemFlags[0] = item.TriggerFlags ? item.TriggerFlags : SPIKY_WALL_DEFAULT_SPEED;
 		
 		if (item.ItemFlags[1] && item.ItemFlags[0])
 			item.ItemFlags[1] -= 1;
@@ -68,7 +69,7 @@ namespace TEN::Entities::Traps
 				{
 					itemPtr->TriggerFlags = 0;
 
-					item.TriggerFlags = 0;
+					item.ItemFlags[0] = item.TriggerFlags = 0;
 					item.Status = ITEM_DEACTIVATED;
 					item.ItemFlags[1] = 10;
 
@@ -78,10 +79,12 @@ namespace TEN::Entities::Traps
 		}
 
 		// Stop moving.
-		if (!item.TriggerFlags ||
-			pointColl0.GetSector().IsWall(item.Pose.Position.x, item.Pose.Position.z) || 
+		if (!item.ItemFlags[0] ||
+			pointColl0.GetSector().IsWall(item.Pose.Position.x, item.Pose.Position.z) ||
+			pointColl0.GetFloorHeight() < item.Pose.Position.y + bounds.Y2 - CLICK(1) ||
 			pointColl0.GetSector().Stopper ||
 			pointColl1.GetSector().IsWall(item.Pose.Position.x, item.Pose.Position.z) ||
+			pointColl1.GetFloorHeight() < item.Pose.Position.y + bounds.Y2 - CLICK(1) ||
 			pointColl1.GetSector().Stopper)
 		{
 			auto& room = g_Level.Rooms[item.RoomNumber];
