@@ -152,10 +152,7 @@ namespace TEN::Entities::Traps
 			SoundEffect(SFX_TR4_LARA_GRABFEET, &playerItem->Pose);
 
 			// Push player.
-			float vel = playerItem->Animation.Velocity.z;
-			playerItem->Pose.Position = Geometry::TranslatePoint(
-				playerItem->Pose.Position, item.Pose.Orientation.y,
-				(item.ItemFlags[0] > 0) ? (item.ItemFlags[0] + vel) : (item.ItemFlags[0] - vel));
+			ItemPushItem(&item, playerItem, coll, coll->Setup.EnableSpasm, 0);
 		}
 	}
 }
