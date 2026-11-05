@@ -1221,6 +1221,32 @@ namespace TEN::Controls::Modern
 		return true;
 	}
 
+	// Drops movement input while the crawl grab turns the player to hang, so the solver does not turn her back.
+	static bool HoldCrawlSafetyGrabInput(ItemInfo& item, PlayerInput& input)
+	{
+		auto& player = GetLaraInfo(item);
+		if (!player.Control.Modern.IsCrawlSafetyGrabTurning)
+			return false;
+
+		if (!IsOnKnees(item))
+		{
+			player.Control.Modern.IsCrawlSafetyGrabTurning = false;
+			return false;
+		}
+
+		player.Control.RefMoveAxis = Vector2::Zero;
+		input.Forward = false;
+		input.Back = false;
+		input.Left = false;
+		input.Right = false;
+		input.StepLeft = false;
+		input.StepRight = false;
+		input.Sprint = false;
+		input.Jump = false;
+		input.Roll = false;
+		return true;
+	}
+
 	// Rewrites the movement actions so the stick moves the player relative to the camera.
 	// On the ground the heading solver turns her, so a push becomes Forward, and a push toward the camera a fast 180.
 	static void TransformInput(ItemInfo& item, PlayerInput& input, PlayerInput& heldWithoutClickInput)
@@ -1244,6 +1270,12 @@ namespace TEN::Controls::Modern
 		// A pending rise on knees centers the stick, so the rewrite leaves Forward and Back off until the rise plays.
 		if (player.Control.Modern.IsCrouchStageUp)
 			player.Control.RefMoveAxis = Vector2::Zero;
+
+		if (HoldCrawlSafetyGrabInput(item, input))
+		{
+			player.Control.TurnRate = 0;
+			return;
+		}
 
 		UpdateJumpRollLatch(item);
 

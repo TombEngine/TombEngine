@@ -1789,6 +1789,10 @@ CrawlVaultTestResult TestLaraCrawlVault(ItemInfo* item, CollisionInfo* coll)
 	crawlVaultResult = TestLaraCrawlExitJump(item, coll);
 	if (crawlVaultResult.Success)
 	{
+		// Remastered controls fix: without it, Fire/Grab alone jumps the player out of a crawlspace over a drop. -- divezzi, 04.11.26
+		if (g_Configuration.IsUsingRemasteredControls() && !IsHeld(In::Jump))
+			return CrawlVaultTestResult{ false };
+
 		if (IsHeld(In::Walk))
 			crawlVaultResult.TargetState = LS_CRAWL_EXIT_FLIP;
 		else
