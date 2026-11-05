@@ -72,8 +72,11 @@ end
 function InventoryItem:SetColor(color)
     self.displayData.color = color
     if self.displayData.displayItem then
-        self.displayData.displayItem.SetColor(color)
+        self.displayData.displayItem:SetColor(color)
     end
+end
+function InventoryItem:GetColor()
+    return self.displayData.color
 end
 
 function InventoryItem:SetAdditionalPosition(position)
@@ -176,11 +179,7 @@ function InventoryItem:Draw()
         
     end ]]
     
-    -- TODO - refactor in progress, colors are not handled correctly yet - for now just force 1 color to see the inventory
-    self.displayData.displayItem:SetColor(Color(128, 128, 128, 204))
-    
     self.displayData.displayItem:Draw()
-
 end
 
 -- ============================================================================
@@ -220,7 +219,7 @@ function InventoryItem.New(data)
             scale = TEN.Vec3(1, 1, 1),
         },
         displayLocationDirty = true,
-        color = --[[ data.color or ]] COLOR_MAP.neutral, --[[ TODO color should probably be called in the data passed to this constructor - check call ]]
+        color = data.color or COLOR_MAP.neutral,
         displayItem = nil
     }
     self:RefreshDisplayLocation()

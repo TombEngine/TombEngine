@@ -109,14 +109,11 @@ function RingLighting.ProcessItemFades()
             goto continue
         end
         
-        --[[
-         -- TODO: this has some direct displayItem access for Color manipulation, that will have to go as well
-         -- Commented out for now, because we're getting rid of the displayItem access so the code below will probably either interfere (if not fail)
         if state.isFading then
-            local displayItem = state.item:GetDisplayItem()
-            local currentColor = displayItem:GetColor()
+            local item = state.item
+            local currentColor = item:GetColor()
             local interpolatedColor = Interpolate.Lerp(currentColor, state.targetColor, 1 - (1 - (state.fadeSpeed or FADE_SPEED)) ^ 2, Interpolate.Easing.Linear)
-            displayItem:SetColor(interpolatedColor)
+            item:SetColor(interpolatedColor)
             
             -- Check if fade is complete
             local threshold = 2
@@ -124,10 +121,10 @@ function RingLighting.ProcessItemFades()
                math.abs(state.targetColor.g - interpolatedColor.g) < threshold and
                math.abs(state.targetColor.b - interpolatedColor.b) < threshold and
                math.abs(state.targetColor.a - interpolatedColor.a) < threshold then
-                displayItem:SetColor(state.targetColor)
+                item:SetColor(state.targetColor)
                 state.isFading = false
             end
-        end ]]
+        end
         
         ::continue::
     end
