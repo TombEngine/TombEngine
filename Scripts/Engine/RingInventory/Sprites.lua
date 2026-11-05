@@ -70,19 +70,79 @@ local function DrawArrows()
 
 end
 
+local function Draw9SliceBackground(x, y, width, height, cornerW, cornerH, objID, sprites, color, layer, blendMode)
+    -- Calculate inner width/height (Percentages)
+    local innerW = width - (cornerW * 2)
+    local innerH = height - (cornerH * 2)
+
+    -- Row Y positions
+    local yTop    = y
+    local yMid    = y + cornerH
+    local yBottom = y + height - cornerH
+
+    -- Column X positions
+    local xLeft  = x
+    local xMid   = x + cornerW
+    local xRight = x + width - cornerW
+
+    -- 1. Corners (Fixed percent aspect)
+    TEN.View.DisplaySprite(objID, sprites[1], TEN.Vec2(xLeft, yTop), 0, TEN.Vec2(cornerW, cornerH), color):Draw(layer, TEN.View.AlignMode.TOP_LEFT, TEN.View.ScaleMode.STRETCH, blendMode)
+    TEN.View.DisplaySprite(objID, sprites[3], TEN.Vec2(xRight, yTop), 0, TEN.Vec2(cornerW, cornerH), color):Draw(layer, TEN.View.AlignMode.TOP_LEFT, TEN.View.ScaleMode.STRETCH, blendMode)
+    TEN.View.DisplaySprite(objID, sprites[7], TEN.Vec2(xLeft, yBottom), 0, TEN.Vec2(cornerW, cornerH), color):Draw(layer, TEN.View.AlignMode.TOP_LEFT, TEN.View.ScaleMode.STRETCH, blendMode)
+    TEN.View.DisplaySprite(objID, sprites[9], TEN.Vec2(xRight, yBottom), 0, TEN.Vec2(cornerW, cornerH), color):Draw(layer, TEN.View.AlignMode.TOP_LEFT, TEN.View.ScaleMode.STRETCH, blendMode)
+
+    -- 2. Edges (Stretched)
+    TEN.View.DisplaySprite(objID, sprites[2], TEN.Vec2(xMid, yTop), 0, TEN.Vec2(innerW, cornerH), color):Draw(layer, TEN.View.AlignMode.TOP_LEFT, TEN.View.ScaleMode.STRETCH, blendMode)
+    TEN.View.DisplaySprite(objID, sprites[8], TEN.Vec2(xMid, yBottom), 0, TEN.Vec2(innerW, cornerH), color):Draw(layer, TEN.View.AlignMode.TOP_LEFT, TEN.View.ScaleMode.STRETCH, blendMode)
+    TEN.View.DisplaySprite(objID, sprites[4], TEN.Vec2(xLeft, yMid), 0, TEN.Vec2(cornerW, innerH), color):Draw(layer, TEN.View.AlignMode.TOP_LEFT, TEN.View.ScaleMode.STRETCH, blendMode)
+    TEN.View.DisplaySprite(objID, sprites[6], TEN.Vec2(xRight, yMid), 0, TEN.Vec2(cornerW, innerH), color):Draw(layer, TEN.View.AlignMode.TOP_LEFT, TEN.View.ScaleMode.STRETCH, blendMode)
+
+    -- 3. Center
+    TEN.View.DisplaySprite(objID, sprites[5], TEN.Vec2(xMid, yMid), 0, TEN.Vec2(innerW, innerH), color):Draw(layer, TEN.View.AlignMode.TOP_LEFT, TEN.View.ScaleMode.STRETCH, blendMode)
+end
+
 local function DrawBackground(alpha)
     if Settings.Background.enable then
-        local capped    = math.min(alpha, Settings.Background.alpha)
-        local bgColor   = Utilities.ColorCombine(Settings.Background.color, capped)
-        local bgSprite  = TEN.View.DisplaySprite(
-            Settings.Background.objectID,
-            Settings.Background.spriteID,
-            Settings.Background.position,
-            Settings.Background.rotation,
-            Settings.Background.scale,
-            bgColor
-        )
-        bgSprite:Draw(BG_LAYER, Settings.Background.alignMode, Settings.Background.scaleMode, Settings.Background.blendMode)
+        local bgSettings = Settings.Background
+        local capped    = math.min(alpha, bgSettings.alpha)
+        local bgColor   = Utilities.ColorCombine(bgSettings.color, capped)
+        
+        if bgSettings.sliced then
+            local screenSize = TEN.Util.PercentToScreen(TEN.Vec2(100, 100))
+            local screenWidth = screenSize.x
+            local screenHeight = screenSize.y
+            local blendMode = bgSettings.blendMode
+            
+            -- Overall dimensions (Percentages)
+            local width = bgSettings.scale.x
+            local height = bgSettings.scale.y
+            local x = bgSettings.position.x - (width / 2)
+            local y = bgSettings.position.y - (height / 2)
+            
+            -- Convert corner pixel size to percentage of screen width and height
+            local cornerPixels = bgSettings.slicedCornerSize or 16
+            local cornerW = (cornerPixels / screenWidth) * 100
+            local cornerH = (cornerPixels / screenHeight) * 100
+            
+            Draw9SliceBackground(
+                x, y, width, height, cornerW, cornerH,
+                bgSettings.slicedObjectID or bgSettings.objectID, 
+                bgSettings.slicedSpriteIDs or {2, 3, 4, 5, 6, 7, 8, 9, 10},
+                bgColor,     
+                BG_LAYER,
+                blendMode
+            )
+        else
+            local bgSprite = TEN.View.DisplaySprite(
+                bgSettings.objectID,
+                bgSettings.spriteID,
+                bgSettings.position,
+                bgSettings.rotation,
+                bgSettings.scale,
+                bgColor
+            )
+            bgSprite:Draw(BG_LAYER, bgSettings.alignMode, bgSettings.scaleMode, bgSettings.blendMode)
+        end
     end
 end
 

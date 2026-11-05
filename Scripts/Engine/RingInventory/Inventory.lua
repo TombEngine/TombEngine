@@ -207,9 +207,8 @@ InventoryModule.SetSettings = function(newSettings)
     for section, values in pairs(newSettings) do
         if Settings[section] ~= nil then
             for setting, value in pairs(values) do
-                if Settings[section][setting] ~= nil then
-                    Settings[section][setting] = value
-                end
+                -- Allow adding or updating settings dynamically
+                Settings[section][setting] = value
             end
         end
     end
@@ -240,15 +239,18 @@ end
 -- @tfield[opt=TEN.Vec2(50&#44; 50)] Vec2 position X,Y position of the background sprite in screen percent (0-100).
 
 --- Rotation of the background sprite in degrees.
+-- Ignored if `sliced` is enabled
 -- @tfield[opt=0] float rotation Rotation of the background's sprite (0-360), in degrees.
 
 --- Scale of the background sprite as a percentage of screen size.
 -- @tfield[opt=TEN.Vec2(100&#44; 100)] Vec2 scale X,Y Scaling factor for the background's sprite.
 
 --- Alignment mode used when positioning the background sprite.
+-- Ignored if `sliced` is enabled
 -- @tfield[opt=TEN.View.AlignMode.CENTER] View.AlignMode alignMode Alignment for the background's sprite.
 
 --- Scaling mode used when sizing the background sprite.
+-- Ignored if `sliced` is enabled
 -- @tfield[opt=TEN.View.ScaleMode.STRETCH] View.ScaleMode scaleMode Scaling for the background's sprite.
 
 --- Blend mode used when rendering the background sprite.
@@ -256,6 +258,23 @@ end
 
 --- Overall opacity of the background sprite.
 -- @tfield[opt=255] int alpha Opacity value from 0 (fully transparent) to 255 (fully opaque).
+
+--- Whether to use sliced scaling for the background sprite to prevent border distortion.
+-- If enabled, the `slicedSpriteIDs` must be added to the TEN.Objects.ObjID.INVENTORY_SPRITES object using these spriteID:
+-- 
+-- * ID #2. Top-Left corner
+-- * ID #3. Top edge (Stretches horizontally)
+-- * ID #4. Top-Right corner
+-- * ID #5. Left edge (Stretches vertically)
+-- * ID #6. Center (Stretches on both axes)
+-- * ID #7. Right edge (Stretches vertically)
+-- * ID #8. Bottom-Left corner
+-- * ID #9. Bottom edge (Stretches horizontally)
+-- * ID #10. Bottom-Right corner
+-- @tfield[opt=false] bool sliced Enables sliced rendering.
+
+--- The corner size in pixels for the sliced background borders.
+-- @tfield[opt=10] int slicedCornerSize
 
 --- SoundMap
 -- @section SoundMap

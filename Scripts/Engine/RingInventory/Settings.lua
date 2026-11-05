@@ -41,7 +41,11 @@ Settings.Background =
     alignMode = TEN.View.AlignMode.CENTER,
     scaleMode = TEN.View.ScaleMode.STRETCH,
     blendMode = TEN.Effects.BlendID.ALPHA_BLEND,
-    alpha = 64
+    alpha = 64,
+    sliced = false,
+    slicedCornerSize = 10,
+    slicedObjectID = TEN.Objects.ObjID.INVENTORY_SPRITES, 
+    slicedSpriteIDs = {2, 3, 4, 5, 6, 7, 8, 9, 10}
 }
 
 Settings.Animation =
