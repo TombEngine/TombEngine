@@ -173,8 +173,8 @@ end
 
 -- Offset all rings
 function InventoryData.OffsetAll(currentRing, targetRing)
-    local currentRingCenter = Ring:GetCenterByType(currentRing.type)
-    local targetRingCenter = Ring:GetCenterByType(targetRing.type)
+    local currentRingCenter = currentRing:GetCenter()
+    local targetRingCenter = targetRing:GetCenter()
     local offsetPosition = targetRingCenter - currentRingCenter
     for _, ring in pairs(rings) do
         ring:OffsetPosition(offsetPosition)
@@ -188,11 +188,6 @@ function InventoryData.SetVisibility(visible, omitSelectedRing)
             ring:SetVisibility(visible)
         end
     end
-end
-
--- Iterator for all rings
-function InventoryData.IterateRings()
-    return pairs(rings)
 end
 
 -- Read gameflow overrides for items

@@ -4,7 +4,6 @@
 
 --External Modules
 local Settings = require("Engine.RingInventory.Settings")
--- require("Addons.print_r")
 
 --Pointers to constant tables
 local COLOR_MAP = Settings.ColorMap
@@ -165,20 +164,6 @@ function InventoryItem:Draw()
         self:CreateDisplayItem()
     end
     self:RefreshDisplayLocation()
-
-    --[[ if GameVars.itemIdToCheck == self.objectID then
-        print('============================================= Displaying item = '..tostring(self.objectID));
-        print('self.displayData.locationLocal = ');
-        print_r(self.displayData.locationLocal);
-        print('self.displayData.locationAdditional = ');
-        print_r(self.displayData.locationAdditional);
-        print('self.displayData.locationWorld = ');
-        print_r(self.displayData.locationWorld);
-        print('self.displayData.locationDisplay = ');
-        print_r(self.displayData.locationDisplay);
-        
-    end ]]
-    
     self.displayData.displayItem:Draw()
 end
 
