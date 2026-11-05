@@ -14,6 +14,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
   * Camera-relative player movement on land, in water and in fly mode.
   * Orbit camera with mouse look, camera collision and vertical axis inversion option, reset behind the player with Look input action.
   * Camera-relative standing jumps and mid-air rolls.
+  * Tank crawl with Walk input action in I-III Remastered control mode.
   * Grabbing with Fire input action, with safety grab and crawlspace edge grab.
   * Hold-to-aim weapon handling with Draw input action and shooting with Fire input action.
   * Weapon selection with mouse wheel.

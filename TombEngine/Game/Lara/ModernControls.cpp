@@ -284,11 +284,10 @@ namespace TEN::Controls::Modern
 		}
 	}
 
-	// Walk with a pure sideways push, read from the raw keys. The stock crawl turn plays.
-	static bool IsCrawlTurnHeld()
+	// Walk on knees plays the stock tank crawl.
+	static bool IsCrawlWalkHeld()
 	{
-		return (IsRawActionHeld(In::Walk) && (IsRawActionHeld(In::Left) || IsRawActionHeld(In::Right)) &&
-				!IsRawActionHeld(In::Forward) && !IsRawActionHeld(In::Back));
+		return IsRawActionHeld(In::Walk);
 	}
 
 	// A script pushed a direction this frame. That tick plays classic.
@@ -400,7 +399,7 @@ namespace TEN::Controls::Modern
 		case LS_CRAWL_IDLE:
 		case LS_CRAWL_TURN_LEFT:
 		case LS_CRAWL_TURN_RIGHT:
-			if (IsCrawlTurnHeld())
+			if (IsCrawlWalkHeld())
 				return InputScope::None;
 
 			rate = TURN_RATE_CRAWL_IDLE;
@@ -409,6 +408,9 @@ namespace TEN::Controls::Modern
 
 		case LS_CRAWL_FORWARD:
 		case LS_CRAWL_BACK:
+			if (IsCrawlWalkHeld())
+				return InputScope::None;
+
 			rate = TURN_RATE_CRAWL;
 			stepMax = TURN_STEP_MAX_CRAWL;
 			return InputScope::Ground;
@@ -1252,7 +1254,6 @@ namespace TEN::Controls::Modern
 	static void TransformInput(ItemInfo& item, PlayerInput& input, PlayerInput& heldWithoutClickInput)
 	{
 		constexpr auto BACK_ARC_MIN_ANGLE	= ANGLE(135.0f);
-		constexpr auto CRAWL_BACK_ARC_ANGLE = ANGLE(45.0f);
 		constexpr auto ARMED_TURN_MIN_ANGLE = ANGLE(1.0f);
 
 		auto& player = GetLaraInfo(item);
@@ -1389,22 +1390,6 @@ namespace TEN::Controls::Modern
 		dir.Normalize();
 		short moveAxisAngle = FROM_RAD(std::atan2(dir.x, dir.y));
 		bool isPushingBack = (abs((int)moveAxisAngle) >= BACK_ARC_MIN_ANGLE);
-
-		// Walk with a push toward the camera on knees, facing away from it: the stock crawl back plays.
-		if (input.Walk && isPushingBack &&
-			(item.Animation.ActiveState == LS_CRAWL_IDLE ||
-			 item.Animation.ActiveState == LS_CRAWL_FORWARD ||
-			 item.Animation.ActiveState == LS_CRAWL_BACK))
-		{
-			short frameDeltaAngle = Geometry::GetShortestAngle(item.Pose.Orientation.y, player.Control.RefCameraOrient.y);
-			if (abs((int)frameDeltaAngle) <= CRAWL_BACK_ARC_ANGLE)
-			{
-				player.Control.Modern.BackResolution = ModernBackResolution::TankBack;
-				input.Left = false;
-				input.Right = false;
-				return;
-			}
-		}
 
 		// Weapons drawn, standing: a pure push toward the camera steps the player back without turning her.
 		bool isBackAlone = (input.Back && !input.Left && !input.Right);
