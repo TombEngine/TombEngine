@@ -116,7 +116,7 @@ function RingLighting.ProcessItemFades()
             item:SetColor(interpolatedColor)
             
             -- Check if fade is complete
-            local threshold = 2
+            local threshold = 6
             if math.abs(state.targetColor.r - interpolatedColor.r) < threshold and
                math.abs(state.targetColor.g - interpolatedColor.g) < threshold and
                math.abs(state.targetColor.b - interpolatedColor.b) < threshold and
