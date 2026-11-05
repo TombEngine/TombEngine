@@ -132,8 +132,6 @@ end
 
 -- Set colors for a ring (call once when ring colors change)
 function RingLighting.SetRingColors(ring, color, selectedItemColor, fadeSpeed)
-    if not ring then return end
-    
     local ringType = ring:GetType()
     
     RingLighting.InitializeRing(ring, color, selectedItemColor)

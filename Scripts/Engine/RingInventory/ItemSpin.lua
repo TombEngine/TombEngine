@@ -70,7 +70,7 @@ function ItemSpin.ClearRingState(ring)
     for _, item in ipairs(items) do
         if item and item.objectID then
             local spinKey = ringName .. "Spin" .. item:GetObjectID()
-            LevelVars.Engine.InterpolateProgress[spinKey] = nil
+            Interpolate.Clear(spinKey)
         end
     end
 
@@ -127,7 +127,7 @@ function ItemSpin.UpdateRing(ringState)
                 -- Clear potential residual spinback data, if the item was in the middle of a spinback before selection
                 if state.spinback then
                     state.spinback = nil
-                    LevelVars.Engine.InterpolateProgress[spinKey] = nil
+                    Interpolate.Clear(spinKey)
                 end
             else
                 local wasSpinning = state.isSpinning
@@ -151,7 +151,7 @@ function ItemSpin.UpdateRing(ringState)
                     -- Spinback finished: clear its animation data
                     if result.progress >= 1 then
                         state.spinback = nil
-                        LevelVars.Engine.InterpolateProgress[spinKey] = nil
+                        Interpolate.Clear(spinKey)
                     end
                 end
             end
