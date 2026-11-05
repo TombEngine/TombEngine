@@ -559,6 +559,14 @@ local HandleItemDeselect = function(state)
     if Animation.Inventory(inventoryMode, state.selectedRing, state.selectedItem) then
         InventoryData.SetChosenItem(nil)
         ItemSpin.StartSelectedItemSpin(state.selectedRing)
+
+        if InventoryData.HasRing(Ring.COMBINE_TYPE) then
+            InventoryData.Clear(Ring.COMBINE_TYPE)
+        end
+        if InventoryData.HasRing(Ring.AMMO_TYPE) then
+            InventoryData.Clear(Ring.AMMO_TYPE)
+        end
+
         onEnter = true
         InventoryStates.SetMode(InventoryStates.MODE.INVENTORY)
     end
