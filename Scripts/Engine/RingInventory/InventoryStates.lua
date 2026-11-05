@@ -316,7 +316,10 @@ InventoryStates.GetNeighbourRingType = function(selectedRingType, direction)
         targetRingIndex = targetRingIndex + direction
         targetRing = Ring.PRIMARY_TYPES__ORDER_TO_TYPE[targetRingIndex]
 
-        if targetRing and Utilities.Contains(Ring.PRIMARY_TYPES, targetRing) and not InventoryData.GetRing(targetRing):IsEmpty() then
+        if targetRing and
+           Utilities.Contains(Ring.PRIMARY_TYPES, targetRing) and
+           InventoryData.HasRing(targetRing) and
+           not InventoryData.GetRing(targetRing):IsEmpty() then
             return targetRing
         end
     end
@@ -328,8 +331,8 @@ local CreateStateContext = function()
     local context = {}
 
     context.RefreshSelection = function(self)
-        self.selectedRing = InventoryData.GetSelectedRing()
-        self.selectedItem = self.selectedRing:GetSelectedItem()
+        self.selectedRing = InventoryData.GetSelectedRing() or InventoryData.CreateRing(Ring.DEFAULT_TYPE)
+        self.selectedItem = self.selectedRing and self.selectedRing:GetSelectedItem() or nil
     end
 
     context:RefreshSelection()
@@ -549,9 +552,12 @@ local HandleItemDeselect = function(state)
         ItemMenu.Hide()
         state.selectedRing:Color(COLOR_MAP.itemDeselected, COLOR_MAP.itemSelected)
 
-        local ammoRing = InventoryData.GetRing(Ring.AMMO_TYPE)
-        ItemSpin.StopSpin(ammoRing)
-        ammoRing:Color(COLOR_MAP.itemHidden, COLOR_MAP.itemHidden)
+        if InventoryData.HasRing(Ring.AMMO_TYPE) then
+            local ammoRing = InventoryData.GetRing(Ring.AMMO_TYPE)
+            ItemSpin.StopSpin(ammoRing)
+            ammoRing:Color(COLOR_MAP.itemHidden, COLOR_MAP.itemHidden)
+        end
+
         Sprites.ShowArrows()
         onEnter = false
     end
@@ -794,7 +800,7 @@ local HandleCombineClose = function(state)
         InventoryData.SetOpenAtItem(combineCloseTargetObjectID)
         InventoryData.SetChosenItem(nil)
         Combine.ClearResults()
-        InventoryData.RemoveRing(Ring.COMBINE_TYPE)
+        InventoryData.ClearAll()
         InventoryData.Construct()
         InventoryData.OpenAtItem(InventoryData.GetOpenAtItem(), true)
 

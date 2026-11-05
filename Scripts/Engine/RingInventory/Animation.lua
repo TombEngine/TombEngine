@@ -175,16 +175,18 @@ function Animation.Inventory(mode, selectedRing, selectedItem)
             allMotionComplete = false
         end
 
-        local ammoRing = InventoryData.GetRing(Ring.AMMO_TYPE)
-        local ringAnimation =
-        {
-            {key = "ringRadius", start = 0, finish = Ring.RING_RADIUS},
-            {key = "ringAngle", start = ammoRing:GetCurrentAngle(), finish = ammoRing:GetCurrentAngle()},
-            {key = "ringCenter", start = ammoRing:GetPosition(), finish = ammoRing:GetPosition()},
-        }
+        if InventoryData.HasRing(Ring.AMMO_TYPE) then
+            local ammoRing = InventoryData.GetRing(Ring.AMMO_TYPE)
+            local ringAnimation =
+            {
+                {key = "ringRadius", start = 0, finish = Ring.RING_RADIUS},
+                {key = "ringAngle", start = ammoRing:GetCurrentAngle(), finish = ammoRing:GetCurrentAngle()},
+                {key = "ringCenter", start = ammoRing:GetPosition(), finish = ammoRing:GetPosition()},
+            }
 
-        if not Animation.PerformBatchMotion("CombineRingOpening", ringAnimation, Settings.Animation.inventoryAnimTime, true, ammoRing) then
-            allMotionComplete = false
+            if not Animation.PerformBatchMotion("CombineRingOpening", ringAnimation, Settings.Animation.inventoryAnimTime, true, ammoRing) then
+                allMotionComplete = false
+            end
         end
 
         if allMotionComplete then

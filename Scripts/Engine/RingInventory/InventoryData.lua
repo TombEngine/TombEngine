@@ -41,10 +41,24 @@ function InventoryData.Reset()
 end
 
 -- Get or create a ring by type
-function InventoryData.GetRing(ringType)
+function InventoryData.GetOrCreateRing(ringType)
     if not rings[ringType] then
-        rings[ringType] = Ring.Create(ringType)
+        InventoryData.CreateRing(ringType)
     end
+    return rings[ringType]
+end
+
+function InventoryData.CreateRing(ringType)
+    if rings[ringType] then
+        -- TODO: Hopefully, ring management is clean so we never get here and this can be removed entirely.
+        TEN.Util.PrintLog("<InventoryData.CreateRing> ringType '"..tostring(ringType).."' already exists! Skipping.", TEN.Util.LogLevel.WARNING)
+        return rings[ringType]
+    end
+    rings[ringType] = Ring.Create(ringType)
+    return rings[ringType]
+end
+
+function InventoryData.GetRing(ringType)
     return rings[ringType]
 end
 
@@ -115,7 +129,7 @@ function InventoryData.SetupSecondaryRing(ringType, item, keepCurrentRing)
     item = item or (currentRing and currentRing:GetSelectedItem())
     
     -- Get or create the new ring
-    local newRing = InventoryData.GetRing(ringType)
+    local newRing = InventoryData.CreateRing(ringType)
     
     InventoryData.Construct(ringType, item)
     
@@ -145,21 +159,6 @@ function InventoryData.FindItem(objectID)
         end
     end
     return nil, nil, nil
-end
-
--- Remove a ring
-function InventoryData.RemoveRing(ringType)
-    if rings[ringType] then
-        ItemSpin.ClearRingState(rings[ringType])
-        rings[ringType] = nil
-        
-        -- If we removed the selected ring, switch to main
-        if selectedRingType == ringType then
-            selectedRingType = Ring.DEFAULT_TYPE
-        end
-        return true
-    end
-    return false
 end
 
 -- Color all rings
@@ -240,12 +239,6 @@ function InventoryData.Construct(ringType, selectedWeapon)
     local selectedWeaponID = selectedWeapon and selectedWeapon:GetObjectID()
     local items = PickupData.CONSTANTS
     
-    if ringType == Ring.AMMO_TYPE or ringType == Ring.COMBINE_TYPE then
-        InventoryData.Clear(ringType)
-    else
-        InventoryData.ClearAll()
-    end
-    
     for _, itemRow in ipairs(items) do
         local itemData = PickupData.ConvertRowData(itemRow)
         local data = InventoryData.BuildItem(itemData)
@@ -308,7 +301,7 @@ function InventoryData.Construct(ringType, selectedWeapon)
         
         if shouldInsert or ammoRing then
             -- Get or create the ring for this item
-            local ring = InventoryData.GetRing(data.ringName)
+            local ring = InventoryData.GetOrCreateRing(data.ringName)
             
             -- TODO: if this is a color specific to the entire ring, maybe let the ring do that?
             -- and then store both a base item color + an additional color that the ring will set? (similarly to how it's now done with item locations)
@@ -333,13 +326,25 @@ end
 
 function InventoryData.InitializeRingPositions(ringType)
     local selectedRing = InventoryData.GetSelectedRing()
-    local base = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[selectedRing.type]
+    local selectedPrimaryRing = InventoryData.GetSelectedRing()
+
+    -- TODO: Temporary handling, until rings properly manage their own positions (in a way that allows customizations). This function might even go away entirely soon.
+    -- Currently, we really make calculations for PRIMARY rings. These calculations take into account:
+    -- - The pre-defined "base position" for the primary ring in focus
+    -- - The pre-defined space between each primary ring
+    -- - The global offset on all rings, required get the actually selected primary ring into the pre-defined focus position
+    -- For SECONDARY rings, we skip calculations, and the function calls really just return the predefined position for secondary rings.
+    local base = 1
+    if selectedPrimaryRing and Utilities.Contains(Ring.PRIMARY_TYPES, selectedPrimaryRing.type) then
+        base = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[selectedRing.type]
+    end
 
     -- This works but... what the hell?
     local ringReferencePosition = Ring:GetCenterByType(Ring.DEFAULT_TYPE)
 
-    for rType, r in pairs(rings) do
+    for _, r in pairs(rings) do
 
+        local rType = r.type
         if ringType and ringType ~= rType then
             goto continue
         end
@@ -395,9 +400,11 @@ function InventoryData.Clear(ringType)
     local ring = InventoryData.GetRing(ringType)
     
     if ring then
+        ItemSpin.ClearRingState(ring)
         ring:Clear()
+        rings[ringType] = nil
 
-    -- If we cleared the selected ring, switch to main
+        -- If we cleared the selected ring, switch to main
         if selectedRingType == ringType then
             selectedRingType = Ring.DEFAULT_TYPE
         end
@@ -412,7 +419,7 @@ end
 
 function InventoryData.ClearAll()
     for ringType, ring in pairs(rings) do
-        ring:Clear()
+        InventoryData.Clear(ringType)
     end
 
     combineCount = 0

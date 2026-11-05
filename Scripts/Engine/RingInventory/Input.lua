@@ -56,6 +56,7 @@ function Inputs.Update(mode, timeInMenu)
     timer = timeInMenu
 
     local selectedRing = InventoryData.GetSelectedRing()
+    if not selectedRing then return end
     local selectedRingType = InventoryData.GetSelectedRingType()
     local selectedItem = selectedRing:GetSelectedItem()
 
