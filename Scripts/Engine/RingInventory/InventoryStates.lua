@@ -331,7 +331,7 @@ local CreateStateContext = function()
     local context = {}
 
     context.RefreshSelection = function(self)
-        self.selectedRing = InventoryData.GetSelectedRing() or InventoryData.CreateRing(Ring.DEFAULT_TYPE)
+        self.selectedRing = InventoryData.GetSelectedRing()
         self.selectedItem = self.selectedRing and self.selectedRing:GetSelectedItem() or nil
     end
 
