@@ -308,19 +308,19 @@ InventoryStates.StartRingChange = function(targetRingType, offsetDirection)
 end
 
 InventoryStates.GetNeighbourRingType = function(selectedRingType, direction)
-    local selectedRingTypeIndex = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[selectedRingType]
-    local targetRingIndex = selectedRingTypeIndex
-    local targetRing = Ring.PRIMARY_TYPES__ORDER_TO_TYPE[targetRingIndex]
+    local selectedRingTypeOrder = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[selectedRingType]
+    local targetRingOrder = selectedRingTypeOrder
+    local targetRingType = Ring.PRIMARY_TYPES__ORDER_TO_TYPE[targetRingOrder]
 
-    while targetRing ~= nil do
-        targetRingIndex = targetRingIndex + direction
-        targetRing = Ring.PRIMARY_TYPES__ORDER_TO_TYPE[targetRingIndex]
+    while targetRingType ~= nil do
+        targetRingOrder = targetRingOrder + direction
+        targetRingType = Ring.PRIMARY_TYPES__ORDER_TO_TYPE[targetRingOrder]
 
-        if targetRing and
-           Utilities.Contains(Ring.PRIMARY_TYPES, targetRing) and
-           InventoryData.HasRing(targetRing) and
-           not InventoryData.GetRing(targetRing):IsEmpty() then
-            return targetRing
+        if targetRingType and
+           Utilities.Contains(Ring.PRIMARY_TYPES, targetRingType) and
+           InventoryData.HasRing(targetRingType) and
+           not InventoryData.GetRing(targetRingType):IsEmpty() then
+            return targetRingType
         end
     end
 
