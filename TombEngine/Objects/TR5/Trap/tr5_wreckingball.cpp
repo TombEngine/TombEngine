@@ -38,10 +38,10 @@ using namespace TEN::Math;
 
 namespace TEN::Entities::Traps
 {
-	constexpr auto WRECKINGBALL_STATE_IDLE = 0;
-	constexpr auto WRECKINGBALL_STATE_DROP = 1;
+	constexpr auto WRECKINGBALL_STATE_IDLE	 = 0;
+	constexpr auto WRECKINGBALL_STATE_DROP	 = 1;
 	constexpr auto WRECKINGBALL_STATE_ATTACK = 2;
-	constexpr auto WRECKINGBALL_STATE_RAISE = 3;
+	constexpr auto WRECKINGBALL_STATE_RAISE	 = 3;
 
 	constexpr int MOVE_SPEED = 32;
 
@@ -51,7 +51,7 @@ namespace TEN::Entities::Traps
 	constexpr int SEARCH_RADIUS_DEFAULT = 16;
 
 	// Maximum number of individual chain links that can be stacked between the anchor and the ball.
-	constexpr int MAX_CHAIN_LINKS = 128;
+	constexpr int MAX_CHAIN_LINKS = 64;
 	constexpr short WRECKINGBALL_COMPANION_MARKER = 0x5742;
 
 	constexpr auto SPOTLIGHT_ANCHOR_OFFSET_Y = 512.0f;
@@ -287,10 +287,6 @@ namespace TEN::Entities::Traps
 		}
 	}
 
-	// ---------------------------------------------------------------------
-	// Helpers
-	// ---------------------------------------------------------------------
-
 	static void SetItemInvisible(ItemInfo& item)
 	{
 		item.Flags |= IFLAG_INVISIBLE;
@@ -302,11 +298,11 @@ namespace TEN::Entities::Traps
 		int   anchorPosY = anchor.Pose.Position.y;
 		short currentRoom = room;
 
-        auto currentPoint = GetPointCollision(Vector3i(currentX, anchorPosY, currentZ), currentRoom);
+		auto currentPoint = GetPointCollision(Vector3i(currentX, anchorPosY, currentZ), currentRoom);
 		int currentCeiling = currentPoint.GetCeilingHeight();
 		currentRoom = currentPoint.GetSector().RoomNumber;
 
-        auto newPoint = GetPointCollision(Vector3i(newX, anchorPosY, newZ), currentRoom);
+		auto newPoint = GetPointCollision(Vector3i(newX, anchorPosY, newZ), currentRoom);
 		int newCeiling = newPoint.GetCeilingHeight();
 		short newRoom = newPoint.GetSector().RoomNumber;
 
@@ -372,6 +368,7 @@ namespace TEN::Entities::Traps
 			if (!moved)
 				return false;
 		}
+
 		return true;
 	}
 
@@ -403,6 +400,7 @@ namespace TEN::Entities::Traps
 		auto& pick = candidates[Random::GenerateInt(0, (int)candidates.size() - 1)];
 		outX = pick.first;
 		outZ = pick.second;
+
 		return true;
 	}
 
@@ -496,20 +494,17 @@ namespace TEN::Entities::Traps
 		auto& room = g_Level.Rooms[item.RoomNumber];
 		for (auto& staticObj : room.mesh)
 		{
-			if (!(staticObj.Flags & StaticMeshFlags::SM_VISIBLE) ||
-				Statics[staticObj.Slot].shatterType == ShatterType::None)
-			{
+			if (!(staticObj.Flags & StaticMeshFlags::SM_VISIBLE) || Statics[staticObj.Slot].shatterType == ShatterType::None)
 				continue;
-			}
 
 			if (Vector3i::Distance(item.Pose.Position, staticObj.Pose.Position) > SHATTER_RADIUS)
 				continue;
 
-            if (SmashedMeshCount >= (int)std::size(SmashedMesh))
-                return;
+			if (SmashedMeshCount >= (int)std::size(SmashedMesh))
+				return;
 
-            // Force the hit points to 0 so debris.cpp actually hides the static after shattering.
-            staticObj.HitPoints = 0;
+			// Force the hit points to 0 so debris.cpp actually hides the static after shattering.
+			staticObj.HitPoints = 0;
 
 			SoundEffect(GetShatterSound(staticObj.Slot), &staticObj.Pose);
 			ShatterObject(nullptr, &staticObj, -128, item.RoomNumber, 0);
@@ -758,20 +753,17 @@ namespace TEN::Entities::Traps
 		item.Pose.Orientation += extraRot * alpha;
 	}
 
-	// Vertical extent of a single chain-link mesh. Links are stacked using this spacing, so the chain
-	// stays continuous regardless of how the link mesh is authored.
-	static int GetChainLinkHeight()
+	// Lower edge of the anchor mesh, where the topmost chain segment ends.
+	static int GetAnchorBottomY(const ItemInfo& anchor)
 	{
-		int height = GameBoundingBox(ID_WRECKING_BALL_CHAIN).GetHeight();
-		return std::max(height, 1);
+		return anchor.Pose.Position.y + GameBoundingBox(ID_WRECKING_BALL_ANCHOR).Y2;
 	}
 
 	// Distance from the anchor (ceiling) to the ball's center when the ball is fully raised: the anchor
 	// mesh plus the ball mesh.
 	static int GetBallHangOffsetY()
 	{
-		return GameBoundingBox(ID_WRECKING_BALL_ANCHOR).GetHeight() +
-			GameBoundingBox(ID_WRECKING_BALL).GetHeight();
+		return GameBoundingBox(ID_WRECKING_BALL_ANCHOR).GetHeight() + GameBoundingBox(ID_WRECKING_BALL).GetHeight();
 	}
 
 	static void EnsureWreckingBallLinks(ItemInfo& item, WreckingBallState& state, int requiredCount)
@@ -816,26 +808,27 @@ namespace TEN::Entities::Traps
 
 		auto& anchor = g_Level.Items[state.BaseObject];
 
-		// The ball's mesh 0 marks the attachment point for the lowest chain link. Stretch the stacked
-		// links from the anchor (ceiling) down to that point so the chain always lines up with the ball.
+		// The ball's mesh 0 marks where the lowest chain segment attaches. Segments are stacked upward
+		// from it, so the whole chain travels with the ball through every movement phase.
 		auto attach = GetJointPosition(&item, 0);
+		auto linkBounds = GameBoundingBox(ID_WRECKING_BALL_CHAIN);
 
-		float distance = (float)attach.y - (float)anchor.Pose.Position.y;
-		if (distance < 0.0f)
-			distance = 0.0f;
+		int linkHeight = std::max(linkBounds.GetHeight(), 1);
+		int chainLength = std::max(attach.y - GetAnchorBottomY(anchor), 0);
 
-		int linkHeight = GetChainLinkHeight();
-		int requiredLinks = std::min<int>(MAX_CHAIN_LINKS, (int)(distance / linkHeight) + 1);
-		EnsureWreckingBallLinks(item, state, requiredLinks);
+		// A segment is only added above the previous one once the existing stack no longer covers the
+		// distance from the anchor down to the ball.
+		int linkCount = std::min((chainLength + linkHeight - 1) / linkHeight, MAX_CHAIN_LINKS);
+		EnsureWreckingBallLinks(item, state, linkCount);
 
-		// Stack links at an absolute, fixed spacing instead of rescaling every link when the chain
-		// length changes. This keeps the top of the chain anchored and only the bottom link moves, so
-		// the whole stack does not shimmer when the total link count changes each frame.
 		int totalLinks = (int)state.Links.size();
 		if (totalLinks <= 0)
 			return;
 
-		int linkCount = std::min(totalLinks, requiredLinks);
+		// While the ball is winched all the way up, the lowest segment overlaps its attachment point and
+		// is not needed, so it is hidden along with the segments reaching above the anchor.
+		bool isRetracted = (item.Pose.Position.y <= (anchor.Pose.Position.y + GetBallHangOffsetY()));
+		int firstVisibleIndex = isRetracted ? 1 : 0;
 
 		for (int i = 0; i < totalLinks; i++)
 		{
@@ -844,22 +837,24 @@ namespace TEN::Entities::Traps
 				continue;
 
 			auto& link = g_Level.Items[linkNumber];
-			if (i >= linkCount)
+
+			// Segments reaching above the anchor are not needed, so they stay hidden until the chain
+			// lengthens again.
+			if (i < firstVisibleIndex || i >= linkCount)
 			{
 				SetItemInvisible(link);
 				continue;
 			}
 
-			// Each link sits centered in its own fixed slot below the anchor, so only the lowest link
-			// changes when the chain length varies. The renderer interpolates each link's position for
-			// smooth, jitter-free movement at high frame rates.
-			float slotTop = (float)anchor.Pose.Position.y + (i * linkHeight);
-			float centerY = slotTop + (linkHeight / 2.0f);
+			// Segment 0 hangs off the ball and every next one sits directly on top of the previous one.
+			// The link mesh may be offset from its origin, so its actual lower edge is aligned to the
+			// upper edge of the segment below.
+			int lowerEdgeY = attach.y - (i * linkHeight);
 			float t = (float)i / (float)linkCount;
 
-			link.Pose.Position.x = (int)(anchor.Pose.Position.x + ((attach.x - anchor.Pose.Position.x) * t));
-			link.Pose.Position.z = (int)(anchor.Pose.Position.z + ((attach.z - anchor.Pose.Position.z) * t));
-			link.Pose.Position.y = (int)centerY;
+			link.Pose.Position.x = (int)(attach.x + ((anchor.Pose.Position.x - attach.x) * t));
+			link.Pose.Position.z = (int)(attach.z + ((anchor.Pose.Position.z - attach.z) * t));
+			link.Pose.Position.y = lowerEdgeY - linkBounds.Y2;
 			link.Pose.Orientation.y = ((i % 2) == 0) ? ANGLE(0.0f) : ANGLE(90.0f);
 			link.Pose.Scale = Vector3::One;
 
