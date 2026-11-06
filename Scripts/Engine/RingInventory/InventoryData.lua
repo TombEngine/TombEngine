@@ -13,18 +13,15 @@ local Utilities = require("Engine.RingInventory.Utilities")
 
 --Pointers to tables
 local COLOR_MAP = Settings.ColorMap
-local RING_CENTER = Ring.CENTERS
-local RING_TYPE = Ring.TYPE
 local TYPE = PickupData.TYPE
-local RING = Ring.TYPE
 
 -- Inventory Module
 local InventoryData = {}
 
 -- Instance data (private)
 local rings = {}
-local selectedRingType = RING.MAIN
-local previousRingType = RING.MAIN
+local selectedRingType = Ring.DEFAULT_TYPE
+local previousRingType = Ring.DEFAULT_TYPE
 local chosenItem = nil
 local openAtItem = nil
 local combineCount = 0
@@ -36,19 +33,32 @@ local gameflowOverrides = nil
 function InventoryData.Reset()
     InventoryData.ClearAll()
     rings = {}
-    selectedRingType = RING.MAIN
-    previousRingType = RING.MAIN
+    selectedRingType = Ring.DEFAULT_TYPE
+    previousRingType = Ring.DEFAULT_TYPE
     chosenItem = nil
     openAtItem = nil
     gameflowOverrides = nil
 end
 
 -- Get or create a ring by type
-function InventoryData.GetRing(ringType)
+function InventoryData.GetOrCreateRing(ringType)
     if not rings[ringType] then
-        local center = RING_CENTER[ringType]
-        rings[ringType] = Ring.Create(ringType, center)
+        InventoryData.CreateRing(ringType)
     end
+    return rings[ringType]
+end
+
+function InventoryData.CreateRing(ringType)
+    if rings[ringType] then
+        -- TODO: Hopefully, ring management is clean so we never get here and this can be removed entirely.
+        TEN.Util.PrintLog("<InventoryData.CreateRing> ringType '"..tostring(ringType).."' already exists! Skipping.", TEN.Util.LogLevel.WARNING)
+        return rings[ringType]
+    end
+    rings[ringType] = Ring.Create(ringType)
+    return rings[ringType]
+end
+
+function InventoryData.GetRing(ringType)
     return rings[ringType]
 end
 
@@ -67,9 +77,14 @@ function InventoryData.GetSelectedRing()
     return InventoryData.GetRing(selectedRingType)
 end
 
--- Get selected ring type
+-- Get currently selected ring type
 function InventoryData.GetSelectedRingType()
     return selectedRingType
+end
+
+-- Get previous ring type
+function InventoryData.GetPreviousRing()
+    return InventoryData.GetRing(previousRingType)
 end
 
 -- Get previous ring type
@@ -80,7 +95,7 @@ end
 -- Switch to a different ring
 function InventoryData.SwitchToRingType(ringType)
     local isValid = false
-    for _, value in pairs(RING_TYPE) do
+    for _, value in pairs(Ring.TYPE) do
         if value == ringType then
             isValid = true
             break
@@ -94,9 +109,6 @@ function InventoryData.SwitchToRingType(ringType)
     previousRingType = selectedRingType
     selectedRingType = ringType
 
-    local ring = InventoryData.GetRing(ringType)
-
-    ItemSpin.StartSpin(ring)
     return true
 end
 
@@ -117,7 +129,7 @@ function InventoryData.SetupSecondaryRing(ringType, item, keepCurrentRing)
     item = item or (currentRing and currentRing:GetSelectedItem())
     
     -- Get or create the new ring
-    local newRing = InventoryData.GetRing(ringType)
+    local newRing = InventoryData.CreateRing(ringType)
     
     InventoryData.Construct(ringType, item)
     
@@ -126,18 +138,13 @@ function InventoryData.SetupSecondaryRing(ringType, item, keepCurrentRing)
     end
 
     -- Special handling for ammo ring
-    if ringType == RING.AMMO then
+    if ringType == Ring.AMMO_TYPE then
         local weaponSlot = PickupData.WEAPON_SET[item:GetObjectID()].slot
         local ammoType = Lara:GetAmmoType(weaponSlot)
         local objectID = PickupData.AMMO_TYPE_TO_OBJECT[ammoType]
 
         newRing:SetSelectedItemByID(objectID)
-
-        local itemIndex = newRing:GetSelectedItemIndex()
-        local angle = Utilities.GetSelectedRingAngle(itemIndex, newRing:GetItemCount())
-    
-        newRing:SetCurrentAngle(angle)
-        newRing:SetTargetAngle(angle)
+        newRing:SetAngleToSelectedItem()
     end
     
     return newRing
@@ -154,21 +161,6 @@ function InventoryData.FindItem(objectID)
     return nil, nil, nil
 end
 
--- Remove a ring
-function InventoryData.RemoveRing(ringType)
-    if rings[ringType] then
-        ItemSpin.ClearRingState(rings[ringType])
-        rings[ringType] = nil
-        
-        -- If we removed the selected ring, switch to main
-        if selectedRingType == ringType then
-            selectedRingType = RING.MAIN
-        end
-        return true
-    end
-    return false
-end
-
 -- Color all rings
 function InventoryData.ColorAll(color, selectedItemColor, omitSelectedRing)
     for ringType, ring in pairs(rings) do
@@ -179,9 +171,12 @@ function InventoryData.ColorAll(color, selectedItemColor, omitSelectedRing)
 end
 
 -- Offset all rings
-function InventoryData.OffsetAll(direction)
-    for ringType, ring in pairs(rings) do
-        ring:OffsetPosition(direction)
+function InventoryData.OffsetAll(currentRing, targetRing)
+    local currentRingCenter = currentRing:GetCenter()
+    local targetRingCenter = targetRing:GetCenter()
+    local offsetPosition = targetRingCenter - currentRingCenter
+    for _, ring in pairs(rings) do
+        ring:OffsetPosition(offsetPosition)
     end
 end
 
@@ -192,11 +187,6 @@ function InventoryData.SetVisibility(visible, omitSelectedRing)
             ring:SetVisibility(visible)
         end
     end
-end
-
--- Iterator for all rings
-function InventoryData.IterateRings()
-    return pairs(rings)
 end
 
 -- Read gameflow overrides for items
@@ -249,20 +239,13 @@ function InventoryData.Construct(ringType, selectedWeapon)
     local selectedWeaponID = selectedWeapon and selectedWeapon:GetObjectID()
     local items = PickupData.CONSTANTS
     
-    if ringType == RING.AMMO or ringType == RING.COMBINE then
-        InventoryData.Clear(ringType)
-    else
-        InventoryData.ClearAll()
-    end
-    
     for _, itemRow in ipairs(items) do
         local itemData = PickupData.ConvertRowData(itemRow)
-        itemData.rotation = Utilities.CopyRotation(itemData.rotation)
         local data = InventoryData.BuildItem(itemData)
 
         local objectID = data:GetObjectID()
         
-        if data:GetType() == TYPE.AMMO and ringType ~= RING.AMMO then
+        if data:GetType() == TYPE.AMMO and ringType ~= Ring.AMMO_TYPE then
             local weaponPresent = TEN.Inventory.GetItemCount(PickupData.AMMO_SET[objectID].weapon)
             if weaponPresent ~= 0 then
                 goto continue
@@ -280,9 +263,9 @@ function InventoryData.Construct(ringType, selectedWeapon)
         local ammoRing = false
         local shouldInsert = false
         
-        if ringType == RING.COMBINE then
+        if ringType == Ring.COMBINE_TYPE then
             if data.combine == true then
-                data.ringName = RING.COMBINE
+                data.ringName = Ring.COMBINE_TYPE
                 
                 if chosenItem:GetObjectID() == objectID then
                     goto continue
@@ -296,9 +279,9 @@ function InventoryData.Construct(ringType, selectedWeapon)
             else
                 goto continue
             end
-        elseif ringType == RING.AMMO then
+        elseif ringType == Ring.AMMO_TYPE then
             if data.type == TYPE.AMMO and PickupData.WEAPON_AMMO_LOOKUP[selectedWeaponID] and Utilities.Contains(PickupData.WEAPON_AMMO_LOOKUP[selectedWeaponID], objectID) then
-                data.ringName = RING.AMMO
+                data.ringName = Ring.AMMO_TYPE
                 ammoRing = true
                 shouldInsert = true
             else
@@ -318,11 +301,13 @@ function InventoryData.Construct(ringType, selectedWeapon)
         
         if shouldInsert or ammoRing then
             -- Get or create the ring for this item
-            local ring = InventoryData.GetRing(data.ringName)
+            local ring = InventoryData.GetOrCreateRing(data.ringName)
             
-            -- Create display item
-            local displayItem = data:CreateDisplayItem(Ring.CENTERS[data.ringName])
-            displayItem:SetColor(COLOR_MAP.itemHidden)
+            -- TODO: if this is a color specific to the entire ring, maybe let the ring do that?
+            -- and then store both a base item color + an additional color that the ring will set? (similarly to how it's now done with item locations)
+            -- Only do this if really needed - check later how it's really used
+            data:SetColor(COLOR_MAP.itemHidden)
+
             -- Add item to ring
             ring:AddItem(data)
 
@@ -334,15 +319,50 @@ function InventoryData.Construct(ringType, selectedWeapon)
         
         ::continue::
     end
-    
-    -- Initialize ring positions
-    if ringType then
-        local ring = InventoryData.GetRing(ringType)
-        ring:SetPosition(RING_CENTER[ringType])
-    else
-        for ringType, ring in pairs(rings) do
-            ring:SetPosition(RING_CENTER[ringType])
+
+    -- TODO: again, we should probably not manipulate display stuff in InventoryData at all, so this call should probably be moved somewhere else
+    InventoryData.InitializeRingPositions(ringType)
+end
+
+function InventoryData.InitializeRingPositions(ringType)
+    local selectedRing = InventoryData.GetSelectedRing()
+    local selectedPrimaryRing = InventoryData.GetSelectedRing()
+
+    -- TODO: Temporary handling, until rings properly manage their own positions (in a way that allows customizations). This function might even go away entirely soon.
+    -- Currently, we really make calculations for PRIMARY rings. These calculations take into account:
+    -- - The pre-defined "base position" for the primary ring in focus
+    -- - The pre-defined space between each primary ring
+    -- - The global offset on all rings, required get the actually selected primary ring into the pre-defined focus position
+    -- For SECONDARY rings, we skip calculations, and the function calls really just return the predefined position for secondary rings.
+    local base = 1
+    if selectedPrimaryRing and Utilities.Contains(Ring.PRIMARY_TYPES, selectedPrimaryRing.type) then
+        base = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[selectedRing.type]
+    end
+
+    -- This works but... what the hell?
+    local ringReferencePosition = Ring:GetCenterByType(Ring.DEFAULT_TYPE)
+
+    for _, r in pairs(rings) do
+
+        local rType = r.type
+        if ringType and ringType ~= rType then
+            goto continue
         end
+
+        local angle = r:GetTargetAngle()
+        local position = r:GetCenter()
+
+        -- Only the main rings need repositioning
+        if Utilities.Contains(Ring.PRIMARY_TYPES, rType) then
+            local order = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[rType]
+            local offset = Ring.RING_POSITION_PRIMARY_OFFSET * (order - base)
+            position = ringReferencePosition + offset
+        end
+
+        r:SetPosition(position)
+        r:Translate(position, Ring.RING_RADIUS, angle)
+
+        ::continue::
     end
 end
 
@@ -362,24 +382,11 @@ function InventoryData.OpenAtItem(itemID, repositionRings)
     
     -- Set selected item
     ring:SetSelectedItemByID(itemID)
-    
-    local itemIndex = ring:GetSelectedItemIndex()
-    local angle = Utilities.GetSelectedRingAngle(itemIndex, ring:GetItemCount())
-    
-    -- Store angle (you may want to make these instance variables)
-    ring:SetCurrentAngle(angle)
-    ring:SetTargetAngle(angle)
+    ring:SetAngleToSelectedItem()
     
     if repositionRings then
-        local ringPosition = RING_CENTER[RING.MAIN]
-        selectedRingType = ringType
-        
-        for rType, r in pairs(rings) do
-            local offset = (rType - selectedRingType) * 1000  -- RING_POSITION_OFFSET
-            local position = Vec3(ringPosition.x, ringPosition.y + offset, ringPosition.z)
-            r:SetPosition(position)
-            r:Translate(position, Ring.RING_RADIUS, angle)
-        end
+        -- This works, but seems overkill: why recalculate entirely the ring positions, just to switch to the one with the item we're looking for?
+        InventoryData.InitializeRingPositions()
     end
 end
 
@@ -393,11 +400,13 @@ function InventoryData.Clear(ringType)
     local ring = InventoryData.GetRing(ringType)
     
     if ring then
+        ItemSpin.ClearRingState(ring)
         ring:Clear()
+        rings[ringType] = nil
 
-    -- If we cleared the selected ring, switch to main
+        -- If we cleared the selected ring, switch to main
         if selectedRingType == ringType then
-            selectedRingType = RING.MAIN
+            selectedRingType = Ring.DEFAULT_TYPE
         end
     end
 end
@@ -410,7 +419,7 @@ end
 
 function InventoryData.ClearAll()
     for ringType, ring in pairs(rings) do
-        ring:Clear()
+        InventoryData.Clear(ringType)
     end
 
     combineCount = 0
@@ -528,33 +537,39 @@ local function CalculateStopWatchHands()
     return angles
 end
 
-function InventoryData.SetItemRotations(timeCount)
-    local angles = CalculateStopWatchHands()
-    local stopwatch = InventoryData.FindItem(TEN.Objects.ObjID.STOPWATCH_ITEM)
-    if stopwatch then
-        local displayItem = stopwatch:GetDisplayItem()
-        displayItem:SetJointRotation(4, angles.hour_hand_angle)
-        displayItem:SetJointRotation(5, angles.minute_hand_angle)
-        displayItem:SetJointRotation(6, angles.second_hand_angle)
-    end
+function InventoryData.SetSpecialItemsJointRotations(timeCount)
+    --[[
+        -- TODO
+        -- This function still has direct displayItem access, and fails for now
+        -- Check that later how to properly handle this
 
-    local compass = InventoryData.FindItem(TEN.Objects.ObjID.COMPASS_ITEM)
-    if compass then
-        local displayItem = compass:GetDisplayItem()
-        displayItem:SetJointRotation(1, CalculateCompassNeedle(timeCount))
-    end
-
-    local Examine = require("Engine.RingInventory.Examine")
-    if Examine.item and (Examine.item:GetObjectID() == TEN.Objects.ObjID.STOPWATCH_ITEM or Examine.item:GetObjectID() == TEN.Objects.ObjID.COMPASS_ITEM) then
-        local displayItem = Examine.item
-        if Examine.item:GetObjectID() == TEN.Objects.ObjID.STOPWATCH_ITEM then
+        local angles = CalculateStopWatchHands()
+        local stopwatch = InventoryData.FindItem(TEN.Objects.ObjID.STOPWATCH_ITEM)
+        if stopwatch then
+            local displayItem = stopwatch:GetDisplayItem()
             displayItem:SetJointRotation(4, angles.hour_hand_angle)
             displayItem:SetJointRotation(5, angles.minute_hand_angle)
             displayItem:SetJointRotation(6, angles.second_hand_angle)
-        else
+        end
+
+        local compass = InventoryData.FindItem(TEN.Objects.ObjID.COMPASS_ITEM)
+        if compass then
+            local displayItem = compass:GetDisplayItem()
             displayItem:SetJointRotation(1, CalculateCompassNeedle(timeCount))
         end
-    end
+
+        local Examine = require("Engine.RingInventory.Examine")
+        if Examine.item and (Examine.item:GetObjectID() == TEN.Objects.ObjID.STOPWATCH_ITEM or Examine.item:GetObjectID() == TEN.Objects.ObjID.COMPASS_ITEM) then
+            local displayItem = Examine.item
+            if Examine.item:GetObjectID() == TEN.Objects.ObjID.STOPWATCH_ITEM then
+                displayItem:SetJointRotation(4, angles.hour_hand_angle)
+                displayItem:SetJointRotation(5, angles.minute_hand_angle)
+                displayItem:SetJointRotation(6, angles.second_hand_angle)
+            else
+                displayItem:SetJointRotation(1, CalculateCompassNeedle(timeCount))
+            end
+        end
+    ]]
 
 end
 

@@ -138,25 +138,23 @@ end
 
 local CreateAmmoRing = function(item)
     if PickupData.WEAPON_SET[item:GetObjectID()] then
-        local ammoRing = InventoryData.SetupSecondaryRing(Ring.TYPE.AMMO, InventoryData.GetChosenItem(), true)
+        local ammoRing = InventoryData.SetupSecondaryRing(Ring.AMMO_TYPE, InventoryData.GetChosenItem(), true)
         ammoRing:Color(COLOR_MAP.itemHidden, COLOR_MAP.itemSelected)
-        ItemSpin.StartSpin(ammoRing)
         Text.SetItemLabel(ammoRing:GetSelectedItem())
     end
 end
 
 local ShowAmmoRing = function(item)
     if PickupData.WEAPON_SET[item:GetObjectID()] then
-        local ammoRing = InventoryData.GetRing(Ring.TYPE.AMMO)
+        local ammoRing = InventoryData.GetRing(Ring.AMMO_TYPE)
         ammoRing:Color(COLOR_MAP.itemHidden, COLOR_MAP.itemSelected)
-        ItemSpin.StartSpin(ammoRing)
         Text.SetItemLabel(ammoRing:GetSelectedItem())
     end
 end
 
 local HideAmmoRing = function(item)
     if PickupData.WEAPON_SET[item:GetObjectID()] then
-        local ammoRing = InventoryData.GetRing(Ring.TYPE.AMMO)
+        local ammoRing = InventoryData.GetRing(Ring.AMMO_TYPE)
         ammoRing:Color(COLOR_MAP.itemHidden, COLOR_MAP.itemHidden)
         ItemSpin.StopSelectedItemSpin(ammoRing)
     end
@@ -294,8 +292,13 @@ InventoryStates.StartRingChange = function(targetRingType, offsetDirection)
         return
     end
 
+    local currentRing = InventoryData.GetSelectedRing()
+    local targetRing = InventoryData.GetRing(targetRingType)
+    InventoryData.OffsetAll(currentRing, targetRing)
+
     InventoryData.SwitchToRingType(targetRingType)
-    InventoryData.OffsetAll(offsetDirection)
+    ItemSpin.StopSpin(currentRing)
+    ItemSpin.StartSpin(targetRing)
 
     local selectedRing = InventoryData.GetSelectedRing()
     local selectedItem = selectedRing:GetSelectedItem()
@@ -304,12 +307,32 @@ InventoryStates.StartRingChange = function(targetRingType, offsetDirection)
     InventoryStates.SetMode(InventoryStates.MODE.RING_CHANGE)
 end
 
+InventoryStates.GetNeighbourRingType = function(selectedRingType, direction)
+    local selectedRingTypeOrder = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[selectedRingType]
+    local targetRingOrder = selectedRingTypeOrder
+    local targetRingType = Ring.PRIMARY_TYPES__ORDER_TO_TYPE[targetRingOrder]
+
+    while targetRingType ~= nil do
+        targetRingOrder = targetRingOrder + direction
+        targetRingType = Ring.PRIMARY_TYPES__ORDER_TO_TYPE[targetRingOrder]
+
+        if targetRingType and
+           Utilities.Contains(Ring.PRIMARY_TYPES, targetRingType) and
+           InventoryData.HasRing(targetRingType) and
+           not InventoryData.GetRing(targetRingType):IsEmpty() then
+            return targetRingType
+        end
+    end
+
+    return nil
+end
+
 local CreateStateContext = function()
     local context = {}
 
     context.RefreshSelection = function(self)
-        self.selectedRing = InventoryData.GetSelectedRing()
-        self.selectedItem = self.selectedRing:GetSelectedItem()
+        self.selectedRing = InventoryData.GetSelectedRing() or InventoryData.CreateRing(Ring.DEFAULT_TYPE)
+        self.selectedItem = self.selectedRing and self.selectedRing:GetSelectedItem() or nil
     end
 
     context:RefreshSelection()
@@ -356,7 +379,7 @@ local ResetInventorySession = function()
     ItemSpin.Reset()
     Menu.DeleteAll()
     InventoryStates.SetMode(InventoryStates.MODE.INVENTORY_OPENING)
-    InventoryData.SwitchToRingType(Ring.TYPE.MAIN)
+    InventoryData.SwitchToRingType(Ring.DEFAULT_TYPE)
     TEN.View.DisplayItem.ResetCamera()
     Text.DestroyAll()
     timeInMenu = 0
@@ -463,7 +486,6 @@ local HandleRingChange = function(state)
 end
 
 local HandleExamineOpen = function(state)
-    Animation.SaveItemData(state.selectedItem)
     ItemMenu.Hide()
     Text.SetText("HEADER", "examine", true)
     HideTextChannels(ITEM_LABEL_CHANNELS)
@@ -505,8 +527,6 @@ end
 local HandleItemSelect = function(state)
     if onEnter then
         ItemSpin.StopSelectedItemSpin(state.selectedRing)
-        Animation.SaveItemData(state.selectedItem)
-        Animation.SetItemStartPos(state.selectedItem)
         InventoryData.SetChosenItem(state.selectedItem)
         state.selectedRing:Color(COLOR_MAP.itemHidden, COLOR_MAP.itemSelected)
         Text.SetText("HEADER", state.selectedItem:GetName(), true)
@@ -532,9 +552,12 @@ local HandleItemDeselect = function(state)
         ItemMenu.Hide()
         state.selectedRing:Color(COLOR_MAP.itemDeselected, COLOR_MAP.itemSelected)
 
-        local ammoRing = InventoryData.GetRing(Ring.TYPE.AMMO)
-        ItemSpin.StopSpin(ammoRing)
-        ammoRing:Color(COLOR_MAP.itemHidden, COLOR_MAP.itemHidden)
+        if InventoryData.HasRing(Ring.AMMO_TYPE) then
+            local ammoRing = InventoryData.GetRing(Ring.AMMO_TYPE)
+            ItemSpin.StopSpin(ammoRing)
+            ammoRing:Color(COLOR_MAP.itemHidden, COLOR_MAP.itemHidden)
+        end
+
         Sprites.ShowArrows()
         onEnter = false
     end
@@ -542,6 +565,14 @@ local HandleItemDeselect = function(state)
     if Animation.Inventory(inventoryMode, state.selectedRing, state.selectedItem) then
         InventoryData.SetChosenItem(nil)
         ItemSpin.StartSelectedItemSpin(state.selectedRing)
+
+        if InventoryData.HasRing(Ring.COMBINE_TYPE) then
+            InventoryData.Clear(Ring.COMBINE_TYPE)
+        end
+        if InventoryData.HasRing(Ring.AMMO_TYPE) then
+            InventoryData.Clear(Ring.AMMO_TYPE)
+        end
+
         onEnter = true
         InventoryStates.SetMode(InventoryStates.MODE.INVENTORY)
     end
@@ -563,10 +594,6 @@ end
 
 local HandleStatisticsOpen = function(state)
     if onEnter then
-        if not InventoryData.IsItemChosen() then
-            Animation.SaveItemData(state.selectedItem)
-            Animation.SetItemStartPos(state.selectedItem)
-        end
         Text.Hide("ITEM_LABEL_PRIMARY")
         Text.SetText("HEADER", "statistics", true)
         Sprites.HideArrows()
@@ -685,8 +712,6 @@ end
 local HandleCombineSetup = function(state)
     if onEnter then
         ItemMenu.Hide()
-        Animation.SaveItemData(state.selectedItem)
-        Animation.SetItemStartPos(state.selectedItem)
         ItemSpin.StopSelectedItemSpin(state.selectedRing)
         state.selectedRing:Color(COLOR_MAP.itemHidden, COLOR_MAP.itemSelected)
         Sprites.HideArrows()
@@ -698,7 +723,7 @@ local HandleCombineSetup = function(state)
         InventoryData.SetChosenItem(state.selectedItem)
         HideAmmoRing(state.selectedItem)
 
-        local combineRing = InventoryData.SetupSecondaryRing(Ring.TYPE.COMBINE)
+        local combineRing = InventoryData.SetupSecondaryRing(Ring.COMBINE_TYPE)
         combineRing:Color(COLOR_MAP.itemDeselected, COLOR_MAP.itemSelected)
         Text.SetText("HEADER", state.selectedItem.name, true)
         Text.SetText("SUB_HEADER", "combine_with", true)
@@ -708,6 +733,7 @@ end
 
 local HandleCombineRingOpening = function(state)
     if Animation.Inventory(inventoryMode, state.selectedRing, state.selectedItem) then
+        ItemSpin.StartSpin(state.selectedRing)
         Text.SetItemLabel(state.selectedItem)
         UpdateActionLabel(state.selectedItem)
         inventoryMode = InventoryStates.MODE.COMBINE
@@ -721,8 +747,11 @@ local HandleCombine = function(state)
 
     if Combine.CombineItems(InventoryData.GetChosenItem(), state.selectedItem) then
         TEN.Sound.PlaySound(SOUND_MAP.menuCombine)
-        Animation.SaveItemData(state.selectedItem)
-        Animation.SetItemStartPos(state.selectedItem)
+        --[[
+            -- TODO: check this, might be related to making the chosen Combine item move towards the selected item
+            Animation.SaveItemData(state.selectedItem)
+            Animation.SetItemStartPos(state.selectedItem)
+        ]]
         inventoryMode = InventoryStates.MODE.COMBINE_SUCCESS
     else
         TEN.Sound.PlaySound(SOUND_MAP.playerNo)
@@ -754,7 +783,10 @@ local HandleCombineClose = function(state)
     if onEnter then
         combineCloseTargetObjectID = Combine.GetResults() or (chosenItem and chosenItem:GetObjectID())
 
-        Animation.SaveItemData(transitionItem)
+        --[[
+            -- TODO: check this, might be related to making the chosen Combine item move towards the selected item
+            -- Animation.SetItemStartRot(transitionItem)
+        ]]
         Text.Hide("SUB_HEADER")
         Text.SetText("HEADER", "actions_inventory", true)
         ItemMenu.Hide()
@@ -768,13 +800,13 @@ local HandleCombineClose = function(state)
         InventoryData.SetOpenAtItem(combineCloseTargetObjectID)
         InventoryData.SetChosenItem(nil)
         Combine.ClearResults()
-        InventoryData.RemoveRing(Ring.TYPE.COMBINE)
+        InventoryData.ClearAll()
         InventoryData.Construct()
         InventoryData.OpenAtItem(InventoryData.GetOpenAtItem(), true)
 
         state:RefreshSelection()
         InventoryData.ColorAll(COLOR_MAP.itemDeselected, COLOR_MAP.itemSelected)
-        ItemSpin.SnapToTargetAngles(state.selectedRing)
+        ItemSpin.StartSpin(state.selectedRing)
         ItemSpin.StartSelectedItemSpin(state.selectedRing)
         SetInventoryOverviewText(state.selectedItem)
         Sprites.ShowArrows()
@@ -795,11 +827,12 @@ local HandleSeparate = function(state)
 end
 
 local HandleAmmoSelectOpen = function(state)
-    Animation.SaveItemData(state.selectedItem)
-
-    local ammoRing = InventoryData.GetRing(Ring.TYPE.AMMO)
+    local ammoRing = InventoryData.GetRing(Ring.AMMO_TYPE)
     ammoRing:Color(COLOR_MAP.itemDeselected, COLOR_MAP.itemSelected)
-    InventoryData.SwitchToRingType(Ring.TYPE.AMMO)
+    InventoryData.SwitchToRingType(Ring.AMMO_TYPE)
+    ItemSpin.StopSpin(InventoryData.GetPreviousRing())
+    ItemSpin.StartSpin(ammoRing)
+    ItemSpin.StartSelectedItemSpin(ammoRing)
     ItemMenu.Hide()
     UpdateActionLabel(ammoRing:GetSelectedItem())
     UpdateBackLabel("back")
@@ -816,9 +849,12 @@ local HandleAmmoSelect = function(state)
 end
 
 local HandleAmmoSelectClose = function(state)
+    local ammoRing = InventoryData.GetRing(Ring.AMMO_TYPE)
+    ItemSpin.StopSpin(ammoRing)
     InventoryStates.SetActionCheck(false)
     InventoryData.ReturnToPreviousRing()
-    InventoryData.GetRing(Ring.TYPE.AMMO):Color(COLOR_MAP.itemHidden, COLOR_MAP.itemSelected)
+    ItemSpin.StartSpin(InventoryData.GetSelectedRing())
+    ammoRing:Color(COLOR_MAP.itemHidden, COLOR_MAP.itemSelected)
     Text.Hide("SUB_HEADER")
     UpdateActionLabel()
     UpdateBackLabel("actions_deselect")
@@ -885,7 +921,7 @@ local UpdateInventoryFrame = function(selectedRing)
     Examine.Draw()
     Menu.UpdateActiveMenus()
     Menu.DrawActiveMenus()
-    InventoryData.SetItemRotations(timeInMenu)
+    InventoryData.SetSpecialItemsJointRotations(timeInMenu)
     Inputs.Update(inventoryMode, timeInMenu)
     InventoryData.DrawAllRings()
     Text.Update()

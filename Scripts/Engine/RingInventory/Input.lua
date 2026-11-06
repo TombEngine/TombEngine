@@ -17,7 +17,6 @@ local Settings = require("Engine.RingInventory.Settings")
 
 --Pointers to tables
 local INVENTORY_MODE = InventoryStates.MODE
-local RING = Ring.TYPE
 local SOUND_MAP = Settings.SoundMap
 
 local timer = 0
@@ -57,6 +56,7 @@ function Inputs.Update(mode, timeInMenu)
     timer = timeInMenu
 
     local selectedRing = InventoryData.GetSelectedRing()
+    if not selectedRing then return end
     local selectedRingType = InventoryData.GetSelectedRingType()
     local selectedItem = selectedRing:GetSelectedItem()
 
@@ -75,15 +75,15 @@ function Inputs.Update(mode, timeInMenu)
             DoLeftKey(selectedRing)
         elseif InputHelpers.GuiIsPulsed(TEN.Input.ActionID.MENU_RIGHT, timer) then
             DoRightKey(selectedRing)
-        elseif InputHelpers.GuiIsPulsed(TEN.Input.ActionID.MENU_UP, timer) and selectedRingType < RING.COMBINE then
-            local targetRing = math.max(RING.PUZZLE, selectedRingType - 1)
-            if targetRing ~= selectedRingType and not InventoryData.GetRing(targetRing):IsEmpty() then
+        elseif InputHelpers.GuiIsPulsed(TEN.Input.ActionID.MENU_UP, timer) then
+            local targetRing = InventoryStates.GetNeighbourRingType(selectedRingType, -1)
+            if targetRing then
                 InventoryStates.StartRingChange(targetRing, -1)
                 TEN.Sound.PlaySound(SOUND_MAP.menuRotate)
             end
-        elseif InputHelpers.GuiIsPulsed(TEN.Input.ActionID.MENU_DOWN, timer) and selectedRingType < RING.COMBINE then
-            local targetRing = math.min(RING.OPTIONS, selectedRingType + 1)
-            if targetRing ~= selectedRingType and not InventoryData.GetRing(targetRing):IsEmpty() then
+        elseif InputHelpers.GuiIsPulsed(TEN.Input.ActionID.MENU_DOWN, timer) then
+            local targetRing = InventoryStates.GetNeighbourRingType(selectedRingType, 1)
+            if targetRing then
                 InventoryStates.StartRingChange(targetRing, 1)
                 TEN.Sound.PlaySound(SOUND_MAP.menuRotate)
             end
