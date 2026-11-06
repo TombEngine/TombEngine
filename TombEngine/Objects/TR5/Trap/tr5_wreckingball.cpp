@@ -45,7 +45,7 @@ namespace TEN::Entities::Traps
 
 	constexpr int MOVE_SPEED = 32;
 
-	// Max number of sectors (tiles) between the ball and Lara within which the claw will pursue
+	// Max number of sectors (tiles) between the ball and player within which the claw will pursue
 	// her along the rail. Any positive value bounds the pursuit; used as a default only, so the
 	// builder can override it via the SearchRadius property.
 	constexpr int SEARCH_RADIUS_DEFAULT = 16;
@@ -377,7 +377,7 @@ namespace TEN::Entities::Traps
 	}
 
 	// Picks a random tile physically reachable from the ball along the rail. Used for roaming when
-	// Lara is out of reach; only truly reachable tiles are offered so the ball never creeps at a gap.
+	// player is out of reach; only truly reachable tiles are offered so the ball never creeps at a gap.
 	static bool FindRandomReachableTile(const ItemInfo& anchor, int& outX, int& outZ)
 	{
 		std::vector<std::pair<int, int>> candidates;
@@ -408,9 +408,9 @@ namespace TEN::Entities::Traps
 		return true;
 	}
 
-	// Returns whether Lara is close enough to the ball for the claw to pursue her. A radius of 0
+	// Returns whether player is close enough to the ball for the claw to pursue her. A radius of 0
 	// (or negative) means the search is unlimited, so the claw chases however far the rail extends.
-	static bool IsLaraWithinSearchRadius(const ItemInfo& item)
+	static bool IsPlayerWithinSearchRadius(const ItemInfo& item)
 	{
 		if (!LaraItem)
 			return false;
@@ -420,7 +420,7 @@ namespace TEN::Entities::Traps
 			return true;
 
 		// Search radius is a horizontal ground reach in sectors; omit the ceiling-to-floor Y delta so
-		// Lara standing directly beneath the hanging ball counts as being in range.
+		// player standing directly beneath the hanging ball counts as being in range.
 		float distance2D = Vector2i::Distance(
 			Vector2i(item.Pose.Position.x, item.Pose.Position.z),
 			Vector2i(LaraItem->Pose.Position.x, LaraItem->Pose.Position.z));
@@ -517,7 +517,7 @@ namespace TEN::Entities::Traps
 	}
 
 	// Kills any enemies caught beneath the ball as it slams into the floor. Gated by the
-	// KillEnemies property, so builders can decide whether Lara can bait the claw onto her foes.
+	// KillEnemies property, so builders can decide whether player can bait the claw onto her foes.
 	static void KillEnemiesOnBallImpact(const ItemInfo& item)
 	{
 		if (!PropertyHandler::Get(item, PropName_KillEnemies, false))
@@ -529,7 +529,7 @@ namespace TEN::Entities::Traps
 
 		for (const auto& candidate : g_Level.Items)
 		{
-			// Only consider intelligent creatures at all; never Lara or inert moveables.
+			// Only consider intelligent creatures at all; never player or inert moveables.
 			if (!candidate.IsCreature())
 				continue;
 
@@ -586,7 +586,7 @@ namespace TEN::Entities::Traps
 		// Emit a large burst of bubbles below the water surface across the ball's footprint.
 		// Bubbles rise (negative Y), so they are spawned at the submerged ball's depth and stream
 		// up to the surface. The count and spread scale to the ball's mass for a dramatic dive
-		// entry, matching the bubble density Lara produces when falling into water from height.
+		// entry, matching the bubble density player produces when falling into water from height.
 		int bubbleCount = Random::GenerateInt(90, 140);
 		for (int i = 0; i < bubbleCount; i++)
 		{
@@ -880,10 +880,10 @@ namespace TEN::Entities::Traps
 		int targetX = (LaraItem->Pose.Position.x & ~0x3FF) | 512;
 		int targetZ = (LaraItem->Pose.Position.z & ~0x3FF) | 512;
 
-		if (IsLaraWithinSearchRadius(item) &&
+		if (IsPlayerWithinSearchRadius(item) &&
 			IsTileTravelReachable(anchor, item.Pose.Position.x, item.Pose.Position.z, targetX, targetZ))
 		{
-			// Lara is reachable along the rail; chase her.
+			// Player is reachable along the rail; chase her.
 			state.TargetX = targetX;
 			state.TargetZ = targetZ;
 			state.PhaseState = WreckingBallState::Phase::Moving;
@@ -893,7 +893,7 @@ namespace TEN::Entities::Traps
 			return;
 		}
 
-		// Lara is out of reach. Wait the roam delay, then start roaming the rail area.
+		// Player is out of reach. Wait the roam delay, then start roaming the rail area.
 		int roamDelay = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamDelay, 1.0f)) * FPS);
 		if (roamDelay <= 0)
 			roamDelay = 1;
@@ -935,8 +935,8 @@ namespace TEN::Entities::Traps
 
 		auto& anchor = g_Level.Items[state.BaseObject];
 
-		// If Lara has left the search radius, stop pursuing and fall back to idle.
-		if (!IsLaraWithinSearchRadius(item))
+		// If player has left the search radius, stop pursuing and fall back to idle.
+		if (!IsPlayerWithinSearchRadius(item))
 		{
 			item.Pose.Position.x = (item.Pose.Position.x & ~0x3FF) | 512;
 			item.Pose.Position.z = (item.Pose.Position.z & ~0x3FF) | 512;
@@ -948,12 +948,12 @@ namespace TEN::Entities::Traps
 			return;
 		}
 
-		int laraX = (LaraItem->Pose.Position.x & ~0x3FF) | 512;
-		int laraZ = (LaraItem->Pose.Position.z & ~0x3FF) | 512;
+		int playerX = (LaraItem->Pose.Position.x & ~0x3FF) | 512;
+		int playerZ = (LaraItem->Pose.Position.z & ~0x3FF) | 512;
 
 		// If the player's tile is not physically reachable along the rail (a gap separates them), don't
 		// chase. Settle centered on the current tile and start the roam countdown immediately.
-		if (!IsTileTravelReachable(anchor, item.Pose.Position.x, item.Pose.Position.z, laraX, laraZ, state.MoveAxis))
+		if (!IsTileTravelReachable(anchor, item.Pose.Position.x, item.Pose.Position.z, playerX, playerZ, state.MoveAxis))
 		{
 			item.Pose.Position.x = (item.Pose.Position.x & ~0x3FF) | 512;
 			item.Pose.Position.z = (item.Pose.Position.z & ~0x3FF) | 512;
@@ -965,21 +965,21 @@ namespace TEN::Entities::Traps
 			return;
 		}
 
-		int dx = laraX - item.Pose.Position.x;
-		int dz = laraZ - item.Pose.Position.z;
+		int dx = playerX - item.Pose.Position.x;
+		int dz = playerZ - item.Pose.Position.z;
 		int moveSpeed = PropertyHandler::Get(item, PropName_MovementSpeed, MOVE_SPEED);
 
-		// Arrived alongside Lara's tile center; stop flush over it, centered on the tile.
+		// Arrived alongside player's tile center; stop flush over it, centered on the tile.
 		if (std::abs(dx) <= moveSpeed && std::abs(dz) <= moveSpeed)
 		{
-			item.Pose.Position.x = laraX;
-			item.Pose.Position.z = laraZ;
+			item.Pose.Position.x = playerX;
+			item.Pose.Position.z = playerZ;
 
 			StopSoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP);
 			SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_C, &item.Pose);
 
-			state.TargetX = laraX;
-			state.TargetZ = laraZ;
+			state.TargetX = playerX;
+			state.TargetZ = playerZ;
 			state.PhaseState = WreckingBallState::Phase::PreparingDrop;
 			state.DropDelay = std::max(1, (int)(std::abs(PropertyHandler::Get(item, PropName_DropDelay, 1.0f)) * FPS));
 			state.MoveAxis = 0;
@@ -990,10 +990,10 @@ namespace TEN::Entities::Traps
 
 		// The player is reachable; move toward her tile center. This never gets stuck on a rail gap
 		// because the reachability gate above already routed inaccessible targets to the roam timer.
-		MoveAlongRail(item, state, laraX, laraZ);
+		MoveAlongRail(item, state, playerX, playerZ);
 	}
 
-	// Roams the ceiling rail area when Lara is out of reach. Continually checks whether Lara
+	// Roams the ceiling rail area when player is out of reach. Continually checks whether player
 	// has entered a reachable tile; if so, returns to chase mode.
 	static void UpdateRoaming(ItemInfo& item, WreckingBallState& state)
 	{
@@ -1007,14 +1007,14 @@ namespace TEN::Entities::Traps
 
 		auto& anchor = g_Level.Items[state.BaseObject];
 
-		// If Lara just came within the search radius and is reachable, abandon roaming and seek her.
-		int laraX = (LaraItem->Pose.Position.x & ~0x3FF) | 512;
-		int laraZ = (LaraItem->Pose.Position.z & ~0x3FF) | 512;
-		if (IsLaraWithinSearchRadius(item) &&
-			IsTileTravelReachable(anchor, item.Pose.Position.x, item.Pose.Position.z, laraX, laraZ))
+		// If player just came within the search radius and is reachable, abandon roaming and seek her.
+		int playerX = (LaraItem->Pose.Position.x & ~0x3FF) | 512;
+		int playerZ = (LaraItem->Pose.Position.z & ~0x3FF) | 512;
+		if (IsPlayerWithinSearchRadius(item) &&
+			IsTileTravelReachable(anchor, item.Pose.Position.x, item.Pose.Position.z, playerX, playerZ))
 		{
-			state.TargetX = laraX;
-			state.TargetZ = laraZ;
+			state.TargetX = playerX;
+			state.TargetZ = playerZ;
 			state.PhaseState = WreckingBallState::Phase::Moving;
 			state.MoveAxis = 0;
 			state.Timer = 0;
