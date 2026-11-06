@@ -627,7 +627,8 @@ namespace TEN::Entities::Vehicles
 					ModulateVehicleTurnRateX(&UPV->TurnRate.x, UPV_X_TURN_RATE_ACCEL, -UPV_X_TURN_RATE_MAX, UPV_X_TURN_RATE_MAX);
 			}
 
-			if (IsHeld(In::Accelerate))
+			// Remastered controls: Action accelerates with keyboard and mouse. -- divezzi, 05.11.26
+			if (Modern::IsUnderwaterVehicleAccelerateHeld())
 			{
 				if (Modern::IsVehicleDiveHeld(*lara) &&
 					UPV->Flags & UPV_FLAG_SURFACE &&
@@ -700,7 +701,7 @@ namespace TEN::Entities::Vehicles
 					SoundEffect(SFX_TR3_VEHICLE_UPV_STOP, (Pose*)&UPVItem->Pose.Position.x, SoundEnvironment::Always);
 				}
 			}
-			else if (IsHeld(In::Accelerate))
+			else if (Modern::IsUnderwaterVehicleAccelerateHeld())
 			{
 				if (Modern::IsVehicleDiveHeld(*lara) &&
 					UPVItem->Pose.Orientation.x > -UPV_X_ORIENT_DIVE_MAX &&
@@ -1016,8 +1017,8 @@ namespace TEN::Entities::Vehicles
 		{
 			DoCurrent(UPVItem, laraItem);
 
-			// Remastered controls: the harpoon fires on Action. -- divezzi, 12.10.26
-			if (Modern::IsVehicleFireHeld() &&
+			// Remastered controls: the harpoon fires on Action, or on Fire with keyboard and mouse. -- divezzi, 05.11.26
+			if (Modern::IsUnderwaterVehicleFireHeld() &&
 				UPV->Flags & UPV_FLAG_CONTROL &&
 				!UPV->HarpoonTimer)
 			{

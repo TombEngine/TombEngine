@@ -23,6 +23,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
   * Look, binoculars and lasersight aiming with right stick and mouse, and binoculars and lasersight zoom with mouse wheel in I-III Remastered control mode.
   * Firing SNOWMOBILE and UPV weapons with Action input action in I-III Remastered control mode.
   * Camera-relative UPV steering and diving in I-III Remastered control mode.
+  * UPV acceleration with Action input action and UPV weapon firing with Fire input action when keyboard was used last in I-III Remastered control mode.
   * Jeep gear shifting with Accelerate and Reverse input actions in I-III Remastered control mode.
   * Faster and Slower vehicle input actions follow Sprint and Walk bindings in I-III Remastered control mode.
   * Key binding names given to scripts follow the gamepad when it was used last, and Sprint and Walk bindings for Faster and Slower input actions, in I-III Remastered control mode.

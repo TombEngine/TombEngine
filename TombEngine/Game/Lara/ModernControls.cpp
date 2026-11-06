@@ -89,6 +89,35 @@ namespace TEN::Controls::Modern
 		return IsHeld(In::Action);
 	}
 
+	static bool IsRemasteredKeyboardInput()
+	{
+		return (g_Configuration.IsUsingRemasteredControls() && GetLastInputDevice() != InputDevice::Gamepad);
+	}
+
+	// UPV throttle: Accelerate, or Action with keyboard and mouse under Remastered controls.
+	bool IsUnderwaterVehicleAccelerateHeld()
+	{
+		if (!IsRemasteredKeyboardInput())
+			return IsHeld(In::Accelerate);
+
+		if (IsCleared(In::Accelerate))
+			return false;
+
+		if (IsPushed(In::Accelerate))
+			return true;
+
+		return IsHeld(In::Action);
+	}
+
+	// UPV harpoon: the vehicle gun button, or Fire with keyboard and mouse under Remastered controls.
+	bool IsUnderwaterVehicleFireHeld()
+	{
+		if (!IsRemasteredKeyboardInput())
+			return IsVehicleFireHeld();
+
+		return IsHeld(In::Fire);
+	}
+
 	// Surface dive in a vehicle: Forward under Classic controls; under Remastered controls, the camera pointed down past
 	// the dive pitch. A script clear of Forward holds it off, and a script push of Forward presses it.
 	bool IsVehicleDiveHeld(const LaraInfo& player)
@@ -1795,7 +1824,7 @@ namespace TEN::Controls::Modern
 
 		const auto& orient = vehicleItem.Pose.Orientation;
 		auto axis = GetHeldMoveAxis();
-		bool isAccelerating = IsHeld(In::Accelerate);
+		bool isAccelerating = IsUnderwaterVehicleAccelerateHeld();
 
 		auto& modern = player.Control.Modern;
 		bool isBackHeld = (isAccelerating && axis.y < 0.0f);
@@ -1806,8 +1835,11 @@ namespace TEN::Controls::Modern
 		short viewPitchStep = 0;
 		bool isViewFrame = GetViewPitchStep(viewPitchStep);
 
-		// Stopped, only the stick's x axis turns it.
+		// Stopped, only the stick's x axis turns it. With keyboard and mouse, the stock turn keys turn it instead.
 		auto headingAxis = isAccelerating ? axis : Vector2(axis.x, 0.0f);
+		if (!isAccelerating && IsRemasteredKeyboardInput())
+			headingAxis = Vector2::Zero;
+
 		if ((isAccelerating && !isViewFrame) || headingAxis != Vector2::Zero)
 		{
 			short headingAngle = (headingAxis == Vector2::Zero) ? player.Control.RefCameraOrient.y : GetCameraRelativeAngleY(player, headingAxis);

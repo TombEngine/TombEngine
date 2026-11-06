@@ -13,6 +13,8 @@ namespace TEN::Controls::Modern
 
 	bool  IsGrabHeld();
 	bool  IsVehicleFireHeld();
+	bool  IsUnderwaterVehicleAccelerateHeld();
+	bool  IsUnderwaterVehicleFireHeld();
 	bool  IsVehicleDiveHeld(const LaraInfo& player);
 	bool  IsVehicleReverseGearShift();
 	bool  IsVehicleForwardGearShift();
