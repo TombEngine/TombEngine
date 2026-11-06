@@ -14,6 +14,10 @@ namespace TEN::Controls::Modern
 	bool  IsGrabHeld();
 	bool  IsVehicleFireHeld();
 	bool  IsVehicleDiveHeld(const LaraInfo& player);
+	bool  IsVehicleReverseGearShift();
+	bool  IsVehicleForwardGearShift();
+	bool  IsVehicleThrottleHeld(bool isReverseGear);
+	bool  IsVehicleBrakeHeld(bool isReverseGear);
 	bool  IsLookHeld(const LaraInfo& player);
 	bool  IsLookAroundHeld(const LaraInfo& player);
 	void  ResetLookToggle(LaraInfo& player);

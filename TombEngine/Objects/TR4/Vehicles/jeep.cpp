@@ -14,6 +14,7 @@
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_flare.h"
 #include "Game/Lara/lara_one_gun.h"
+#include "Game/Lara/ModernControls.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Objects/TR4/Vehicles/jeep_info.h"
@@ -29,6 +30,7 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
+using namespace TEN::Controls;
 using namespace TEN::Input;
 using namespace TEN::Utils;
 
@@ -864,7 +866,8 @@ namespace TEN::Entities::Vehicles
 			}
 
 			// Brake/reverse
-			if (IsHeld(In::Brake))
+			// Remastered controls: Accelerate and Reverse also shift gears and brake. -- divezzi, 06.11.26
+			if (Modern::IsVehicleBrakeHeld(jeep->Gear == 1))
 			{
 				if (jeep->Velocity < 0)
 				{
@@ -880,7 +883,7 @@ namespace TEN::Entities::Vehicles
 				}
 			}
 			// Accelerate
-			else if (IsHeld(In::Accelerate))
+			else if (Modern::IsVehicleThrottleHeld(jeep->Gear == 1))
 			{
 				if (jeep->Gear)
 				{
@@ -1010,7 +1013,7 @@ namespace TEN::Entities::Vehicles
 
 						break;
 					}
-					else if (IsClicked(In::Sprint))
+					else if (Modern::IsVehicleReverseGearShift())
 					{
 						if (jeep->Gear < 1)
 						{
@@ -1099,7 +1102,7 @@ namespace TEN::Entities::Vehicles
 					laraItem->Animation.TargetState = JS_IDLE;
 				else if (!(IsClicked(In::Walk)))
 				{
-					if (IsClicked(In::Sprint))
+					if (Modern::IsVehicleReverseGearShift())
 					{
 						if (jeep->Gear < 1)
 						{
@@ -1145,7 +1148,7 @@ namespace TEN::Entities::Vehicles
 
 				if (!(IsClicked(In::Walk)))
 				{
-					if (IsClicked(In::Sprint))
+					if (Modern::IsVehicleReverseGearShift())
 					{
 						if (jeep->Gear < 1)
 						{
@@ -1210,7 +1213,7 @@ namespace TEN::Entities::Vehicles
 			case JS_BACK_LEFT:
 				if (dead)
 					laraItem->Animation.TargetState = JS_DRIVE_BACK;
-				else if (!(IsClicked(In::Walk)))
+				else if (!(Modern::IsVehicleForwardGearShift()))
 				{
 					if (IsClicked(In::Sprint))
 					{
@@ -1251,7 +1254,7 @@ namespace TEN::Entities::Vehicles
 				{
 					laraItem->Animation.TargetState = JS_DRIVE_BACK;
 				}
-				else if (!(IsClicked(In::Walk)))
+				else if (!(Modern::IsVehicleForwardGearShift()))
 				{
 					if (IsClicked(In::Sprint))
 					{
@@ -1297,14 +1300,14 @@ namespace TEN::Entities::Vehicles
 				else
 	//			if (jeep->Velocity || JeepNoGetOff)
 				{
-					if (!(IsClicked(In::Walk)))
+					if (!(Modern::IsVehicleForwardGearShift()))
 					{
 						if (IsClicked(In::Sprint))
 						{
 							if (jeep->Gear < 1)
 								jeep->Gear++;
 						}
-						else if (!IsHeld(In::Accelerate) || IsHeld(In::Brake))
+						else if (!Modern::IsVehicleThrottleHeld(jeep->Gear == 1) || IsHeld(In::Brake))
 						{
 							if (IsHeld(In::Right))
 								laraItem->Animation.TargetState = JS_BACK_RIGHT;

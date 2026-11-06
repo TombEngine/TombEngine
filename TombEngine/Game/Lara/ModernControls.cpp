@@ -110,6 +110,56 @@ namespace TEN::Controls::Modern
 		return (player.Control.RefCameraOrient.x < VEHICLE_HEADING_SETUP.DiveCameraPitch);
 	}
 
+	// Jeep reverse gear shift: a Sprint press, or under Remastered controls also Reverse held without Accelerate.
+	bool IsVehicleReverseGearShift()
+	{
+		if (!g_Configuration.IsUsingRemasteredControls())
+			return IsClicked(In::Sprint);
+
+		if (IsCleared(In::Sprint))
+			return false;
+
+		return (IsClicked(In::Sprint) || (IsHeld(In::Reverse) && !IsHeld(In::Accelerate)));
+	}
+
+	// Jeep forward gear shift: a Walk press, or under Remastered controls also Accelerate held without Reverse.
+	bool IsVehicleForwardGearShift()
+	{
+		if (!g_Configuration.IsUsingRemasteredControls())
+			return IsClicked(In::Walk);
+
+		if (IsCleared(In::Walk))
+			return false;
+
+		return (IsClicked(In::Walk) || (IsHeld(In::Accelerate) && !IsHeld(In::Reverse)));
+	}
+
+	// Jeep throttle: Accelerate, or under Remastered controls Reverse in the reverse gear.
+	bool IsVehicleThrottleHeld(bool isReverseGear)
+	{
+		if (!g_Configuration.IsUsingRemasteredControls() || !isReverseGear)
+			return IsHeld(In::Accelerate);
+
+		if (IsCleared(In::Accelerate))
+			return false;
+
+		return IsHeld(In::Reverse);
+	}
+
+	// Jeep brake: Brake, or under Remastered controls also the other gear's pedal held alone.
+	bool IsVehicleBrakeHeld(bool isReverseGear)
+	{
+		if (!g_Configuration.IsUsingRemasteredControls())
+			return IsHeld(In::Brake);
+
+		if (IsCleared(In::Brake))
+			return false;
+
+		auto gearActionID = isReverseGear ? In::Reverse : In::Accelerate;
+		auto otherActionID = isReverseGear ? In::Accelerate : In::Reverse;
+		return (IsHeld(In::Brake) || (IsHeld(otherActionID) && !IsHeld(gearActionID)));
+	}
+
 	// Steps an angle toward a target by a share of the remaining error, clamped between a minimum and a maximum step.
 	// An exact half-turn error keeps the previous turn direction, stored in prevSign.
 	static short ApproachHeadingAngle(short fromAngle, short toAngle, float rate, short stepMax, int& prevSign)
