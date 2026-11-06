@@ -618,7 +618,7 @@ namespace TEN::Entities::Vehicles
 			rot = jeepItem->Pose.Orientation.y - jeep->MomentumAngle;
 			short momentum = (short)(728 - ((3 * jeep->Velocity) / 2048));
 
-			if (!IsHeld(In::Action) && jeep->Velocity > 0)
+			if (!IsHeld(In::Accelerate) && jeep->Velocity > 0)
 				momentum -= (momentum / 4);
 
 			if (rot < -273)

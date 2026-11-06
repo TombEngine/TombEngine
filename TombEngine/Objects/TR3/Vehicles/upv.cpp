@@ -785,33 +785,26 @@ namespace TEN::Entities::Vehicles
 				frame == UPV_DISMOUNT_WATER_SURFACE_FRAME)
 			{
 				UPV->Flags &= ~UPV_FLAG_CONTROL;
-				int waterDepth, waterHeight, heightFromWater;
 
-				auto pointColl = GetPointCollision(*laraItem);
-				waterDepth = pointColl.GetWaterSurfaceHeight();
-				waterHeight = pointColl.GetWaterTopHeight();
-
-				if (waterHeight != NO_HEIGHT)
-					heightFromWater = laraItem->Pose.Position.y - waterHeight;
-				else
-					heightFromWater = NO_HEIGHT;
-
-				auto vec = GetJointPosition(laraItem, LM_HIPS);
-
-				laraItem->Pose.Position.x = vec.x;
-				//laraItem->Pose.Position.y += -heightFromWater + 1; // Doesn't work as intended.
-				laraItem->Pose.Position.y = vec.y;
-				laraItem->Pose.Position.z = vec.z;
-
-				SetAnimation(laraItem, LA_ONWATER_IDLE);
-				laraItem->Animation.IsAirborne = false;
-				laraItem->Animation.Velocity.y = 0;
+				laraItem->Pose.Position = GetJointPosition(laraItem, LM_HIPS);
 				laraItem->Pose.Orientation.x = 0;
 				laraItem->Pose.Orientation.z = 0;
 
-				UpdateLaraRoom(laraItem, -LARA_HEIGHT / 2);
+				int waterHeight = GetPointCollision(*laraItem).GetWaterTopHeight();
+				if (waterHeight != NO_HEIGHT)
+					laraItem->Pose.Position.y = waterHeight + 1;
 
+				SetAnimation(laraItem, LA_ONWATER_IDLE);
+				laraItem->Animation.IsAirborne = false;
+				laraItem->Animation.Velocity = Vector3::Zero;
+
+				UpdateLaraRoom(laraItem, 0);
+
+				ResetPlayerLean(laraItem);
 				ResetPlayerFlex(laraItem);
+
+				int heightFromWater = (waterHeight != NO_HEIGHT) ? (laraItem->Pose.Position.y - waterHeight) : NO_HEIGHT;
+
 				lara->Control.HandStatus = HandStatus::Free;
 				lara->Control.WaterStatus = WaterStatus::TreadWater;
 				lara->Context.WaterSurfaceDist = -heightFromWater;
