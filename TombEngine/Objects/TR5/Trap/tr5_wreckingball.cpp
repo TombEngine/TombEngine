@@ -137,6 +137,10 @@ namespace TEN::Entities::Traps
 
 	static std::unordered_map<short, WreckingBallState> WreckingBallStates;
 
+	// ---------------------------------------------------------------------
+	// Helpers
+	// ---------------------------------------------------------------------
+
 	static short EncodeWreckingBallSector(int coordinate)
 	{
 		int sector = (int)std::floor((float)coordinate / BLOCK(1));
@@ -748,7 +752,6 @@ namespace TEN::Entities::Traps
 	static void ResetBallToVertical(ItemInfo& item, float alpha = 0.1f)
 	{
 		auto vertical = EulerAngles(0, item.Pose.Orientation.y, 0);
-
 		auto extraRot = vertical - item.Pose.Orientation;
 		item.Pose.Orientation += extraRot * alpha;
 	}
