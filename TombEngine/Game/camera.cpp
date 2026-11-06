@@ -578,6 +578,16 @@ namespace TEN::Controls::Modern
 	static short CameraPrevAzimuth  = 0;
 	static short CameraPrevAltitude = CAMERA_ALTITUDE_DEFAULT;
 
+	// Remastered controls fix: right stick and mouse steer the player under fixed and flyby cameras. -- divezzi, 06.11.26
+	static auto CameraHeldTurn = Vector2i(0, 0); // Turn the orbit camera held by a wall has not taken yet.
+	static auto ViewTurn	   = Vector2i(0, 0); // Turn added to the frame of a fixed shot or a flyby.
+
+	// OrbitCamera() ran this tick.
+	static bool IsOrbitCameraRun = false;
+
+	// Last tick's stick frame came from a fixed shot or a flyby.
+	static bool IsViewFrame = false;
+
 	struct CameraDiagonalFace
 	{
 		bool  IsFound		   = false;
@@ -592,35 +602,145 @@ namespace TEN::Controls::Modern
 		CameraAltitude = CAMERA_ALTITUDE_DEFAULT;
 		CameraPrevAzimuth = CameraAzimuth;
 		CameraPrevAltitude = CameraAltitude;
+		CameraHeldTurn = Vector2i::Zero;
+		ViewTurn = Vector2i::Zero;
 	}
 
-	// Camera frame the stick is read in: the orbit angle, or the view's direction in a flyby or a fixed camera shot.
-	// A flyby is followed every frame. In a fixed shot the frame keeps its direction while the player moves and takes the
-	// view's direction once she stops.
+	// Move axis pushed, or Accelerate held in a vehicle.
+	static bool IsMovePushed(const ItemInfo& item)
+	{
+		if (GetHeldMoveAxis() != Vector2::Zero)
+			return true;
+
+		const auto& player = GetLaraInfo(item);
+		return (player.Context.Vehicle != NO_VALUE && IsHeld(In::Accelerate));
+	}
+
+	// The pitch stays within the orbit limits.
+	static void ApplyFrameTurn(EulerAngles& orient, const Vector2i& turn)
+	{
+		if (turn == Vector2i::Zero)
+			return;
+
+		orient.y = (short)(orient.y + turn.x);
+		orient.x = (short)std::clamp(orient.x + turn.y, (int)CAMERA_ALTITUDE_MIN, (int)CAMERA_ALTITUDE_MAX);
+	}
+
+	// Recovers the mouse movement in pixels from the normalized mouse axis.
+	// NOTE: Reverses the scaling done in ReadMouse() (Specific/Input/Input.cpp). Keep the two in step.
+	static Vector2 GetCameraMousePixels()
+	{
+		constexpr auto SENSITIVITY_COEFF = 0.1f;
+		constexpr auto SENSITIVITY_BASE	 = 0.4f;
+
+		float sensitivity = (g_Configuration.MouseSensitivity * SENSITIVITY_COEFF) + SENSITIVITY_BASE;
+		if (sensitivity <= 0.0f)
+			return Vector2::Zero;
+
+		const auto& normAxis = GetMouseAxis();
+		return (Vector2(normAxis.x * DISPLAY_SPACE_RES.x, normAxis.y * DISPLAY_SPACE_RES.y) / sensitivity);
+	}
+
+	// Yaw and pitch step of the right stick and mouse this tick, in orbit angles.
+	static Vector2i GetCameraTurn()
+	{
+		constexpr auto MOUSE_ROTATION_GAIN	   = 3.2f;
+		constexpr auto MOUSE_SENSITIVITY_SCALE = 5.0f / 6.0f;
+
+		if (g_GameFlow->CurrentFreezeMode == FreezeMode::Spectator || Camera.laraNode != NO_VALUE)
+			return Vector2i::Zero;
+
+		auto stickAxis = Vector2::Zero;
+		if (AxisMap[AxisID::Camera].Length() > MANUAL_ROTATION_THRESHOLD)
+			stickAxis = AxisMap[AxisID::Camera] * MANUAL_ROTATION_SPEED;
+
+		// The mouse has no threshold, so a single pixel of movement turns the camera.
+		auto mouseAxis = GetCameraMousePixels() * (g_Configuration.MouseSensitivity * MOUSE_SENSITIVITY_SCALE * MOUSE_ROTATION_GAIN);
+
+		int yaw = (int)std::round(mouseAxis.x) + ANGLE(stickAxis.x);
+		int pitch = (int)std::round(mouseAxis.y) + ANGLE(stickAxis.y);
+
+		// Without inversion, pushing the stick up or moving the mouse forward aims the camera up.
+		return Vector2i(yaw, g_Configuration.InvertCameraYAxis ? pitch : -pitch);
+	}
+
+	// Right stick and mouse turn under Remastered controls with a fixed or flyby camera. False otherwise.
+	bool GetViewFrameTurn(Vector2i& turn)
+	{
+		turn = Vector2i::Zero;
+		if (!g_Configuration.IsUsingRemasteredControls() || !IsViewFrame)
+			return false;
+
+		turn = GetCameraTurn();
+		return true;
+	}
+
+	// Camera frame the stick is read in: the orbit angle, or the level view direction in a flyby or a fixed camera shot.
+	// A flyby is followed every frame. In a fixed shot the frame keeps its direction while she moves and takes the view's
+	// direction once she stops. On land, the right stick and mouse turn it while she moves.
 	void UpdatePlayerRefCameraOrient(ItemInfo& item)
 	{
+		constexpr auto VIEW_TURN_COEFF = 0.8f; // Share of the camera's turn rate.
+
 		if (!g_Configuration.IsUsingRemasteredControls())
 			return;
 
 		auto& player = GetLaraInfo(item);
+		bool isInVehicle = (player.Context.Vehicle != NO_VALUE);
 
-		float vel = Vector2(item.Animation.Velocity.x, item.Animation.Velocity.z).Length();
+		// The fly cheat moves on Velocity.y.
+		float vel = (item.Animation.ActiveState == LS_FLY_CHEAT) ?
+			item.Animation.Velocity.y :
+			Vector2(item.Animation.Velocity.x, item.Animation.Velocity.z).Length();
 		bool isStopped = (((GetHeldMoveAxis() == Vector2::Zero && !IsHeld(In::StepLeft) && !IsHeld(In::StepRight)) || vel == 0.0f) &&
 						  TestState(item.Animation.ActiveState, PLAYER_IDLE_STATE_IDS));
+
+		// In a vehicle, she is stopped while no direction is held.
+		if (isInVehicle)
+			isStopped = (GetHeldMoveAxis() == Vector2::Zero);
 
 		// NOTE: CalculateCamera() has already reset Camera.type to Chase; Camera.lastType holds this tick's camera type.
 		bool isFixedShot = (!UseSpotCam && (Camera.lastType == CameraType::Fixed || Camera.lastType == CameraType::Heavy));
 		player.Control.LockRefCameraOrient = (isFixedShot && !isStopped);
 
-		short frameAngle = CameraAzimuth;
-		if (UseSpotCam || isFixedShot)
-			frameAngle = Geometry::GetOrientToPoint(Camera.pos.ToVector3(), Camera.target.ToVector3()).y;
+		// A held turn belongs to the orbit camera. A fixed camera that chases with the orbit camera takes no view turn.
+		bool isOrbit = (IsOrbitCameraRun && !UseSpotCam);
+		IsOrbitCameraRun = false;
+		if (!isOrbit)
+			CameraHeldTurn = Vector2i::Zero;
 
-		if (!player.Control.LockRefCameraOrient)
-			player.Control.RefCameraOrient = EulerAngles(Camera.actualElevation, frameAngle, 0);
+		// The view turn is collected only while she moves on land, outside vehicles.
+		bool isOnLand =(player.Control.WaterStatus == WaterStatus::Dry || player.Control.WaterStatus == WaterStatus::Wade);
+		bool isMoving = (IsMovePushed(item) && !isInVehicle && isOnLand && !isStopped);
+		IsViewFrame = ((UseSpotCam || isFixedShot) && !isOrbit);
+		bool isViewTurning = (IsViewFrame && isMoving);
+		auto turn = isViewTurning ? (GetCameraTurn() * VIEW_TURN_COEFF) : Vector2i::Zero;
+		if (isViewTurning)
+		{
+			ViewTurn.x = (short)(ViewTurn.x + turn.x);
+			ViewTurn.y = std::clamp(ViewTurn.y + turn.y, (int)CAMERA_ALTITUDE_MIN, (int)CAMERA_ALTITUDE_MAX);
+		}
+		else
+		{
+			ViewTurn = Vector2i::Zero;
+		}
+
+		if (player.Control.LockRefCameraOrient)
+		{
+			ApplyFrameTurn(player.Control.RefCameraOrient, turn);
+			return;
+		}
+
+		auto frameOrient = EulerAngles(Camera.actualElevation, CameraAzimuth, 0);
+		if (IsViewFrame)
+			frameOrient = EulerAngles(0, Geometry::GetOrientToPoint(Camera.pos.ToVector3(), Camera.target.ToVector3()).y, 0);
+
+		player.Control.RefCameraOrient = frameOrient;
+		ApplyFrameTurn(player.Control.RefCameraOrient, CameraHeldTurn + ViewTurn);
 	}
 
 	// Restores last tick's orbit angles, used when the camera cannot be placed this tick.
+	// The turn it drops stays in CameraHeldTurn, so the stick frame still takes it.
 	static void HoldCameraFrame()
 	{
 		CameraAzimuth = CameraPrevAzimuth;
@@ -638,21 +758,6 @@ namespace TEN::Controls::Modern
 
 		return (floorHeight == NO_HEIGHT || ceilingHeight == NO_HEIGHT || ceilingHeight >= floorHeight ||
 				pos.y > floorHeight || pos.y < ceilingHeight);
-	}
-
-	// Recovers the mouse movement in pixels from the normalized mouse axis.
-	// NOTE: Reverses the scaling done in ReadMouse() (Specific/Input/Input.cpp). Keep the two in step.
-	static Vector2 GetCameraMousePixels()
-	{
-		constexpr auto SENSITIVITY_COEFF = 0.1f;
-		constexpr auto SENSITIVITY_BASE	 = 0.4f;
-
-		float sensitivity = (g_Configuration.MouseSensitivity * SENSITIVITY_COEFF) + SENSITIVITY_BASE;
-		if (sensitivity <= 0.0f)
-			return Vector2::Zero;
-
-		const auto& normAxis = GetMouseAxis();
-		return (Vector2(normAxis.x * DISPLAY_SPACE_RES.x, normAxis.y * DISPLAY_SPACE_RES.y) / sensitivity);
 	}
 
 	// Moves the look-at inside its floor-to-ceiling column. Returns true if it had to be moved.
@@ -865,42 +970,24 @@ namespace TEN::Controls::Modern
 	// Turns the orbit angles with the right stick and mouse. Used in place of DoThumbstickCamera().
 	static void UpdateCameraOrient()
 	{
-		constexpr auto MOUSE_ROTATION_GAIN	   = 3.2f;
-		constexpr auto MOUSE_SENSITIVITY_SCALE = 5.0f / 6.0f;
-
 		CameraPrevAzimuth = CameraAzimuth;
 		CameraPrevAltitude = CameraAltitude;
 
-		if (g_GameFlow->CurrentFreezeMode != FreezeMode::Spectator && Camera.laraNode == NO_VALUE)
-		{
-			auto stickAxis = Vector2::Zero;
-			if (AxisMap[AxisID::Camera].Length() > MANUAL_ROTATION_THRESHOLD)
-				stickAxis = AxisMap[AxisID::Camera] * MANUAL_ROTATION_SPEED;
+		// While she is moved, a turn the held camera could not take is tried again.
+		bool isMovePushed = IsMovePushed(*LaraItem);
+		auto turn = GetCameraTurn();
+		if (isMovePushed)
+			turn += CameraHeldTurn;
 
-			// The mouse has no threshold, so a single pixel of movement turns the camera.
-			auto mouseAxis = GetCameraMousePixels() * (g_Configuration.MouseSensitivity * MOUSE_SENSITIVITY_SCALE * MOUSE_ROTATION_GAIN);
+		// The yaw wraps by design; the mouse step is rounded to int first, so a fast flick cannot overflow the cast.
+		CameraAzimuth = (short)(CameraAzimuth + turn.x);
 
-			// The yaw wraps by design; the mouse step is rounded to int first, so a fast flick cannot overflow the cast.
-			CameraAzimuth = (short)(CameraAzimuth + (int)std::round(mouseAxis.x));
-			CameraAzimuth += ANGLE(stickAxis.x);
+		// The pitch is summed in int and clamped before it is stored, so a fast flick cannot wrap past the limits.
+		CameraAltitude = (short)std::clamp(CameraAltitude + turn.y, (int)CAMERA_ALTITUDE_MIN, (int)CAMERA_ALTITUDE_MAX);
 
-			// The pitch is summed in int and clamped before it is stored, so a fast flick cannot wrap past the limits.
-			int altitude = CameraAltitude;
-
-			// Without inversion, pushing the stick up or moving the mouse forward aims the camera up.
-			if (g_Configuration.InvertCameraYAxis)
-			{
-				altitude += (int)std::round(mouseAxis.y);
-				altitude += ANGLE(stickAxis.y);
-			}
-			else
-			{
-				altitude -= (int)std::round(mouseAxis.y);
-				altitude -= ANGLE(stickAxis.y);
-			}
-
-			CameraAltitude = (short)std::clamp(altitude, (int)CAMERA_ALTITUDE_MIN, (int)CAMERA_ALTITUDE_MAX);
-		}
+		CameraHeldTurn = isMovePushed ?
+			Vector2i(Geometry::GetShortestAngle(CameraPrevAzimuth, CameraAzimuth), CameraAltitude - CameraPrevAltitude) :
+			Vector2i::Zero;
 
 		ApplyCameraAssist(*LaraItem);
 
@@ -979,6 +1066,12 @@ namespace TEN::Controls::Modern
 		constexpr auto CLIP_SETUP				  = CameraClipSetup{ 64, 0 };
 		constexpr auto CLIP_SETUP_LOOK_AT_CLAMPED = CameraClipSetup{ 64, 250 };
 
+		// A fixed shot has just ended: start behind the player.
+		bool isFixedShot = (Camera.type == CameraType::Fixed || Camera.type == CameraType::Heavy);
+		if (!isFixedShot && (Camera.lastType == CameraType::Fixed || Camera.lastType == CameraType::Heavy))
+			ResetCameraOrient(*LaraItem);
+
+		IsOrbitCameraRun = true;
 		Camera.speed = CAMERA_SPEED;
 
 		if (!Camera.targetElevation)
@@ -1022,7 +1115,14 @@ namespace TEN::Controls::Modern
 
 		// Pushed position is still not in open space; keep last tick's orbit angles.
 		if (isPushBlocked)
+		{
 			HoldCameraFrame();
+		}
+		else
+		{
+			// The camera took the turn, except a pitch the look-at clamp held back.
+			CameraHeldTurn = isLookAtClamped ? Vector2i(0, CameraHeldTurn.y) : Vector2i::Zero;
+		}
 
 		MoveCamera(&ideal, Camera.speed);
 

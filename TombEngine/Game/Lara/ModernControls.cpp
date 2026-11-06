@@ -102,6 +102,11 @@ namespace TEN::Controls::Modern
 		if (IsPushed(In::Forward))
 			return true;
 
+		// Under fixed and flyby cameras, the right stick or mouse turned down.
+		auto viewTurn = Vector2i::Zero;
+		if (GetViewFrameTurn(viewTurn))
+			return (viewTurn.y < 0);
+
 		return (player.Control.RefCameraOrient.x < VEHICLE_HEADING_SETUP.DiveCameraPitch);
 	}
 
@@ -541,6 +546,34 @@ namespace TEN::Controls::Modern
 		dir.Normalize();
 		short moveAxisAngle = FROM_RAD(std::atan2(dir.x, dir.y));
 		return (short)(player.Control.RefCameraOrient.y + moveAxisAngle);
+	}
+
+	// Right stick and mouse pitch step under Remastered controls with a fixed or flyby camera. False otherwise.
+	static bool GetViewPitchStep(short& pitchStep)
+	{
+		constexpr auto PITCH_STEP_MAX = ANGLE(6.0f); // Twice the stock swim pitch rate.
+
+		pitchStep = 0;
+
+		auto turn = Vector2i::Zero;
+		if (!GetViewFrameTurn(turn))
+			return false;
+
+		// Without inversion, stick up or mouse forward pitches up.
+		pitchStep = (short)std::clamp(turn.y, -(int)PITCH_STEP_MAX, (int)PITCH_STEP_MAX);
+		return true;
+	}
+
+	// Pitch step that lifts the player off the floor she swims into, up to a little above level.
+	static short GetFloorLiftPitch(const ItemInfo& item)
+	{
+		constexpr auto LIFT_STEP	  = ANGLE(3.0f);
+		constexpr auto LIFT_PITCH_MAX = ANGLE(5.0f);
+
+		if (LaraCollision.Middle.Floor == NO_HEIGHT || LaraCollision.Middle.Floor >= 0)
+			return 0;
+
+		return (short)std::clamp(LIFT_PITCH_MAX - item.Pose.Orientation.x, 0, (int)LIFT_STEP);
 	}
 
 	// Heading the stick points to, relative to the camera. The player's own heading when the stick is centered.
@@ -1578,7 +1611,20 @@ namespace TEN::Controls::Modern
 		if (IsHeld(In::Look))
 			return;
 
-		if (player.Control.RefMoveAxis == Vector2::Zero)
+		// Under fixed and flyby cameras, the right stick and mouse pitch her, also while the stick is centered.
+		short viewPitchStep = 0;
+		bool isViewPitch = (isUnderwater && GetViewPitchStep(viewPitchStep));
+		bool isStill = (player.Control.RefMoveAxis == Vector2::Zero);
+		if (isViewPitch)
+		{
+			if (!isStill)
+				viewPitchStep += GetFloorLiftPitch(item);
+
+			item.Pose.Orientation.x += viewPitchStep;
+			item.Pose.Orientation.z = 0;
+		}
+
+		if (isStill)
 			return;
 
 		auto& modern = player.Control.Modern;
@@ -1586,7 +1632,7 @@ namespace TEN::Controls::Modern
 		item.Pose.Orientation.y = ApproachHeadingAngle(item.Pose.Orientation.y, headingAngle, rate, stepMax, modern.HeadingTurnSign);
 
 		// Surface swimming stays level.
-		if (!isUnderwater)
+		if (!isUnderwater || isViewPitch)
 			return;
 
 		// A positive camera elevation puts the camera below the player, looking up, so she pitches up.
@@ -1706,9 +1752,13 @@ namespace TEN::Controls::Modern
 		if (!isBackHeld)
 			modern.IsVehicleBackLocked = false;
 
+		// Under fixed and flyby cameras, the right stick and mouse pitch it, and a centered stick keeps its heading.
+		short viewPitchStep = 0;
+		bool isViewFrame = GetViewPitchStep(viewPitchStep);
+
 		// Stopped, only the stick's x axis turns it.
 		auto headingAxis = isAccelerating ? axis : Vector2(axis.x, 0.0f);
-		if (isAccelerating || headingAxis != Vector2::Zero)
+		if ((isAccelerating && !isViewFrame) || headingAxis != Vector2::Zero)
 		{
 			short headingAngle = (headingAxis == Vector2::Zero) ? player.Control.RefCameraOrient.y : GetCameraRelativeAngleY(player, headingAxis);
 			if (isBackHeld)
@@ -1730,18 +1780,22 @@ namespace TEN::Controls::Modern
 		if (isAtSurface)
 			return;
 
-		if (isAccelerating)
+		if (isAccelerating && !isViewFrame)
 		{
 			// A positive camera elevation puts the camera below the vehicle, looking up, so it pitches up.
 			int pitchTurnSign = 0;
 			short pitchAngle = ApproachHeadingAngle(orient.x, player.Control.RefCameraOrient.x, VEHICLE_HEADING_SETUP.PitchRate, turnRateMax.x, pitchTurnSign);
 			turnRate.x = Geometry::GetShortestAngle(orient.x, pitchAngle);
 		}
-		else if (axis.y != 0.0f)
+		else if (!isAccelerating && axis.y != 0.0f)
 		{
 			// Stick up pitches up, unless the camera's vertical axis is inverted.
 			float pitchCoeff = g_Configuration.InvertCameraYAxis ? -axis.y : axis.y;
 			turnRate.x = (short)(pitchCoeff * turnRateMax.x);
+		}
+		else if (isViewFrame)
+		{
+			turnRate.x = viewPitchStep;
 		}
 	}
 

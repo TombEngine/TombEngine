@@ -13,6 +13,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added I-III Remastered control mode, selectable in the Gameplay options menu:
   * Camera-relative player movement on land, in water and in fly mode.
   * Orbit camera with mouse look, camera collision and vertical axis inversion option, reset behind the player with Look input action.
+  * Running direction steering, and swimming, fly mode and UPV pitch control, with right stick and mouse under fixed and flyby cameras in I-III Remastered control mode.
   * Camera-relative standing jumps and mid-air rolls.
   * Tank crawl with Walk input action in I-III Remastered control mode.
   * Grabbing with Fire input action, with safety grab and crawlspace edge grab.

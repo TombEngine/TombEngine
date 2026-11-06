@@ -135,4 +135,5 @@ namespace TEN::Controls::Modern
 {
 	void ResetCameraOrient(const ItemInfo& item);
 	void UpdatePlayerRefCameraOrient(ItemInfo& item);
+	bool GetViewFrameTurn(Vector2i& turn);
 }
