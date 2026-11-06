@@ -18,7 +18,6 @@
 #include "Game/Lara/lara.h"
 #include "Game/room.h"
 #include "Game/Setup.h"
-#include "Objects/TR5/Light/tr5_light.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 #include "Scripting/Internal/TEN/Properties/PropertyNames.h"
@@ -54,13 +53,6 @@ namespace TEN::Entities::Traps
 	// Maximum number of individual chain links that can be stacked between the anchor and the ball.
 	constexpr int MAX_CHAIN_LINKS = 128;
 	constexpr short WRECKINGBALL_COMPANION_MARKER = 0x5742;
-
-	// Distance from the anchor (ceiling) to the ball's center when the ball is fully raised.
-	constexpr int BALL_HANG_OFFSET_Y = 1644;
-
-	// Vertical extent of a single chain-link mesh in world units. The links are stacked using this
-	// spacing, so it must match the actual link mesh height for the chain to be continuous.
-	constexpr int CHAIN_LINK_SPACING = CLICK(0.3);
 
 	constexpr auto SPOTLIGHT_ANCHOR_OFFSET_Y = 512.0f;
 
@@ -174,7 +166,7 @@ namespace TEN::Entities::Traps
 
 		short anchorNumber = item.ItemFlags[0];
 		if (anchorNumber >= 0 && anchorNumber < g_Level.Items.size() &&
-			g_Level.Items[anchorNumber].ObjectNumber == ID_WRECKINGBALL_ANCHOR)
+			g_Level.Items[anchorNumber].ObjectNumber == ID_WRECKING_BALL_ANCHOR)
 		{
 			state.BaseObject = anchorNumber;
 		}
@@ -199,7 +191,7 @@ namespace TEN::Entities::Traps
 	{
 		for (const auto& candidate : g_Level.Items)
 		{
-			if (candidate.ObjectNumber != ID_WRECKINGBALL_CHAIN ||
+			if (candidate.ObjectNumber != ID_WRECKING_BALL_CHAIN ||
 				candidate.ItemFlags[0] != item.Index ||
 				candidate.ItemFlags[1] != WRECKINGBALL_COMPANION_MARKER)
 			{
@@ -221,7 +213,7 @@ namespace TEN::Entities::Traps
 	{
 		for (auto& candidate : g_Level.Items)
 		{
-			if (candidate.ObjectNumber == ID_WRECKINGBALL_ANCHOR &&
+			if (candidate.ObjectNumber == ID_WRECKING_BALL_ANCHOR &&
 				candidate.ItemFlags[0] == item.Index &&
 				candidate.ItemFlags[1] == WRECKINGBALL_COMPANION_MARKER)
 			{
@@ -234,7 +226,7 @@ namespace TEN::Entities::Traps
 		for (int i = 0; i < g_Level.NumItems; i++)
 		{
 			auto& candidate = g_Level.Items[i];
-			if (candidate.ObjectNumber != ID_WRECKINGBALL_ANCHOR ||
+			if (candidate.ObjectNumber != ID_WRECKING_BALL_ANCHOR ||
 				candidate.ItemFlags[1] == WRECKINGBALL_COMPANION_MARKER)
 			{
 				continue;
@@ -248,7 +240,7 @@ namespace TEN::Entities::Traps
 			}
 		}
 
-		short anchorNumber = (closestAnchor >= 0) ? (short)closestAnchor : SpawnItem(item, ID_WRECKINGBALL_ANCHOR);
+		short anchorNumber = (closestAnchor >= 0) ? (short)closestAnchor : SpawnItem(item, ID_WRECKING_BALL_ANCHOR);
 		if (anchorNumber >= 0)
 		{
 			auto& anchor = g_Level.Items[anchorNumber];
@@ -270,7 +262,7 @@ namespace TEN::Entities::Traps
 		for (int i = 0; i < g_Level.NumItems; i++)
 		{
 			auto& candidate = g_Level.Items[i];
-			if (candidate.ObjectNumber != ID_WRECKINGBALL_CHAIN ||
+			if (candidate.ObjectNumber != ID_WRECKING_BALL_CHAIN ||
 				candidate.ItemFlags[1] == WRECKINGBALL_COMPANION_MARKER)
 			{
 				continue;
@@ -766,7 +758,56 @@ namespace TEN::Entities::Traps
 		item.Pose.Orientation += extraRot * alpha;
 	}
 
- static void EnsureWreckingBallLinks(ItemInfo& item, WreckingBallState& state, int requiredCount);
+	// Vertical extent of a single chain-link mesh. Links are stacked using this spacing, so the chain
+	// stays continuous regardless of how the link mesh is authored.
+	static int GetChainLinkHeight()
+	{
+		int height = GameBoundingBox(ID_WRECKING_BALL_CHAIN).GetHeight();
+		return std::max(height, 1);
+	}
+
+	// Distance from the anchor (ceiling) to the ball's center when the ball is fully raised: the anchor
+	// mesh plus the ball mesh.
+	static int GetBallHangOffsetY()
+	{
+		return GameBoundingBox(ID_WRECKING_BALL_ANCHOR).GetHeight() +
+			GameBoundingBox(ID_WRECKING_BALL).GetHeight();
+	}
+
+	static void EnsureWreckingBallLinks(ItemInfo& item, WreckingBallState& state, int requiredCount)
+	{
+		requiredCount = std::clamp(requiredCount, 0, MAX_CHAIN_LINKS);
+
+		for (int i = 0; i < requiredCount; i++)
+		{
+			if (i < (int)state.Links.size())
+			{
+				short linkNumber = state.Links[i];
+				if (linkNumber >= 0 &&
+					linkNumber < (int)g_Level.Items.size() &&
+					g_Level.Items[linkNumber].ObjectNumber == ID_WRECKING_BALL_CHAIN)
+				{
+					continue;
+				}
+			}
+
+			short linkNumber = SpawnItem(item, ID_WRECKING_BALL_CHAIN);
+			if (linkNumber < 0)
+				break;
+
+			auto& link = g_Level.Items[linkNumber];
+			link.ItemFlags[0] = item.Index;
+			link.ItemFlags[1] = WRECKINGBALL_COMPANION_MARKER;
+			link.ItemFlags[2] = (short)i;
+			link.DisableInterpolation = false;
+			SetItemInvisible(link);
+
+			if (i >= (int)state.Links.size())
+				state.Links.resize(i + 1, -1);
+
+			state.Links[i] = linkNumber;
+		}
+	}
 
 	static void UpdateChain(ItemInfo& item, WreckingBallState& state)
 	{
@@ -783,7 +824,8 @@ namespace TEN::Entities::Traps
 		if (distance < 0.0f)
 			distance = 0.0f;
 
-		int requiredLinks = std::min<int>(MAX_CHAIN_LINKS, (int)(distance / CHAIN_LINK_SPACING) + 1);
+		int linkHeight = GetChainLinkHeight();
+		int requiredLinks = std::min<int>(MAX_CHAIN_LINKS, (int)(distance / linkHeight) + 1);
 		EnsureWreckingBallLinks(item, state, requiredLinks);
 
 		// Stack links at an absolute, fixed spacing instead of rescaling every link when the chain
@@ -811,8 +853,8 @@ namespace TEN::Entities::Traps
 			// Each link sits centered in its own fixed slot below the anchor, so only the lowest link
 			// changes when the chain length varies. The renderer interpolates each link's position for
 			// smooth, jitter-free movement at high frame rates.
-			float slotTop = (float)anchor.Pose.Position.y + (i * CHAIN_LINK_SPACING);
-			float centerY = slotTop + (CHAIN_LINK_SPACING / 2.0f);
+			float slotTop = (float)anchor.Pose.Position.y + (i * linkHeight);
+			float centerY = slotTop + (linkHeight / 2.0f);
 			float t = (float)i / (float)linkCount;
 
 			link.Pose.Position.x = (int)(anchor.Pose.Position.x + ((attach.x - anchor.Pose.Position.x) * t));
@@ -1135,7 +1177,7 @@ namespace TEN::Entities::Traps
 		}
 
 		auto& anchor = g_Level.Items[state.BaseObject];
-		int   targetY = anchor.Pose.Position.y + BALL_HANG_OFFSET_Y;
+		int   targetY = anchor.Pose.Position.y + GetBallHangOffsetY();
 
 		item.Animation.Velocity.y -= 3;
 		item.Pose.Position.y += item.Animation.Velocity.y;
@@ -1212,7 +1254,7 @@ namespace TEN::Entities::Traps
 		{
 			TENLog(
 				"WreckingBall ERROR: Failed to create the required anchor object. "
-				"Anchor ID=" + std::to_string(ID_WRECKINGBALL_ANCHOR),
+				"Anchor ID=" + std::to_string(ID_WRECKING_BALL_ANCHOR),
 				LogLevel::Error);
 
 			SetItemInvisible(item);
@@ -1225,7 +1267,7 @@ namespace TEN::Entities::Traps
 		anchor.Pose.Position.z = item.Pose.Position.z;
 		anchor.Pose.Position.y = pointColl.GetCeilingHeight();
 
-		item.Pose.Position.y = pointColl.GetCeilingHeight() + BALL_HANG_OFFSET_Y;
+		item.Pose.Position.y = pointColl.GetCeilingHeight() + GetBallHangOffsetY();
 
 		if (pointColl.GetRoomNumber() != item.RoomNumber)
 			ItemNewRoom(itemNumber, pointColl.GetRoomNumber());
@@ -1372,41 +1414,6 @@ namespace TEN::Entities::Traps
 
 			if (!coll->Setup.EnableObjectPush || killZone)
 				playerItem->Pose.Position += prevPos;
-		}
-	}
-
-	static void EnsureWreckingBallLinks(ItemInfo& item, WreckingBallState& state, int requiredCount)
-	{
-		requiredCount = std::clamp(requiredCount, 0, MAX_CHAIN_LINKS);
-
-		for (int i = 0; i < requiredCount; i++)
-		{
-			if (i < (int)state.Links.size())
-			{
-				short linkNumber = state.Links[i];
-				if (linkNumber >= 0 &&
-					linkNumber < (int)g_Level.Items.size() &&
-					g_Level.Items[linkNumber].ObjectNumber == ID_WRECKINGBALL_CHAIN)
-				{
-					continue;
-				}
-			}
-
-			short linkNumber = SpawnItem(item, ID_WRECKINGBALL_CHAIN);
-			if (linkNumber < 0)
-				break;
-
-			auto& link = g_Level.Items[linkNumber];
-			link.ItemFlags[0] = item.Index;
-			link.ItemFlags[1] = WRECKINGBALL_COMPANION_MARKER;
-			link.ItemFlags[2] = (short)i;
-			link.DisableInterpolation = false;
-			SetItemInvisible(link);
-
-			if (i >= (int)state.Links.size())
-				state.Links.resize(i + 1, -1);
-
-			state.Links[i] = linkNumber;
 		}
 	}
 }
