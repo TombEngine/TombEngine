@@ -103,7 +103,7 @@ namespace TEN::Physics
 		return true;
 	}
 
-	void LocalCollisionTriangle::DrawDebug(const Matrix& transformMatrix, const Matrix& rotMatrix, const std::vector<Vector3>& vertices) const
+	void LocalCollisionTriangle::DrawDebug(const Matrix& transformMatrix, const Matrix& rotMatrix, const std::vector<Vector3>& vertices, bool drawNormals) const
 	{
 		constexpr auto TRI_SURF_COLOR	 = Color(1.0f, 1.0f, 0.0f, 0.1f);
 		constexpr auto TRI_OUTLINE_COLOR = Color(1.0f, 1.0f, 1.0f, 0.25f);
@@ -115,9 +115,6 @@ namespace TEN::Physics
 		auto vertex1 = Vector3::Transform(GetVertex1(vertices), transformMatrix);
 		auto vertex2 = Vector3::Transform(GetVertex2(vertices), transformMatrix);
 
-		// Get normal.
-		auto normal = Vector3::Transform(GetNormal(vertices), rotMatrix);
-
 		// Draw triangle surface.
 		DrawDebugTriangle(vertex0, vertex1, vertex2, TRI_SURF_COLOR);
 
@@ -126,7 +123,11 @@ namespace TEN::Physics
 		DrawDebugLine(vertex1, vertex2, TRI_OUTLINE_COLOR);
 		DrawDebugLine(vertex2, vertex0, TRI_OUTLINE_COLOR);
 
+		if (!drawNormals)
+			return;
+
 		// Draw triangle normal.
+		auto normal = Vector3::Transform(GetNormal(vertices), rotMatrix);
 		auto center = (vertex0 + vertex1 + vertex2) / VERTEX_COUNT;
 		DrawDebugLine(center, Geometry::TranslatePoint(center, normal, NORMAL_LENGTH), NORMAL_COLOR);
 	}
@@ -216,13 +217,13 @@ namespace TEN::Physics
 		_orientation = orient;
 	}
 
-	void CollisionMesh::DrawDebug() const
+	void CollisionMesh::DrawDebug(bool drawNormals) const
 	{
 		auto rotMatrix = GetRotationMatrix();
 		auto transformMatrix = rotMatrix * GetTranslationMatrix();
 
 		for (const auto& tri : _triangles)
-			tri.DrawDebug(transformMatrix, rotMatrix, _vertices);
+			tri.DrawDebug(transformMatrix, rotMatrix, _vertices, drawNormals);
 	}
 
 	Matrix CollisionMesh::GetTranslationMatrix() const

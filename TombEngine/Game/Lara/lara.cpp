@@ -87,23 +87,18 @@ static void HandlePlayerDebug(const ItemInfo& item)
 		{
 			const auto& neighborRoom = g_Level.Rooms[neighborRoomNumber];
 
-			neighborRoom.CollisionMesh.DrawDebug();
-
 			// Draw door collision meshes.
 			for (int doorItemNumber : neighborRoom.Doors.GetIds())
 			{
 				const auto& doorItem = g_Level.Items[doorItemNumber];
 				const auto& door = GetDoorObject(doorItem);
 
-				door.CollisionMesh.DrawDebug();
+				door.CollisionMesh.DrawDebug(false);
 			}
 
 			// Collect bridge item numbers.
 			for (int bridgeItemNumber : neighborRoom.Bridges.GetIds())
 				bridgeItemNumbers.insert(bridgeItemNumber);
-
-			// Draw bridge tree.
-			neighborRoom.Bridges.DrawDebug();
 		}
 
 		// Draw bridge collision meshes.
@@ -112,7 +107,7 @@ static void HandlePlayerDebug(const ItemInfo& item)
 			auto& bridgeItem = g_Level.Items[bridgeItemNumber];
 			auto& bridge = GetBridgeObject(bridgeItem);
 
-			bridge.GetCollisionMesh().DrawDebug();
+			bridge.GetCollisionMesh().DrawDebug(false);
 		}
 
 		// Print bridge item numbers in sector.
