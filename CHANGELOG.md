@@ -8,18 +8,28 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### New features
 
 * Added Discord integration.
+* Added BATS_EMITTER_TR3 object from TR3.
+* Added the [turn switch and obelisk puzzle from TR4](https://tombengine.com/docs/tr4-obelisk-puzzle-tomb-engine-setup-guide/).
 
 ### Bug fixes
 
 * Fixed GUARD enemies not being alerted by player gunfire.
+* Fixed TURN_SWITCH interaction highlight icon position.
+* Fixed SPIKY_WALL default speed and collision with floor room geometry.
+* Fixed UPV water surface dismount.
+* Fixed missing splash when SPEEDBOAT, RUBBER_BOAT or KAYAK falls into water from a height.
+* Fixed JEEP turning grip depending on the Action key instead of the Accelerate key.
 * Fixed static meshes in flipped rooms being lit with ambient light of the original room.
 * Fixed flyby camera roll persisting after the sequence ends.
-* Fixed missing splash when SPEEDBOAT, RUBBER_BOAT or KAYAK falls into water from a height.
+* Fixed named dynamic lights spawning at a random point for the first frame.
 
 ### Lua API Changes
 
 * Added `ParticleGroup:IsActive` method to check if the group's emitter is currently running.
 * Added `ParticleGroup:IsValid` method to check if the group still exists and is usable.
+* Added `Flow.Settings.Effects.waterEffectStrength` and `Flow.Settings.Effects.waterEffectDepth` settings to customize underwater wave effect.
+* Fixed `Flow.DoesSaveGameExist` returning false for savegames of other levels, which prevented ring inventory from loading them.
+* Fixed ring inventory menus and `CustomDiary` page turning using movement actions instead of menu navigation actions.
 
 ## [Version 2.0.1]
 
@@ -134,6 +144,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed crashes when shooting if the gunflash object is missing.
 * Fixed crashes and missing textures while rendering swarm objects with alpha blended textures.
 * Fixed vertex move effect speed in water rooms while turning camera on the x-axis.
+* Fixed `TURN_SWITCH` not rotating the `OBELISK` correctly.
 
 ### Lua API changes
 
