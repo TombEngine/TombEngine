@@ -756,10 +756,35 @@ namespace TEN::Entities::Traps
 		item.Pose.Orientation += extraRot * alpha;
 	}
 
-	// Lower edge of the anchor mesh, where the topmost chain segment ends.
-	static int GetAnchorBottomY(const ItemInfo& anchor)
+	// Center of a chain link's bounds end face, which is where neighbouring links connect.
+	static Vector3 GetChainLinkEndOffset(const GameBoundingBox& bounds, bool isUpper)
 	{
-		return anchor.Pose.Position.y + GameBoundingBox(ID_WRECKING_BALL_ANCHOR).Y2;
+		return Vector3(
+			(bounds.X1 + bounds.X2) / 2.0f,
+			(float)(isUpper ? bounds.Y1 : bounds.Y2),
+			(bounds.Z1 + bounds.Z2) / 2.0f);
+	}
+
+	// Lays a link along the chain direction so that its end faces meet the connection points of its
+	// neighbours. Every other link is turned a quarter turn around the chain axis so they interlock.
+	static EulerAngles GetChainLinkOrientation(const Vector3& chainDir, bool isAlternate)
+	{
+		const auto localUp = Vector3::Up * -1.0f;
+
+		auto rotation = Matrix::Identity;
+		float upDot = std::clamp(localUp.Dot(chainDir), -1.0f, 1.0f);
+
+		if (upDot < (1.0f - EPSILON))
+		{
+			auto axis = localUp.Cross(chainDir);
+			axis.Normalize();
+			rotation = Matrix::CreateFromAxisAngle(axis, std::acos(upDot));
+		}
+
+		if (isAlternate)
+			rotation = Matrix::CreateRotationY(PI_DIV_2) * rotation;
+
+		return EulerAngles(rotation);
 	}
 
 	// Distance from the anchor (ceiling) to the ball's center when the ball is fully raised: the anchor
@@ -778,8 +803,7 @@ namespace TEN::Entities::Traps
 			if (i < (int)state.Links.size())
 			{
 				short linkNumber = state.Links[i];
-				if (linkNumber >= 0 &&
-					linkNumber < (int)g_Level.Items.size() &&
+				if (linkNumber >= 0 && linkNumber < (int)g_Level.Items.size() &&
 					g_Level.Items[linkNumber].ObjectNumber == ID_WRECKING_BALL_CHAIN)
 				{
 					continue;
@@ -813,15 +837,21 @@ namespace TEN::Entities::Traps
 
 		// The ball's mesh 0 marks where the lowest chain segment attaches. Segments are stacked upward
 		// from it, so the whole chain travels with the ball through every movement phase.
-		auto attach = GetJointPosition(&item, 0);
-		auto linkBounds = GameBoundingBox(ID_WRECKING_BALL_CHAIN);
+		auto ballJoint = GetJointPosition(&item, 0).ToVector3();
+		auto anchorJoint = anchor.Pose.Position.ToVector3() + GetChainLinkEndOffset(GameBoundingBox(ID_WRECKING_BALL_ANCHOR), false);
 
+		// The chain spans the line between the anchor and the ball. It is slanted whenever the ball's
+		// attachment point is shifted sideways, which happens when the ball rests on a slope.
+		auto chainVector = anchorJoint - ballJoint;
+		float chainLength = chainVector.Length();
+		auto chainDir = (chainLength > EPSILON) ? (chainVector / chainLength) : Vector3(0.0f, -1.0f, 0.0f);
+
+		auto linkBounds = GameBoundingBox(ID_WRECKING_BALL_CHAIN);
 		int linkHeight = std::max(linkBounds.GetHeight(), 1);
-		int chainLength = std::max(attach.y - GetAnchorBottomY(anchor), 0);
 
 		// A segment is only added above the previous one once the existing stack no longer covers the
 		// distance from the anchor down to the ball.
-		int linkCount = std::min((chainLength + linkHeight - 1) / linkHeight, MAX_CHAIN_LINKS);
+		int linkCount = std::min((int)std::ceil(chainLength / linkHeight), MAX_CHAIN_LINKS);
 		EnsureWreckingBallLinks(item, state, linkCount);
 
 		int totalLinks = (int)state.Links.size();
@@ -849,16 +879,15 @@ namespace TEN::Entities::Traps
 				continue;
 			}
 
-			// Segment 0 hangs off the ball and every next one sits directly on top of the previous one.
-			// The link mesh may be offset from its origin, so its actual lower edge is aligned to the
-			// upper edge of the segment below.
-			int lowerEdgeY = attach.y - (i * linkHeight);
-			float t = (float)i / (float)linkCount;
+			// Segment 0 hangs off the ball and every next one sits on top of the previous one. Each link
+			// is placed so the centers of its end faces land on the connection points, so the chain
+			// follows the slanted span instead of drifting sideways on slopes.
+			auto orientation = GetChainLinkOrientation(chainDir, ((i % 2) != 0));
+			auto lowerJoint = ballJoint + (chainDir * (float)(i * linkHeight));
+			auto lowerEndOffset = Geometry::RotatePoint(GetChainLinkEndOffset(linkBounds, false), orientation);
 
-			link.Pose.Position.x = (int)(attach.x + ((anchor.Pose.Position.x - attach.x) * t));
-			link.Pose.Position.z = (int)(attach.z + ((anchor.Pose.Position.z - attach.z) * t));
-			link.Pose.Position.y = lowerEdgeY - linkBounds.Y2;
-			link.Pose.Orientation.y = ((i % 2) == 0) ? ANGLE(0.0f) : ANGLE(90.0f);
+			link.Pose.Position = Vector3i(lowerJoint - lowerEndOffset);
+			link.Pose.Orientation = orientation;
 			link.Pose.Scale = Vector3::One;
 
 			link.Flags &= ~IFLAG_INVISIBLE;
