@@ -3,6 +3,12 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): <https://github.com/TombEngine/TombEditorReleases>
 
+## [Version 2.0.3]
+
+### Lua API Changes
+
+* Added `RingInventory.Background.sliced` and `Ring.Inventory.Background.slicedCornerSize` used for 9-slice scaling with background images in the ring inventory.
+
 ## [Version 2.0.2]
 
 ### New features
