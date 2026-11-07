@@ -49,19 +49,15 @@ local function CaptureSnapshot()
     snap.postProcessTint = TEN.View.GetPostProcessTint()
 end
 
-local function RestoreSnapshot()
+LevelFuncs.Engine.RingInventory.RestoreSnapshot = function()
     if not snap then return end
 
     -- Reset post-process and camera settings
-    pcall(function()
-        TEN.View.SetDOF(snap.dofMode, snap.dofFocusDistance, snap.dofRange, snap.dofStrength)
-        TEN.View.SetFOV(snap.fov)
-        TEN.View.SetRoll(snap.roll)
-        if Settings.Background.enable ~= true then
-            TEN.View.SetPostProcess(snap.postProcessMode, snap.postProcessStrength)
-            TEN.View.SetPostProcessTint(snap.postProcessTint)
-        end
-    end)
+    TEN.View.SetDOF(snap.dofMode, snap.dofFocusDistance, snap.dofRange, snap.dofStrength)
+    TEN.View.SetFOV(snap.fov)
+    TEN.View.SetRoll(snap.roll)
+    TEN.View.SetPostProcess(snap.postProcessMode, snap.postProcessStrength)
+    TEN.View.SetPostProcessTint(snap.postProcessTint)
 
     snap = {}
 
@@ -84,6 +80,12 @@ LevelFuncs.Engine.RingInventory.UpdateInventory = function()
 
 end
 
+LevelFuncs.Engine.RingInventory.PrepareInventory = function()
+	if (TEN.Input.IsKeyHit(TEN.Input.ActionID.PAUSE)) then
+		inventoryDelay = -1
+	end
+end
+
 LevelFuncs.Engine.RingInventory.RunInventory = function()
 
     local isTitle = Flow.GetCurrentLevelIndex() == 0
@@ -91,6 +93,11 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
     if isTitle then
         return
     end
+	
+	if (inventoryDelay == -1) then
+		inventoryDelay = 0
+		return
+	end
 
     if not InventoryStates then
         InventoryStates = require("Engine.RingInventory.InventoryStates")
@@ -179,7 +186,6 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
     end
     
     if InventoryStates.GetInventoryClosed() then
-        RestoreSnapshot()
         InventoryStates.SetInventoryClosed(false)
         inventoryRunning = false
     end
@@ -358,7 +364,8 @@ end
 --- Display the full game statistics in Statistics mode.
 -- @tfield[opt=true] bool gameStats If true, full game statistics are show in Statistics mode in Inventory.
 
+TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.Engine.RingInventory.PrepareInventory)
+TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.POST_LOOP, LevelFuncs.Engine.RingInventory.RunInventory)
 TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_FREEZE, LevelFuncs.Engine.RingInventory.UpdateInventory)
-TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.Engine.RingInventory.RunInventory)
 
 return InventoryModule

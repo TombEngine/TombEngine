@@ -48,6 +48,16 @@ namespace TEN::Utils
 	Vector2 Convert2DPositionToNDC(const Vector2& pos);
 	Vector2 ConvertNDCTo2DPosition(const Vector2& ndc);
 
+	// Templates
+
+	// True if the function object stores the given plain function.
+	template <typename TReturn, typename... TArgs>
+	bool IsFunction(const std::function<TReturn(TArgs...)>& function, TReturn(*target)(TArgs...))
+	{
+		auto* storedTarget = function.template target<TReturn(*)(TArgs...)>();
+		return (storedTarget != nullptr && *storedTarget == target);
+	}
+
 	template <typename TElement>
 	bool Contains(const std::vector<TElement>& vector, const TElement& element)
 	{
@@ -61,7 +71,8 @@ namespace TEN::Utils
 		vector.erase(vector.begin() + elementId);
 	}
 
-	// Miscellanea utilities
+	// Miscellaneous utilities
+
 	#define SAFE_DELETE(x) if (x != nullptr) x.reset();
 	#define ARGB_TO_UINT(a,r,g,b) \
 		((D3DCOLOR)((((unsigned int)(a) & 0xFF) << 24) | \

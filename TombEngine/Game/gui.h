@@ -186,6 +186,7 @@ namespace TEN::Gui
 		void CancelInventorySelection();
 		void UseItem(ItemInfo& item, int objectNumber);
 		void UseBinoculars(ItemInfo& item);
+
 		// Getters
 
 		const InventoryRing& GetRing(RingTypes ringType);

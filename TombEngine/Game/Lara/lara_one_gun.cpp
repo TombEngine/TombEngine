@@ -31,6 +31,7 @@
 #include "Objects/Generic/Object/objects.h"
 #include "Objects/Generic/Switches/generic_switch.h"
 #include "Objects/Generic/Switches/switch.h"
+#include "Renderer/Renderer.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
 #include "Specific/Input/Input.h"
@@ -50,6 +51,7 @@ using namespace TEN::Effects::Splash;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Input;
 using namespace TEN::Math;
+using namespace TEN::Renderer;
 
 constexpr auto TRIGGER_TIMEOUT		 = 5;
 constexpr auto GRENADE_FRAG_TIMEOUT  = 4;
@@ -78,6 +80,9 @@ void AnimateShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 {
 	auto& player = *GetLaraInfo(&laraItem);
 	const auto& weapon = player.Weapons[(int)LaraWeaponType::HK];
+
+	// Force update of player's animations to ensure that the gun smoke particles are applied correctly.
+	g_Renderer.UpdateLaraAnimations(true);
 
 	if (player.LeftArm.GunSmoke > 0)
 	{

@@ -31,6 +31,10 @@ namespace TEN::Entities::Vehicles
 	constexpr auto KAYAK_MOUNT_DISTANCE = CLICK(1.5f);
 	constexpr auto KAYAK_DISMOUNT_DISTANCE = CLICK(3); // TODO: Find accurate distance.
 
+	constexpr auto KAYAK_SLOPE_ANGLE_MIN = ANGLE(45.0f);
+	constexpr auto KAYAK_SLIDE_VELOCITY_MAX = 32.0f;
+	constexpr auto KAYAK_FLOOR_HEIGHT_TOLERANCE = CLICK(0.5f);
+
 	constexpr int KAYAK_VELOCITY_FORWARD_ACCEL = 24 * VEHICLE_VELOCITY_SCALE;
 	constexpr int KAYAK_VELOCITY_LR_ACCEL = 16 * VEHICLE_VELOCITY_SCALE;
 	constexpr int KAYAK_VELOCITY_HOLD_TURN_DECEL = 0.5f * VEHICLE_VELOCITY_SCALE;
@@ -56,11 +60,15 @@ namespace TEN::Entities::Vehicles
 	constexpr auto HIT_LEFT = 3;
 	constexpr auto HIT_RIGHT = 4;
 
-	constexpr auto KAYAK_DRAW_SHIFT = 32;
+	constexpr auto KAYAK_VERTICAL_SPEED_THRESHOLD = 32;
 	constexpr auto KAYAK_X = 128;
 	constexpr auto KAYAK_Z = 128;
+	constexpr auto KAYAK_SPLASH_RADIUS = 250;
 	constexpr auto KAYAK_MAX_KICK = -80;
 	constexpr auto KAYAK_MIN_BOUNCE = (KAYAK_VELOCITY_MAX / 2) / VEHICLE_VELOCITY_SCALE;
+
+	static constexpr short KAYAK_MIST_Z_POS[10] = { 900, 750, 600, 450, 300, 150, 0,  -150, -300, -450 };
+	static constexpr short KAYAK_MIST_X_POS[10] = { 32,  96,  170, 220, 300, 400, 400, 300,  200,  64  };
 
 	const std::vector<unsigned int> KayakLaraLegJoints = { LM_HIPS, LM_LTHIGH, LM_LSHIN, LM_LFOOT, LM_RTHIGH, LM_RSHIN, LM_RFOOT };
 	const std::vector<VehicleMountType> KayakMountTypes =
@@ -468,6 +476,30 @@ namespace TEN::Entities::Vehicles
 		return 0;
 	}
 
+	static void KayakDoSlopeSlide(ItemInfo* kayakItem)
+	{
+		auto pointColl = GetPointCollision(*kayakItem);
+
+		// In water the kayak floats and follows the surface instead.
+		if (pointColl.GetWaterTopHeight() != NO_HEIGHT)
+			return;
+
+		// An airborne kayak falls first; only a grounded one slides.
+		if ((pointColl.GetFloorHeight() - kayakItem->Pose.Position.y) > KAYAK_FLOOR_HEIGHT_TOLERANCE)
+			return;
+
+		short slopeAngle = Geometry::GetSurfaceSlopeAngle(pointColl.GetFloorNormal());
+		if (slopeAngle < KAYAK_SLOPE_ANGLE_MIN)
+			return;
+
+		// Steeper slopes carry the kayak away faster.
+		float velocity = KAYAK_SLIDE_VELOCITY_MAX * phd_sin(slopeAngle);
+		short headingAngle = Geometry::GetSurfaceAspectAngle(pointColl.GetFloorNormal());
+
+		kayakItem->Pose.Position.x += velocity * phd_sin(headingAngle);
+		kayakItem->Pose.Position.z += velocity * phd_cos(headingAngle);
+	}
+
 	void KayakToBackground(ItemInfo* kayakItem, ItemInfo* laraItem)
 	{
 		auto* kayak = GetKayakInfo(kayakItem);
@@ -498,7 +530,12 @@ namespace TEN::Entities::Vehicles
 		kayakItem->Pose.Position.z += kayakItem->Animation.Velocity.z * phd_cos(kayakItem->Pose.Orientation.y);
 		kayakItem->Pose.Orientation.y += kayak->TurnRate;
 
-		KayakDoCurrent(kayakItem, laraItem);
+		// Water current state belongs to the player, so only apply it while the player is driving this kayak.
+		if (GetLaraInfo(laraItem)->Context.Vehicle == kayakItem->Index)
+		{
+			KayakDoSlopeSlide(kayakItem);
+			KayakDoCurrent(kayakItem, laraItem);
+		}
 
 		kayak->LeftVerticalVelocity = KayakDoDynamics(leftHeight, kayak->LeftVerticalVelocity, &leftPos.y);
 		kayak->RightVerticalVelocity = KayakDoDynamics(rightHeight, kayak->RightVerticalVelocity, &rightPos.y);
@@ -570,13 +607,14 @@ namespace TEN::Entities::Vehicles
 			kayakPos.z = kayak->OldPose.Position.z;
 			kayakPos.RoomNumber = kayakItem->RoomNumber;
 
-			CameraCollisionBounds(&kayakPos, 256, 0);
-			{
-				kayakItem->Pose.Position.x = kayakPos.x;
-				kayakItem->Pose.Position.y = kayakPos.y;
-				kayakItem->Pose.Position.z = kayakPos.z;
-				kayakItem->RoomNumber = kayakPos.RoomNumber;
-			}
+			probe = GetPointCollision(kayak->OldPose.Position, kayakPos.RoomNumber);
+			bool isSteepSlope = Geometry::GetSurfaceSlopeAngle(probe.GetFloorNormal()) > KAYAK_SLOPE_ANGLE_MIN;
+			CameraCollisionBounds(&kayakPos, CLICK(1), isSteepSlope);
+
+			kayakItem->Pose.Position.x = kayakPos.x;
+			kayakItem->Pose.Position.y = kayakPos.y;
+			kayakItem->Pose.Position.z = kayakPos.z;
+			kayakItem->RoomNumber = kayakPos.RoomNumber;
 		}
 
 		DoVehicleCollision(kayakItem, KAYAK_Z); // FIXME: kayak is thin, what should we do about it?
@@ -1038,7 +1076,7 @@ namespace TEN::Entities::Vehicles
 	void KayakLaraRapidsDrown(ItemInfo* laraItem)
 	{
 		// Already drowning...
-		if (laraItem->HitPoints == -1)
+		if (laraItem->HitPoints == NO_VALUE)
 			return;
 
 		auto* lara = GetLaraInfo(laraItem);
@@ -1051,7 +1089,7 @@ namespace TEN::Entities::Vehicles
 		laraItem->Animation.IsAirborne = false;
 		laraItem->Animation.Velocity.z = 0;
 		laraItem->Animation.Velocity.y = 0;
-		laraItem->HitPoints = -1;
+		laraItem->HitPoints = NO_VALUE;
 
 		AnimateItem(laraItem);
 
@@ -1059,6 +1097,95 @@ namespace TEN::Entities::Vehicles
 		lara->Control.Weapon.GunType = LaraWeaponType::None;
 		lara->ExtraAnim = 1;
 		lara->HitDirection = -1;
+	}
+
+	void KayakItemControl(short itemNumber)
+	{
+		auto* kayakItem = &g_Level.Items[itemNumber];
+		auto* kayak = GetKayakInfo(kayakItem);
+
+		// While Lara drives the kayak, its tracking is handled by KayakControl() instead.
+		if (LaraItem != nullptr && GetLaraInfo(LaraItem)->Context.Vehicle == itemNumber)
+			return;
+
+		// Establish the water height first so a freshly dropped kayak falls onto it correctly.
+		auto probe = GetPointCollision(*kayakItem);
+		int water = GetPointCollision(kayakItem->Pose.Position, probe.GetRoomNumber()).GetWaterTopHeight();
+
+		if (water == NO_HEIGHT)
+		{
+			water = probe.GetFloorHeight();
+			kayak->TrueWater = false;
+		}
+		else
+		{
+			water -= 5;
+			kayak->TrueWater = true;
+		}
+
+		kayak->WaterHeight = water;
+
+		// Cache the vertical velocity to detect a water impact.
+		int ofs = kayakItem->Animation.Velocity.y;
+
+		KayakToBackground(kayakItem, LaraItem.Get());
+
+		// The kayak has just landed on water after a fall; spawn a splash.
+		if (ofs - kayakItem->Animation.Velocity.y > KAYAK_VERTICAL_SPEED_THRESHOLD && kayakItem->Animation.Velocity.y == 0 && kayak->TrueWater)
+			TriggerVehicleSplash(kayakItem, ofs - kayakItem->Animation.Velocity.y, KAYAK_SPLASH_RADIUS);
+
+		probe = GetPointCollision(*kayakItem);
+		if (probe.GetRoomNumber() != kayakItem->RoomNumber)
+			ItemNewRoom(itemNumber, probe.GetRoomNumber());
+	}
+
+	static void TriggerRapidsMist(int x, int y, int z)
+	{
+		auto* sptr = GetFreeParticle();
+
+		sptr->on = true;
+		sptr->sR = sptr->sG = sptr->sB = 128;
+		sptr->dR = sptr->dG = sptr->dB = 192;
+		sptr->colFadeSpeed = 2;
+		sptr->fadeToBlack = 4;
+		sptr->blendMode = BlendMode::Additive;
+		sptr->extras = 0;
+		sptr->life = sptr->sLife = (GetRandomControl() & 3) + 6;
+		sptr->dynamic = NO_VALUE;
+
+		sptr->x = (GetRandomControl() & 0x0F) + x - 8;
+		sptr->y = (GetRandomControl() & 0x0F) + y - 8;
+		sptr->z = (GetRandomControl() & 0x0F) + z - 8;
+
+		sptr->xVel = (GetRandomControl() & 0xFF) - 128;
+		sptr->yVel = (GetRandomControl() & 0xFF) - 128;
+		sptr->zVel = (GetRandomControl() & 0xFF) - 128;
+		sptr->friction = 3;
+
+		if (GetRandomControl() & 1)
+		{
+			sptr->flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF;
+			sptr->rotAng = GetRandomControl() & 0xFFF;
+
+			if (GetRandomControl() & 1)
+				sptr->rotAdd = -16 - (GetRandomControl() & 0xF);
+			else
+				sptr->rotAdd = (GetRandomControl() & 0xF) + 16;
+		}
+		else
+		{
+			sptr->flags = SP_SCALE | SP_DEF | SP_EXPDEF;
+		}
+
+		sptr->scalar = 4;
+		sptr->SpriteSeqID = ID_DEFAULT_SPRITES;
+		sptr->SpriteID = 0;
+		sptr->gravity = 0;
+		sptr->maxYvel = 0;
+
+		int size = (GetRandomControl() & 7) + 16;
+		sptr->dSize = size;
+		sptr->size = sptr->sSize = size / 2;
 	}
 
 	bool KayakControl(ItemInfo* laraItem)
@@ -1116,6 +1243,9 @@ namespace TEN::Entities::Vehicles
 			Camera.targetDistance = CLICK(8);
 		}
 
+		if (ofs - kayakItem->Animation.Velocity.y > KAYAK_VERTICAL_SPEED_THRESHOLD && kayak->TrueWater)
+			TriggerVehicleSplash(kayakItem, ofs - kayakItem->Animation.Velocity.y, KAYAK_SPLASH_RADIUS);
+
 		if (kayak->TrueWater &&
 			(kayakItem->Animation.Velocity.z != 0.0f || lara->Context.WaterCurrentPull != Vector3i::Zero))
 		{
@@ -1127,21 +1257,23 @@ namespace TEN::Entities::Vehicles
 		{
 			if (!kayak->TrueWater && kayakItem->Animation.Velocity.y < 20)
 			{
-				Vector3i dest;
-				char cnt = 0;
-				short MistZPos[10] = { 900, 750, 600, 450, 300, 150, 0,  -150, -300, -450 };
-				short MistXPos[10] = { 32,  96,  170, 220, 300, 400, 400, 300,  200,  64 };
+				static int startIndex = 0;
 
-				cnt ^= 1;
+				startIndex ^= 1;
 
-				for (int i = cnt; i < 10; i += 2)
+				for (int i = startIndex; i < 10; i += 2)
 				{
+					Vector3i offset;
 					if (GetRandomControl() & 1)
-						dest.x = (MistXPos[i] / 2);
+						offset.x = (KAYAK_MIST_X_POS[i] / 2);
 					else
-						dest.x = -(MistXPos[i] / 2);
-					dest.y = 50;
-					dest.z = MistZPos[i];
+						offset.x = -(KAYAK_MIST_X_POS[i] / 2);
+					offset.y = 20;
+					offset.z = KAYAK_MIST_Z_POS[i];
+
+					auto pos = Geometry::TranslatePoint(kayakItem->Pose.Position, kayakItem->Pose.Orientation, offset);
+					if (probe.GetBottomSector().GetSurfaceMaterial(pos.x, pos.z, true) == MaterialType::Water)
+						TriggerRapidsMist(pos.x, pos.y, pos.z);
 				}
 			}
 		}

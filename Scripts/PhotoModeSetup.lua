@@ -6,7 +6,7 @@ PhotoModeSetup.Accessories =
 --   name        : Display name shown in the menu.
 --   objID       : Source object to copy meshes from.
 --   meshIndices : Which mesh slots are swapped from objID.
---
+--   onSelect    : Optional function() called after the accessory is applied.
 -- { name = "Rose",        objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, meshIndices = {10} }
 }
 
@@ -16,6 +16,7 @@ PhotoModeSetup.Expressions =
 --   name        : Display name shown in the menu.
 --   objID       : Source object to copy meshes from.
 --   meshIndices : Which mesh slots are swapped from objID.
+--   onSelect    : Optional function() called after the expression is applied.
 -- { name = "Talk 1", objID = TEN.Objects.ObjID.LARA_SPEECH_HEAD1, meshIndices = {14} },
 }
 
@@ -23,7 +24,8 @@ PhotoModeSetup.Frames =
 {
 --  Each entry describes a frame.
 --   name        : Display name shown in the menu.
---   spriteID    : Which sprite index in PHOTOMODE_FRAMES to use. 
+--   spriteID    : Which sprite index in PHOTOMODE_FRAMES to use.
+--   onSelect    : Optional function() called after the frame is applied.
 -- { name = "Recording", spriteID = 3 },
 }
 
@@ -39,7 +41,7 @@ PhotoModeSetup.Outfits =
 --                    "none" or nil → hide all classic meshes.
 --                    "all"         → keep all classic meshes visible.
 --                    { i, ... }    → keep only listed indices visible, hide the rest.
--- onEnter:           Optional function() called after the outfit is applied.
+-- onSelect:          Optional function() called after the outfit is applied.
 -- unlocked:          true/nil = outfit is visible in the menu.
 --                    false    = hidden until PhotoMode.UnlockOutfit(name) is called.
 
@@ -55,7 +57,7 @@ PhotoModeSetup.Outfits =
 --     name = "TEN Lara",
 --     skinnedMesh = TEN.Objects.ObjID.LARA_EXTRA_MESH1,
 --     meshVisible = {10, 13},
---     onEnter = 
+--     onSelect = 
 --     function()
 --     local settings = TEN.Flow.GetSettings()
 --     settings.Hair[1].offset = Vec3(-4, 3, -28)
@@ -73,6 +75,7 @@ PhotoModeSetup.Poses =
 --   objID       : Source object to use for the pose.
 --   animNumber  : Which animation id to use for the pose.
 --   frameNumber : Which frame to use from the animation.
+--   onSelect    : Optional function() called after the pose is applied.
 --   { name = "Pose Name",      objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 42, frameNumber = 0 },
 }
 
