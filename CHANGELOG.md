@@ -18,10 +18,12 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed TURN_SWITCH interaction highlight icon position.
 * Fixed SPIKY_WALL default speed and collision with floor room geometry.
 * Fixed UPV water surface dismount.
+* Fixed missing splash when SPEEDBOAT, RUBBER_BOAT or KAYAK falls into water from a height.
+* Fixed missing water effects for KAYAK.
+* Fixed JEEP turning grip depending on the Action key instead of the Accelerate key.
 * Fixed static meshes in flipped rooms being lit with ambient light of the original room.
 * Fixed flyby camera roll persisting after the sequence ends.
 * Fixed named dynamic lights spawning at a random point for the first frame.
-* Fixed jeep turning grip depending on the Action key instead of the Accelerate key.
 
 ### Lua API Changes
 
