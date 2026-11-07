@@ -25,6 +25,7 @@
 #include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Specific/trutils.h"
 #include "Sound/sound.h"
+#include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
@@ -946,6 +947,8 @@ namespace TEN::Entities::Vehicles
 							else
 								DoDamage(laraItem, LARA_HEALTH_MAX);
 						}
+
+						Rumble(0.75f, 0.3f, RumbleMode::Both);
 					}
 					else if (motorbikeItem->Animation.Velocity.y > 220)
 						motorbike->Flags |= MOTORBIKE_FLAG_FALLING;
@@ -983,6 +986,8 @@ namespace TEN::Entities::Vehicles
 					SetAnimationFromSlot(*laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_LEFT_HIT);
 					break;
 				}
+
+				Rumble(std::clamp((float)abs(motorbike->Velocity) / MOTORBIKE_ACCEL_MAX * 0.7f, 0.4f, 0.9f), 0.3f, RumbleMode::Both);
 			}
 		}
 		else
@@ -1268,6 +1273,9 @@ namespace TEN::Entities::Vehicles
 				motorbike->Pitch = MOTORBIKE_PITCH_MAX;
 
 			SoundEffect(SFX_TR4_VEHICLE_MOTORBIKE_MOVING, &motorbikeItem->Pose, SoundEnvironment::Land, 0.7f + motorbike->Pitch / 24756.0f);
+
+			float speedFrac = std::clamp((float)abs(motorbike->Velocity) / MOTORBIKE_ACCEL_MAX, 0.0f, 1.0f);
+			Rumble(0.15f + 0.3f * speedFrac, 0.2f, RumbleMode::Both);
 		}
 		else
 		{
@@ -1275,6 +1283,7 @@ namespace TEN::Entities::Vehicles
 			{
 				SoundEffect(SFX_TR4_VEHICLE_MOTORBIKE_IDLE, &motorbikeItem->Pose);
 				SoundEffect(SFX_TR4_VEHICLE_MOTORBIKE_MOVING, &motorbikeItem->Pose, SoundEnvironment::Land, 0.7f + motorbike->Pitch / 24756.0f, 0.5f);
+				Rumble(0.1f, 0.25f, RumbleMode::Both);
 			}
 
 			motorbike->Pitch = 0;
