@@ -11,6 +11,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added BATS_EMITTER_TR3 object from TR3.
 * Added re-worked and expanded [WRECKING_BALL](https://tombengine.com/asset/traps/wrecking-ball/) object from TR5.
 * Added the [turn switch and obelisk puzzle from TR4](https://tombengine.com/docs/tr4-obelisk-puzzle-tomb-engine-setup-guide/).
+* Added compiling shaders screen.
 
 ### Bug fixes
 

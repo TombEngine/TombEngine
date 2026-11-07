@@ -208,9 +208,9 @@ namespace TEN::Renderer
 		DrawIndexedTriangles(12, 0, 0);
 	}
 
-	void Renderer::DrawLoadingBar(float percentage)
+	void Renderer::DrawLoadingBar(float percentage, bool ignoreHudSetting)
 	{
-		if (!g_GameFlow->GetSettings()->Hud.LoadingBar)
+		if (!ignoreHudSetting && !g_GameFlow->GetSettings()->Hud.LoadingBar)
 			return;
 
 		_stHUDBar.Transform = GetHudBarTransform(*_graphicsDevice, *g_LoadingBar);
