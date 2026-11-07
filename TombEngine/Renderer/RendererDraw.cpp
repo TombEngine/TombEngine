@@ -2083,6 +2083,11 @@ namespace TEN::Renderer
 				light.PrevPosition = prevLight.Position;
 				light.PrevDirection = prevLight.Direction;
 			}
+			else
+			{
+				light.PrevPosition = light.Position;
+				light.PrevDirection = light.Direction;
+			}
 		}
 
 		// Queue dynamic light.
