@@ -192,6 +192,9 @@ namespace TEN::Hud
 		if (_displayItems.empty())
 			return;
 
+		for (auto& item : _displayItems)
+			item.Animate();
+
 		std::sort(_displayItems.begin(), _displayItems.end(),
 		[](const DisplayItem& item0, const DisplayItem& item1)
 		{
