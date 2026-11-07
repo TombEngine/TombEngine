@@ -582,6 +582,10 @@ namespace TEN::Scripting
 		// @tfield[opt=Flow.ErrorMode.WARN] Flow.ErrorMode errorMode Error mode to use.
 		"errorMode", &SystemSettings::ErrorMode,
 
+		/// Enable Discord Rich Presence integration.
+		// @tfield[opt=true] bool enableDiscordIntegration Allows TombEngine to send game and level status to Discord.
+		"enableDiscordIntegration", &SystemSettings::EnableDiscordIntegration,
+
 		/// Use multithreading in certain calculations. <br>
 		// When set to `true`, some performance-critical calculations will be performed in parallel, which can give
 		// a significant performance boost. Don't disable unless you have problems with launching or using TombEngine.
