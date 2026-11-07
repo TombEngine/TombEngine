@@ -1151,7 +1151,7 @@ namespace TEN::Entities::Vehicles
 		sptr->blendMode = BlendMode::Additive;
 		sptr->extras = 0;
 		sptr->life = sptr->sLife = (GetRandomControl() & 3) + 6;
-		sptr->dynamic = -1;
+		sptr->dynamic = NO_VALUE;
 
 		sptr->x = (GetRandomControl() & 0x0F) + x - 8;
 		sptr->y = (GetRandomControl() & 0x0F) + y - 8;

@@ -101,6 +101,12 @@ namespace TEN::Entities::Vehicles
 		SPEEDBOAT_ANIM_DEATH = 18
 	};
 
+	static void SpeedboatSplash(ItemInfo* speedboatItem, int verticalVelocity)
+	{
+		// Restore the classic TR2 speedboat splash produced when it drops into water from height.
+		TriggerVehicleSplash(speedboatItem, verticalVelocity, SPEEDBOAT_RADIUS);
+	}
+
 	static void SpawnSpeedboatBoatMist(short itemNumber, const Vector3& pos, float velocity, short angle) 
 	{
 		auto& speedboatItem = g_Level.Items[itemNumber];
@@ -780,12 +786,6 @@ namespace TEN::Entities::Vehicles
 		}
 	}
 
-	void SpeedboatSplash(ItemInfo* speedboatItem, int verticalVelocity, int water)
-	{
-		// Restore the classic TR2 speedboat splash produced when it drops into water from height.
-		TriggerVehicleSplash(speedboatItem, verticalVelocity, SPEEDBOAT_RADIUS);
-	}
-
 	void SpeedboatControl(short itemNumber)
 	{
 		auto* speedboatItem = &g_Level.Items[itemNumber];
@@ -861,7 +861,7 @@ namespace TEN::Entities::Vehicles
 		speedboatItem->Animation.Velocity.y = DoSpeedboatDynamics(speedboat->Water, speedboatItem->Animation.Velocity.y, (int*)&speedboatItem->Pose.Position.y);
 
 		if (ofs - speedboatItem->Animation.Velocity.y > 32 && speedboatItem->Animation.Velocity.y == 0 && water != NO_HEIGHT)
-			SpeedboatSplash(speedboatItem, ofs - speedboatItem->Animation.Velocity.y, water);
+			SpeedboatSplash(speedboatItem, ofs - speedboatItem->Animation.Velocity.y);
 
 		int floorHeight = (frontLeft.y + frontRight.y);
 		if (floorHeight < 0)
