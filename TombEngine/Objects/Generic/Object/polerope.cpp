@@ -88,6 +88,7 @@ namespace TEN::Entities::Generic
 					SetAnimation(laraItem, LA_STAND_TO_POLE);
 					player.Control.IsMoving = false;
 					player.Control.HandStatus = HandStatus::Busy;
+					laraItem->Parenting.Attach(poleItem);
 				}
 				else
 				{
@@ -149,6 +150,7 @@ namespace TEN::Entities::Generic
 					laraItem->Animation.Velocity.y = 0.0f;
 					player.Control.HandStatus = HandStatus::Busy;
 					poleItem.Pose.Orientation.y = yOrient;
+					laraItem->Parenting.Attach(poleItem);
 				}
 			}
 

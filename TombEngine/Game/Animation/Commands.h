@@ -13,7 +13,8 @@ namespace TEN::Animation
 		Deactivate,
 		SoundEffect,
 		FlipEffect,
-		DisableInterpolation
+		DisableInterpolation,
+		DetachParent
 	};
 
 	// TODO: Not needed. SoundCondition enum class exists.
@@ -98,6 +99,16 @@ namespace TEN::Animation
 
 	public:
 		DisableInterpolationCommand(int frameNumber) : _frameNumber(frameNumber) {};
+		void Execute(ItemInfo& item, bool isFrameBased) const override;
+	};
+
+	class DetachParentCommand : public IAnimCommand
+	{
+	private:
+		const int _frameNumber = 0;
+
+	public:
+		DetachParentCommand(int frameNumber) : _frameNumber(frameNumber) {};
 		void Execute(ItemInfo& item, bool isFrameBased) const override;
 	};
 }

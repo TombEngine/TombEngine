@@ -226,6 +226,10 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_ClearSkinnedMesh, & Moveable::ClearSkinnedMesh,
 		ScriptReserved_Destroy, &Moveable::Destroy,
 		ScriptReserved_AttachObjCamera, &Moveable::AttachObjCamera,
+		ScriptReserved_Attach, &Moveable::Attach,
+		ScriptReserved_Detach, &Moveable::Detach,
+		ScriptReserved_IsAttached, &Moveable::IsAttached,
+		ScriptReserved_GetParent, &Moveable::GetParent,
 		ScriptReserved_AnimFromObject, &Moveable::AnimFromObject,
 		ScriptReserved_ShowInteractionHighlight, &Moveable::ShowInteractionHighlight,
 		ScriptReserved_HideInteractionHighlight, &Moveable::HideInteractionHighlight,
@@ -395,7 +399,7 @@ void Moveable::SetPosition(const Vec3& pos, sol::optional<bool> updateRoom)
 
 	if (_initialized && willUpdate)
 	{
-		bool isRoomUpdated = _moveable->IsLara() ? UpdateLaraRoom(_moveable, pos.y) : UpdateItemRoom(_moveable->Index);
+		bool isRoomUpdated = _moveable->IsLara() ? UpdateLaraRoom(_moveable, -_moveable->GetObb().Extents.y) : UpdateItemRoom(_moveable->Index);
 
 		// In case direct portal room update didn't happen and distance between old and new points is significant, do predictive room update.
 		if (!isRoomUpdated && (willUpdate || bigDistance))
@@ -1482,6 +1486,76 @@ bool Moveable::MeshExists(int index) const
 void Moveable::AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshId)
 {
 	ObjCamera(_moveable, camMeshId, mov._moveable, targetMeshId, true);
+}
+
+/// Parent this moveable to another moveable. The moveable will follow the parent's movement and rotation every frame.
+// @function Moveable:Attach
+// @tparam Objects.Moveable parent Moveable to follow.
+void Moveable::Attach(Moveable& parent)
+{
+    if (_moveableID == NO_VALUE || parent._moveableID == NO_VALUE)
+        return;
+
+    if (_moveableID == parent._moveableID)
+    {
+        TENLog("Cannot attach moveable '" + _moveable->Name + "' to itself.", LogLevel::Warning);
+        return;
+    }
+
+    // Reject parenting cycles
+    int ancestorID = parent._moveable->Parenting.ParentObject;
+    int traversalCount = 0;
+
+    while (ancestorID >= 0 && ancestorID < (int)g_Level.Items.size() &&
+        traversalCount < (int)g_Level.Items.size())
+    {
+        if (ancestorID == _moveableID)
+        {
+            TENLog("Cannot attach moveable '" + _moveable->Name + "' to '" + parent._moveable->Name + "': it would create a parenting cycle.", LogLevel::Warning);
+            return;
+        }
+
+        ancestorID = g_Level.Items[ancestorID].Parenting.ParentObject;
+        traversalCount++;
+    }
+
+    _moveable->Parenting.Attach(*parent._moveable);
+}
+
+/// Detach this moveable from its parent, if any.
+// @function Moveable:Detach
+void Moveable::Detach()
+{
+	if (_moveableID == NO_VALUE)
+		return;
+
+	_moveable->Parenting.Detach();
+}
+
+/// Check if this moveable is attached to a parent moveable.
+// @function Moveable:IsAttached
+// @treturn bool true if the moveable is attached to a parent.
+bool Moveable::IsAttached() const
+{
+	if (_moveableID == NO_VALUE)
+		return false;
+
+	return _moveable->Parenting.IsAttached();
+}
+
+/// Get the moveable this moveable is attached to.
+// @function Moveable:GetParent
+// @treturn[opt] Objects.Moveable Parent moveable, or nil if not attached.
+std::unique_ptr<Moveable> Moveable::GetParent() const
+{
+	if (_moveableID == NO_VALUE)
+		return nullptr;
+
+	auto* parent = _moveable->Parenting.GetParent();
+	if (parent == nullptr)
+		return nullptr;
+
+	return std::make_unique<Moveable>(parent->Index);
 }
 
 /// Borrow animation from an object.

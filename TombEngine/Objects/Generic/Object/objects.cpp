@@ -171,7 +171,7 @@ void HorizontalBarCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo*
 			else
 				laraItem->Pose.Position.z += barItem->Pose.Position.z - ((pos1.z + pos2.z) / 2);
 			laraItem->Pose.Position.y += barItem->Pose.Position.y - ((pos1.y + pos2.y) / 2);
-
+			laraItem->Parenting.Attach(*barItem);
 			laraInfo->Context.InteractedItem = itemNumber;
 		}
 		else

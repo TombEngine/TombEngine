@@ -8,6 +8,9 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### New features
 
 * Added Discord integration.
+* Added a parenting system for moveables that allows to parent a moveable to another.
+* Added `Detach` anim command to dispatch detach from parent moveable.
+* Added parenting for HORIZONTAL_BAR & POLEROPE.
 * Added BATS_EMITTER_TR3 object from TR3.
 * Added re-worked and expanded [WRECKING_BALL](https://tombengine.com/asset/traps/wrecking-ball/) object from TR5.
 * Added the [turn switch and obelisk puzzle from TR4](https://tombengine.com/docs/tr4-obelisk-puzzle-tomb-engine-setup-guide/).
@@ -26,6 +29,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed named dynamic lights spawning at a random point for the first frame.
 
 ### Lua API Changes
+* Added `Moveable:Attach`, `Moveable:Detach`, `Moveable:IsAttached` and `Moveable:GetParent` to manage parenting via scripting.
 
 * Added `ParticleGroup:IsActive` method to check if the group's emitter is currently running.
 * Added `ParticleGroup:IsValid` method to check if the group still exists and is usable.
