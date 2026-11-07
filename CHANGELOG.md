@@ -18,6 +18,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed SPIKY_WALL default speed and collision with floor room geometry.
 * Fixed UPV water surface dismount.
 * Fixed missing splash when SPEEDBOAT, RUBBER_BOAT or KAYAK falls into water from a height.
+* Fixed missing water effects for KAYAK.
 * Fixed JEEP turning grip depending on the Action key instead of the Accelerate key.
 * Fixed static meshes in flipped rooms being lit with ambient light of the original room.
 * Fixed flyby camera roll persisting after the sequence ends.
