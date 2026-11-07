@@ -9,6 +9,7 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Lara/ModernControls.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Sound/sound.h"
@@ -16,6 +17,7 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
+using namespace TEN::Controls;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
@@ -53,7 +55,7 @@ namespace TEN::Entities::Traps
 
 		g_Hud.InteractionHighlighter.Test(*laraItem, zipLineItem, InteractionMode::Custom);
 
-		if ((IsHeld(In::Action) &&
+		if ((Modern::IsGrabHeld() &&
 			laraItem->Animation.ActiveState == LS_IDLE &&
 			!laraItem->Animation.IsAirborne &&
 			player.Control.HandStatus == HandStatus::Free) ||

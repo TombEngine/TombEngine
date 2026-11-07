@@ -5,6 +5,7 @@
 
 #include "Game/gui.h"
 #include "Game/Lara/lara_fire.h"
+#include "Game/Lara/ModernControls.h"
 #include "Game/pickup/pickup_ammo.h"
 #include "Game/pickup/pickup_consumable.h"
 #include "Game/savegame.h"
@@ -13,6 +14,7 @@
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/TEN/Collision/MaterialTypes.h"
 #include "Scripting/Internal/TEN/Collision/Probe.h"
+#include "Scripting/Internal/TEN/Flow/Enums/ControlModes.h"
 #include "Scripting/Internal/TEN/Flow/Enums/ErrorModes.h"
 #include "Scripting/Internal/TEN/Flow/Enums/FreezeModes.h"
 #include "Scripting/Internal/TEN/Flow/Enums/GameStatuses.h"
@@ -28,8 +30,10 @@
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 #include "Sound/sound.h"
+#include "Specific/configuration.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Controls;
 using namespace TEN::Gui;
 using namespace TEN::Scripting;
 using namespace TEN::Scripting::Collision;
@@ -213,6 +217,30 @@ custom menu creation, photo mode or time freeze.
 	tableFlow.set_function(ScriptReserved_SetFreezeMode, &FlowHandler::SetFreezeMode, this);
 
 /***
+Get the control mode in use.
+This is the mode set by the gameflow or a script, or else the player's choice: `Flow.ControlMode.CLASSIC` (1) or
+`Flow.ControlMode.REMASTERED` (2), never `Flow.ControlMode.DEFAULT` (0).
+@function GetControlMode
+@treturn Flow.ControlMode Control mode in use.
+@usage
+if TEN.Flow.GetControlMode() == TEN.Flow.ControlMode.REMASTERED then
+	print("Remastered controls are in use.")
+end
+*/
+	tableFlow.set_function(ScriptReserved_GetControlMode, &FlowHandler::GetControlMode, this);
+
+/***
+Set the control mode from a running script, such as an event or a node.
+The mode stays for every following level and is stored in savegames, until it is set to `Flow.ControlMode.DEFAULT`,
+a new game is started or the title is reached. It takes priority over the `controlMode` fields of @{Flow.Settings}
+and @{Flow.Level}, and the Control Mode menu entry is locked while it is set. The player's saved choice is not changed.
+In the gameflow, use the `controlMode` field of @{Flow.Settings} or of a @{Flow.Level} instead.
+@function SetControlMode
+@tparam Flow.ControlMode controlMode Control mode to use, or `Flow.ControlMode.DEFAULT` to release it.
+*/
+	tableFlow.set_function(ScriptReserved_SetControlMode, &FlowHandler::SetControlMode, this);
+
+/***
 Save the game to a savegame slot.
 @function SaveGame
 @tparam int slotID ID of the savegame slot to save to.
@@ -393,6 +421,7 @@ Specify which translations in the strings table correspond to which languages.
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_ErrorMode, ERROR_MODES);
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_GameStatus, GAME_STATUSES);
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_FreezeMode, FREEZE_MODES);
+	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_ControlMode, CONTROL_MODES);
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_PathfindingMode, PATHFINDING_MODES);
 }
 
@@ -635,6 +664,22 @@ FreezeMode FlowHandler::GetFreezeMode()
 void FlowHandler::SetFreezeMode(FreezeMode mode)
 {
 	this->CurrentFreezeMode = mode;
+}
+
+ScriptControlMode FlowHandler::GetControlMode()
+{
+	return (g_Configuration.IsUsingRemasteredControls() ? ScriptControlMode::Remastered : ScriptControlMode::Classic);
+}
+
+void FlowHandler::SetControlMode(ScriptControlMode controlMode)
+{
+	if ((int)controlMode < 0 || (int)controlMode >= (int)ScriptControlMode::Count)
+	{
+		ScriptAssertF(false, "Control mode {} does not exist.", (int)controlMode);
+		return;
+	}
+
+	Modern::SetScriptControlMode(controlMode);
 }
 
 void FlowHandler::FlipMap(int group)

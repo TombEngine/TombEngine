@@ -11,10 +11,12 @@
 #include "Game/Lara/lara_one_gun.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/Lara/lara_two_guns.h"
+#include "Game/Lara/ModernControls.h"
 #include "Game/Setup.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/Input/Input.h"
 
+using namespace TEN::Controls;
 using namespace TEN::Input;
 
 static void HandlePlayerOpticZoom(ItemInfo& item)
@@ -31,9 +33,11 @@ static void HandlePlayerOpticZoom(ItemInfo& item)
 	{
 		short rangeRate = isSlow ? (OPTICS_RANGE_RATE / 2) : OPTICS_RANGE_RATE;
 
+		// Remastered controls: the mouse wheel also zooms. -- divezzi, 01.11.26
 		// NOTE: Zooming allowed with either StepLeft/StepRight or Walk/Sprint.
 		if ((IsHeld(In::StepLeft) && !IsHeld(In::StepRight)) ||
-			(IsHeld(In::Walk) && !IsHeld(In::Sprint)))
+			(IsHeld(In::Walk) && !IsHeld(In::Sprint)) ||
+			Modern::GetOpticsWheelZoom() < 0)
 		{
 			player.Control.Look.OpticRange -= rangeRate;
 			if (player.Control.Look.OpticRange < OPTICS_RANGE_MIN)
@@ -46,7 +50,8 @@ static void HandlePlayerOpticZoom(ItemInfo& item)
 			}
 		}
 		else if ((IsHeld(In::StepRight) && !IsHeld(In::StepLeft)) ||
-				 (IsHeld(In::Sprint) && !IsHeld(In::Walk)))
+				 (IsHeld(In::Sprint) && !IsHeld(In::Walk)) ||
+				 Modern::GetOpticsWheelZoom() > 0)
 		{
 			player.Control.Look.OpticRange += rangeRate;
 			if (player.Control.Look.OpticRange > OPTICS_RANGE_MAX)
@@ -160,6 +165,9 @@ static void ResetPlayerOpticAnimations(ItemInfo& item)
 	player.Control.Look.IsUsingBinoculars = player.Control.Look.IsUsingLasersight = false;
 	player.Inventory.IsBusy = false;
 
+	// Remastered controls fix: without it, the Look toggle stays on after optics close. -- divezzi, 01.11.26
+	Modern::ResetLookToggle(player);
+
 	Camera.DisableInterpolation = true;
 	Camera.type = BinocularOldCamera;
 	Camera.bounce = 0;
@@ -205,22 +213,26 @@ bool HandlePlayerOptics(ItemInfo& item)
 	if (item.Animation.ActiveState == LS_IDLE || item.Animation.AnimNumber == LA_STAND_IDLE)
 		breakOptics = false;
 
+	// Remastered controls fix: without it, releasing the Look key closes the sight while Look is toggled on. -- divezzi, 30.10.26
 	// If lasersight and Look is not held, exit optics.
-	if (player.Control.Look.IsUsingLasersight && !IsHeld(In::Look))
+	if (player.Control.Look.IsUsingLasersight && !Modern::IsLookHeld(player))
 		breakOptics = true;
 
+	// Remastered controls fix: without it, the sight flickers while Draw is held to aim. -- divezzi, 30.10.26
 	// If lasersight and weapon is holstered, exit optics.
-	if (player.Control.Look.IsUsingLasersight && IsHeld(In::Draw))
+	if (player.Control.Look.IsUsingLasersight && Modern::IsHolsterRequested(player))
 		breakOptics = true;
 
+	// Remastered controls fix: without it, the sight opens on the Look key instead of the toggled Look. -- divezzi, 30.10.26
 	// Engage lasersight if available.
-	if (!breakOptics && !player.Control.Look.IsUsingLasersight && IsHeld(In::Look))
+	if (!breakOptics && !player.Control.Look.IsUsingLasersight && Modern::IsLookHeld(player))
 	{
 		if (player.Control.HandStatus == HandStatus::WeaponReady &&
 			((player.Control.Weapon.GunType == LaraWeaponType::HK       && player.Weapons[(int)LaraWeaponType::HK].HasLasersight) ||
 			 (player.Control.Weapon.GunType == LaraWeaponType::Revolver && player.Weapons[(int)LaraWeaponType::Revolver].HasLasersight) ||
 			 (player.Control.Weapon.GunType == LaraWeaponType::Crossbow && player.Weapons[(int)LaraWeaponType::Crossbow].HasLasersight)))
 		{
+			// TODO: For a future control scheme, turn the player to the camera direction when the sight opens. -- divezzi, 01.11.26
 			player.Control.Look.OpticRange = OPTICS_RANGE_DEFAULT;
 			player.Control.Look.IsUsingBinoculars = true;
 			player.Control.Look.IsUsingLasersight = true;

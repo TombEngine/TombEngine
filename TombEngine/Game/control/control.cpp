@@ -34,6 +34,7 @@
 #include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_one_gun.h"
+#include "Game/Lara/ModernControls.h"
 #include "Game/items.h"
 #include "Game/pickup/pickup.h"
 #include "Game/room.h"
@@ -99,6 +100,7 @@ using namespace TEN::Entities::TR3;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Control::Volumes;
+using namespace TEN::Controls;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
@@ -593,6 +595,9 @@ void InitializeScripting(int levelIndex, bool loadGame)
 {
 	g_GameStringsHandler->ClearDisplayStrings();
 	g_GameScript->ResetScripts(!levelIndex || loadGame);
+
+	// Remastered controls: clears a script's control mode with the game variables and applies the gameflow's control mode. -- divezzi, 02.11.26
+	Modern::InitializeControlMode(!levelIndex || loadGame);
 
 	auto gameDir = g_GameFlow->GetGameDir();
 	auto autoexecScriptFileName = gameDir + "Scripts/Autoexec.lua";

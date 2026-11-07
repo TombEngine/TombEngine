@@ -8,6 +8,7 @@
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
 #include "Game/items.h"
+#include "Game/Lara/ModernControls.h"
 #include "Game/Lara/PlayerContext.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -22,6 +23,7 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
+using namespace TEN::Controls;
 using namespace TEN::Entities::Player;
 using namespace TEN::Input;
 
@@ -38,6 +40,10 @@ constexpr auto DEFLECT_DIAGONAL_ANGLE_CRAWL = ANGLE(5.0f);
 bool LaraDeflectEdge(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
+
+	// Remastered controls fix: without it, diagonal steps and walls deflect the player every tick against the heading solver. -- divezzi, 10.10.26
+	if (Modern::HandleDiagonalStep(*item, *coll))
+		return false;
 
 	if (coll->CollisionType == CollisionType::Front || coll->CollisionType == CollisionType::TopFront)
 	{

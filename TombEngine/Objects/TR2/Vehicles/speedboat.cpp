@@ -10,6 +10,7 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Lara/ModernControls.h"
 #include "Game/Setup.h"
 #include "Objects/TR2/Vehicles/speedboat_info.h"
 #include "Objects/Utils/VehicleHelpers.h"
@@ -23,6 +24,7 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
+using namespace TEN::Controls;
 using namespace TEN::Input;
 using namespace TEN::Utils;
 
@@ -622,7 +624,8 @@ namespace TEN::Entities::Vehicles
 
 		if (speedboatItem->Pose.Position.y >= speedboat->Water - CLICK(0.5f) && speedboat->Water != NO_HEIGHT)
 		{
-			if ((!IsHeld(In::Brake) && !IsHeld(In::Look)) || speedboatItem->Animation.Velocity.z)
+			// Remastered controls fix: without it, Toggle Look works as Hold on the boat. -- divezzi, 02.11.26
+			if ((!IsHeld(In::Brake) && !Modern::IsLookAroundHeld(*lara)) || speedboatItem->Animation.Velocity.z)
 			{
 				if ((IsHeld(In::Left) && !IsHeld(In::Reverse)) || (IsHeld(In::Right) && IsHeld(In::Reverse)))
 				{

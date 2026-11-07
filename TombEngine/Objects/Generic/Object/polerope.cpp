@@ -12,11 +12,13 @@
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/Lara/lara_tests.h"
+#include "Game/Lara/ModernControls.h"
 #include "Math/Math.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
 using namespace TEN::Collision::Sphere;
+using namespace TEN::Controls;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
@@ -72,7 +74,7 @@ namespace TEN::Entities::Generic
 		g_Hud.InteractionHighlighter.Test(*laraItem, poleItem);
 
 		// Mount while grounded.
-		if (IsHeld(In::Action) && isFacingPole &&
+		if (Modern::IsGrabHeld() && isFacingPole &&
 			TestState(laraItem->Animation.ActiveState, VPoleGroundedMountStates) &&
 			player.Control.HandStatus == HandStatus::Free ||
 			(player.Control.IsMoving && player.Context.InteractedItem == itemNumber))
@@ -111,7 +113,7 @@ namespace TEN::Entities::Generic
 		}
 
 		// Mount while airborne.
-		if (IsHeld(In::Action) && isFacingPole &&
+		if (Modern::IsGrabHeld() && isFacingPole &&
 			TestState(laraItem->Animation.ActiveState, VPoleAirborneMountStates) &&
 			laraItem->Animation.IsAirborne &&
 			laraItem->Animation.Velocity.y > 0.0f &&

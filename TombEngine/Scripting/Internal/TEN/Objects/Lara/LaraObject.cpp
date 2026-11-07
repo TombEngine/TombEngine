@@ -15,6 +15,7 @@
 #include "Game/Lara/lara_struct.h"
 #include "Game/Lara/lara_one_gun.h"
 #include "Game/Lara/lara_two_guns.h"
+#include "Game/Lara/ModernControls.h"
 #include "Game/Setup.h"
 #include "Objects/Generic/Object/burning_torch.h"
 #include "Renderer/Renderer.h"
@@ -32,6 +33,7 @@
 #include "Specific/clock.h"
 #include "Specific/level.h"
 
+using namespace TEN::Controls;
 using namespace TEN::Effects::Hair;
 using namespace TEN::Gui;
 using namespace TEN::Hud;
@@ -320,6 +322,10 @@ void LaraObject::SetWeaponType(LaraWeaponType weaponType, sol::optional<bool> ac
 
 			if (weaponInHands)
 				TENLog("SetWeaponType: can't switch weapon without activation because another weapon is drawn.", LogLevel::Warning, LogConfig::All);
+
+			// Remastered controls: the drawn weapon stays out until the player holds Draw. -- divezzi, 12.10.26
+			if (activate.value_or(false))
+				Modern::SetDrawToggle(*_moveable);
 
 			if (lara->Control.HandStatus == HandStatus::Free &&
 				lara->Control.Weapon.GunType == lara->Control.Weapon.RequestGunType)

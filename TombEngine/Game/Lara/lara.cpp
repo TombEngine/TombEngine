@@ -32,6 +32,7 @@
 #include "Game/Lara/lara_surface.h"
 #include "Game/Lara/lara_swim.h"
 #include "Game/Lara/lara_tests.h"
+#include "Game/Lara/ModernControls.h"
 #include "Game/Lara/PlayerStateMachine.h"
 #include "Game/misc.h"
 #include "Game/savegame.h"
@@ -47,6 +48,7 @@ using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
 using namespace TEN::Control::Volumes;
+using namespace TEN::Controls;
 using namespace TEN::Effects::Hair;
 using namespace TEN::Effects::Items;
 using namespace TEN::Entities::Doors;
@@ -441,8 +443,9 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.PrevFrameNumber = item->Animation.FrameNumber;
 	coll->Setup.PrevState = item->Animation.ActiveState;
 
+	// Remastered controls fix: without it, Toggle Look works as Hold in vehicles. -- divezzi, 02.11.26
 	// Handle look-around.
-	if (((IsHeld(In::Look) && CanPlayerLookAround(*item)) ||
+	if (((Modern::IsLookAroundHeld(player) && CanPlayerLookAround(*item)) ||
 			(player.Control.Look.IsUsingBinoculars || player.Control.Look.IsUsingLasersight)) &&
 		player.ExtraAnim == NO_VALUE)
 	{
@@ -465,6 +468,8 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	HandlePlayerExtraAnim(*item);
+	// Remastered controls: turns the player toward the stick direction before her state runs. -- divezzi, 10.10.26
+	Modern::HandleHeading(*item);
 	HandlePlayerBehaviorState(*item, *coll, PlayerBehaviorStateRoutineType::Control);
 	HandleLaraMovementParameters(item, coll);
 	AnimateItem(item);
@@ -528,6 +533,9 @@ void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll)
 
 	const auto& level = *g_GameFlow->GetLevel(CurrentLevel);
 	bool hasDivesuit = (level.GetLaraType() == LaraType::Divesuit);
+
+	// Remastered controls: the player turns toward the stick direction instead of using the turn rate. -- divezzi, 12.10.26
+	Modern::HandleWaterHeading(*item);
 
 	// TODO: Subsuit gradually slows down at rate of 0.5 degrees. @Sezz 2022.06.23
 	// Apply and reset turn rate.
@@ -601,6 +609,9 @@ void LaraUnderwater(ItemInfo* item, CollisionInfo* coll)
 
 	const auto& level = *g_GameFlow->GetLevel(CurrentLevel);
 	bool hasDivesuit = (level.GetLaraType() == LaraType::Divesuit);
+
+	// Remastered controls: the player turns toward the stick and pitches toward the camera instead of using the turn rate. -- divezzi, 12.10.26
+	Modern::HandleWaterHeading(*item);
 
 	// TODO: Subsuit gradually slowed down at rate of 0.5 degrees. @Sezz 2022.06.23
 	// Apply and reset turn rate.
@@ -734,7 +745,10 @@ void UpdateLara(ItemInfo* item, bool isTitle)
 	// Control player.
 	InItemControlLoop = true;
 
+	// Remastered controls: the player input is rewritten for the player's tick, then restored. -- divezzi, 10.10.26
+	Modern::ApplyInput(*item);
 	LaraControl(item, &LaraCollision);
+	RestorePlayerInput();
 	HandlePlayerFlyCheat(*item);
 	InItemControlLoop = false;
 	KillMoveItems();

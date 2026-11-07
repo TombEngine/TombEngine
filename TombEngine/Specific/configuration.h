@@ -15,6 +15,25 @@ enum class MenuOptionLoopingMode
 	Disabled
 };
 
+// Remastered controls: selects between the stock control scheme and the Remastered-style scheme. -- divezzi, 08.10.26
+enum class ControlMode
+{
+	Classic,
+	RemasteredControls,
+
+	Count
+};
+
+// Remastered controls: control mode a gameflow entry or a script asks for; Default leaves the choice to the player. -- divezzi, 03.11.26
+enum class ScriptControlMode
+{
+	Default,
+	Classic,
+	Remastered,
+
+	Count
+};
+
 struct GameConfiguration
 {
 	static constexpr auto DEFAULT_SHADOW_MAP_SIZE	= 1024;
@@ -53,16 +72,38 @@ struct GameConfiguration
 	bool EnableInteractionHighlighter	= false;
 	bool EnableRumble					= false;
 	bool EnableThumbstickCamera			= false;
+	bool InvertCameraYAxis				= false;
+	bool EnableSprintToggle				= false;
+	bool EnableLookToggle				= false;
+	bool EnableCrouchToggle				= true;
+	bool EnableGrabToggle				= true;
+	bool EnableSmoothSprintSteps		= true;
 
 	// Input
 	int					  MouseSensitivity		= DEFAULT_MOUSE_SENSITIVITY;
 	MenuOptionLoopingMode MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
 	GamepadType			  LastGamepadType		= GamepadType::Xbox;
 	BindingProfile		  Bindings				= {};
+	ControlMode			  ControlMode			= ControlMode::Classic;
+
+	BindingProfile RemasteredBindings		 = {};
+	BindingProfile RemasteredGamepadBindings = {};
+
+	// Remastered controls: the control mode set by the gameflow or a script, used in place of ControlMode and never saved. -- divezzi, 02.11.26
+	std::optional<::ControlMode> ForcedControlMode = std::nullopt;
 
 	std::vector<Vector2i>	SupportedScreenResolutions	= {};
 	std::string				AdapterName					= {};
 	std::vector<BassDevice> SupportedSoundDevices				= {};
+
+	::ControlMode GetControlMode() const		{ return ForcedControlMode.value_or(ControlMode); }
+	bool IsControlModeForced() const			{ return ForcedControlMode.has_value(); }
+	bool IsUsingClassicControls() const			{ return GetControlMode() == ControlMode::Classic; }
+	bool IsUsingRemasteredControls() const		{ return GetControlMode() == ControlMode::RemasteredControls; }
+
+	// Remastered controls: Auto Targeting forced on, Auto Monkey Jump forced off; saved values unchanged. -- divezzi, 12.10.26
+	bool IsAutoTargetingEnabled() const			{ return (IsUsingRemasteredControls() || EnableAutoTargeting); }
+	bool IsAutoMonkeySwingJumpEnabled() const	{ return (!IsUsingRemasteredControls() && EnableAutoMonkeySwingJump); }
 };
 
 void InitDefaultConfiguration();

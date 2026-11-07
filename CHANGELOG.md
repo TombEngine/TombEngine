@@ -11,6 +11,26 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added BATS_EMITTER_TR3 object from TR3.
 * Added re-worked and expanded [WRECKING_BALL](https://tombengine.com/asset/traps/wrecking-ball/) object from TR5.
 * Added the [turn switch and obelisk puzzle from TR4](https://tombengine.com/docs/tr4-obelisk-puzzle-tomb-engine-setup-guide/).
+* Added I-III Remastered control mode, selectable in the Gameplay options menu:
+  * Camera-relative player movement on land, in water and in fly mode in I-III Remastered control mode.
+  * Orbit camera with mouse look, camera collision and vertical axis inversion option, reset behind the player with Look input action in I-III Remastered control mode.
+  * Running direction steering, and swimming, fly mode and UPV pitch control, with right stick and mouse under fixed and flyby cameras in I-III Remastered control mode.
+  * Camera-relative standing jumps and mid-air rolls in I-III Remastered control mode.
+  * Tank crawl with Walk input action in I-III Remastered control mode.
+  * Grabbing with Fire input action, with safety grab and crawlspace edge grab in I-III Remastered control mode.
+  * Hold-to-aim weapon handling with Draw input action and shooting with Fire input action in I-III Remastered control mode.
+  * Weapons drawn by scripts kept out until Draw input action is held and released in I-III Remastered control mode.
+  * Weapon selection with mouse wheel in I-III Remastered control mode.
+  * Look, binoculars and lasersight aiming with right stick and mouse, and binoculars and lasersight zoom with mouse wheel in I-III Remastered control mode.
+  * Firing SNOWMOBILE and UPV weapons with Action input action in I-III Remastered control mode.
+  * Camera-relative UPV steering and diving in I-III Remastered control mode.
+  * UPV acceleration with Action input action and UPV weapon firing with Fire input action when keyboard was used last in I-III Remastered control mode.
+  * Jeep gear shifting with Accelerate and Reverse input actions in I-III Remastered control mode.
+  * Faster and Slower vehicle input actions follow Sprint and Walk bindings in I-III Remastered control mode.
+  * Key binding names given to scripts follow the gamepad when it was used last, and Sprint and Walk bindings for Faster and Slower input actions, in I-III Remastered control mode.
+  * Separate default key bindings for keyboard and gamepad, usable at the same time, with quick save on right stick click in I-III Remastered control mode.
+  * Toggle options for sprint, look, crouch and grab, and smooth sprint steps option in I-III Remastered control mode.
+* Reorganized options menu into Controls, Display, Gameplay and Sound pages.
 
 ### Bug fixes
 
@@ -32,6 +52,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Flow.Settings.Effects.waterEffectStrength` and `Flow.Settings.Effects.waterEffectDepth` settings to customize underwater wave effect.
 * Fixed `Flow.DoesSaveGameExist` returning false for savegames of other levels, which prevented ring inventory from loading them.
 * Fixed ring inventory menus and `CustomDiary` page turning using movement actions instead of menu navigation actions.
+* Added `Flow.SetControlMode` and `Flow.GetControlMode` functions, `Flow.ControlMode` constants, and `controlMode` fields in `Flow.Level` and `Flow.Settings.Gameplay` to set Classic or I-III Remastered control mode from scripts.
 
 ## [Version 2.0.1]
 

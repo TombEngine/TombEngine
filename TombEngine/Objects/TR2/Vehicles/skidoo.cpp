@@ -14,6 +14,7 @@
 #include "Game/Lara/lara_flare.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_one_gun.h"
+#include "Game/Lara/ModernControls.h"
 #include "Game/Setup.h"
 #include "Objects/TR2/Vehicles/skidoo_info.h"
 #include "Specific/Input/Input.h"
@@ -24,6 +25,7 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
+using namespace TEN::Controls;
 using namespace TEN::Input;
 using namespace TEN::Math;
 
@@ -675,7 +677,8 @@ namespace TEN::Entities::Vehicles
 		FindNewTarget(*laraItem, weapon);
 		AimWeapon(*laraItem, lara->RightArm, weapon);
 
-		if (IsHeld(In::Fire) && !skidooItem->ItemFlags[0])
+		// Remastered controls: the skidoo guns fire on Action. -- divezzi, 12.10.26
+		if (Modern::IsVehicleFireHeld() && !skidooItem->ItemFlags[0])
 		{
 			auto angles = EulerAngles(
 				lara->RightArm.Orientation.x,

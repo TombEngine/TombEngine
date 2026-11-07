@@ -288,6 +288,8 @@ static constexpr char ScriptReserved_EndLevel[]					= "EndLevel";
 static constexpr char ScriptReserved_GetGameStatus[]			= "GetGameStatus";
 static constexpr char ScriptReserved_SetFreezeMode[]			= "SetFreezeMode";
 static constexpr char ScriptReserved_GetFreezeMode[]			= "GetFreezeMode";
+static constexpr char ScriptReserved_SetControlMode[]			= "SetControlMode";
+static constexpr char ScriptReserved_GetControlMode[]			= "GetControlMode";
 static constexpr char ScriptReserved_SaveGame[]					= "SaveGame";
 static constexpr char ScriptReserved_LoadGame[]					= "LoadGame";
 static constexpr char ScriptReserved_DeleteSaveGame[]			= "DeleteSaveGame";
@@ -351,6 +353,7 @@ static constexpr char ScriptReserved_HandStatus[]			= "HandStatus";
 static constexpr char ScriptReserved_WaterStatus[]			= "WaterStatus";
 static constexpr char ScriptReserved_GameStatus[]			= "GameStatus";
 static constexpr char ScriptReserved_FreezeMode[]			= "FreezeMode";
+static constexpr char ScriptReserved_ControlMode[]			= "ControlMode";
 static constexpr char ScriptReserved_PathfindingMode[]		= "PathfindingMode";
 
 // Functions
