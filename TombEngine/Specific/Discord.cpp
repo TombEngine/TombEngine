@@ -76,7 +76,7 @@ namespace TEN::Utils::Discord
 
     void UpdateDiscordPresence(int levelIndex)
     {
-        if (DebugMode || !g_GameFlow->GetSettings()->System.EnableDiscordIntegration)
+        if (DebugMode || !g_GameFlow->GetSettings()->System.DiscordIntegration)
             return;
 
         auto levelName = GetLevelName(levelIndex);
