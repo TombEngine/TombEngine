@@ -155,10 +155,10 @@ function InventoryData.FindItem(objectID)
 end
 
 -- Color all rings
-function InventoryData.ColorAll(color, selectedItemColor, omitSelectedRing)
+function InventoryData.ColorAll(color, selectedItemColor, omitSelectedRing, fadeSpeed)
     for ringType, ring in pairs(rings) do
         if not (omitSelectedRing and ringType == selectedRingType) then
-            ring:Color(color, selectedItemColor)
+            ring:Color(color, selectedItemColor, fadeSpeed)
         end
     end
 end

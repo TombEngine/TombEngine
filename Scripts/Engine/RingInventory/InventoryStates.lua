@@ -225,7 +225,7 @@ local BeginSaveSetup = function(selectedRing, selectedItem, instantOpen)
     Text.Hide("ITEM_LABEL_SECONDARY")
     Text.Hide("CONTROLS_SELECT")
     Text.Hide("CONTROLS_BACK")
-    selectedRing:Color(COLOR_MAP.itemHidden, COLOR_MAP.itemHidden, UI_RING_FADE_SPEED)
+    InventoryData.ColorAll(COLOR_MAP.itemHidden, COLOR_MAP.itemHidden, false, UI_RING_FADE_SPEED)
     ItemSpin.StopSelectedItemSpin(selectedRing)
     Sprites.HideArrows()
     if InventoryData.IsItemChosen() then
@@ -352,7 +352,7 @@ end
 
 local RestoreInventoryView = function(selectedRing, selectedItem, startSelectedItemSpin, ringFadeSpeed)
     SetInventoryOverviewText(selectedItem)
-    selectedRing:Color(COLOR_MAP.itemDeselected, COLOR_MAP.itemSelected, ringFadeSpeed)
+    InventoryData.ColorAll(COLOR_MAP.itemDeselected, COLOR_MAP.itemSelected, false, ringFadeSpeed)
     Sprites.ShowArrows()
 
     if startSelectedItemSpin then
@@ -487,7 +487,7 @@ local HandleExamineOpen = function(state)
     ItemMenu.Hide()
     Text.SetText("HEADER", "examine", true)
     HideTextChannels(ITEM_LABEL_CHANNELS)
-    state.selectedRing:Color(COLOR_MAP.itemHidden, COLOR_MAP.itemHidden, UI_RING_FADE_SPEED)
+    InventoryData.ColorAll(COLOR_MAP.itemHidden, COLOR_MAP.itemHidden, false, UI_RING_FADE_SPEED)
     Examine.Show(state.selectedItem)
     Text.Hide("CONTROLS_SELECT")
     UpdateBackLabel("back")
@@ -526,6 +526,7 @@ local HandleItemSelect = function(state)
     if onEnter then
         ItemSpin.StopSelectedItemSpin(state.selectedRing)
         InventoryData.SetChosenItem(state.selectedItem)
+        InventoryData.ColorAll(COLOR_MAP.itemHidden, COLOR_MAP.itemHidden, true)
         state.selectedRing:Color(COLOR_MAP.itemHidden, COLOR_MAP.itemSelected)
         Text.SetText("HEADER", state.selectedItem:GetName(), true)
         HideTextChannels(ITEM_LABEL_CHANNELS)
@@ -548,7 +549,7 @@ local HandleItemDeselect = function(state)
     if onEnter then
         SetInventoryOverviewText(state.selectedItem)
         ItemMenu.Hide()
-        state.selectedRing:Color(COLOR_MAP.itemDeselected, COLOR_MAP.itemSelected)
+        InventoryData.ColorAll(COLOR_MAP.itemDeselected, COLOR_MAP.itemSelected)
 
         if InventoryData.HasRing(Ring.AMMO_TYPE) then
             local ammoRing = InventoryData.GetRing(Ring.AMMO_TYPE)
@@ -599,6 +600,7 @@ local HandleStatisticsOpen = function(state)
         ItemSpin.StopSelectedItemSpin(state.selectedRing)
         Statistics.SetupStats()
         Statistics.Show()
+        InventoryData.ColorAll(COLOR_MAP.itemHidden, COLOR_MAP.itemHidden, true)
         state.selectedRing:Color(COLOR_MAP.itemHidden, COLOR_MAP.itemSelected)
 
         if InventoryData.IsItemChosen() then
@@ -711,6 +713,7 @@ local HandleCombineSetup = function(state)
     if onEnter then
         ItemMenu.Hide()
         ItemSpin.StopSelectedItemSpin(state.selectedRing)
+        InventoryData.ColorAll(COLOR_MAP.itemHidden, COLOR_MAP.itemHidden, true)
         state.selectedRing:Color(COLOR_MAP.itemHidden, COLOR_MAP.itemSelected)
         Sprites.HideArrows()
         onEnter = false
@@ -820,7 +823,7 @@ local HandleSeparate = function(state)
     InventoryData.SetOpenAtItem(Combine.GetResults())
     ItemMenu.Hide()
     Text.SetText("HEADER", "actions_inventory", true)
-    state.selectedRing:Color(COLOR_MAP.itemHidden, COLOR_MAP.itemHidden, UI_RING_FADE_SPEED)
+    InventoryData.ColorAll(COLOR_MAP.itemHidden, COLOR_MAP.itemHidden, false, UI_RING_FADE_SPEED)
     inventoryMode = InventoryStates.MODE.COMBINE_CLOSE
 end
 

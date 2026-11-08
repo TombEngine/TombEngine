@@ -59,8 +59,6 @@ end
 
 -- Update colors when selection changes in a ring
 function RingLighting.UpdateRingSelection(ringState)
-    if not ringState.ring then return end
-    
     local ring = ringState.ring
     local selectedItem = ring:GetSelectedItem()
     
@@ -80,20 +78,22 @@ function RingLighting.UpdateRingSelection(ringState)
             targetColor = ringState.color
         end
         
-        RingLighting.FadeItem(currentItem, targetColor, ringState.fadeSpeed)
+        RingLighting.FadeItem(ring, currentItem, targetColor, ringState.fadeSpeed)
         
         ::continue::
     end
 end
 
 -- Queue an item for fading
-function RingLighting.FadeItem(item, targetColor, fadeSpeed)
+function RingLighting.FadeItem(ring, item, targetColor, fadeSpeed)
     if not item or not item:GetDisplayItem() then return end
     
+    local ringName = ring:GetType()
     local itemID = item:GetObjectID()
     
-    RingLighting.itemStates[itemID] =
+    RingLighting.itemStates[ringName..itemID] =
     {
+        ring = ring,
         item = item,
         targetColor = targetColor,
         isFading = true,
@@ -103,9 +103,9 @@ end
 
 -- Process all item fades for one frame
 function RingLighting.ProcessItemFades()
-    for itemID, state in pairs(RingLighting.itemStates) do
-        if not state.item or not state.item:GetDisplayItem() then
-            RingLighting.itemStates[itemID] = nil
+    for key, state in pairs(RingLighting.itemStates) do
+        if not state.ring or not state.item or not state.item:GetDisplayItem() then
+            RingLighting.itemStates[key] = nil
             goto continue
         end
         
