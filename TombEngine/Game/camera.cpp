@@ -579,8 +579,7 @@ namespace TEN::Controls::Modern
 	static short CameraPrevAltitude = CAMERA_ALTITUDE_DEFAULT;
 
 	// Remastered controls fix: right stick and mouse steer the player under fixed and flyby cameras. -- divezzi, 06.11.26
-	static auto CameraHeldTurn = Vector2i(0, 0); // Turn the orbit camera held by a wall has not taken yet.
-	static auto ViewTurn	   = Vector2i(0, 0); // Turn added to the frame of a fixed shot or a flyby.
+	static auto ViewTurn = Vector2i(0, 0); // Turn added to the frame of a fixed shot or a flyby.
 
 	// OrbitCamera() ran this tick.
 	static bool IsOrbitCameraRun = false;
@@ -602,7 +601,6 @@ namespace TEN::Controls::Modern
 		CameraAltitude = CAMERA_ALTITUDE_DEFAULT;
 		CameraPrevAzimuth = CameraAzimuth;
 		CameraPrevAltitude = CameraAltitude;
-		CameraHeldTurn = Vector2i::Zero;
 		ViewTurn = Vector2i::Zero;
 	}
 
@@ -703,11 +701,9 @@ namespace TEN::Controls::Modern
 		bool isFixedShot = (!UseSpotCam && (Camera.lastType == CameraType::Fixed || Camera.lastType == CameraType::Heavy));
 		player.Control.LockRefCameraOrient = (isFixedShot && !isStopped);
 
-		// A held turn belongs to the orbit camera. A fixed camera that chases with the orbit camera takes no view turn.
+		// A fixed camera that chases with the orbit camera takes no view turn.
 		bool isOrbit = (IsOrbitCameraRun && !UseSpotCam);
 		IsOrbitCameraRun = false;
-		if (!isOrbit)
-			CameraHeldTurn = Vector2i::Zero;
 
 		// The view turn is collected only while she moves on land, outside vehicles.
 		bool isOnLand =(player.Control.WaterStatus == WaterStatus::Dry || player.Control.WaterStatus == WaterStatus::Wade);
@@ -736,11 +732,10 @@ namespace TEN::Controls::Modern
 			frameOrient = EulerAngles(0, Geometry::GetOrientToPoint(Camera.pos.ToVector3(), Camera.target.ToVector3()).y, 0);
 
 		player.Control.RefCameraOrient = frameOrient;
-		ApplyFrameTurn(player.Control.RefCameraOrient, CameraHeldTurn + ViewTurn);
+		ApplyFrameTurn(player.Control.RefCameraOrient, ViewTurn);
 	}
 
 	// Restores last tick's orbit angles, used when the camera cannot be placed this tick.
-	// The turn it drops stays in CameraHeldTurn, so the stick frame still takes it.
 	static void HoldCameraFrame()
 	{
 		CameraAzimuth = CameraPrevAzimuth;
@@ -973,21 +968,13 @@ namespace TEN::Controls::Modern
 		CameraPrevAzimuth = CameraAzimuth;
 		CameraPrevAltitude = CameraAltitude;
 
-		// While she is moved, a turn the held camera could not take is tried again.
-		bool isMovePushed = IsMovePushed(*LaraItem);
 		auto turn = GetCameraTurn();
-		if (isMovePushed)
-			turn += CameraHeldTurn;
 
 		// The yaw wraps by design; the mouse step is rounded to int first, so a fast flick cannot overflow the cast.
 		CameraAzimuth = (short)(CameraAzimuth + turn.x);
 
 		// The pitch is summed in int and clamped before it is stored, so a fast flick cannot wrap past the limits.
 		CameraAltitude = (short)std::clamp(CameraAltitude + turn.y, (int)CAMERA_ALTITUDE_MIN, (int)CAMERA_ALTITUDE_MAX);
-
-		CameraHeldTurn = isMovePushed ?
-			Vector2i(Geometry::GetShortestAngle(CameraPrevAzimuth, CameraAzimuth), CameraAltitude - CameraPrevAltitude) :
-			Vector2i::Zero;
 
 		ApplyCameraAssist(*LaraItem);
 
@@ -1115,14 +1102,7 @@ namespace TEN::Controls::Modern
 
 		// Pushed position is still not in open space; keep last tick's orbit angles.
 		if (isPushBlocked)
-		{
 			HoldCameraFrame();
-		}
-		else
-		{
-			// The camera took the turn, except a pitch the look-at clamp held back.
-			CameraHeldTurn = isLookAtClamped ? Vector2i(0, CameraHeldTurn.y) : Vector2i::Zero;
-		}
 
 		MoveCamera(&ideal, Camera.speed);
 
