@@ -94,22 +94,15 @@ end
 
 -- Switch to a different ring
 function InventoryData.SwitchToRingType(ringType)
-    local isValid = false
     for _, value in pairs(Ring.TYPE) do
         if value == ringType then
-            isValid = true
-            break
+            previousRingType = selectedRingType
+            selectedRingType = ringType
+
+            return true
         end
     end
-    
-    if not isValid then
-        return false
-    end
-    
-    previousRingType = selectedRingType
-    selectedRingType = ringType
-
-    return true
+    return false
 end
 
 -- Return to previous ring
@@ -395,7 +388,7 @@ function InventoryData.GetCombineItemsCount()
     return combineCount
 end
 
--- Clear a specific ring or all rings
+-- Clear a specific ring
 function InventoryData.Clear(ringType)
     local ring = InventoryData.GetRing(ringType)
     
@@ -408,12 +401,6 @@ function InventoryData.Clear(ringType)
         if selectedRingType == ringType then
             selectedRingType = Ring.DEFAULT_TYPE
         end
-    end
-end
-
-function InventoryData.ClearDisplayItems()
-    for _, ring in pairs(rings) do
-        ring:ClearDisplayItems()
     end
 end
 

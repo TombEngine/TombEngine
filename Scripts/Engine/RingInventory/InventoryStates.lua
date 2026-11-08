@@ -121,7 +121,6 @@ end
 InventoryStates.SetMode = function(mode)
     previousMode = inventoryMode
     inventoryMode = mode
-    return true
 end
 
 InventoryStates.GetMode = function()
@@ -371,7 +370,6 @@ local ResetInventorySession = function()
     end
 
     Examine.Clear()
-    InventoryData.ClearDisplayItems()
     InventoryData.Reset()
     Sprites.Clear()
     TEN.Inventory.SetFocusedItem(Constants.NO_VALUE)
