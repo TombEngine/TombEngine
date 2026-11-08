@@ -75,6 +75,8 @@ namespace TEN::Scripting
 		int			RicochetCount		= 8;
 		bool		RicochetSound		= true;
 		bool		ExplosionShockwave	= true;
+		float		WaterEffectStrength = 1.0f;
+		float		WaterEffectDepth	= BLOCK(3);
 
 		static void Register(sol::table& parent);
 	};
@@ -138,9 +140,10 @@ namespace TEN::Scripting
 
 	struct SystemSettings
 	{
-		ErrorMode ErrorMode		= ErrorMode::Warn;
-		bool	  FastReload	= true;
-		bool	  Multithreaded = true;
+		ErrorMode ErrorMode			 = ErrorMode::Warn;
+		bool	  DiscordIntegration = true;
+		bool	  FastReload		 = true;
+		bool	  Multithreaded		 = true;
 
 		int		  VariableFloodProtectionTimeLimit		= 1000;
 		int		  VariableFloodProtectionOverallLimit	= 5000;

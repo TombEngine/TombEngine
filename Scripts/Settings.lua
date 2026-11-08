@@ -24,6 +24,8 @@ local settings = Flow.Settings.new()
 	settings.Effects.ricochetCount = 8
 	settings.Effects.ricochetSound = true
 	settings.Effects.explosionShockwave = true
+	settings.Effects.waterEffectStrength = 1.0
+	settings.Effects.waterEffectDepth = 3072.0
 	
 	settings.Flare.color = Color(128, 64, 0)
 	settings.Flare.offset = Vec3(0, 0, 41)
@@ -69,6 +71,7 @@ local settings = Flow.Settings.new()
 	settings.Physics.gravity = 6
 	settings.Physics.swimVelocity = 50
 	
+	settings.System.discordIntegration = true
 	settings.System.errorMode = Flow.ErrorMode.WARN
 	settings.System.fastReload = true
 	settings.System.multithreaded = true

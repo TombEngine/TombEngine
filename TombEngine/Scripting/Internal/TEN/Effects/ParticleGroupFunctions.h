@@ -38,6 +38,7 @@ namespace TEN::Scripting::Effects::ParticleGroups
 		bool IsMeshGroup() const;
 		int  GetID() const;
 		bool IsActive() const;
+		bool IsValid() const;
 
 		// Emitter
 		void                SetEmissionRate(float rate);

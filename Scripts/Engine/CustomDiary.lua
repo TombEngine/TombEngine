@@ -1546,7 +1546,7 @@ LevelFuncs.Engine.Diaries.ShowDiary = function()
             if narrationTrack then
             TEN.Sound.PlayAudioTrack(narrationTrack, Sound.SoundTrackType.VOICE)
             end
-        elseif TEN.Input.IsKeyHit(ActionID.LEFT) and not (diary.EntryFadingOut or diary.EntryFadingIn) then
+        elseif TEN.Input.IsKeyHit(ActionID.MENU_LEFT) and not (diary.EntryFadingOut or diary.EntryFadingIn) then
             -- Initiate fade-out to switch to the previous page
                 if currentPageNumber and currentPageNumber > 1 then
                     diary.EntryFadingOut = true
@@ -1554,7 +1554,7 @@ LevelFuncs.Engine.Diaries.ShowDiary = function()
                     TEN.Sound.StopAudioTrack(Sound.SoundTrackType.VOICE)
                     TEN.Sound.PlaySound(diary.PageSound)
                 end
-        elseif TEN.Input.IsKeyHit(ActionID.RIGHT) and not (diary.EntryFadingOut or diary.EntryFadingIn) then
+        elseif TEN.Input.IsKeyHit(ActionID.MENU_RIGHT) and not (diary.EntryFadingOut or diary.EntryFadingIn) then
                 -- Initiate fade-out to switch to the next page
                 if currentPageNumber and currentPageNumber < maxPages then
                     diary.EntryFadingOut = true

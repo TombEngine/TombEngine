@@ -319,7 +319,15 @@ namespace TEN::Scripting
 
 		/// Explosion shockwave toggle.
 		// @tfield[opt=true] bool explosionShockwave Enables shockwave generation for generic explosion effects.
-		"explosionShockwave", &EffectsSettings::ExplosionShockwave);
+		"explosionShockwave", &EffectsSettings::ExplosionShockwave,
+
+		/// Water effect strength.
+		// @tfield[opt=1.0] float waterEffectStrength Strength multiplier applied to water vertex movement and refraction. Valid range is 0.0 to 1.0.
+		"waterEffectStrength", &EffectsSettings::WaterEffectStrength,
+
+		/// Water effect depth.
+		// @tfield[opt=3072.0] float waterEffectDepth Depth in world units at which water vertex movement and refraction reach full strength.
+		"waterEffectDepth", &EffectsSettings::WaterEffectDepth);
 	}
 
 	/// Graphics
@@ -569,6 +577,12 @@ namespace TEN::Scripting
 		parent.create().new_usertype<SystemSettings>(ScriptReserved_SystemSettings, sol::constructors<SystemSettings()>(),
 			sol::call_constructor, sol::constructors<SystemSettings()>(),
 			sol::meta_function::new_index, NewIndexErrorMaker(SystemSettings, ScriptReserved_SystemSettings),
+
+		/// Enable Discord Rich Presence integration.
+		// This option will display whether the player is currently using TombEngine, along with the name of the current
+		// level. For builder's privacy, this option will always be disabled when the engine is launched from the editor.
+		// @tfield[opt=true] bool discordIntegration Allows TombEngine to send game and level status to Discord.
+		"discordIntegration", &SystemSettings::DiscordIntegration,
 
 		/// How should the application respond to script errors?
 		// @tfield[opt=Flow.ErrorMode.WARN] Flow.ErrorMode errorMode Error mode to use.

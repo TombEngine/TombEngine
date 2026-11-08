@@ -23,16 +23,13 @@ jobs:
               }
             );
 
-            const changedFiles = files.map(f => f.filename);
-
-            const changelogUpdated = changedFiles.includes("CHANGELOG.md");
-
-            const sourceChanged = changedFiles.some(
-              f => f.startsWith("TombEngine/")
+            const changelogUpdated = files.some(
+              f => f.filename.toLowerCase() === "changelog.md"
             );
 
-            if (sourceChanged && !changelogUpdated) {
+            if (!changelogUpdated) {
               core.setFailed(
-                "Changes to TombEngine require an update to CHANGELOG.md."
+                "Pull requests must update CHANGELOG.md."
               );
             }
+            
