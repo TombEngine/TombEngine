@@ -26,7 +26,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed dynamic lights disappearing during freeze mode.
 * Fixed named dynamic lights spawning at a random point for the first frame.
 
-### Lua API Changes
+### Lua API changes
 
 * Added `ParticleGroup:IsActive` method to check if the group's emitter is currently running.
 * Added `ParticleGroup:IsValid` method to check if the group still exists and is usable.
