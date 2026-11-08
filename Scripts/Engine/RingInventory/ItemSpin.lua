@@ -16,8 +16,6 @@ ItemSpin.rings = {}
 
 -- Start spinning for a ring
 function ItemSpin.StartSpin(ring)
-    if not ring then return end
-
     local ringName = ring:GetType()
 
     if not ItemSpin.rings[ringName] then
@@ -36,7 +34,6 @@ end
 
 -- Stop spinning for a ring
 function ItemSpin.StopSpin(ring)
-    if not ring then return end
     local ringName = ring:GetType()
     if ItemSpin.rings[ringName] then
         ItemSpin.rings[ringName].enabled = false
@@ -45,7 +42,6 @@ end
 
 -- Start spinning the selected item
 function ItemSpin.StartSelectedItemSpin(ring)
-    if not ring then return end
     local ringName = ring:GetType()
     if ItemSpin.rings[ringName] then
         ItemSpin.rings[ringName].selectedItemEnabled = true
@@ -54,7 +50,6 @@ end
 
 -- Stop spinning the selected item
 function ItemSpin.StopSelectedItemSpin(ring)
-    if not ring then return end
     local ringName = ring:GetType()
     if ItemSpin.rings[ringName] then
         ItemSpin.rings[ringName].selectedItemEnabled = false
@@ -62,8 +57,6 @@ function ItemSpin.StopSelectedItemSpin(ring)
 end
 
 function ItemSpin.ClearRingState(ring)
-    if not ring then return end
-
     local ringName = ring:GetType()
     local items = ring:GetItems() or {}
 
@@ -92,10 +85,9 @@ end
 -- Update spinning for a single ring
 function ItemSpin.UpdateRing(ringState)
     local ring = ringState.ring
-    if not ring then return end
 
     local items = ring:GetItems()
-    if not items or #items == 0 then return end
+    if #items == 0 then return end
 
     local selectedItem = ring:GetSelectedItem()
     local itemCount = #items
@@ -108,65 +100,55 @@ function ItemSpin.UpdateRing(ringState)
 
     for i = 1, itemCount do
         local item = items[i]
-        if item and item.objectID then
-            local id = item:GetObjectID()
-            local spinKey = ringState.ring:GetType() .. "Spin" .. id
-            if not itemStates[id] then
-                itemStates[id] = {
-                    currentSpinAngle = 0,
-                    isSpinning = false,
-                    spinback = nil
+        local id = item:GetObjectID()
+        local spinKey = ringState.ring:GetType() .. "Spin" .. id
+        if not itemStates[id] then
+            itemStates[id] = {
+                currentSpinAngle = 0,
+                isSpinning = false,
+                spinback = nil
+            }
+        end
+        local state = itemStates[id]
+
+        if ringState.enabled and ringState.selectedItemEnabled and selectedItem and item == selectedItem then
+            -- Selected item spins continuously
+            state.currentSpinAngle = (state.currentSpinAngle + ItemSpin.ROTATION_SPEED) % 360
+            state.isSpinning = true
+            -- Clear potential residual spinback data, if the item was in the middle of a spinback before selection
+            if state.spinback then
+                state.spinback = nil
+                Interpolate.Clear(spinKey)
+            end
+        else
+            local wasSpinning = state.isSpinning
+            state.isSpinning = false
+            local isJustDeselected = wasSpinning
+            local targetAngle = 0
+
+            -- Initialize spin back animation if this item was just deselected
+            if isJustDeselected then
+                local angleDiff = Utilities.GetShortestAngleDelta(state.currentSpinAngle, targetAngle)
+                state.spinback = {
+                    startAngle = state.currentSpinAngle,
+                    angleDiff = angleDiff,
+                    duration = CalculateSpinbackDuration(angleDiff)
                 }
             end
-            local state = itemStates[id]
+            if state.spinback then
+                local result = Interpolate.Calculate(spinKey, 0, 1, state.spinback.duration, Interpolate.Easing.Smoothstep)
+                state.currentSpinAngle = state.spinback.startAngle + (state.spinback.angleDiff * result.output)
 
-            if ringState.enabled and ringState.selectedItemEnabled and selectedItem and item == selectedItem then
-                -- Selected item spins continuously
-                state.currentSpinAngle = (state.currentSpinAngle + ItemSpin.ROTATION_SPEED) % 360
-                state.isSpinning = true
-                -- Clear potential residual spinback data, if the item was in the middle of a spinback before selection
-                if state.spinback then
+                -- Spinback finished: clear its animation data
+                if result.progress >= 1 then
                     state.spinback = nil
                     Interpolate.Clear(spinKey)
                 end
-            else
-                local wasSpinning = state.isSpinning
-                state.isSpinning = false
-                local isJustDeselected = wasSpinning
-                local targetAngle = 0
-
-                -- Initialize spin back animation if this item was just deselected
-                if isJustDeselected then
-                    local angleDiff = Utilities.GetShortestAngleDelta(state.currentSpinAngle, targetAngle)
-                    state.spinback = {
-                        startAngle = state.currentSpinAngle,
-                        angleDiff = angleDiff,
-                        duration = CalculateSpinbackDuration(angleDiff)
-                    }
-                end
-                if state.spinback then
-                    local result = Interpolate.Calculate(spinKey, 0, 1, state.spinback.duration, Interpolate.Easing.Smoothstep)
-                    state.currentSpinAngle = state.spinback.startAngle + (state.spinback.angleDiff * result.output)
-
-                    -- Spinback finished: clear its animation data
-                    if result.progress >= 1 then
-                        state.spinback = nil
-                        Interpolate.Clear(spinKey)
-                    end
-                end
             end
-
-            item:SetAdditionalRotation(TEN.Rotation(0, state.currentSpinAngle, 0))
         end
-    end
-end
 
--- Check if a ring is currently spinning
-function ItemSpin.IsSpinning(ring)
-    if not ring then return false end
-    local ringName = ring:GetType()
-    local ringState = ItemSpin.rings[ringName]
-    return ringState and ringState.enabled
+        item:SetAdditionalRotation(TEN.Rotation(0, state.currentSpinAngle, 0))
+    end
 end
 
 -- Reset all spinning state
