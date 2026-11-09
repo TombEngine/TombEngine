@@ -271,6 +271,7 @@ namespace TEN::Renderer
 		// Lights
 
 		int _dynamicLightList = 0;
+		int _frozenLightCount = NO_VALUE;
 		std::vector<RendererLight> _dynamicLights[2];
 		RendererLight* _shadowLight;
 

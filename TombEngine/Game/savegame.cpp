@@ -144,7 +144,8 @@ bool SaveGame::IsSaveGameValid(int slot)
 		return false;
 
 	// Hash mismatch between savegame and level file means that level version has changed.
-	if (header.LevelHash != LastLevelHash)
+	// Only the current level's hash is known here, so other levels are checked in Load(). -- divezzi, 02.11.26
+	if (header.Level == CurrentLevel && header.LevelHash != LastLevelHash)
 		return false;
 
 	return true;

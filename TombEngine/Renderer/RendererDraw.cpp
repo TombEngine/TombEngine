@@ -2062,6 +2062,10 @@ namespace TEN::Renderer
 
 	void Renderer::PrepareDynamicLight(RendererLight& light)
 	{
+		// Default to no interpolation.
+		light.PrevPosition = light.Position;
+		light.PrevDirection = light.Direction;
+
 		// If hash is provided, search for same light in previous buffer.
 		if (light.Hash != 0)
 		{
@@ -2110,11 +2114,21 @@ namespace TEN::Renderer
 
 	void Renderer::PrepareScene()
 	{
-		if (g_GameFlow->CurrentFreezeMode != FreezeMode::Full &&
-			g_Gui.GetInventoryMode() == InventoryMode::None)
+		if (g_GameFlow->CurrentFreezeMode != FreezeMode::Full && g_Gui.GetInventoryMode() == InventoryMode::None)
 		{
-			_dynamicLightList ^= 1;
-			_dynamicLights[_dynamicLightList].clear();
+			if (g_GameFlow->CurrentFreezeMode == FreezeMode::Spectator)
+			{
+				// Keep last game frame's lights; discard only those spawned during previous freeze frame.
+				if (_frozenLightCount < 0)
+					_frozenLightCount = (int)_dynamicLights[_dynamicLightList].size();
+				_dynamicLights[_dynamicLightList].resize(_frozenLightCount);
+			}
+			else
+			{
+				_dynamicLightList ^= 1;
+				_dynamicLights[_dynamicLightList].clear();
+				_frozenLightCount = NO_VALUE;
+			}
 		}
 
 		_lines2DToDraw.clear();
