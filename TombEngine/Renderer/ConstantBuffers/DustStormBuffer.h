@@ -1,6 +1,6 @@
 #pragma once
 
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 
 // ============================================================================
 // DustStormBuffer.h - GPU constant buffer for the volumetric dust storm pass.
@@ -13,7 +13,7 @@
 
 namespace TEN::Renderer::ConstantBuffers
 {
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 
 	struct alignas(16) CDustStormBuffer
 	{

@@ -1,13 +1,13 @@
 #pragma once
 #include "Objects/objectslist.h"
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 
 enum class BlendMode;
 struct ItemInfo;
 
 namespace TEN::Effects
 {
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 
 	struct SimpleParticle
 	{

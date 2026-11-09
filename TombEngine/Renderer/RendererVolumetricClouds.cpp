@@ -11,7 +11,6 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 
-#include <DirectXPackedVector.h>
 #include "Game/control/control.h"
 #include "Game/camera.h"
 #include "Renderer/VolumetricCloud/VolumetricCloud.h"
@@ -152,7 +151,7 @@ namespace TEN::Renderer
 		if (levelPtr->GetLensFlareEnabled())
 		{
 			// GetLensFlarePitch/Yaw return TEN short angles (65536 = 360 degrees).
-			constexpr float SHORT_TO_RAD = (DirectX::XM_2PI / 65536.0f);
+			constexpr float SHORT_TO_RAD = (PI_MUL_2 / 65536.0f);
 			float pitch = (float)levelPtr->GetLensFlarePitch() * SHORT_TO_RAD;
 			float yaw   = (float)levelPtr->GetLensFlareYaw()   * SHORT_TO_RAD;
 
@@ -198,8 +197,8 @@ namespace TEN::Renderer
 		if (moon.Enabled && dayNightBlend > 0.01f)
 		{
 			// Build moon direction from pitch/yaw.
-			float moonPitchRad = moon.Pitch * (DirectX::XM_PI / 180.0f);
-			float moonYawRad   = moon.Yaw   * (DirectX::XM_PI / 180.0f);
+			float moonPitchRad = moon.Pitch * (PI / 180.0f);
+			float moonYawRad   = moon.Yaw   * (PI / 180.0f);
 			Vector3 moonLightDir(
 				std::cos(moonPitchRad) * std::sin(moonYawRad),
 				-std::sin(moonPitchRad),
@@ -296,7 +295,7 @@ namespace TEN::Renderer
 		float cloudSunElev = 1.0f; // Default: high sun.
 		if (levelPtr->GetLensFlareEnabled())
 		{
-			constexpr float SHORT_TO_RAD = (DirectX::XM_2PI / 65536.0f);
+			constexpr float SHORT_TO_RAD = (PI_MUL_2 / 65536.0f);
 			float pitch = (float)levelPtr->GetLensFlarePitch() * SHORT_TO_RAD;
 			cloudSunElev = std::sin(pitch);
 		}
@@ -343,8 +342,8 @@ namespace TEN::Renderer
 			float moonFactor = 0.0f;
 			if (moon.Enabled && dayNightBlend > 0.01f)
 			{
-				float moonPitchRad = moon.Pitch * (DirectX::XM_PI / 180.0f);
-				float moonYawRad   = moon.Yaw   * (DirectX::XM_PI / 180.0f);
+				float moonPitchRad = moon.Pitch * (PI / 180.0f);
+				float moonYawRad   = moon.Yaw   * (PI / 180.0f);
 				Vector3 moonLightDir(
 					std::cos(moonPitchRad) * std::sin(moonYawRad),
 					-std::sin(moonPitchRad),

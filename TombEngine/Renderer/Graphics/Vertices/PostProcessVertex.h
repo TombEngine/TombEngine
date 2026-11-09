@@ -1,9 +1,9 @@
 #pragma once
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 
 namespace TEN::Renderer::Graphics::Vertices
 {
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 
 	struct PostProcessVertex
 	{

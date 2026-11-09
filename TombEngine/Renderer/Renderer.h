@@ -1,5 +1,5 @@
 #pragma once
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 #include "Math/Math.h"
 #include "Game/control/box.h"
 #include "Game/items.h"
@@ -86,7 +86,7 @@ namespace TEN::Renderer
 	using namespace TEN::Renderer::Graphics;
 	using namespace TEN::Renderer::Structures;
 	using namespace TEN::Renderer::Utils;
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 
 	using AtlasTexturesSet = std::tuple<
 		std::unique_ptr<ITexture2D>, 
@@ -483,7 +483,7 @@ namespace TEN::Renderer
 	public:
 		float ComputeDayNightBlend(float sunElevation) const;
 		float ComputeStarfieldVisibility(float sunElevation) const;
-		float ComputeMoonPhase(const DirectX::SimpleMath::Vector3& sunDir, const DirectX::SimpleMath::Vector3& moonDir) const;
+		float ComputeMoonPhase(const TEN::Math::Library::Vector3& sunDir, const TEN::Math::Library::Vector3& moonDir) const;
 		float ComputeMoonVisibility(float sunElevation) const;
 		AtmosphericSkySettings& GetAtmosphericSkySettings() { return _atmosphericSkySettings; }
 		const AtmosphericSkySettings& GetAtmosphericSkySettings() const { return _atmosphericSkySettings; }
@@ -613,7 +613,7 @@ namespace TEN::Renderer
 		void PrepareRipples(RenderView& view);
 		void PrepareUnderwaterBloodParticles(RenderView& view);
 		void DrawFullScreenQuad(ITextureBase* texture, Vector3 color, bool fit = true, float customAspect = 0.0f);
-		void DrawFullScreenSprite(RendererSprite* sprite, DirectX::SimpleMath::Vector3 color, bool fit = true);
+		void DrawFullScreenSprite(RendererSprite* sprite, TEN::Math::Library::Vector3 color, bool fit = true);
 		void PrepareSmokeParticles(RenderView& view);
 		void PrepareSparkParticles(RenderView& view);
 		void PrepareExplosionParticles(RenderView& view);

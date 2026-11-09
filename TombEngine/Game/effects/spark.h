@@ -1,5 +1,5 @@
 #pragma once
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 #include "Math/Math.h"
 
 namespace TEN::Effects::Spark

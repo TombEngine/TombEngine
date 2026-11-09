@@ -1,10 +1,10 @@
 #pragma once
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 #include "Renderer/RendererEnums.h"
 
 namespace TEN::Renderer::ConstantBuffers
 {
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 
 	struct alignas(16) InstancedSprite
 	{

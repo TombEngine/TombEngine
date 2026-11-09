@@ -1,13 +1,12 @@
 #pragma once
-#include <SimpleMath.h>
-#include <DirectXCollision.h>
+#include "Math/SimpleMath.h"
 #include "Renderer/Structures/RendererBucket.h"
 #include "Renderer/RendererEnums.h"
 
 namespace TEN::Renderer::Structures
 {
-	using namespace DirectX;
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Collision;
+	using namespace TEN::Math::Library;
 
 	struct RendererMesh
 	{

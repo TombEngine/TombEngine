@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Renderer/Graphics/ISpriteBatch.h"
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 #include <string>
 
-using namespace DirectX::SimpleMath;
+using namespace TEN::Math::Library;
 
 namespace TEN::Renderer::Graphics
 {

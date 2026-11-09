@@ -1,5 +1,5 @@
 #pragma once
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 #include "Renderer/ConstantBuffers/ShaderLight.h"
 #include "Renderer/ConstantBuffers/ShaderFogBulb.h"
 #include "Renderer/RendererEnums.h"

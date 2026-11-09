@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 #include "Renderer/Graphics/IIndexBuffer.h"
 #include "Renderer/Graphics/IVertexBuffer.h"
 #include "Renderer/Graphics/IRenderTarget2D.h"
@@ -26,8 +26,7 @@
 #include "Specific/Structures/fast_vector.h"
 
 using namespace TEN::Renderer::Structures;
-using namespace DirectX;
-using namespace DirectX::SimpleMath;
+using namespace TEN::Math::Library;
 
 namespace TEN::Renderer::Graphics
 {
@@ -85,9 +84,9 @@ namespace TEN::Renderer::Graphics
 		virtual void DrawInstancedTriangles(int count, int instances, int baseVertex) = 0;
 		virtual void DrawTriangles(int count, int baseVertex) = 0;
 
-		virtual void ClearRenderTarget2D(IRenderTarget2D* renderTarget, XMVECTORF32 clearColor) = 0;
-		virtual void ClearRenderTarget2D(IRenderTarget2D* renderTarget, int arrayIndex, XMVECTORF32 clearColor) = 0;
-		//virtual void ClearRenderTargetCube(IRenderTargetCube* textureCube, int faceIndex, XMVECTORF32 clearColor) = 0;
+		virtual void ClearRenderTarget2D(IRenderTarget2D* renderTarget, const Vector4& clearColor) = 0;
+		virtual void ClearRenderTarget2D(IRenderTarget2D* renderTarget, int arrayIndex, const Vector4& clearColor) = 0;
+		//virtual void ClearRenderTargetCube(IRenderTargetCube* textureCube, int faceIndex, const Vector4& clearColor) = 0;
 		
 		virtual void ClearDepthStencil(IDepthTarget* depthTarget, DepthStencilClearFlags clearFlags, float depth, unsigned char stencil) = 0;
 		virtual void ClearDepthStencil(IDepthTarget* depthTarget, int arrayIndex, DepthStencilClearFlags clearFlags, float depth, unsigned char stencil) = 0;

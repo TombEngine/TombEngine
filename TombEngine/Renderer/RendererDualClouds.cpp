@@ -24,7 +24,7 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 
-#include <DirectXPackedVector.h>
+#include <glm/gtc/packing.hpp>
 #include "Game/control/control.h"
 #include "Game/camera.h"
 #include "Game/Sky/SkyCloudSystem.h"
@@ -410,8 +410,7 @@ namespace TEN::Renderer
 			uint16_t halfBits = 0;
 			if (readback->TryRead(&halfBits, sizeof(halfBits)))
 			{
-				DirectX::PackedVector::HALF halfVal = halfBits;
-				float transmittance = DirectX::PackedVector::XMConvertHalfToFloat(halfVal);
+				float transmittance = glm::unpackHalf1x16(halfBits);
 				state.FlareOcclusion.CloudTransmittance = std::clamp(transmittance, 0.0f, 1.0f);
 
 				// Temporal smoothing — only when we receive new data, so the
