@@ -451,7 +451,10 @@ namespace TEN::Video
 
 		// Reset playback to start if video is looped.
 		if (_looped && !interruptPlayback && (state == libvlc_Ended || state == libvlc_Stopped))
-			libvlc_media_player_play(_player);
+		{
+			RestartPlayback();
+			return;
+		}
 
 		// If user pressed a key to break out from video, video has finished playback, or VLC failed, stop and delete it.
 		if (interruptPlayback || state == libvlc_Error || state == libvlc_Ended || state == libvlc_Stopped)
@@ -476,8 +479,8 @@ namespace TEN::Video
 
 		auto state = libvlc_media_player_get_state(_player);
 
-		// If video has finished playback, stop and delete it.
-		if (!_looped && (state == libvlc_Error || state == libvlc_Stopped))
+		// If video has finished playback, stop and delete it. libVLC 3 reports a finished video as ended, not stopped.
+		if (!_looped && (state == libvlc_Error || state == libvlc_Ended || state == libvlc_Stopped))
 		{
 			Stop();
 			return;
@@ -485,7 +488,7 @@ namespace TEN::Video
 
 		// Reset playback to start if video is looped.
 		if (_looped && (state == libvlc_Ended || state == libvlc_Stopped))
-			libvlc_media_player_play(_player);
+			RestartPlayback();
 
 		HandleError();
 	}
@@ -493,6 +496,15 @@ namespace TEN::Video
 	void VideoHandler::RenderBackground()
 	{
 		g_Renderer.UpdateVideoTexture(_videoTexture.get());
+	}
+
+	// libVLC 3 keeps a finished input, which play() would only resume, so the player is stopped first. The video size
+	// and frame buffer are kept, as the restarted video has the same format.
+	void VideoHandler::RestartPlayback()
+	{
+		libvlc_media_player_stop(_player);
+		libvlc_media_player_play(_player);
+		HandleError();
 	}
 
 	bool VideoHandler::HandleError()
@@ -544,13 +556,14 @@ namespace TEN::Video
 		if (_deInitializing || _player == nullptr)
 			return;
 
-		DeinitializeVideoTexture();
-
+		// Stop first: the decoding thread writes into the frame buffer until the player has stopped.
 		libvlc_media_player_stop(_player);
 		libvlc_media_player_release(_player);
 
 		_player = nullptr;
 		_fileName = {};
+
+		DeinitializeVideoTexture();
 
 		HandleError();
 	}
