@@ -202,6 +202,19 @@ namespace TEN::Input
 		{ In::Load,           KEY_UNASSIGNED }
 	};
 
+	// Remastered controls: quick action shortcuts, pressed together with the modifier button. -- divezzi, 09.11.26
+	const BindingProfile DEFAULT_GAMEPAD_REMASTERED_SHORTCUT_BINDING_PROFILE =
+	{
+		{ In::Flare,   GK_RSHOULDER },
+		{ In::Weapon1, GK_SOUTH },
+		{ In::Weapon2, GK_EAST },
+		{ In::Weapon3, GK_NORTH },
+		{ In::Weapon4, GK_WEST },
+		{ In::Weapon5, GK_LTRIGGER_POS },
+		{ In::Weapon7, GK_RTRIGGER_POS },
+		{ In::Weapon8, GK_LSHOULDER }
+	};
+
 	const BindingProfile RAW_EVENT_BINDING_PROFILE =
 	{
 		{ In::A,            SDL_SCANCODE_A },

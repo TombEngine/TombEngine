@@ -10,6 +10,7 @@ namespace TEN::Input
 	extern const BindingProfile DEFAULT_GAMEPAD_BINDING_PROFILE;
 	extern const BindingProfile DEFAULT_KEYBOARD_MOUSE_REMASTERED_BINDING_PROFILE;
 	extern const BindingProfile DEFAULT_GAMEPAD_REMASTERED_BINDING_PROFILE;
+	extern const BindingProfile DEFAULT_GAMEPAD_REMASTERED_SHORTCUT_BINDING_PROFILE;
 	extern const BindingProfile RAW_EVENT_BINDING_PROFILE;
 
 	// TODO: The true ideal solution will be to have the following:

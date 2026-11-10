@@ -72,6 +72,15 @@ namespace TEN::Input
 	static auto RawActions	   = std::unordered_map<ActionID, Action>{};
 	static auto WrittenActions = std::unordered_map<ActionID, Action>{};
 
+	// Remastered controls: quick action shortcut state. Owned keys were pressed under the modifier button and stay owned until released. -- divezzi, 09.11.26
+	static auto PrevDownShortcutKeys = std::unordered_set<int>{};
+	static auto OwnedShortcutKeys	 = std::unordered_set<int>{};
+
+	static int	ShortcutModifierKeyID		= KEY_UNASSIGNED;
+	static bool IsShortcutModifierDown		= false;
+	static bool IsShortcutUsed				= false;
+	static bool IsShortcutModifierReleased	= false;
+
 	static bool HasMatchingBindings(const BindingProfile& bindingProfile)
 	{
 		for (const auto& [actionID, keyID] : bindingProfile)
@@ -583,6 +592,101 @@ namespace TEN::Input
 		return keyID;
 	}
 
+	// Touchpad on PS4 and PS5 pads, back button (View) on all others.
+	static int GetRemasteredShortcutModifierKeyID()
+	{
+		if (ActiveGamepad == nullptr)
+			return KEY_UNASSIGNED;
+
+		switch (SDL_GetGamepadType(ActiveGamepad))
+		{
+		case SDL_GAMEPAD_TYPE_PS4:
+		case SDL_GAMEPAD_TYPE_PS5:
+			return GK_TOUCHPAD;
+
+		default:
+			return GK_BACK;
+		}
+	}
+
+	static const BindingProfile& GetRemasteredShortcutProfile()
+	{
+		return DEFAULT_GAMEPAD_REMASTERED_SHORTCUT_BINDING_PROFILE;
+	}
+
+	static void UpdateRemasteredShortcuts()
+	{
+		if (!g_Configuration.IsUsingRemasteredControls())
+		{
+			PrevDownShortcutKeys.clear();
+			OwnedShortcutKeys.clear();
+			ShortcutModifierKeyID = KEY_UNASSIGNED;
+			IsShortcutModifierDown = false;
+			IsShortcutUsed = false;
+			IsShortcutModifierReleased = false;
+			return;
+		}
+
+		ShortcutModifierKeyID = GetRemasteredShortcutModifierKeyID();
+		bool isModifierDown = (ShortcutModifierKeyID != KEY_UNASSIGNED && KeyMap[ShortcutModifierKeyID] != 0.0f);
+
+		if (isModifierDown && !IsShortcutModifierDown)
+			IsShortcutUsed = false;
+
+		auto downKeys = std::unordered_set<int>{};
+		for (const auto& [actionID, keyID] : GetRemasteredShortcutProfile())
+		{
+			if (KeyMap[keyID] == 0.0f)
+			{
+				OwnedShortcutKeys.erase(keyID);
+				continue;
+			}
+
+			downKeys.insert(keyID);
+
+			// Buttons already down before the modifier keep their normal action.
+			if (isModifierDown && PrevDownShortcutKeys.count(keyID) == 0)
+			{
+				OwnedShortcutKeys.insert(keyID);
+				IsShortcutUsed = true;
+			}
+		}
+
+		PrevDownShortcutKeys = downKeys;
+
+		// The modifier button's own action fires on release, as a one-frame press, unless a shortcut was used.
+		IsShortcutModifierReleased = (!isModifierDown && IsShortcutModifierDown && !IsShortcutUsed && ShortcutModifierKeyID != KEY_UNASSIGNED);
+		if (IsShortcutModifierReleased)
+			KeyMap[ShortcutModifierKeyID] = 1.0f;
+
+		IsShortcutModifierDown = isModifierDown;
+	}
+
+	// Owned shortcut buttons and the modifier button are hidden from their normal actions. Raw events are not.
+	static bool IsRemasteredShortcutKey(int keyID, ActionID actionID)
+	{
+		if (!g_Configuration.IsUsingRemasteredControls() || keyID == KEY_UNASSIGNED || (int)actionID >= (int)In::MenuUp)
+			return false;
+
+		if (keyID == ShortcutModifierKeyID)
+			return !IsShortcutModifierReleased;
+
+		return (OwnedShortcutKeys.count(keyID) != 0);
+	}
+
+	static int GetRemasteredShortcutKeyID(ActionID actionID)
+	{
+		if (!g_Configuration.IsUsingRemasteredControls())
+			return KEY_UNASSIGNED;
+
+		const auto& profile = GetRemasteredShortcutProfile();
+		auto it = profile.find(actionID);
+		if (it == profile.end())
+			return KEY_UNASSIGNED;
+
+		return ((OwnedShortcutKeys.count(it->second) != 0) ? it->second : KEY_UNASSIGNED);
+	}
+
 	// Same as GetBoundKeyID(), but under Remastered controls skips default bindings overridden by custom ones.
 	static int GetRemasteredBoundKeyID(BindingProfileID profileID, ActionID actionID)
 	{
@@ -898,9 +1002,17 @@ namespace TEN::Input
 			}
 		}
 
+		// Remastered controls: shortcut buttons and the modifier button are hidden from their normal actions. -- divezzi, 09.11.26
+		if (IsRemasteredShortcutKey(keyID, actionID))
+			keyID = KEY_UNASSIGNED;
+
 		// Remastered controls: the D-pad moves Lara like the movement keys. -- divezzi, 08.10.26
 		if (keyID == KEY_UNASSIGNED)
 			keyID = GetRemasteredDPadKeyID(actionID);
+
+		// Remastered controls: modifier button plus shortcut button triggers a quick action. -- divezzi, 09.11.26
+		if (keyID == KEY_UNASSIGNED)
+			keyID = GetRemasteredShortcutKeyID(actionID);
 
 		float value = (keyID == KEY_UNASSIGNED) ? 0.0f : KeyMap[keyID];
 		if (keyID != KEY_UNASSIGNED && ActionMap[actionID].IsClicked())
@@ -1028,6 +1140,9 @@ namespace TEN::Input
 			ReadKeyboard();
 			ReadMouse();
 			ReadGamepad();
+
+			// Remastered controls: tracks the quick action shortcuts. -- divezzi, 09.11.26
+			UpdateRemasteredShortcuts();
 		}
 
 		DefaultConflict();

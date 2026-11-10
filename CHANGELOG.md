@@ -20,6 +20,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
   * Hold-to-aim weapon handling with Draw input action and shooting with Fire input action in I-III Remastered control mode.
   * Weapons drawn by scripts kept out until Draw input action is held and released in I-III Remastered control mode.
   * Weapon selection with mouse wheel in I-III Remastered control mode.
+  * Weapon and flare quick selection with gamepad touchpad or View button shortcuts in I-III Remastered control mode.
   * Look, binoculars and lasersight aiming with right stick and mouse, and binoculars and lasersight zoom with mouse wheel in I-III Remastered control mode.
   * Firing SNOWMOBILE and UPV weapons with Action input action in I-III Remastered control mode.
   * Camera-relative UPV steering and diving in I-III Remastered control mode.

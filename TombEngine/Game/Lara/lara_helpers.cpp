@@ -404,8 +404,6 @@ void HandlePlayerQuickActions(ItemInfo& item)
 	/*if (IsClicked(In::Weapon10) && player.Weapons[(int)LaraWeaponType::].Present)
 		requestedGunType = LaraWeaponType::;*/
 
-	// TODO: Add gamepad quick weapon selection (e.g. DualSense touchpad combined with other inputs) here, setting requestedGunType. -- divezzi, 12.10.26
-
 	if (requestedGunType != LaraWeaponType::None)
 	{
 		player.Control.Weapon.RequestGunType = requestedGunType;
