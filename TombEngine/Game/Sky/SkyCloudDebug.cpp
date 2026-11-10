@@ -873,6 +873,7 @@ namespace TEN::Sky
 		bool changed = false;
 
 		ImGui::Indent(8.0f);
+		ImGui::PushID(idPrefix);
 
 		bool isLayerA = (idPrefix != nullptr && strchr(idPrefix, 'A') != nullptr);
 
@@ -881,11 +882,15 @@ namespace TEN::Sky
 			snap.Category = CloudCategory::None;
 
 		// Enabled toggle.
-		if (ImGui::Checkbox("Enabled", &snap.Enabled))
+			char enabledId[64];
+			snprintf(enabledId, sizeof(enabledId), "Enabled##%s", idPrefix);
+			if (ImGui::Checkbox(enabledId, &snap.Enabled))
 			changed = true;
 
 		// Category combo.
-		if (DrawCategoryCombo("Category", snap.Category, isLayerA))
+			char categoryId[64];
+			snprintf(categoryId, sizeof(categoryId), "Category##%s", idPrefix);
+		if (DrawCategoryCombo(categoryId, snap.Category, isLayerA))
 			changed = true;
 
 		// For Aurora category, show aurora controls instead of volumetric cloud controls.
@@ -895,6 +900,7 @@ namespace TEN::Sky
 			g_Renderer.GetAuroraSettings().Enabled = snap.Enabled;
 			ImGui::Separator();
 			DrawAuroraControls();
+			ImGui::PopID();
 			ImGui::Unindent(8.0f);
 			return changed;
 		}
@@ -906,6 +912,7 @@ namespace TEN::Sky
 			g_Renderer.GetUnderwaterSkySettings().Enabled = snap.Enabled;
 			ImGui::Separator();
 			ImGui::TextDisabled("(Underwater Sky parameters are configured in the 'Underwater Sky' tab.)");
+			ImGui::PopID();
 			ImGui::Unindent(8.0f);
 			return changed;
 		}
@@ -914,6 +921,7 @@ namespace TEN::Sky
 		if (isLayerA)
 		{
 			ImGui::TextDisabled("(Layer A parameters are shown only when Aurora is active.)");
+			ImGui::PopID();
 			ImGui::Unindent(8.0f);
 			return changed;
 		}
@@ -1020,6 +1028,7 @@ namespace TEN::Sky
 		}
 
 		ImGui::Unindent(8.0f);
+		ImGui::PopID();
 		return changed;
 	}
 
@@ -2514,41 +2523,59 @@ namespace TEN::Sky
 		{
 			if (ImGui::BeginTabItem("Clouds"))
 			{
+              ImGui::PushID("SkyTab_Clouds");
 				DrawCloudTabContent();
+                ImGui::PopID();
 				ImGui::EndTabItem();
 			}
 
 			if (ImGui::BeginTabItem("Sun/Moon/Stars"))
 			{
+                ImGui::PushID("SkyTab_SunMoonStars");
+				ImGui::PushID("LensFlareSection");
 				TEN::Effects::DrawLensFlareTabContent();
+               ImGui::PopID();
+				ImGui::PushID("MoonSection");
 				DrawMoonTabContent();
+              ImGui::PopID();
 				auto* levelPtr = dynamic_cast<Level*>(
 					g_GameFlow->GetLevel(CurrentLevel));
+             ImGui::PushID("StarfieldSection");
 				DrawStarfieldSection(levelPtr);
+                ImGui::PopID();
+				ImGui::PopID();
 				ImGui::EndTabItem();
 			}
 
 			if (ImGui::BeginTabItem("Atmospheric Sky/Horizon"))
 			{
+             ImGui::PushID("SkyTab_Atmospheric");
 				DrawAtmosphericSkyTabContent();
+                ImGui::PopID();
 				ImGui::EndTabItem();
 			}
 
 			if (ImGui::BeginTabItem("Underwater Sky"))
 			{
+              ImGui::PushID("SkyTab_Underwater");
 				DrawUnderwaterSkyTabContent();
+                ImGui::PopID();
 				ImGui::EndTabItem();
 			}
 
 			if (ImGui::BeginTabItem("God Rays"))
 			{
+             ImGui::PushID("SkyTab_GodRays");
 				DrawGodRayTabContent();
+                ImGui::PopID();
 				ImGui::EndTabItem();
 			}
 
 			if (ImGui::BeginTabItem("Wind"))
 			{
+               ImGui::PushID("SkyTab_Wind");
 				DrawWindTabContent();
+                ImGui::PopID();
 				ImGui::EndTabItem();
 			}
 
