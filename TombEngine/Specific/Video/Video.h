@@ -89,6 +89,7 @@ namespace TEN::Video
 
 		// Helpers
 
+		void RestartPlayback();
 		bool HandleError();
 		bool InitializeVideoTexture();
 		void DeinitializeVideoTexture();
