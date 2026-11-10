@@ -364,6 +364,7 @@ namespace TEN::Scripting
 	// MoonLens
 	// ====================================================================
 
+
 	MoonLens::MoonLens(float pitch, float yaw)
 	{
 		_pitch     = pitch;
@@ -396,6 +397,7 @@ namespace TEN::Scripting
 	// ====================================================================
 	// LevelDustStorm
 	// ====================================================================
+
 
 	void LevelDustStorm::SetColorLua(sol::object obj)
 	{
@@ -443,6 +445,7 @@ namespace TEN::Scripting
 	// ====================================================================
 	// LevelUnderwaterSky
 	// ====================================================================
+
 
 	void LevelUnderwaterSky::SetEnabledLua(sol::object obj)
 	{

@@ -78,17 +78,17 @@ void Level::Register(sol::table& parent)
 // @mem lensFlare
 		"lensFlare", &Level::LensFlare,
 
-/// (@{Flow.MoonLens}) Per-level moon position and enable state.
+/// (MoonLens) Per-level moon position and enable state.
 // Use Flow.MoonLens(pitch, yaw) to enable the moon at a fixed sky position.
 // When omitted the moon is disabled for the level.
 //@mem moonLens
 		"moonLens", &Level::MoonLens,
 
-/// (@{Flow.DustStorm}) Per-level dust storm settings.
+/// (DustStorm) Per-level dust storm settings.
 //@mem dustStorm
 		"dustStorm", &Level::DustStorm,
 
-/// (@{Flow.UnderwaterSky}) Per-level underwater sky settings.
+/// (UnderwaterSky) Per-level underwater sky settings.
 //@mem underwaterSky
 		"underwaterSky", &Level::UnderwaterSky,
 

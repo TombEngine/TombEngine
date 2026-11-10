@@ -128,14 +128,13 @@ namespace TEN::Scripting
 
 	void RegisterWeatherAPI(sol::table& parent)
 	{
-		/// Set the weather preset immediately (no transition).
-		///
-		/// @function Flow.SetWeatherPreset
-		/// @tparam string presetName Name of the weather preset.
-		/// Valid values: "ClearSky", "CirrocumulusLots", "CirrocumulusFew",
-		/// "Cirrustratus", "CloudsTransformation", "Overcast", "Altocumulus",
-		/// "RainSnowOvercast", "StormBuildUp", "Thunderstorm",
-		/// "Nothing", "Aurora", "WaterSurface", "Random"
+		// Set the weather preset immediately (no transition).
+		//
+        // Parameter: presetName (string) Name of the weather preset.
+		// Valid values: "ClearSky", "CirrocumulusLots", "CirrocumulusFew",
+		// "Cirrustratus", "CloudsTransformation", "Overcast", "Altocumulus",
+		// "RainSnowOvercast", "StormBuildUp", "Thunderstorm",
+		// "Nothing", "Aurora", "WaterSurface", "Random"
 		parent.set_function("SetWeatherPreset",
 			[](const std::string& presetName)
 			{
@@ -143,13 +142,12 @@ namespace TEN::Scripting
 				g_SkyCloudSystem.SetPresetImmediate(type);
 			});
 
-		/// Transition smoothly to a weather preset over the specified duration.
-		///
-		/// @function Flow.TransitionWeather
-		/// @tparam string presetName Target weather preset name.
-		/// @tparam float duration Transition duration in seconds.
-		/// @tparam[opt="SmoothStep"] string easing Easing curve.
-		/// Valid values: "Linear", "SmoothStep", "EaseIn", "EaseOut", "EaseInOut"
+		// Transition smoothly to a weather preset over the specified duration.
+		//
+        // Parameters: presetName (string) target weather preset name.
+		// duration (float) transition duration in seconds.
+		// easing (string, optional, default "SmoothStep") easing curve.
+		// Valid values: "Linear", "SmoothStep", "EaseIn", "EaseOut", "EaseInOut"
 		parent.set_function("TransitionWeather",
 			[](const std::string& presetName, float duration,
 			   sol::optional<std::string> easingOpt)
@@ -162,19 +160,17 @@ namespace TEN::Scripting
 				g_SkyCloudSystem.TransitionToPreset(type, duration, curve);
 			});
 
-		/// Stop an in-progress weather transition, keeping current blended state.
-		///
-		/// @function Flow.InterruptWeatherTransition
+		// Stop an in-progress weather transition, keeping current blended state.
+		//
 		parent.set_function("InterruptWeatherTransition",
 			[]()
 			{
 				g_SkyCloudSystem.InterruptTransition();
 			});
 
-		/// Get the current active weather preset name.
-		///
-		/// @function Flow.GetCurrentWeatherPreset
-		/// @treturn string Current preset name.
+		// Get the current active weather preset name.
+		//
+     // Returns: current preset name (string).
 		parent.set_function("GetCurrentWeatherPreset",
 			[]() -> std::string
 			{
@@ -182,10 +178,9 @@ namespace TEN::Scripting
 					g_SkyCloudSystem.GetCurrentPreset());
 			});
 
-		/// Get the target weather preset name (during transitions).
-		///
-		/// @function Flow.GetTargetWeatherPreset
-		/// @treturn string Target preset name, same as current if not transitioning.
+		// Get the target weather preset name (during transitions).
+		//
+        // Returns: target preset name (string), same as current if not transitioning.
 		parent.set_function("GetTargetWeatherPreset",
 			[]() -> std::string
 			{
@@ -193,31 +188,28 @@ namespace TEN::Scripting
 					g_SkyCloudSystem.GetTargetPreset());
 			});
 
-		/// Get the current weather transition progress.
-		///
-		/// @function Flow.GetWeatherTransitionProgress
-		/// @treturn float Progress [0, 1]. Returns 1.0 if not transitioning.
+		// Get the current weather transition progress.
+		//
+        // Returns: progress in [0, 1] (float). Returns 1.0 if not transitioning.
 		parent.set_function("GetWeatherTransitionProgress",
 			[]() -> float
 			{
 				return g_SkyCloudSystem.GetTransitionProgress();
 			});
 
-		/// Check if a weather transition is in progress.
-		///
-		/// @function Flow.IsWeatherTransitioning
-		/// @treturn bool True if a transition is active.
+		// Check if a weather transition is in progress.
+		//
+        // Returns: true if a transition is active (bool).
 		parent.set_function("IsWeatherTransitioning",
 			[]() -> bool
 			{
 				return g_SkyCloudSystem.IsTransitioning();
 			});
 
-		/// Manually override volumetric cloud layer A settings.
-		/// While active, this layer won't be affected by preset transitions.
-		///
-		/// @function Flow.SetVolumetricCloudLayerA
-		/// @tparam table settings Cloud layer settings table.
+		// Manually override volumetric cloud layer A settings.
+		// While active, this layer won't be affected by preset transitions.
+		//
+       // Parameter: settings (table) cloud layer settings.
 		parent.set_function("SetVolumetricCloudLayerA",
 			[](sol::table settings)
 			{
@@ -225,11 +217,10 @@ namespace TEN::Scripting
 				g_SkyCloudSystem.SetVolumetricLayerA(snap);
 			});
 
-		/// Manually override volumetric cloud layer B settings.
-		/// While active, this layer won't be affected by preset transitions.
-		///
-		/// @function Flow.SetVolumetricCloudLayerB
-		/// @tparam table settings Cloud layer settings table.
+		// Manually override volumetric cloud layer B settings.
+		// While active, this layer won't be affected by preset transitions.
+		//
+       // Parameter: settings (table) cloud layer settings.
 		parent.set_function("SetVolumetricCloudLayerB",
 			[](sol::table settings)
 			{
@@ -237,38 +228,36 @@ namespace TEN::Scripting
 				g_SkyCloudSystem.SetVolumetricLayerB(snap);
 			});
 
-		/// Clear all manual weather/cloud overrides.
-		/// Layers will resume following preset transitions.
-		///
-		/// @function Flow.ClearWeatherOverrides
+		// Clear all manual weather/cloud overrides.
+		// Layers will resume following preset transitions.
+		//
 		parent.set_function("ClearWeatherOverrides",
 			[]()
 			{
 				g_SkyCloudSystem.ClearManualOverrides();
 			});
 
-		/// Define or override a weather preset.
-		/// Any field not provided keeps the existing default.
-		/// Changes take effect on the next transition or SetWeatherPreset call.
-		///
-		/// @function Flow.DefineWeatherPreset
-		/// @tparam string presetName Name of the preset to override.
-		/// @tparam table definition Table with:
-		///   - transitionDuration (float): default transition seconds
-		///   - highLayerLeadFraction (float): how much high layer leads in transitions
-		///   - nextPreset (string): name of preset to chain to after this one becomes active
-		///   - nextTransitionDuration (float): transition duration for the chain
-		///   - duration (float|table): how long (seconds) to stay at this preset before chaining.
-		///       Omit or set to -1 (or any negative) to stay at this preset forever (no chaining, default).
-		///       Use 0 to chain/fire nextPreset/A/B immediately when the preset becomes active.
-		///       Use a plain number > 0 for a fixed dwell, e.g. duration = 30.0
-		///       Use a {min, max} table for a random range, e.g. duration = {10, 60}
-		///       When duration expires and no nextPreset is set, the preset stays active indefinitely.
-		///   - cloudA (table): cloud layer A parameters (coverage, density, category, etc.)
-		///   - cloudB (table): cloud layer B parameters
-		/// Cloud layer tables support all fields from SetVolumetricCloudLayerA
-		/// plus "category" ("None", "AltocumulusMid", "Aurora") which selects the
-		/// shader rendering path for that cloud type.
+		// Define or override a weather preset.
+		// Any field not provided keeps the existing default.
+		// Changes take effect on the next transition or SetWeatherPreset call.
+		//
+        // Parameters: presetName (string) name of preset to override.
+		// definition (table) with:
+		//   - transitionDuration (float): default transition seconds
+		//   - highLayerLeadFraction (float): how much high layer leads in transitions
+		//   - nextPreset (string): name of preset to chain to after this one becomes active
+		//   - nextTransitionDuration (float): transition duration for the chain
+		//   - duration (float|table): how long (seconds) to stay at this preset before chaining.
+		//       Omit or set to -1 (or any negative) to stay at this preset forever (no chaining, default).
+		//       Use 0 to chain/fire nextPreset/A/B immediately when the preset becomes active.
+		//       Use a plain number > 0 for a fixed dwell, e.g. duration = 30.0
+		//       Use a {min, max} table for a random range, e.g. duration = {10, 60}
+		//       When duration expires and no nextPreset is set, the preset stays active indefinitely.
+		//   - cloudA (table): cloud layer A parameters (coverage, density, category, etc.)
+		//   - cloudB (table): cloud layer B parameters
+		// Cloud layer tables support all fields from SetVolumetricCloudLayerA
+		// plus "category" ("None", "AltocumulusMid", "Aurora") which selects the
+		// shader rendering path for that cloud type.
 		parent.set_function("DefineWeatherPreset",
 			[](const std::string& presetName, sol::table definition)
 			{
@@ -512,19 +501,18 @@ namespace TEN::Scripting
 				g_SkyCloudSystem.OverridePreset(type, def);
 			});
 
-		/// Set atmospheric sky gradient curve parameters.
-		/// Controls how quickly the sky shifts from white at zenith to the warm sun
-		/// color near the horizon, and how strong that warm tint is.
-		///
-		/// @function Flow.SetAtmosphericSkySettings
-		/// @tparam table settings Table with any subset of:
-		///   sunElevationRampSpeed (float, default 1.1): how fast warm tint fades as
-		///     the sun rises — higher = white zone starts sooner.
-		///   sunWarmInfluence (float, default 0.3): max warmth blend at the horizon
-		///     (0 = always white, 1 = full AtmoSunColor at the horizon).
-		///   horizonColorR (float, default 0.0): red channel [0,1] of the lower horizon color.
-		///   horizonColorG (float, default 0.0): green channel [0,1] of the lower horizon color.
-		///   horizonColorB (float, default 0.0): blue channel [0,1] of the lower horizon color.
+		// Set atmospheric sky gradient curve parameters.
+		// Controls how quickly the sky shifts from white at zenith to the warm sun
+		// color near the horizon, and how strong that warm tint is.
+		//
+     // Parameter: settings (table) with any subset of:
+		//   sunElevationRampSpeed (float, default 1.1): how fast warm tint fades as
+		//     the sun rises — higher = white zone starts sooner.
+		//   sunWarmInfluence (float, default 0.3): max warmth blend at the horizon
+		//     (0 = always white, 1 = full AtmoSunColor at the horizon).
+		//   horizonColorR (float, default 0.0): red channel [0,1] of the lower horizon color.
+		//   horizonColorG (float, default 0.0): green channel [0,1] of the lower horizon color.
+		//   horizonColorB (float, default 0.0): blue channel [0,1] of the lower horizon color.
 		parent.set_function("SetAtmosphericSkySettings",
 			[](sol::table settings)
 			{
@@ -536,37 +524,34 @@ namespace TEN::Scripting
 				if (auto v = settings.get<sol::optional<float>>("horizonColorB");          v.has_value()) s.HorizonColorB          = std::clamp(*v, 0.0f, 1.0f);
 			});
 
-		/// Set the aurora fade-in/fade-out duration when switching weather presets.
-		/// Controls how many seconds the aurora takes to appear or disappear
-		/// when the AuroraBorealis preset is selected or deselected.
-		///
-		/// @function Flow.SetAuroraFadeDuration
-		/// @tparam float seconds Duration in seconds (clamped to [0.5, 120]).
+		// Set the aurora fade-in/fade-out duration when switching weather presets.
+		// Controls how many seconds the aurora takes to appear or disappear
+		// when the AuroraBorealis preset is selected or deselected.
+		//
+       // Parameter: seconds (float) duration in seconds, clamped to [0.5, 120].
 		parent.set_function("SetAuroraFadeDuration",
 			[](float seconds)
 			{
 				g_Renderer.GetAuroraPresetFadeDuration() = std::clamp(seconds, 0.5f, 120.0f);
 			});
 
-		/// Get the current aurora fade-in/fade-out duration in seconds.
-		///
-		/// @function Flow.GetAuroraFadeDuration
-		/// @treturn float Current fade duration in seconds.
+		// Get the current aurora fade-in/fade-out duration in seconds.
+		//
+     // Returns: current fade duration in seconds (float).
 		parent.set_function("GetAuroraFadeDuration",
 			[]() -> float
 			{
 				return g_Renderer.GetAuroraPresetFadeDuration();
 			});
 
-		/// Set a global wind direction and speed for all volumetric cloud layers.
-		/// When set, this overrides the per-preset wind values so wind stays constant
-		/// across all preset transitions.
-		/// Call this once in Settings.lua to define a global constant wind for the level.
-		///
-		/// @function Flow.SetCloudWind
-		/// @tparam float directionX Normalised X component of wind direction (1 = East).
-		/// @tparam float directionY Normalised Y component of wind direction (1 = South).
-		/// @tparam float speed Wind speed.
+		// Set a global wind direction and speed for all volumetric cloud layers.
+		// When set, this overrides the per-preset wind values so wind stays constant
+		// across all preset transitions.
+		// Call this once in Settings.lua to define a global constant wind for the level.
+		//
+        // Parameters: directionX (float) normalized X wind component (1 = East).
+		// directionY (float) normalized Y wind component (1 = South).
+		// speed (float) wind speed.
 		parent.set_function("SetCloudWind",
 			[](float dirX, float dirY, float speed)
 			{
