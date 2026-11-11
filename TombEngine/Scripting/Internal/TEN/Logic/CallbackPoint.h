@@ -53,6 +53,8 @@ namespace TEN::Scripting
 		PostVehicleLeave,
 		PreFreeze,
 		PostFreeze,
+		PreAudioChannel,
+		PostAudioChannel,
 
 		Count
 	};
@@ -155,6 +157,14 @@ namespace TEN::Scripting
 		/// Will be called immediately after LevelFuncs.OnFreeze.
 		// @mem POST_FREEZE
 		{ ScriptReserved_PostFreeze, CallbackPoint::PostFreeze },
+
+		/// Will be called once when an audio channel starts playing.
+		// @mem PRE_AUDIO_CHANNEL
+		{ ScriptReserved_PreAudioChannel, CallbackPoint::PreAudioChannel },
+
+		/// Will be called once when an audio channel stops playing, whether it ended naturally or was stopped manually.
+		// @mem POST_AUDIO_CHANNEL
+		{ ScriptReserved_PostAudioChannel, CallbackPoint::PostAudioChannel },
 
 		// COMPATIBILITY
 		{ "POSTSTART", CallbackPoint::PostStart },

@@ -23,6 +23,7 @@ namespace TEN::Scripting
 		// Getters
 
 		int		   GetFrameCount() const;
+		int		   GetMilliseconds() const;
 		sol::table GetTimeUnits(sol::this_state state) const;
 
 		int GetHours() const;

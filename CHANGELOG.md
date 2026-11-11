@@ -151,7 +151,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed `TURN_SWITCH` not rotating the `OBELISK` correctly.
 
 ### Lua API changes
-
+* Added `Sound.AudioChannel` a new Soundtrack Manager to manage music tracks. The manager supports multiple tracks and dynamic volume control.
 * Added ring inventory module.
 * Added photo mode module.
 * Added `Effects.ParticleGroup` class for managing particles via lua.
