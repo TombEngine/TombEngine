@@ -37,7 +37,7 @@ namespace TEN::Physics
 
 		// Debug
 
-		void DrawDebug(const Matrix& transformMatrix, const Matrix& rotMatrix, const std::vector<Vector3>& vertices) const;
+		void DrawDebug(const Matrix& transformMatrix, const Matrix& rotMatrix, const std::vector<Vector3>& vertices, bool drawNormals = true) const;
 	};
 
 	struct CollisionTriangleData
@@ -81,7 +81,7 @@ namespace TEN::Physics
 
 		// Debug
 
-		void DrawDebug() const;
+		void DrawDebug(bool drawNormals = true) const;
 
 	private:
 		// Helpers
