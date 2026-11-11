@@ -30,8 +30,13 @@ namespace TEN::Hud
 		BitField                             _meshBits         = BitField::Default;
 		std::unordered_map<int, EulerAngles> _meshOrientations = {};
 
+		// Animation state.
+
+		bool _animationEnabled = false;
+
 		int _animNumber      = 0;
 		int _frameNumber     = 0;
+		int _prevAnimNumber  = 0;
 		int _prevFrameNumber = 0;
 
 		Vector3                              _prevPosition         = Vector3::Zero;
@@ -66,6 +71,7 @@ namespace TEN::Hud
 		int  GetAnimNumber() const;
 		int  GetFrameNumber() const;
 		int  GetEndFrameNumber() const;
+		int  GetPrevAnimNumber() const;
 		int  GetPrevFrameNumber() const;
 
 		Vector3     GetInterpolatedPosition(float alpha) const;
@@ -88,6 +94,8 @@ namespace TEN::Hud
 		void SetMeshOrientation(int meshIndex, const EulerAngles& orient, bool disableInterpolation);
 		void SetAnimation(int animNumber);
 		void SetFrame(int frameNumber);
+		void Enable();
+		void Disable();
 
 		// Inquirers
 
@@ -95,6 +103,7 @@ namespace TEN::Hud
 
 		// Utilities
 
+		void Animate();
 		void StoreInterpolationData();
 	};
 }
