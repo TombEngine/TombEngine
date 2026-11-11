@@ -5,6 +5,8 @@
 local Settings = require("Engine.RingInventory.Settings")
 local Interpolate = require("Engine.RingInventory.Interpolate")
 local Utilities = require("Engine.RingInventory.Utilities")
+local Ring
+local InventoryData
 
 local ItemSpin = {}
 
@@ -23,12 +25,10 @@ function ItemSpin.StartSpin(ring)
             enabled = true,
             selectedItemEnabled = true,
             ring = ring,
-            firstFrame = true,
             itemStates = {}
         }
     else
         ItemSpin.rings[ringName].enabled = true
-        ItemSpin.rings[ringName].firstFrame = true
     end
 end
 
@@ -89,14 +89,37 @@ function ItemSpin.UpdateRing(ringState)
     local items = ring:GetItems()
     if #items == 0 then return end
 
+    -- TEMPORARY HACK: we have 2 types of spinback: slow spinback = item deselected / fast spinback = item chosen.
+    -- Currently, to determine if we should even initiate a spinback, we rely on whether this ring's state was set to Spin
+    -- or not spin anymore.
+    -- But this interferes with the desired result: when an weapon item is selected (ITEM_SELECTED mode) and we open its Ammo
+    -- ring, and then we exit it, we (logically) set ringState.enabled to false, because we don't want the ammo to spin unless
+    -- we currently have the focus on the ammo ring itself (implying it's ready for user input to select another ammo item).
+    -- This is falsely registered as "item deselected" because the ring itself is not spinning anymore, so it triggers a slow
+    -- spinback (as if something was deselected) instead of a fast one (returning to the item menu, with this weapon and this
+    -- ammo chosen).
+    -- The hack = if we're handling an ammo ring, we'll just lie and say the ring is always selected (in a way, it's true: when
+    -- "exiting" the Ammo selection ring, it still remains the selected ring amongst the secondary rings... even if it's the only
+    -- one. Just like the Main ring is still the selected ring amongst the primary rings when we enter the item select menu).
+    -- Ideally: we would just have a way to know if a ring is the selected ring in its own "area" (primary or secondary).
+    if not InventoryData then
+        InventoryData = require("Engine.RingInventory.InventoryData")
+    end
+    if not Ring then
+        Ring = require("Engine.RingInventory.Ring")
+    end
+
+    local isSelectedRing = ring == InventoryData.GetSelectedRing()
+    if not Utilities.Contains(Ring.PRIMARY_TYPES, ring:GetType()) then
+        -- The hack.
+        -- We're targeting the ammo ring primarily because that's where the "issue" was visible, but the combine ring would also be
+        -- affected... if we weren't resetting the inventory everytime we exit this ring (possible improvement for the near future).
+        isSelectedRing = true
+    end
+
     local selectedItem = ring:GetSelectedItem()
     local itemCount = #items
     local itemStates = ringState.itemStates
-
-    local isFirstFrame = ringState.firstFrame
-    if isFirstFrame then
-        ringState.firstFrame = false
-    end
 
     for i = 1, itemCount do
         local item = items[i]
@@ -111,7 +134,14 @@ function ItemSpin.UpdateRing(ringState)
         end
         local state = itemStates[id]
 
-        if ringState.enabled and ringState.selectedItemEnabled and selectedItem and item == selectedItem then
+        local wasSpinning = state.isSpinning
+
+        local isRingSpinEnabled = ringState.enabled and ringState.selectedItemEnabled
+        local isItemSelected = selectedItem and item == selectedItem and isSelectedRing
+
+        local shouldSpin = isRingSpinEnabled and isItemSelected
+
+        if shouldSpin then
             -- Selected item spins continuously
             state.currentSpinAngle = (state.currentSpinAngle + ItemSpin.ROTATION_SPEED) % 360
             state.isSpinning = true
@@ -121,20 +151,22 @@ function ItemSpin.UpdateRing(ringState)
                 Interpolate.Clear(spinKey)
             end
         else
-            local wasSpinning = state.isSpinning
             state.isSpinning = false
-            local isJustDeselected = wasSpinning
-            local targetAngle = 0
+
+            local shouldSpinbackBegin = wasSpinning
+            local shouldSpinbackBeFast = isItemSelected
 
             -- Initialize spin back animation if this item was just deselected
-            if isJustDeselected then
+            if shouldSpinbackBegin then
+                local targetAngle = 0
                 local angleDiff = Utilities.GetShortestAngleDelta(state.currentSpinAngle, targetAngle)
                 state.spinback = {
                     startAngle = state.currentSpinAngle,
                     angleDiff = angleDiff,
-                    duration = CalculateSpinbackDuration(angleDiff)
+                    duration = shouldSpinbackBeFast and ItemSpin.ALIGNMENT_SPEED or CalculateSpinbackDuration(angleDiff)
                 }
             end
+
             if state.spinback then
                 local result = Interpolate.Calculate(spinKey, 0, 1, state.spinback.duration, Interpolate.Easing.Smoothstep)
                 state.currentSpinAngle = state.spinback.startAngle + (state.spinback.angleDiff * result.output)

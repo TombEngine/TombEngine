@@ -761,6 +761,10 @@ local HandleCombine = function(state)
 end
 
 local HandleCombineSuccess = function(state)
+    if onEnter then
+        ItemSpin.StopSpin(state.selectedRing)
+    end
+
     if not Animation.Inventory(inventoryMode, state.selectedRing, state.selectedItem) then
         return
     end
