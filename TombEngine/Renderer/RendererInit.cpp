@@ -1,4 +1,4 @@
-#include "framework.h"
+﻿#include "framework.h"
 #include "Renderer/Renderer.h"
 
 #include "Renderer/RendererUtils.h"
@@ -30,8 +30,10 @@ namespace TEN::Renderer
 		InitializeScreen(w, h, false);
 		InitializeCommonTextures();
 
-		// Load shaders.
-		_shaders.LoadShaders(w, h);
+		_spriteBatch = _graphicsDevice->InitializeSpriteBatch();
+
+		// Pre-load the shaders required to draw the progress bar during shader loading.
+		_shaders.LoadBootstrapShaders();
 
 		// Initialize input layout using first vertex shader.
 		std::vector<RendererInputLayoutField> inputLayoutItems;
@@ -46,9 +48,26 @@ namespace TEN::Renderer
 		inputLayoutItems.push_back({ VertexInputFormat::VI_R32_Uint, 0, "EFFECTS" });
 		inputLayoutItems.push_back({ VertexInputFormat::VI_R32_Uint, 1, "EFFECTS" });
 
-		auto roomShader = _shaders.Get(Shader::Rooms);
-		_vertexInputLayout = _graphicsDevice->CreateInputLayout(inputLayoutItems, (IShader*)roomShader);
-		
+		auto hudShader = _shaders.Get(Shader::Hud);
+		_vertexInputLayout = _graphicsDevice->CreateInputLayout(inputLayoutItems, (IShader*)hudShader);
+
+		// Prepare HUD constant buffer (needed by the pre-compile loading bar).
+		_cbHUDBar = CreateConstantBuffer<CHUDBarBuffer>();
+		_cbHUD = CreateConstantBuffer<CHUDBuffer>();
+		_stHUD.View = Matrix::CreateLookAt(Vector3::Zero, Vector3(0, 0, 1), Vector3(0, -1, 0));
+		_stHUD.Projection = Matrix::CreateOrthographicOffCenter(0, DISPLAY_SPACE_RES.x, 0, DISPLAY_SPACE_RES.y, 0, 1.0f);
+		UpdateConstantBuffer(&_stHUD, _cbHUD.get());
+		_currentCausticsFrame = 0;
+		_cbPerDraw = CreateConstantBuffer<CPerDrawBuffer>();
+
+		InitializeGameBars();
+
+		// Load remaining shaders, updating the progress screen after each one.
+		_shaders.LoadShaders(w, h, false, [this](float percentage)
+		{
+			RenderShaderCompileScreen(percentage);
+		});
+
 		// Initialize constant buffers.
 		_cbCameraMatrices = CreateConstantBuffer<CCameraMatrixBuffer>();
 		_cbObjects = CreateConstantBuffer<CObjectsBuffer>();
@@ -58,17 +77,8 @@ namespace TEN::Renderer
 		_animatedFramesBuffer = _graphicsDevice->CreateStructuredBuffer(
 			sizeof(AnimatedFrame), MAX_ANIMATED_FRAMES, L"AnimatedFramesBuffer");
 		_cbPostProcessBuffer = CreateConstantBuffer<CPostProcessBuffer>();
-		_cbPerDraw = CreateConstantBuffer<CPerDrawBuffer>();
 		_cbInstancedSpriteBuffer = CreateConstantBuffer<CInstancedSpriteBuffer>();
 		_cbSMAABuffer = CreateConstantBuffer<CSMAABuffer>();
-
-		// Prepare HUD Constant buffer.
-		_cbHUDBar = CreateConstantBuffer<CHUDBarBuffer>();
-		_cbHUD = CreateConstantBuffer<CHUDBuffer>();
-		_stHUD.View = Matrix::CreateLookAt(Vector3::Zero, Vector3(0, 0, 1), Vector3(0, -1, 0));
-		_stHUD.Projection = Matrix::CreateOrthographicOffCenter(0, DISPLAY_SPACE_RES.x, 0, DISPLAY_SPACE_RES.y, 0, 1.0f);
-		UpdateConstantBuffer(&_stHUD, _cbHUD.get());
-		_currentCausticsFrame = 0;
 
 		// Preallocate lists.
 		_lines2DToDraw = createVector<RendererLine2D>(MAX_LINES_2D);
@@ -86,7 +96,6 @@ namespace TEN::Renderer
 
 		CreateSSAONoiseTexture();
 		InitializePostProcess();
-		InitializeGameBars();
 		InitializeSpriteQuad();
 		InitializeSky();
 
@@ -102,7 +111,6 @@ namespace TEN::Renderer
 		g_VideoPlayer.Initialize(gameDir, _graphicsDevice.get());
 
 		_primitiveBatch = _graphicsDevice->InitializePrimitiveBatch();
-		_spriteBatch = _graphicsDevice->InitializeSpriteBatch();
 	}
 
 	void Renderer::InitializePostProcess()
