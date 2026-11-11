@@ -5,9 +5,8 @@
 #include "Renderer/Native/DirectX11/DX11Texture2D.h"
 #include "Renderer/Native/DirectX11/DX11ErrorHelper.h"
 #include "Renderer/Native/DirectX11/DX11Utils.h"
+#include "Renderer/Graphics/ImageDecoding.h"
 #include "Specific/trutils.h"
-
-#include <stb/stb_image.h>
 
 namespace TEN::Renderer::Native::DirectX11
 {
@@ -137,29 +136,20 @@ namespace TEN::Renderer::Native::DirectX11
 			" (" + BytesToMBString(vramSize) + " MB)");
 	}
 
-	// ======================================================================
-	// Constructor 2: from file on disk (using stb_image).
-	// ======================================================================
-	DX11Texture2D::DX11Texture2D(ID3D11Device* device, const std::string& fileName)
+	// Uploads decoded pixels with a full mip chain generated on the GPU, in the sRGB format when the image asks for it, as
+	// the DirectXTK WIC loader did.
+	void DX11Texture2D::InitializeFromImage(ID3D11Device* device, const DecodedImage& image, const std::string& source)
 	{
-		HRESULT res;
+		_width = image.Width;
+		_height = image.Height;
 
-		int channels;
-		stbi_set_flip_vertically_on_load(false);
-		unsigned char* pixels = stbi_load(fileName.c_str(), &_width, &_height, &channels, 4);
-		if (!pixels)
-		{
-			TENLog("Failed to load texture: " + fileName, LogLevel::Error);
-			return;
-		}
-
+		auto format = image.IsSrgb ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
 		int mipLevels = 1 + (int)std::floor(std::log2(std::max(_width, _height)));
 
-		// Create texture with full mip chain.
 		auto desc = D3D11_TEXTURE2D_DESC{};
 		desc.Width = _width;
 		desc.Height = _height;
-		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		desc.Format = format;
 		desc.CPUAccessFlags = 0;
 		desc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
 		desc.MipLevels = mipLevels;
@@ -169,40 +159,52 @@ namespace TEN::Renderer::Native::DirectX11
 		desc.SampleDesc.Quality = 0;
 		desc.Usage = D3D11_USAGE_DEFAULT;
 
-		res = device->CreateTexture2D(&desc, nullptr, _texture.GetAddressOf());
-		throwIfFailed(res, device,
-			"CreateTexture2D from file (" + std::to_string(_width) + "x" + std::to_string(_height) + "):");
+		auto res = device->CreateTexture2D(&desc, nullptr, _texture.GetAddressOf());
+		throwIfFailed(res, device, "CreateTexture2D from " + source + " (" + std::to_string(_width) + "x" + std::to_string(_height) + "):");
 
-		// Upload mip 0.
 		ID3D11DeviceContext* context = nullptr;
 		device->GetImmediateContext(&context);
-		context->UpdateSubresource(_texture.Get(), 0, nullptr, pixels, _width * 4, 0);
+		context->UpdateSubresource(_texture.Get(), 0, nullptr, image.Pixels.data(), _width * 4, 0);
 
-		stbi_image_free(pixels);
-
-		// Create SRV.
 		auto srvDesc = D3D11_SHADER_RESOURCE_VIEW_DESC{};
-		srvDesc.Format = desc.Format;
+		srvDesc.Format = format;
 		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 		srvDesc.Texture2D.MostDetailedMip = 0;
 		srvDesc.Texture2D.MipLevels = mipLevels;
 
 		res = device->CreateShaderResourceView(_texture.Get(), &srvDesc, _shaderResourceView.GetAddressOf());
-		throwIfFailed(res, device, "CreateSRV from file:");
+		throwIfFailed(res, device, "CreateSRV from " + source + ":");
 
-		// Generate mipmaps on GPU.
 		context->GenerateMips(_shaderResourceView.Get());
 		context->Release();
 
-		int vramSize = ComputeTextureSize(_width, _height, 1, mipLevels, DXGI_FORMAT_R8G8B8A8_UNORM);
+		int vramSize = ComputeTextureSize(_width, _height, 1, mipLevels, format);
 		_vram = VRAMAllocation(VRAMCategory::Texture, vramSize,
 			"Texture2D allocated: " + std::to_string(_width) + "x" + std::to_string(_height) +
-			" RGBA8 mips=" + std::to_string(mipLevels) +
+			" " + DXGIFormatToString(format) + " mips=" + std::to_string(mipLevels) +
 			" (" + BytesToMBString(vramSize) + " MB)");
 	}
 
 	// ======================================================================
-	// Constructor 3: from memory (DDS or PNG via stb_image).
+	// Constructor 2: from file on disk.
+	// ======================================================================
+	DX11Texture2D::DX11Texture2D(ID3D11Device* device, const std::string& fileName)
+	{
+		auto file = std::ifstream(std::filesystem::path(TEN::Utils::ToWString(fileName)), std::ios::binary);
+		auto data = std::vector<unsigned char>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+		auto image = DecodedImage{};
+		if (data.empty() || !DecodeImage(data.data(), (int)data.size(), image))
+		{
+			TENLog("Failed to load texture: " + fileName, LogLevel::Error);
+			return;
+		}
+
+		InitializeFromImage(device, image, "file '" + fileName + "'");
+	}
+
+	// ======================================================================
+	// Constructor 3: from memory (DDS kept compressed, other formats decoded).
 	// ======================================================================
 	DX11Texture2D::DX11Texture2D(ID3D11Device* device, int dataSize, unsigned char* data)
 	{
@@ -361,55 +363,16 @@ namespace TEN::Renderer::Native::DirectX11
 		}
 		else
 		{
-			// Non-DDS: decode with stb_image (PNG, TGA, etc.).
-			int channels;
-			stbi_set_flip_vertically_on_load(false);
-			unsigned char* pixels = stbi_load_from_memory(data, dataSize, &_width, &_height, &channels, 4);
-			if (!pixels)
+			// Other formats, such as the PNG files of uncompressed level textures.
+			auto image = DecodedImage{};
+			if (!DecodeImage(data, dataSize, image))
 			{
 				TENLog("Failed to decode texture from memory", LogLevel::Error);
 				context->Release();
 				return;
 			}
 
-			int mipLevels = 1 + (int)std::floor(std::log2(std::max(_width, _height)));
-
-			auto desc = D3D11_TEXTURE2D_DESC{};
-			desc.Width = _width;
-			desc.Height = _height;
-			desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			desc.CPUAccessFlags = 0;
-			desc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
-			desc.MipLevels = mipLevels;
-			desc.ArraySize = 1;
-			desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
-			desc.SampleDesc.Count = 1;
-			desc.SampleDesc.Quality = 0;
-			desc.Usage = D3D11_USAGE_DEFAULT;
-
-			res = device->CreateTexture2D(&desc, nullptr, _texture.GetAddressOf());
-			throwIfFailed(res, device,
-				"CreateTexture2D PNG (" + std::to_string(_width) + "x" + std::to_string(_height) + "):");
-
-			context->UpdateSubresource(_texture.Get(), 0, nullptr, pixels, _width * 4, 0);
-			stbi_image_free(pixels);
-
-			auto srvDesc = D3D11_SHADER_RESOURCE_VIEW_DESC{};
-			srvDesc.Format = desc.Format;
-			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-			srvDesc.Texture2D.MostDetailedMip = 0;
-			srvDesc.Texture2D.MipLevels = mipLevels;
-
-			res = device->CreateShaderResourceView(_texture.Get(), &srvDesc, _shaderResourceView.GetAddressOf());
-			throwIfFailed(res, device, "CreateSRV for PNG from memory:");
-
-			context->GenerateMips(_shaderResourceView.Get());
-
-			int vramSize = ComputeTextureSize(_width, _height, 1, mipLevels, DXGI_FORMAT_R8G8B8A8_UNORM);
-			_vram = VRAMAllocation(VRAMCategory::Texture, vramSize,
-				"Texture2D PNG allocated: " + std::to_string(_width) + "x" + std::to_string(_height) +
-				" mips=" + std::to_string(mipLevels) +
-				" (" + BytesToMBString(vramSize) + " MB)");
+			InitializeFromImage(device, image, "memory");
 		}
 
 		context->Release();

@@ -863,6 +863,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Graphics\ISpriteBatch.h" />
     <ClInclude Include="Renderer\Graphics\IStructuredBuffer.h" />
     <ClInclude Include="Renderer\Graphics\ISpriteFont.h" />
+    <ClInclude Include="Renderer\Graphics\ImageDecoding.h" />
     <ClInclude Include="Renderer\Graphics\ITexture2D.h" />
     <ClInclude Include="Renderer\Graphics\ITexture3D.h" />
     <ClInclude Include="Renderer\Graphics\ITextureBase.h" />
@@ -1508,6 +1509,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\Native\DirectX11\DX11PrimitiveBatch.cpp" />
     <ClCompile Include="Renderer\Native\DirectX11\DX11SpriteBatch.cpp" />
     <ClCompile Include="Renderer\Native\DirectX11\DX11SpriteFont.cpp" />
+    <ClCompile Include="Renderer\Graphics\ImageDecoding.cpp" />
     <ClCompile Include="Renderer\Native\DirectX11\DX11Texture2D.cpp" />
     <ClCompile Include="Renderer\Native\DirectX11\DX11Texture3D.cpp" />
     <ClCompile Include="Renderer\Native\DirectX11\DX11GpuReadbackBuffer.cpp" />
