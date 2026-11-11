@@ -323,7 +323,7 @@ function InventoryData.InitializeRingPositions(ringType)
     -- - The global offset on all rings, required get the actually selected primary ring into the pre-defined focus position
     -- For SECONDARY rings, we skip calculations, and the function calls really just return the predefined position for secondary rings.
     local base = 1
-    if selectedPrimaryRing and Utilities.Contains(Ring.PRIMARY_TYPES, selectedPrimaryRing.type) then
+    if selectedPrimaryRing and selectedRing:IsPrimaryRing() then
         base = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[selectedRing.type]
     end
 
@@ -332,7 +332,7 @@ function InventoryData.InitializeRingPositions(ringType)
 
     for _, r in pairs(rings) do
 
-        local rType = r.type
+        local rType = r:GetType()
         if ringType and ringType ~= rType then
             goto continue
         end
@@ -341,7 +341,7 @@ function InventoryData.InitializeRingPositions(ringType)
         local position = r:GetCenter()
 
         -- Only the main rings need repositioning
-        if Utilities.Contains(Ring.PRIMARY_TYPES, rType) then
+        if r:IsPrimaryRing() then
             local order = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[rType]
             local offset = Ring.RING_POSITION_PRIMARY_OFFSET * (order - base)
             position = ringReferencePosition + offset

@@ -318,7 +318,7 @@ InventoryStates.GetNeighbourRingType = function(selectedRingType, direction)
         targetRingType = Ring.PRIMARY_TYPES__ORDER_TO_TYPE[targetRingOrder]
 
         if targetRingType and
-           Utilities.Contains(Ring.PRIMARY_TYPES, targetRingType) and
+           Ring.IsPrimaryRingType(targetRingType) and
            InventoryData.HasRing(targetRingType) and
            not InventoryData.GetRing(targetRingType):IsEmpty() then
             return targetRingType

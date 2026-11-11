@@ -94,11 +94,20 @@ function Ring.Create(ringType)
 end
 
 function Ring.GetCenterByType(name)
-    if Utilities.Contains(Ring.PRIMARY_TYPES, name) then
+    if Ring.IsPrimaryRingType(name) then
         return Ring.CENTERS[name]
     else
         return Ring.RING_POSITION_SECONDARY
     end
+end
+
+function Ring.IsPrimaryRingType(ringType)
+    return Utilities.Contains(Ring.PRIMARY_TYPES, ringType)
+end
+
+
+function Ring:IsPrimaryRing()
+    return Ring.IsPrimaryRingType(self.type)
 end
 
 -- Recalculate slice based on item count

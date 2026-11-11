@@ -5,7 +5,6 @@
 local Settings = require("Engine.RingInventory.Settings")
 local Interpolate = require("Engine.RingInventory.Interpolate")
 local Utilities = require("Engine.RingInventory.Utilities")
-local Ring
 local InventoryData
 
 local ItemSpin = {}
@@ -104,12 +103,9 @@ function ItemSpin.UpdateRing(ringState)
     if not InventoryData then
         InventoryData = require("Engine.RingInventory.InventoryData")
     end
-    if not Ring then
-        Ring = require("Engine.RingInventory.Ring")
-    end
 
     local isSelectedRing = ring == InventoryData.GetSelectedRing()
-    if not Utilities.Contains(Ring.PRIMARY_TYPES, ring:GetType()) then
+    if not ring:IsPrimaryRing() then
         -- The hack.
         -- We're targeting the ammo ring primarily because that's where the "issue" was visible, but the combine ring would also be
         -- affected... if we weren't resetting the inventory everytime we exit this ring (possible improvement for the near future).
