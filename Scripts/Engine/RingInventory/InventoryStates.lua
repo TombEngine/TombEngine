@@ -226,11 +226,13 @@ local BeginSaveSetup = function(selectedRing, selectedItem, instantOpen)
     Text.Hide("CONTROLS_SELECT")
     Text.Hide("CONTROLS_BACK")
     InventoryData.ColorAll(COLOR_MAP.itemHidden, COLOR_MAP.itemHidden, false, UI_RING_FADE_SPEED)
-    ItemSpin.StopSelectedItemSpin(selectedRing)
-    Sprites.HideArrows()
-    if InventoryData.IsItemChosen() then
-        ItemMenu.Hide()
-        HideAmmoRing(selectedItem)
+    if selectedRing then
+        ItemSpin.StopSelectedItemSpin(selectedRing)
+        Sprites.HideArrows()
+        if InventoryData.IsItemChosen() then
+            ItemMenu.Hide()
+            HideAmmoRing(selectedItem)
+        end
     end
 
     Save.CreateSaveMenu()
@@ -354,8 +356,8 @@ local RestoreInventoryView = function(selectedRing, selectedItem, startSelectedI
     SetInventoryOverviewText(selectedItem)
     InventoryData.ColorAll(COLOR_MAP.itemDeselected, COLOR_MAP.itemSelected, false, ringFadeSpeed)
     Sprites.ShowArrows()
-
-    if startSelectedItemSpin then
+    
+    if selectedRing and startSelectedItemSpin then
         ItemSpin.StartSelectedItemSpin(selectedRing)
     end
 end
@@ -931,7 +933,9 @@ local UpdateInventoryFrame = function(selectedRing)
     InventoryData.DrawAllRings()
     Text.Update()
     Text.DrawAll()
-    Sprites.Update(selectedRing)
+    if selectedRing then
+        Sprites.Update(selectedRing)
+    end
     Sprites.Draw()
 end
 

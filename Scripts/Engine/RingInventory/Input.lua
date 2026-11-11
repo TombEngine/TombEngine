@@ -56,9 +56,8 @@ function Inputs.Update(mode, timeInMenu)
     timer = timeInMenu
 
     local selectedRing = InventoryData.GetSelectedRing()
-    if not selectedRing then return end
-    local selectedRingType = InventoryData.GetSelectedRingType()
-    local selectedItem = selectedRing:GetSelectedItem()
+    local selectedRingType = selectedRing and selectedRing:GetType() or nil
+    local selectedItem = selectedRing and selectedRing:GetSelectedItem() or nil
 
     if mode == INVENTORY_MODE.RING_ROTATE then
         if InputHelpers.GuiIsPulsed(TEN.Input.ActionID.MENU_LEFT, timer) then

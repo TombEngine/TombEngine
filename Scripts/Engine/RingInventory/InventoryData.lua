@@ -77,11 +77,6 @@ function InventoryData.GetSelectedRing()
     return InventoryData.GetRing(selectedRingType)
 end
 
--- Get currently selected ring type
-function InventoryData.GetSelectedRingType()
-    return selectedRingType
-end
-
 -- Get previous ring type
 function InventoryData.GetPreviousRing()
     return InventoryData.GetRing(previousRingType)
