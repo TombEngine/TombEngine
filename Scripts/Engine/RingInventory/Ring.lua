@@ -93,6 +93,14 @@ function Ring.Create(ringType)
     return self
 end
 
+function Ring.GetCenterByType(name)
+    if Utilities.Contains(Ring.PRIMARY_TYPES, name) then
+        return Ring.CENTERS[name]
+    else
+        return Ring.RING_POSITION_SECONDARY
+    end
+end
+
 -- Recalculate slice based on item count
 function Ring:RecalculateSlice()
     if #self.items > 0 then
@@ -140,14 +148,6 @@ function Ring:Clear()
     self.currentAngle = 0
     self.previousAngle = 0
     self.targetAngle = 0
-end
-
-function Ring.GetCenterByType(name)
-    if Utilities.Contains(Ring.PRIMARY_TYPES, name) then
-        return Ring.CENTERS[name]
-    else
-        return Ring.RING_POSITION_SECONDARY
-    end
 end
 
 function Ring:GetCenter()
