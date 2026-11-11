@@ -142,7 +142,7 @@ function Ring:Clear()
     self.targetAngle = 0
 end
 
-function Ring:GetCenterByType(name)
+function Ring.GetCenterByType(name)
     if Utilities.Contains(Ring.PRIMARY_TYPES, name) then
         return Ring.CENTERS[name]
     else
@@ -151,7 +151,7 @@ function Ring:GetCenterByType(name)
 end
 
 function Ring:GetCenter()
-    return Ring:GetCenterByType(self.type)
+    return Ring.GetCenterByType(self.type)
 end
 
 -- Get item by object ID

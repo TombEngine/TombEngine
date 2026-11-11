@@ -333,7 +333,7 @@ function InventoryData.InitializeRingPositions(ringType)
     end
 
     -- This works but... what the hell?
-    local ringReferencePosition = Ring:GetCenterByType(Ring.DEFAULT_TYPE)
+    local ringReferencePosition = Ring.GetCenterByType(Ring.DEFAULT_TYPE)
 
     for _, r in pairs(rings) do
 
