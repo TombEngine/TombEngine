@@ -47,7 +47,7 @@ Utilities.ColorCombine = function(color, transparency)
     return TEN.Color(color.r, color.g, color.b, transparency)
 end
 
-Utilities.OffsetY = function(position, offsetY)
+Utilities.OffsetY = function(position, offsetY) -- TODO: Should go as well - for now used by Examine, which makes its own DisplayItem
     return TEN.Vec3(position.x, position.y + offsetY, position.z)
 end
 

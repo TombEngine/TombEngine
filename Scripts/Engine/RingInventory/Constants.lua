@@ -6,6 +6,7 @@ local Constants = {}
 
 Constants.NO_VALUE = -1
 Constants.RING_RADIUS = 570
+Constants.RING_OFFSET = Vec3(0, 1000, 0)
 Constants.FOV = 35
 Constants.CAMERA_START = Vec3(0, -1700,  450)
 Constants.CAMERA_END   = Vec3(0,   -50, -500)
