@@ -991,8 +991,8 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	// @mem CHAFF
 	{ "CHAFF", ID_CHAFF },
 	/// Object ID.
-	// @mem ELECTRIC_FENCE
-	{ "ELECTRIC_FENCE", ID_ELECTRIC_FENCE },
+	// @mem ELECTRIC_FIELD
+	{ "ELECTRIC_FIELD", ID_ELECTRIC_FIELD },
 	/// Object ID.
 	// @mem LIFT
 	{ "LIFT", ID_LIFT },
