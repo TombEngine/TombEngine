@@ -118,6 +118,7 @@ namespace TEN::Math::Library
 		float Length() const { return std::sqrt(x * x + y * y); }
 		float LengthSquared() const { return x * x + y * y; }
 		float Dot(const Vector2& v) const { return x * v.x + y * v.y; }
+		void Normalize(Vector2& result) const { result = *this; result.Normalize(); }
 		// XMVector2Cross: the z component of the 3D cross product in both components.
 		Vector2 Cross(const Vector2& v) const { float z = x * v.y - y * v.x; return Vector2(z, z); }
 		void Normalize()
@@ -199,6 +200,7 @@ namespace TEN::Math::Library
 		static Vector3 Lerp(const Vector3& a, const Vector3& b, float t) { return Vector3(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t); }
 		static Vector3 Cross(const Vector3& a, const Vector3& b) { return a.Cross(b); }
 		static float Dot(const Vector3& a, const Vector3& b) { return a.Dot(b); }
+		void Normalize(Vector3& result) const { result = *this; result.Normalize(); }
 		static Vector3 Normalize(const Vector3& v) { Vector3 r = v; r.Normalize(); return r; }
 		static Vector3 Min(const Vector3& a, const Vector3& b) { return Vector3(std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z)); }
 		static Vector3 Max(const Vector3& a, const Vector3& b) { return Vector3(std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z)); }
@@ -279,6 +281,7 @@ namespace TEN::Math::Library
 		float Length() const { return std::sqrt(x * x + y * y + z * z + w * w); }
 		float LengthSquared() const { return x * x + y * y + z * z + w * w; }
 		float Dot(const Vector4& v) const { return x * v.x + y * v.y + z * v.z + w * v.w; }
+		void Normalize(Vector4& result) const { result = *this; result.Normalize(); }
 		void Normalize()
 		{
 			float len = Length();
