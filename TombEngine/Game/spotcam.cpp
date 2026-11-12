@@ -11,6 +11,7 @@
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Math/Utils.h"
+#include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
@@ -682,6 +683,11 @@ namespace TEN::SpotCam
 				AlterFOV(LastFOV);
 				AlterRoll(0);
 				g_Renderer.RestoreDOF();
+
+				// Remastered controls: a Look breakout of a flyby turns the orbit camera behind the player. -- divezzi, 02.11.26
+				if (g_Configuration.IsUsingRemasteredControls())
+					Modern::ResetCameraOrient(*LaraItem);
+
 				CalculateCamera(LaraCollision);
 				RunHeavyTriggers = false;
 			}

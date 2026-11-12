@@ -3,6 +3,7 @@
 
 #include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
+#include "Game/collision/floordata.h"
 #include "Game/collision/Point.h"
 #include "Game/control/los.h"
 #include "Game/effects/debris.h"
@@ -12,6 +13,7 @@
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Lara/ModernControls.h"
 #include "Game/Lara/Optics.h"
 #include "Game/room.h"
 #include "Game/savegame.h"
@@ -562,8 +564,635 @@ void RefreshFixedCamera(short camNumber)
 	MoveCamera(&origin, moveSpeed, true);
 }
 
+namespace TEN::Input::Modern
+{
+	constexpr auto CAMERA_ALTITUDE_DEFAULT = ANGLE(-10.0f);
+	constexpr auto CAMERA_ALTITUDE_MIN     = ANGLE(-85.0f);
+	constexpr auto CAMERA_ALTITUDE_MAX     = ANGLE(85.0f);
+	constexpr auto CAMERA_WALL_PUSH        = 32;
+
+	// Remastered controls: orbit angles and last tick's values; not saved in savegames. -- divezzi, 08.10.26
+	static short CameraAzimuth      = 0;
+	static short CameraAltitude     = CAMERA_ALTITUDE_DEFAULT;
+	static short CameraPrevAzimuth  = 0;
+	static short CameraPrevAltitude = CAMERA_ALTITUDE_DEFAULT;
+
+	// Remastered controls fix: right stick and mouse steer the player under fixed and flyby cameras. -- divezzi, 06.11.26
+	static auto CameraHeldTurn = Vector2i(0, 0); // Turn the orbit camera held by a wall has not taken yet. Only the fly cheat keeps one.
+	static auto ViewTurn	   = Vector2i(0, 0); // Turn added to the frame of a fixed shot or a flyby.
+
+	// Share of the camera ray left after last tick's clip.
+	static float CameraClipRatio = 1.0f;
+
+	// OrbitCamera() ran this tick.
+	static bool IsOrbitCameraRun = false;
+
+	// Last tick's stick frame came from a fixed shot or a flyby.
+	static bool IsViewFrame = false;
+
+	struct CameraDiagonalFace
+	{
+		bool  IsFound		   = false;
+		bool  IsFarSideBlocked = false;
+		short Angle			   = 0;	   // From the point toward the split line.
+		float Distance		   = 0.0f; // From the point to the split line.
+	};
+
+	void ResetCameraOrient(const ItemInfo& item)
+	{
+		CameraAzimuth = item.Pose.Orientation.y;
+		CameraAltitude = CAMERA_ALTITUDE_DEFAULT;
+		CameraPrevAzimuth = CameraAzimuth;
+		CameraPrevAltitude = CameraAltitude;
+		CameraHeldTurn = Vector2i::Zero;
+		ViewTurn = Vector2i::Zero;
+		CameraClipRatio = 1.0f;
+	}
+
+	// Move axis pushed, or Accelerate held in a vehicle.
+	static bool IsMovePushed(const ItemInfo& item)
+	{
+		if (GetHeldMoveAxis() != Vector2::Zero)
+			return true;
+
+		const auto& player = GetLaraInfo(item);
+		return (player.Context.Vehicle != NO_VALUE && IsHeld(In::Accelerate));
+	}
+
+	// The pitch stays within the orbit limits.
+	static void ApplyFrameTurn(EulerAngles& orient, const Vector2i& turn)
+	{
+		if (turn == Vector2i::Zero)
+			return;
+
+		orient.y = (short)(orient.y + turn.x);
+		orient.x = (short)std::clamp(orient.x + turn.y, (int)CAMERA_ALTITUDE_MIN, (int)CAMERA_ALTITUDE_MAX);
+	}
+
+	// Recovers the mouse movement in pixels from the normalized mouse axis.
+	// NOTE: Reverses the scaling done in ReadMouse() (Specific/Input/Input.cpp). Keep the two in step.
+	static Vector2 GetCameraMousePixels()
+	{
+		constexpr auto SENSITIVITY_COEFF = 0.1f;
+		constexpr auto SENSITIVITY_BASE	 = 0.4f;
+
+		float sensitivity = (g_Configuration.MouseSensitivity * SENSITIVITY_COEFF) + SENSITIVITY_BASE;
+		if (sensitivity <= 0.0f)
+			return Vector2::Zero;
+
+		const auto& normAxis = GetMouseAxis();
+		return (Vector2(normAxis.x * DISPLAY_SPACE_RES.x, normAxis.y * DISPLAY_SPACE_RES.y) / sensitivity);
+	}
+
+	// Yaw and pitch step of the right stick and mouse this tick, in orbit angles.
+	static Vector2i GetCameraTurn()
+	{
+		constexpr auto MOUSE_ROTATION_GAIN	   = 3.2f;
+		constexpr auto MOUSE_SENSITIVITY_SCALE = 5.0f / 6.0f;
+
+		if (g_GameFlow->CurrentFreezeMode == FreezeMode::Spectator || Camera.laraNode != NO_VALUE)
+			return Vector2i::Zero;
+
+		auto stickAxis = Vector2::Zero;
+		if (AxisMap[AxisID::Camera].Length() > MANUAL_ROTATION_THRESHOLD)
+			stickAxis = AxisMap[AxisID::Camera] * MANUAL_ROTATION_SPEED;
+
+		// The mouse has no threshold, so a single pixel of movement turns the camera.
+		auto mouseAxis = GetCameraMousePixels() * (g_Configuration.MouseSensitivity * MOUSE_SENSITIVITY_SCALE * MOUSE_ROTATION_GAIN);
+
+		int yaw = (int)std::round(mouseAxis.x) + ANGLE(stickAxis.x);
+		int pitch = (int)std::round(mouseAxis.y) + ANGLE(stickAxis.y);
+
+		// Without inversion, pushing the stick up or moving the mouse forward aims the camera up.
+		return Vector2i(yaw, g_Configuration.InvertCameraYAxis ? pitch : -pitch);
+	}
+
+	// Right stick and mouse turn under Remastered controls with a fixed or flyby camera. False otherwise.
+	bool GetViewFrameTurn(Vector2i& turn)
+	{
+		turn = Vector2i::Zero;
+		if (!g_Configuration.IsUsingRemasteredControls() || !IsViewFrame)
+			return false;
+
+		turn = GetCameraTurn();
+		return true;
+	}
+
+	// Camera frame the stick is read in: the orbit angle, or the level view direction in a flyby or a fixed camera shot.
+	// A flyby is followed every frame. In a fixed shot the frame keeps its direction while she moves and takes the view's
+	// direction once she stops. On land, the right stick and mouse turn it while she moves.
+	void UpdatePlayerRefCameraOrient(ItemInfo& item)
+	{
+		constexpr auto VIEW_TURN_COEFF = 0.8f; // Share of the camera's turn rate.
+
+		if (!g_Configuration.IsUsingRemasteredControls())
+			return;
+
+		auto& player = GetLaraInfo(item);
+		bool isInVehicle = (player.Context.Vehicle != NO_VALUE);
+
+		// The fly cheat moves on Velocity.y.
+		bool isFlyCheat = (item.Animation.ActiveState == LS_FLY_CHEAT);
+		float vel = isFlyCheat ?
+			item.Animation.Velocity.y :
+			Vector2(item.Animation.Velocity.x, item.Animation.Velocity.z).Length();
+		bool isStopped = (((GetHeldMoveAxis() == Vector2::Zero && !IsHeld(In::StepLeft) && !IsHeld(In::StepRight)) || vel == 0.0f) &&
+						  TestState(item.Animation.ActiveState, PLAYER_IDLE_STATE_IDS));
+
+		// In a vehicle, she is stopped while no direction is held.
+		if (isInVehicle)
+			isStopped = (GetHeldMoveAxis() == Vector2::Zero);
+
+		// NOTE: CalculateCamera() has already reset Camera.type to Chase; Camera.lastType holds this tick's camera type.
+		bool isFixedShot = (!UseSpotCam && (Camera.lastType == CameraType::Fixed || Camera.lastType == CameraType::Heavy));
+		player.Control.LockRefCameraOrient = (isFixedShot && !isStopped);
+
+		// A held turn belongs to the orbit camera. A fixed camera that chases with the orbit camera takes no view turn.
+		bool isOrbit = (IsOrbitCameraRun && !UseSpotCam);
+		IsOrbitCameraRun = false;
+		if (!isOrbit || !isFlyCheat)
+			CameraHeldTurn = Vector2i::Zero;
+
+		// The view turn is collected only while she moves on land, outside vehicles.
+		bool isOnLand =(player.Control.WaterStatus == WaterStatus::Dry || player.Control.WaterStatus == WaterStatus::Wade);
+		bool isMoving = (IsMovePushed(item) && !isInVehicle && isOnLand && !isStopped);
+		IsViewFrame = ((UseSpotCam || isFixedShot) && !isOrbit);
+		bool isViewTurning = (IsViewFrame && isMoving);
+		auto turn = isViewTurning ? (GetCameraTurn() * VIEW_TURN_COEFF) : Vector2i::Zero;
+		if (isViewTurning)
+		{
+			ViewTurn.x = (short)(ViewTurn.x + turn.x);
+			ViewTurn.y = std::clamp(ViewTurn.y + turn.y, (int)CAMERA_ALTITUDE_MIN, (int)CAMERA_ALTITUDE_MAX);
+		}
+		else
+		{
+			ViewTurn = Vector2i::Zero;
+		}
+
+		if (player.Control.LockRefCameraOrient)
+		{
+			ApplyFrameTurn(player.Control.RefCameraOrient, turn);
+			return;
+		}
+
+		auto frameOrient = EulerAngles(Camera.actualElevation, CameraAzimuth, 0);
+		if (IsViewFrame)
+			frameOrient = EulerAngles(0, Geometry::GetOrientToPoint(Camera.pos.ToVector3(), Camera.target.ToVector3()).y, 0);
+
+		player.Control.RefCameraOrient = frameOrient;
+		ApplyFrameTurn(player.Control.RefCameraOrient, CameraHeldTurn + ViewTurn);
+	}
+
+	// Restores last tick's orbit angles, used when the camera cannot be placed this tick.
+	// The turn it drops stays in CameraHeldTurn, so the stick frame still takes it.
+	static void HoldCameraFrame()
+	{
+		CameraAzimuth = CameraPrevAzimuth;
+		CameraAltitude = CameraPrevAltitude;
+
+		Camera.actualAngle = CameraAzimuth;
+		Camera.actualElevation = CameraAltitude;
+	}
+
+	static bool IsCameraPointBlocked(const Vector3i& pos, int roomNumber)
+	{
+		auto pointColl = GetPointCollision(pos, roomNumber);
+		int floorHeight = pointColl.GetFloorHeight();
+		int ceilingHeight = pointColl.GetCeilingHeight();
+
+		return (floorHeight == NO_HEIGHT || ceilingHeight == NO_HEIGHT || ceilingHeight >= floorHeight ||
+				pos.y > floorHeight || pos.y < ceilingHeight);
+	}
+
+	// Moves the look-at inside its floor-to-ceiling column. Returns true if it had to be moved.
+	static bool ClampCameraLookAtHeight(GameVector& target)
+	{
+		constexpr auto COLUMN_HEIGHT_MIN = 32;
+		constexpr auto HEIGHT_BUFFER	 = 16;
+
+		auto pointColl = GetPointCollision(target.ToVector3i(), target.RoomNumber);
+		int floorHeight = pointColl.GetFloorHeight();
+		int ceilingHeight = pointColl.GetCeilingHeight();
+
+		// Column has no valid inside; return to the last look-at, as ChaseCamera() does.
+		if (floorHeight == NO_HEIGHT || ceilingHeight == NO_HEIGHT || ceilingHeight >= floorHeight)
+		{
+			TargetSnaps++;
+			target = LastTarget;
+			return true;
+		}
+
+		TargetSnaps = 0;
+
+		int clampedY = ((floorHeight - ceilingHeight) < COLUMN_HEIGHT_MIN) ?
+			((floorHeight + ceilingHeight) / 2) :
+			std::clamp(target.y, ceilingHeight + HEIGHT_BUFFER, floorHeight - HEIGHT_BUFFER);
+
+		if (clampedY == target.y)
+			return false;
+
+		target.y = clampedY;
+		target.RoomNumber = GetPointCollision(target.ToVector3i(), target.RoomNumber).GetRoomNumber();
+
+		// Keep last tick's altitude while the look-at is held inside the column.
+		CameraAltitude = CameraPrevAltitude;
+		Camera.actualElevation = CameraAltitude;
+		return true;
+	}
+
+	// Diagonal split face of the sector under probePos, measured from pos. Not found if the sector
+	// has no diagonal split, or if the nearest point on the split line lies outside the sector.
+	static CameraDiagonalFace GetCameraDiagonalFaceInSector(const Vector3i& pos, const Vector3i& probePos, int roomNumber)
+	{
+		constexpr auto FAR_SIDE_PROBE_DIST = 64;
+		constexpr auto FOOT_TOLERANCE	   = 2;
+
+		auto face = CameraDiagonalFace{};
+		auto pointColl = GetPointCollision(probePos, roomNumber);
+
+		short splitAngle = 0;
+		if (pointColl.GetBottomSector().IsSurfaceSplit(true) && pointColl.IsDiagonalFloorSplit())
+		{
+			splitAngle = pointColl.GetBottomSector().FloorSurface.SplitAngle;
+		}
+		else if (pointColl.GetTopSector().IsSurfaceSplit(false) && pointColl.IsDiagonalCeilingSplit())
+		{
+			splitAngle = pointColl.GetTopSector().CeilingSurface.SplitAngle;
+		}
+		else
+		{
+			return face;
+		}
+
+		// The split line runs through the sector center.
+		auto center = TEN::Collision::Floordata::GetNearestSectorCenter(probePos);
+		short normalAngle = (short)(splitAngle + ANGLE(90.0f));
+		float normalX = phd_sin(normalAngle);
+		float normalZ = phd_cos(normalAngle);
+		float signedDist = (normalX * (pos.x - center.x)) + (normalZ * (pos.z - center.z));
+
+		float footX = pos.x - (signedDist * normalX);
+		float footZ = pos.z - (signedDist * normalZ);
+		if (std::abs(footX - center.x) > (BLOCK(0.5f) + FOOT_TOLERANCE) ||
+			std::abs(footZ - center.z) > (BLOCK(0.5f) + FOOT_TOLERANCE))
+		{
+			return face;
+		}
+
+		face.IsFound = true;
+		face.Angle = (signedDist < 0.0f) ? normalAngle : (short)(normalAngle + ANGLE(180.0f));
+		face.Distance = std::abs(signedDist);
+
+		float farDist = face.Distance + FAR_SIDE_PROBE_DIST;
+		auto farPos = Vector3i(
+			pos.x + (int)std::round(phd_sin(face.Angle) * farDist),
+			pos.y,
+			pos.z + (int)std::round(phd_cos(face.Angle) * farDist));
+		face.IsFarSideBlocked = IsCameraPointBlocked(farPos, roomNumber);
+
+		return face;
+	}
+
+	// Nearest diagonal face from the sector under pos and the four sectors probeDist away on each axis.
+	// Prefers a face with solid space behind it, then the nearest one.
+	static CameraDiagonalFace GetCameraDiagonalFace(const Vector3i& pos, int roomNumber, int probeDist)
+	{
+		const Vector3i probeOffsets[] =
+		{
+			Vector3i::Zero,
+			Vector3i(probeDist, 0, 0), Vector3i(-probeDist, 0, 0),
+			Vector3i(0, 0, probeDist), Vector3i(0, 0, -probeDist)
+		};
+
+		auto bestFace = CameraDiagonalFace{};
+		for (const auto& offset : probeOffsets)
+		{
+			auto face = GetCameraDiagonalFaceInSector(pos, pos + offset, roomNumber);
+			if (!face.IsFound)
+				continue;
+
+			bool isBetter = (!bestFace.IsFound ||
+							 (face.IsFarSideBlocked && !bestFace.IsFarSideBlocked) ||
+							 (face.IsFarSideBlocked == bestFace.IsFarSideBlocked && face.Distance < bestFace.Distance));
+			if (isBetter)
+				bestFace = face;
+		}
+
+		return bestFace;
+	}
+
+	// How far the corners of the near plane reach toward a face, from the eye along the face direction.
+	static float GetCameraNearPlaneReach(const Vector3& eyePos, const Vector3& lookAtPos, short faceAngle)
+	{
+		// NOTE: Matches the near plane in Renderer::UpdateCameraMatrices().
+		constexpr auto NEAR_PLANE	  = 32.0f;
+		constexpr auto ASPECT_DEFAULT = 16.0f / 9.0f;
+
+		auto forward = lookAtPos - eyePos;
+		if (forward.LengthSquared() < 1.0f)
+			return NEAR_PLANE;
+
+		forward.Normalize();
+		auto right = Vector3(forward.z, 0.0f, -forward.x);
+		if (right.LengthSquared() < EPSILON)
+			right = Vector3::UnitX;
+
+		right.Normalize();
+		auto up = right.Cross(forward);
+		up.Normalize();
+
+		float aspect = (g_Configuration.ScreenHeight > 0) ?
+			((float)g_Configuration.ScreenWidth / (float)g_Configuration.ScreenHeight) : ASPECT_DEFAULT;
+		float halfHeight = NEAR_PLANE * std::tan(Camera.Fov / 2.0f);
+		float halfWidth = halfHeight * aspect;
+
+		auto faceDir = Vector3(phd_sin(faceAngle), 0.0f, phd_cos(faceAngle));
+		return ((faceDir.Dot(forward) * NEAR_PLANE) +
+				(std::abs(faceDir.Dot(right)) * halfWidth) +
+				(std::abs(faceDir.Dot(up)) * halfHeight));
+	}
+
+	// Moves pos straight back from a diagonal wall with solid space behind it, so the near plane
+	// looking at lookAt stays on the open side. Leaves pos unchanged if the new point is not open.
+	static void ApplyCameraDiagonalPush(GameVector& pos, const GameVector& lookAt)
+	{
+		constexpr auto STAND_OFF_MARGIN = 2.0f;
+		constexpr auto STAND_OFF_MAX	= 64;
+
+		auto fromPos = pos.ToVector3i();
+		auto face = GetCameraDiagonalFace(fromPos, pos.RoomNumber, STAND_OFF_MAX);
+		if (!face.IsFound || !face.IsFarSideBlocked)
+			return;
+
+		float reach = GetCameraNearPlaneReach(pos.ToVector3(), lookAt.ToVector3(), face.Angle);
+		float standOff = std::clamp(reach + STAND_OFF_MARGIN, (float)(CAMERA_WALL_PUSH + 1), (float)STAND_OFF_MAX);
+		if (face.Distance >= standOff)
+			return;
+
+		short pushAngle = (short)(face.Angle + ANGLE(180.0f));
+		float pushDist = standOff - face.Distance;
+		auto toPos = Vector3i(
+			fromPos.x + (int)std::round(phd_sin(pushAngle) * pushDist),
+			fromPos.y,
+			fromPos.z + (int)std::round(phd_cos(pushAngle) * pushDist));
+
+		if (IsCameraPointBlocked(toPos, pos.RoomNumber))
+			return;
+
+		pos.x = toPos.x;
+		pos.z = toPos.z;
+		pos.RoomNumber = GetPointCollision(toPos, pos.RoomNumber).GetRoomNumber();
+	}
+
+	// Turns the orbit azimuth toward the direction the player moves, faster as she moves faster.
+	static void ApplyCameraAssist(const ItemInfo& item)
+	{
+		constexpr auto BASE_VEL					= BLOCK(0.1f);
+		constexpr auto BASE_ANGLE				= ANGLE(90.0f);
+		constexpr auto AUTO_ROT_DELTA_ANGLE_MAX = BASE_ANGLE * 1.5f;
+		constexpr auto AZIMUTH_ANGLE_LERP_ALPHA = 0.075f;
+
+		float vel = Vector2(item.Animation.Velocity.x, item.Animation.Velocity.z).Length();
+		if (GetMoveAxis() == Vector2::Zero || vel == 0.0f || !DoesCameraAssistApply(item))
+			return;
+
+		const auto& player = GetLaraInfo(item);
+		float alpha = std::clamp(vel / BASE_VEL, 0.0f, 1.0f);
+		short deltaAngle = FROM_RAD(std::atan2(player.Control.RefMoveAxis.x, player.Control.RefMoveAxis.y));
+
+		if (abs(deltaAngle) <= BASE_ANGLE)
+		{
+			CameraAzimuth = (short)(CameraAzimuth + deltaAngle * (AZIMUTH_ANGLE_LERP_ALPHA * alpha));
+		}
+		else if (abs(deltaAngle) <= AUTO_ROT_DELTA_ANGLE_MAX)
+		{
+			int sign = (int)std::copysign(1, deltaAngle);
+			CameraAzimuth = (short)(CameraAzimuth + (short)(BASE_ANGLE * (AZIMUTH_ANGLE_LERP_ALPHA * alpha)) * sign);
+		}
+	}
+
+	// Turns the orbit angles with the right stick and mouse. Used in place of DoThumbstickCamera().
+	static void UpdateCameraOrient()
+	{
+		CameraPrevAzimuth = CameraAzimuth;
+		CameraPrevAltitude = CameraAltitude;
+
+		// Remastered controls fix: the fly cheat has no idle state, so a turn the held camera could not take is kept for it only. -- divezzi, 09.11.26
+		bool isTurnKept = (LaraItem->Animation.ActiveState == LS_FLY_CHEAT && IsMovePushed(*LaraItem));
+		auto turn = GetCameraTurn();
+		if (isTurnKept)
+			turn += CameraHeldTurn;
+
+		// The yaw wraps by design; the mouse step is rounded to int first, so a fast flick cannot overflow the cast.
+		CameraAzimuth = (short)(CameraAzimuth + turn.x);
+
+		// The pitch is summed in int and clamped before it is stored, so a fast flick cannot wrap past the limits.
+		CameraAltitude = (short)std::clamp(CameraAltitude + turn.y, (int)CAMERA_ALTITUDE_MIN, (int)CAMERA_ALTITUDE_MAX);
+
+		CameraHeldTurn = isTurnKept ?
+			Vector2i(Geometry::GetShortestAngle(CameraPrevAzimuth, CameraAzimuth), CameraAltitude - CameraPrevAltitude) :
+			Vector2i::Zero;
+
+		ApplyCameraAssist(*LaraItem);
+
+		Camera.actualAngle = CameraAzimuth;
+		Camera.actualElevation += (CameraAltitude - Camera.actualElevation) / 2;
+	}
+
+	// Settings of the camera clip walk. A control mode passes its own values.
+	struct CameraClipSetup
+	{
+		int StepCount		 = 0; // Steps from the look-at to the camera position.
+		int SurfaceSlideDist = 0; // How far a step may pass a floor or ceiling and still slide along it.
+	};
+
+	// Walks from lookAt toward pos in equal steps and moves pos to the last step with open space, judged by the floor and
+	// ceiling heights at each step. A step past a floor or ceiling by less than the slide distance slides along it.
+	// The walk also stops after a step in a swamp room.
+	static void ClipCameraToRoomGeometry(const GameVector& lookAt, GameVector& pos, const CameraClipSetup& setup)
+	{
+		auto step = (pos.ToVector3() - lookAt.ToVector3()) / (float)setup.StepCount;
+		auto point = lookAt.ToVector3();
+		auto clipPoint = point;
+		int roomNumber = lookAt.RoomNumber;
+		int clipRoomNumber = roomNumber;
+		bool isOpenFound = false;
+
+		for (int i = 0; i < setup.StepCount; i++)
+		{
+			if (TestEnvironment(ENV_FLAG_SWAMP, roomNumber))
+				break;
+
+			auto pointColl = GetPointCollision(Vector3i(point), roomNumber);
+			roomNumber = pointColl.GetRoomNumber();
+
+			int floorHeight = pointColl.GetFloorHeight();
+			int ceilingHeight = pointColl.GetCeilingHeight();
+			if (floorHeight != NO_HEIGHT && ceilingHeight != NO_HEIGHT && ceilingHeight < floorHeight)
+			{
+				if (point.y > floorHeight)
+				{
+					if ((point.y - floorHeight) >= setup.SurfaceSlideDist)
+						break;
+
+					point.y = (float)floorHeight;
+				}
+
+				if (point.y < ceilingHeight)
+				{
+					if ((ceilingHeight - point.y) >= setup.SurfaceSlideDist)
+						break;
+
+					point.y = (float)ceilingHeight;
+				}
+
+				isOpenFound = true;
+			}
+			else if (isOpenFound)
+			{
+				break;
+			}
+
+			clipPoint = point;
+			clipRoomNumber = roomNumber;
+			point += step;
+		}
+
+		auto clipPos = Vector3i(clipPoint);
+		pos = GameVector(clipPos, GetPointCollision(clipPos, clipRoomNumber).GetRoomNumber());
+	}
+
+	// Settings of the lift toward the head. A control mode passes its own values.
+	struct CameraHeadSetup
+	{
+		float FreeRatio	 = 1.0f; // Share of the camera ray left at or above which nothing is lifted.
+		float TightRatio = 0.0f; // Share of the camera ray left at or below which the look-at is at the head.
+		float HeadMargin = 0.0f; // How far below the top of the player's bounds the head target sits.
+	};
+
+	// Moves the look-at toward the player's head as the camera ray gets shorter, up to the head at the tightest.
+	// The ideal position is built from the look-at afterwards, so the camera rises with it.
+	static void LiftCameraLookAtToHead(const ItemInfo& item, GameVector& lookAt, const CameraHeadSetup& setup)
+	{
+		constexpr auto CEILING_BUFFER = 32;
+
+		float alpha = 1.0f - Smoothstep(setup.TightRatio, setup.FreeRatio, CameraClipRatio);
+		if (alpha <= 0.0f)
+			return;
+
+		float headHeight = item.Pose.Position.y + GameBoundingBox(&item).Y1 + setup.HeadMargin;
+		if (headHeight >= lookAt.y)
+			return;
+
+		// Stay below the ceiling, so ClampCameraLookAtHeight() does not hold the pitch for it.
+		int liftedHeight = (int)Lerp((float)lookAt.y, headHeight, alpha);
+		int ceilingHeight = GetPointCollision(lookAt.ToVector3i(), lookAt.RoomNumber).GetCeilingHeight();
+		if (ceilingHeight != NO_HEIGHT)
+			liftedHeight = std::max(liftedHeight, ceilingHeight + CEILING_BUFFER);
+
+		if (liftedHeight >= lookAt.y)
+			return;
+
+		lookAt.y = liftedHeight;
+		lookAt.RoomNumber = GetPointCollision(lookAt.ToVector3i(), lookAt.RoomNumber).GetRoomNumber();
+	}
+
+	// Chase camera held at the player's orbit angle. Tests only that angle, then clips the ideal
+	// position against room geometry and pushes it off walls.
+	static void OrbitCamera(ItemInfo& item)
+	{
+		constexpr auto CAMERA_SPEED				  = 3;
+		constexpr auto CLIP_SETUP				  = CameraClipSetup{ 64, 0 };
+		constexpr auto CLIP_SETUP_LOOK_AT_CLAMPED = CameraClipSetup{ 64, 250 };
+		constexpr auto HEAD_SETUP				  = CameraHeadSetup{ 0.4f, 0.1f, CLICK(0.25f) };
+
+		// A fixed shot has just ended: start behind the player.
+		bool isFixedShot = (Camera.type == CameraType::Fixed || Camera.type == CameraType::Heavy);
+		if (!isFixedShot && (Camera.lastType == CameraType::Fixed || Camera.lastType == CameraType::Heavy))
+			ResetCameraOrient(*LaraItem);
+
+		IsOrbitCameraRun = true;
+		Camera.speed = CAMERA_SPEED;
+
+		if (!Camera.targetElevation)
+			Camera.targetElevation = -ANGLE(10.0f);
+
+		Camera.targetElevation += item.Pose.Orientation.x;
+		UpdateCameraElevation();
+
+		// Clamp X orientation.
+		if (Camera.actualElevation > CAMERA_ALTITUDE_MAX)
+			Camera.actualElevation = CAMERA_ALTITUDE_MAX;
+		else if (Camera.actualElevation < CAMERA_ALTITUDE_MIN)
+			Camera.actualElevation = CAMERA_ALTITUDE_MIN;
+
+		// Force item position after exiting look mode to avoid weird movements near walls.
+		if (Camera.oldType == CameraType::Look)
+		{
+			Camera.target.x = item.Pose.Position.x;
+			Camera.target.z = item.Pose.Position.z;
+		}
+
+		auto pointColl = GetPointCollision(Vector3i(Camera.target.x, Camera.target.y + CLICK(1), Camera.target.z), Camera.target.RoomNumber);
+		if (TestEnvironment(ENV_FLAG_SWAMP, pointColl.GetRoomNumber()))
+			Camera.target.y = g_Level.Rooms[pointColl.GetRoomNumber()].TopHeight - CLICK(1);
+
+		// Lift the look-at toward the player's head when a wall shortens the camera ray.
+		LiftCameraLookAtToHead(item, Camera.target, HEAD_SETUP);
+
+		bool isLookAtClamped = ClampCameraLookAtHeight(Camera.target);
+
+		// Ideal position at the orbit angle.
+		// NOTE: Computed after the clamp, which can restore last tick's altitude.
+		int distance = Camera.targetDistance * phd_cos(Camera.actualElevation);
+		auto ideal = GameVector();
+		ideal.x = Camera.target.x - (distance * phd_sin(Camera.actualAngle));
+		ideal.y = Camera.target.y + (Camera.targetDistance * phd_sin(Camera.actualElevation));
+		ideal.z = Camera.target.z - (distance * phd_cos(Camera.actualAngle));
+		ideal.RoomNumber = Camera.target.RoomNumber;
+
+		ClipCameraToRoomGeometry(Camera.target, ideal, isLookAtClamped ? CLIP_SETUP_LOOK_AT_CLAMPED : CLIP_SETUP);
+
+		// The next tick lifts the look-at by how much this clip shortened the ray.
+		CameraClipRatio = (Camera.targetDistance > 0) ?
+			std::clamp(Vector3::Distance(Camera.target.ToVector3(), ideal.ToVector3()) / (float)Camera.targetDistance, 0.0f, 1.0f) : 1.0f;
+
+		bool isPushBlocked = CameraCollisionBounds(&ideal, CAMERA_WALL_PUSH, true);
+		ApplyCameraDiagonalPush(ideal, Camera.target);
+
+		// Pushed position is still not in open space; keep last tick's orbit angles.
+		if (isPushBlocked)
+		{
+			HoldCameraFrame();
+		}
+		else
+		{
+			// The camera took the turn, except a pitch the look-at clamp held back.
+			CameraHeldTurn = isLookAtClamped ? Vector2i(0, CameraHeldTurn.y) : Vector2i::Zero;
+		}
+
+		MoveCamera(&ideal, Camera.speed);
+
+		// MoveCamera() eases toward the ideal, so the drawn position gets the same diagonal push.
+		ApplyCameraDiagonalPush(Camera.pos, Camera.target);
+	}
+
+	// The orbit camera is used under Remastered controls, except in the title level, which keeps the stock camera.
+	static bool IsOrbitCameraEnabled()
+	{
+		return (g_Configuration.IsUsingRemasteredControls() && CurrentLevel != 0);
+	}
+}
+
 void ChaseCamera(ItemInfo* item)
 {
+	// Remastered controls: chase camera held at the player's orbit angle. -- divezzi, 08.10.26
+	if (Modern::IsOrbitCameraEnabled())
+	{
+		Modern::OrbitCamera(*item);
+		return;
+	}
+
 	static const unsigned int maxSwivelSteps = 5;
 
 	if (!Camera.targetElevation)
@@ -671,6 +1300,13 @@ void ChaseCamera(ItemInfo* item)
 
 void UpdateCameraElevation()
 {
+	// Remastered controls: right stick and mouse orbit replace DoThumbstickCamera(). -- divezzi, 08.10.26
+	if (Modern::IsOrbitCameraEnabled())
+	{
+		Modern::UpdateCameraOrient();
+		return;
+	}
+
 	DoThumbstickCamera();
 
 	if (Camera.laraNode != NO_VALUE)
@@ -694,6 +1330,14 @@ void CombatCamera(ItemInfo* item)
 
 	Camera.target.x = item->Pose.Position.x;
 	Camera.target.z = item->Pose.Position.z;
+
+	// Remastered controls fix: without it, a blocked camera swings to a fixed side and the stick no longer matches the view. -- divezzi, 29.10.26
+	if (Modern::IsOrbitCameraEnabled())
+	{
+		Camera.targetDistance = BLOCK(1.5f);
+		Modern::OrbitCamera(*item);
+		return;
+	}
 
 	if (player.TargetEntity)
 	{
@@ -1643,6 +2287,10 @@ void UpdateCamera()
 		TrackCameraInit = false;
 		CalculateCamera(LaraCollision);
 	}
+
+	// Remastered controls: updates the camera frame the stick is read in, also during flybys. -- divezzi, 10.10.26
+	if (LaraItem != nullptr)
+		Modern::UpdatePlayerRefCameraOrient(*LaraItem);
 
 	// Update cameras matrices there, after having done all the possible camera logic.
 	g_Renderer.UpdateCameraMatrices(&Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));

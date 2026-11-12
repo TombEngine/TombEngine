@@ -38,6 +38,7 @@ local settings = Flow.Settings.new()
 	settings.Flare.flicker = true
 	settings.Flare.pickupCount = 12
 	
+	settings.Gameplay.controlMode = ControlMode.DEFAULT
 	settings.Gameplay.enableInventory = true
 	settings.Gameplay.killPoisonedEnemies = true
 	settings.Gameplay.setEnemiesOnFireWithWeapons = true

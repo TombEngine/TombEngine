@@ -9,6 +9,7 @@
 #include "Game/control/control.h"
 #include "Game/control/los.h"
 #include "Game/items.h"
+#include "Game/Lara/ModernControls.h"
 #include "Game/Lara/PlayerContext.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_climb.h"
@@ -280,7 +281,7 @@ bool TestLaraHangJump(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	if (!IsHeld(In::Action) || item->HitPoints <= 0 || lara->Control.HandStatus != HandStatus::Free || coll->HitStatic)
+	if (!Modern::IsGrabHeld() || item->HitPoints <= 0 || lara->Control.HandStatus != HandStatus::Free || coll->HitStatic)
 		return false;
 
 	if (CanGrabMonkeySwing(*item, *coll))
@@ -345,7 +346,7 @@ bool TestLaraHangJumpUp(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	if (!IsHeld(In::Action) || item->HitPoints <= 0 || lara->Control.HandStatus != HandStatus::Free || coll->HitStatic)
+	if (!Modern::IsGrabHeld() || item->HitPoints <= 0 || lara->Control.HandStatus != HandStatus::Free || coll->HitStatic)
 		return false;
 
 	if (CanGrabMonkeySwing(*item, *coll))
@@ -926,7 +927,7 @@ bool TestLaraWaterClimbOut(ItemInfo* item, CollisionInfo* coll)
 	auto* lara = GetLaraInfo(item);
 	const auto& settings = g_GameFlow->GetSettings()->Animations;
 
-	if (coll->CollisionType != CollisionType::Front || !IsHeld(In::Action))
+	if (coll->CollisionType != CollisionType::Front || !Modern::IsGrabHeld())
 		return false;
 
 	if (lara->Control.HandStatus != HandStatus::Free &&
@@ -1031,7 +1032,7 @@ bool TestLaraLadderClimbOut(ItemInfo* item, CollisionInfo* coll) // NEW function
 {
 	auto* lara = GetLaraInfo(item);
 
-	if (!IsHeld(In::Action) || !lara->Control.CanClimbLadder || coll->CollisionType != CollisionType::Front)
+	if (!Modern::IsGrabHeld() || !lara->Control.CanClimbLadder || coll->CollisionType != CollisionType::Front)
 	{
 		return false;
 	}
@@ -1597,7 +1598,7 @@ std::optional<VaultTestResult> TestLaraVault(ItemInfo* item, CollisionInfo* coll
 
 	// Auto jump to monkey swing.
 	vaultResult = TestLaraAutoMonkeySwingJump(item, coll);
-	if (vaultResult.has_value() && !torchInHand && g_Configuration.EnableAutoMonkeySwingJump)
+	if (vaultResult.has_value() && !torchInHand && g_Configuration.IsAutoMonkeySwingJumpEnabled())
 	{
 		vaultResult->TargetState = LS_AUTO_JUMP;
 		if (!TestStateDispatch(*item, vaultResult->TargetState))
@@ -1614,7 +1615,7 @@ bool TestAndDoLaraLadderClimb(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	if (!IsHeld(In::Action) || !IsHeld(In::Forward) || lara->Control.HandStatus != HandStatus::Free)
+	if (!Modern::IsGrabHeld() || !IsHeld(In::Forward) || lara->Control.HandStatus != HandStatus::Free)
 		return false;
 
 	if (TestEnvironment(ENV_FLAG_SWAMP, item) && lara->Context.WaterSurfaceDist < -CLICK(3))
@@ -1767,7 +1768,7 @@ CrawlVaultTestResult TestLaraCrawlExitJump(ItemInfo* item, CollisionInfo* coll)
 
 CrawlVaultTestResult TestLaraCrawlVault(ItemInfo* item, CollisionInfo* coll)
 {
-	if (!(IsHeld(In::Action) || IsHeld(In::Jump)))
+	if (!(Modern::IsGrabHeld() || IsHeld(In::Jump)))
 		return CrawlVaultTestResult{ false };
 
 	// Crawl vault exit down 1 step.
@@ -1787,6 +1788,10 @@ CrawlVaultTestResult TestLaraCrawlVault(ItemInfo* item, CollisionInfo* coll)
 	crawlVaultResult = TestLaraCrawlExitJump(item, coll);
 	if (crawlVaultResult.Success)
 	{
+		// Remastered controls fix: without it, Fire/Grab alone jumps the player out of a crawlspace over a drop. -- divezzi, 04.11.26
+		if (g_Configuration.IsUsingRemasteredControls() && !IsHeld(In::Jump))
+			return CrawlVaultTestResult{ false };
+
 		if (IsHeld(In::Walk))
 			crawlVaultResult.TargetState = LS_CRAWL_EXIT_FLIP;
 		else
@@ -1817,13 +1822,13 @@ CrawlVaultTestResult TestLaraCrawlVault(ItemInfo* item, CollisionInfo* coll)
 	return CrawlVaultTestResult{ false };
 }
 
-bool TestLaraCrawlToHang(ItemInfo* item, CollisionInfo* coll)
+bool TestLaraCrawlToHang(ItemInfo* item, CollisionInfo* coll, short headingOffset)
 {
 	int y = item->Pose.Position.y;
 	int distance = CLICK(1.2f);
-	auto probe = GetPointCollision(*item, item->Pose.Orientation.y + ANGLE(180.0f), distance, -LARA_HEIGHT_CRAWL);
+	auto probe = GetPointCollision(*item, item->Pose.Orientation.y + headingOffset, distance, -LARA_HEIGHT_CRAWL);
 
-	bool objectCollided = TestLaraObjectCollision(item, item->Pose.Orientation.y + ANGLE(180.0f), CLICK(1.2f), -LARA_HEIGHT_CRAWL);
+	bool objectCollided = TestLaraObjectCollision(item, item->Pose.Orientation.y + headingOffset, CLICK(1.2f), -LARA_HEIGHT_CRAWL);
 
 	if (!objectCollided &&										// No obstruction.
 		(probe.GetFloorHeight() - y) >= LARA_HEIGHT_STRETCH &&	// Highest floor bound.

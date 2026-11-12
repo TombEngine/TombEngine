@@ -34,6 +34,7 @@
 #include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_one_gun.h"
+#include "Game/Lara/ModernControls.h"
 #include "Game/items.h"
 #include "Game/pickup/pickup.h"
 #include "Game/room.h"
@@ -594,6 +595,9 @@ void InitializeScripting(int levelIndex, bool loadGame)
 	g_GameStringsHandler->ClearDisplayStrings();
 	g_GameScript->ResetScripts(!levelIndex || loadGame);
 
+	// Remastered controls: clears a script's control mode with the game variables and applies the gameflow's control mode. -- divezzi, 02.11.26
+	Modern::InitializeControlMode(!levelIndex || loadGame);
+
 	auto gameDir = g_GameFlow->GetGameDir();
 	auto autoexecScriptFileName = gameDir + "Scripts/Autoexec.lua";
 
@@ -792,7 +796,7 @@ void SetupInterpolation()
 
 void HandleControls(bool isTitle)
 {
-	SetRelativeMouseMode(!isTitle && g_GameFlow->CurrentFreezeMode != FreezeMode::Full);
+	SetRelativeMouseMode(!isTitle && g_GameFlow->CurrentFreezeMode != FreezeMode::Full && g_Configuration.IsUsingRemasteredControls());
 
 	// Poll input devices and update input variables.
 	// TODO: To allow cutscene skipping later, don't clear Deselect action.

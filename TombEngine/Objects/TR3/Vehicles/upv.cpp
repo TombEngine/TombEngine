@@ -18,6 +18,7 @@
 #include "Game/Lara/lara_flare.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_one_gun.h"
+#include "Game/Lara/ModernControls.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Game/Sink.h"
@@ -625,9 +626,10 @@ namespace TEN::Entities::Vehicles
 					ModulateVehicleTurnRateX(&UPV->TurnRate.x, UPV_X_TURN_RATE_ACCEL, -UPV_X_TURN_RATE_MAX, UPV_X_TURN_RATE_MAX);
 			}
 
-			if (IsHeld(In::Accelerate))
+			// Remastered controls: Action accelerates with keyboard and mouse. -- divezzi, 05.11.26
+			if (Modern::IsUnderwaterVehicleAccelerateHeld())
 			{
-				if (IsHeld(In::Forward) &&
+				if (Modern::IsVehicleDiveHeld(*lara) &&
 					UPV->Flags & UPV_FLAG_SURFACE &&
 					UPVItem->Pose.Orientation.x > -UPV_X_ORIENT_DIVE_MAX)
 				{
@@ -698,9 +700,9 @@ namespace TEN::Entities::Vehicles
 					SoundEffect(SFX_TR3_VEHICLE_UPV_STOP, (Pose*)&UPVItem->Pose.Position.x, SoundEnvironment::Always);
 				}
 			}
-			else if (IsHeld(In::Accelerate))
+			else if (Modern::IsUnderwaterVehicleAccelerateHeld())
 			{
-				if (IsHeld(In::Forward) &&
+				if (Modern::IsVehicleDiveHeld(*lara) &&
 					UPVItem->Pose.Orientation.x > -UPV_X_ORIENT_DIVE_MAX &&
 					UPV->Flags & UPV_FLAG_SURFACE)
 				{
@@ -904,6 +906,13 @@ namespace TEN::Entities::Vehicles
 		{
 			UPVControl(UPVItem, laraItem);
 
+			// Remastered controls fix: without it, holding W pitches the UPV down until it hits the floor. -- divezzi, 02.11.26
+			if (laraItem->Animation.ActiveState == UPV_STATE_MOVE || laraItem->Animation.ActiveState == UPV_STATE_IDLE)
+			{
+				Modern::HandleUnderwaterVehicleHeading(*UPVItem, *lara, UPV->TurnRate, EulerAngles(UPV_X_TURN_RATE_MAX, UPV_Y_TURN_RATE_MAX, 0),
+													   (UPV->Flags & UPV_FLAG_SURFACE) != 0);
+			}
+
 			UPVItem->Animation.Velocity.z = UPV->Velocity / VEHICLE_VELOCITY_SCALE;
 			UPVItem->Pose.Orientation += UPV->TurnRate;
 
@@ -1000,7 +1009,8 @@ namespace TEN::Entities::Vehicles
 		{
 			DoCurrent(UPVItem, laraItem);
 
-			if (IsHeld(In::Fire) &&
+			// Remastered controls: the harpoon fires on Action, or on Fire with keyboard and mouse. -- divezzi, 05.11.26
+			if (Modern::IsUnderwaterVehicleFireHeld() &&
 				UPV->Flags & UPV_FLAG_CONTROL &&
 				!UPV->HarpoonTimer)
 			{

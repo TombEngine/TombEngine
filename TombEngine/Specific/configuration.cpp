@@ -92,6 +92,33 @@ static void LoadBinding(int actionId, int keyId)
 	g_Bindings.SetKeyBinding(BindingProfileID::Custom, action, keyId);
 }
 
+static void LoadBindingProfile(const flatbuffers::Vector<flatbuffers::Offset<Binding>>* bindings, BindingProfile& profile)
+{
+	if (bindings == nullptr)
+		return;
+
+	for (const auto* binding : *bindings)
+	{
+		int actionId = binding->action_id();
+		int keyId = binding->key_id();
+		if (actionId < 0 || keyId < 0 || actionId >= (int)ActionID::Count)
+			continue;
+
+		profile.insert({ (ActionID)actionId, keyId });
+	}
+}
+
+static flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Binding>>> CreateBindingProfileOffset(flatbuffers::FlatBufferBuilder& fbb, const BindingProfile& profile)
+{
+	auto bindings = std::vector<flatbuffers::Offset<Binding>>();
+	bindings.reserve(profile.size());
+
+	for (const auto& [action, keyId] : profile)
+		bindings.push_back(CreateBinding(fbb, (int)action, keyId));
+
+	return fbb.CreateVector(bindings);
+}
+
 static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 {
 	auto buffer = std::vector<unsigned char>();
@@ -135,12 +162,22 @@ static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 	g_Configuration.EnableInteractionHighlighter = config->enable_interaction_highlighter();
 	g_Configuration.EnableRumble = config->enable_rumble();
 	g_Configuration.EnableThumbstickCamera = config->enable_thumbstick_camera();
+	g_Configuration.InvertCameraYAxis = config->invert_camera_y_axis();
+	g_Configuration.EnableSprintToggle = config->enable_sprint_toggle();
+	g_Configuration.EnableLookToggle = config->enable_look_toggle();
+	g_Configuration.EnableCrouchToggle = config->enable_crouch_toggle();
+	g_Configuration.EnableGrabToggle = config->enable_grab_toggle();
+	g_Configuration.EnableSmoothSprintSteps = config->enable_smooth_sprint_steps();
 
 	g_Configuration.MouseSensitivity = config->mouse_sensitivity();
 	g_Configuration.MenuOptionLoopingMode = (MenuOptionLoopingMode)config->menu_option_looping_mode();
 
 	int gamepadType = std::clamp(config->last_gamepad_type(), 0, (int)GamepadType::Count - 1);
 	g_Configuration.LastGamepadType = (GamepadType)gamepadType;
+
+	// Remastered controls: reads the control mode, falling back to a valid value if the file holds an unknown one. -- divezzi, 08.10.26
+	int controlMode = std::clamp(config->control_mode(), 0, (int)ControlMode::Count - 1);
+	g_Configuration.ControlMode = (ControlMode)controlMode;
 
 	if (config->bindings() != nullptr)
 	{
@@ -150,6 +187,10 @@ static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 
 	if (g_Configuration.Bindings.empty())
 		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Default);
+
+	// Remastered controls: reads the Remastered keyboard/mouse and gamepad bindings, stored apart from the classic ones. -- divezzi, 08.10.26
+	LoadBindingProfile(config->remastered_bindings(), g_Configuration.RemasteredBindings);
+	LoadBindingProfile(config->remastered_gamepad_bindings(), g_Configuration.RemasteredGamepadBindings);
 
 	return true;
 }
@@ -193,11 +234,20 @@ void InitDefaultConfiguration()
 	g_Configuration.EnableInteractionHighlighter = true;
 	g_Configuration.EnableRumble = true;
 	g_Configuration.EnableThumbstickCamera = false;
+	g_Configuration.InvertCameraYAxis = false;
+	g_Configuration.EnableSprintToggle = false;
+	g_Configuration.EnableLookToggle = false;
+	g_Configuration.EnableCrouchToggle = true;
+	g_Configuration.EnableGrabToggle = true;
+	g_Configuration.EnableSmoothSprintSteps = true;
 
 	g_Configuration.MouseSensitivity = GameConfiguration::DEFAULT_MOUSE_SENSITIVITY;
 	g_Configuration.MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
 	g_Configuration.LastGamepadType = GamepadType::Xbox;
 	g_Configuration.Bindings = {};
+	g_Configuration.ControlMode = ControlMode::Classic;
+	g_Configuration.RemasteredBindings = {};
+	g_Configuration.RemasteredGamepadBindings = {};
 
 	g_Configuration.SupportedScreenResolutions = GetAllSupportedScreenResolutions();
 	g_Configuration.AdapterName = g_Renderer.GetDefaultAdapterName();
@@ -220,6 +270,11 @@ bool LoadConfiguration()
 
 	g_Configuration.EnableSound = g_Configuration.SoundDevice > 0;
 	SetAudioConfiguration(g_Configuration);
+
+	// Remastered controls: loads the Remastered binding profiles in place of the classic ones. -- divezzi, 08.10.26
+	if (g_Configuration.IsUsingRemasteredControls())
+		RefreshBindingsForControlMode();
+
 	DefaultConflict();
 	SaveConfiguration();
 
@@ -238,6 +293,8 @@ static std::vector<unsigned char> BuildConfigurationBuffer()
 		bindings.push_back(CreateBinding(fbb, (int)action, keyId));
 
 	auto bindingsOffset = fbb.CreateVector(bindings);
+	auto remasteredBindingsOffset = CreateBindingProfileOffset(fbb, g_Configuration.RemasteredBindings);
+	auto remasteredGamepadBindingsOffset = CreateBindingProfileOffset(fbb, g_Configuration.RemasteredGamepadBindings);
 
 	ConfigurationBuilder builder{ fbb };
 	builder.add_screen_width(g_Configuration.ScreenWidth);
@@ -268,6 +325,15 @@ static std::vector<unsigned char> BuildConfigurationBuffer()
 	builder.add_menu_option_looping_mode((int)g_Configuration.MenuOptionLoopingMode);
 	builder.add_last_gamepad_type((int)g_Configuration.LastGamepadType);
 	builder.add_bindings(bindingsOffset);
+	builder.add_control_mode((int)g_Configuration.ControlMode);
+	builder.add_remastered_bindings(remasteredBindingsOffset);
+	builder.add_remastered_gamepad_bindings(remasteredGamepadBindingsOffset);
+	builder.add_invert_camera_y_axis(g_Configuration.InvertCameraYAxis);
+	builder.add_enable_sprint_toggle(g_Configuration.EnableSprintToggle);
+	builder.add_enable_look_toggle(g_Configuration.EnableLookToggle);
+	builder.add_enable_crouch_toggle(g_Configuration.EnableCrouchToggle);
+	builder.add_enable_grab_toggle(g_Configuration.EnableGrabToggle);
+	builder.add_enable_smooth_sprint_steps(g_Configuration.EnableSmoothSprintSteps);
 
 	auto config = builder.Finish();
 	FinishConfigurationBuffer(fbb, config);

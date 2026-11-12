@@ -259,6 +259,12 @@ namespace TEN::Scripting
 		// @tfield[opt=true] bool enableInventory If false, inventory will not open.
 		"enableInventory", &GameplaySettings::EnableInventory,
 
+		/// Set the control mode for the whole game.
+		// If set to a mode, every level is played in it and the Control Mode menu entry is locked.
+		// A level's own `controlMode` and @{Flow.SetControlMode} take priority.
+		// @tfield[opt=Flow.ControlMode.DEFAULT] Flow.ControlMode controlMode Control mode to use. `Flow.ControlMode.DEFAULT` leaves the choice to the player.
+		"controlMode", &GameplaySettings::ForcedControlMode,
+
 		/// Set enemies on fire with weapons.
 		// @tfield[opt=true] bool setEnemiesOnFireWithWeapons If true, enemy creatures will catch fire from explosive weapons.
 		"setEnemiesOnFireWithWeapons", &GameplaySettings::SetEnemiesOnFireWithWeapons,
@@ -352,7 +358,7 @@ namespace TEN::Scripting
 			sol::meta_function::new_index, NewIndexErrorMaker(GraphicsSettings, ScriptReserved_GraphicsSettings),
 
 		/// Enable ambient occlusion.
-		// @tfield[opt=true] bool ambientOcclusion If disabled, ambient occlusion setting will be forced to off, and corresponding menu entry in the Display Settings dialog will be grayed out.
+		// @tfield[opt=true] bool ambientOcclusion If disabled, ambient occlusion setting will be forced to off, and corresponding menu entry in the Display dialog will be grayed out.
 		"ambientOcclusion", &GraphicsSettings::AmbientOcclusion,
 
 		/// Enable flame heat haze overlays for fire particles and sparks.
