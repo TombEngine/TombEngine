@@ -38,7 +38,6 @@
 using namespace TEN::Animation;
 using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Sphere;
-using namespace TEN::Controls;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Input;
 using namespace TEN::Math;

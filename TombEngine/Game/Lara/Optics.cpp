@@ -16,7 +16,6 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/Input/Input.h"
 
-using namespace TEN::Controls;
 using namespace TEN::Input;
 
 static void HandlePlayerOpticZoom(ItemInfo& item)

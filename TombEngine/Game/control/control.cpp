@@ -100,7 +100,6 @@ using namespace TEN::Entities::TR3;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Control::Volumes;
-using namespace TEN::Controls;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
@@ -797,7 +796,7 @@ void SetupInterpolation()
 
 void HandleControls(bool isTitle)
 {
-	SetRelativeMouseMode(!isTitle && g_GameFlow->CurrentFreezeMode != FreezeMode::Full);
+	SetRelativeMouseMode(!isTitle && g_GameFlow->CurrentFreezeMode != FreezeMode::Full && g_Configuration.IsUsingRemasteredControls());
 
 	// Poll input devices and update input variables.
 	// TODO: To allow cutscene skipping later, don't clear Deselect action.

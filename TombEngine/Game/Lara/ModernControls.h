@@ -7,7 +7,7 @@ struct CollisionInfo;
 struct ItemInfo;
 struct LaraInfo;
 
-namespace TEN::Controls::Modern
+namespace TEN::Input::Modern
 {
 	constexpr auto SPRINT_LEAN_CLAMP = ANGLE(16.1f);
 

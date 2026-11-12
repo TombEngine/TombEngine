@@ -41,7 +41,6 @@
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Control::Volumes;
-using namespace TEN::Controls;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Drip;
 using namespace TEN::Entities::Player;

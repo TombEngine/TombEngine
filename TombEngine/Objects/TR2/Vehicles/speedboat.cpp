@@ -24,7 +24,6 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
-using namespace TEN::Controls;
 using namespace TEN::Input;
 using namespace TEN::Utils;
 

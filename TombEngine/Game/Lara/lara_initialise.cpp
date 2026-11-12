@@ -27,9 +27,9 @@
 #include "Specific/trutils.h"
 
 using namespace TEN::Collision::Point;
-using namespace TEN::Controls;
 using namespace TEN::Entities::Player;
 using namespace TEN::Hud;
+using namespace TEN::Input;
 using namespace TEN::Utils;
 
 // Globals

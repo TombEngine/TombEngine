@@ -34,7 +34,6 @@
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Sphere;
-using namespace TEN::Controls;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Streamer;
 using namespace TEN::Input;

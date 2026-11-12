@@ -20,7 +20,6 @@
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
-using namespace TEN::Controls;
 using namespace TEN::Input;
 using namespace TEN::Math;
 

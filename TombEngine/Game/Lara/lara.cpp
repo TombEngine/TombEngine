@@ -48,7 +48,6 @@ using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
 using namespace TEN::Control::Volumes;
-using namespace TEN::Controls;
 using namespace TEN::Effects::Hair;
 using namespace TEN::Effects::Items;
 using namespace TEN::Entities::Doors;

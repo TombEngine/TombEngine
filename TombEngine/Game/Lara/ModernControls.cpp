@@ -25,7 +25,7 @@ using namespace TEN::Input;
 using namespace TEN::Math;
 using namespace TEN::SpotCam;
 
-namespace TEN::Controls::Modern
+namespace TEN::Input::Modern
 {
 	// Remastered controls: input rewrite and heading solver for camera-relative movement. -- divezzi, 10.10.26
 

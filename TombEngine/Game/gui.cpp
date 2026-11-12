@@ -29,7 +29,6 @@
 #include "Specific/Video/Video.h"
 
 using namespace TEN::Animation;
-using namespace TEN::Controls;
 using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Input;
 using namespace TEN::Renderer;

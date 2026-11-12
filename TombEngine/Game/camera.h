@@ -131,7 +131,7 @@ void UpdateMikePos(const ItemInfo& item);
 
 float GetParticleDistanceFade(const Vector3i& pos);
 
-namespace TEN::Controls::Modern
+namespace TEN::Input::Modern
 {
 	void ResetCameraOrient(const ItemInfo& item);
 	void UpdatePlayerRefCameraOrient(ItemInfo& item);

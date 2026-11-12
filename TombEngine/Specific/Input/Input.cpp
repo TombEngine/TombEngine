@@ -313,7 +313,8 @@ namespace TEN::Input
 	void SetRelativeMouseMode(bool relative)
 	{
 #ifdef _DEBUG
-		return;
+		if (!g_Configuration.IsUsingRemasteredControls())
+			return;
 #endif
 		relative = relative || g_Renderer.IsFullScreen();
 

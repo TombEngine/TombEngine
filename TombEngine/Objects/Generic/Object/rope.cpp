@@ -16,7 +16,6 @@
 #include "Game/camera.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 
-using namespace TEN::Controls;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Generic

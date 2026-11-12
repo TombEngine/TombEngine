@@ -33,8 +33,8 @@
 #include "Specific/configuration.h"
 #include "Specific/trutils.h"
 
-using namespace TEN::Controls;
 using namespace TEN::Gui;
+using namespace TEN::Input;
 using namespace TEN::Scripting;
 using namespace TEN::Scripting::Collision;
 

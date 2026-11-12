@@ -54,7 +54,6 @@
 using namespace flatbuffers;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Control::Volumes;
-using namespace TEN::Controls;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Effects::Fireflies;
 using namespace TEN::Effects::Hair;
@@ -66,6 +65,7 @@ using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::TR3;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Gui;
+using namespace TEN::Input;
 using namespace TEN::Renderer;
 using namespace TEN::Scripting::Properties;
 using namespace TEN::Serialization;

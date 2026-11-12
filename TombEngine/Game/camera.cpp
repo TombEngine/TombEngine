@@ -29,7 +29,6 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
-using namespace TEN::Controls;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Input;
@@ -565,7 +564,7 @@ void RefreshFixedCamera(short camNumber)
 	MoveCamera(&origin, moveSpeed, true);
 }
 
-namespace TEN::Controls::Modern
+namespace TEN::Input::Modern
 {
 	constexpr auto CAMERA_ALTITUDE_DEFAULT = ANGLE(-10.0f);
 	constexpr auto CAMERA_ALTITUDE_MIN     = ANGLE(-85.0f);
