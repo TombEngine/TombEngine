@@ -160,7 +160,7 @@ namespace TEN::Hud
 
 		// Offset object bounding box.
 		auto itemBoundingBox = item.GetObb();
-		itemBoundingBox.Center = itemBoundingBox.Center + offset;
+		itemBoundingBox.Center = Geometry::TranslatePoint(itemBoundingBox.Center, item.Pose.Orientation, offset);
 
 		// Inflate object bounding box a little to increase highlight tolerance.
 		auto inflatedBoundingBox = itemBoundingBox;

@@ -19,7 +19,7 @@ using namespace TEN::Math;
 using namespace TEN::Scripting::Types;
 
 /// Create and manage particle groups.
-// @tenclass Effects.ParticleGroups 
+// @tenclass Effects.ParticleGroup
 // @pragma nostrip
 
 namespace ParticleKey
