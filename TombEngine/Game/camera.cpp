@@ -1130,12 +1130,18 @@ namespace TEN::Controls::Modern
 		// MoveCamera() eases toward the ideal, so the drawn position gets the same diagonal push.
 		ApplyCameraDiagonalPush(Camera.pos, Camera.target);
 	}
+
+	// The orbit camera is used under Remastered controls, except in the title level, which keeps the stock camera.
+	static bool IsOrbitCameraEnabled()
+	{
+		return (g_Configuration.IsUsingRemasteredControls() && CurrentLevel != 0);
+	}
 }
 
 void ChaseCamera(ItemInfo* item)
 {
 	// Remastered controls: chase camera held at the player's orbit angle. -- divezzi, 08.10.26
-	if (g_Configuration.IsUsingRemasteredControls())
+	if (Modern::IsOrbitCameraEnabled())
 	{
 		Modern::OrbitCamera(*item);
 		return;
@@ -1249,7 +1255,7 @@ void ChaseCamera(ItemInfo* item)
 void UpdateCameraElevation()
 {
 	// Remastered controls: right stick and mouse orbit replace DoThumbstickCamera(). -- divezzi, 08.10.26
-	if (g_Configuration.IsUsingRemasteredControls())
+	if (Modern::IsOrbitCameraEnabled())
 	{
 		Modern::UpdateCameraOrient();
 		return;
@@ -1280,7 +1286,7 @@ void CombatCamera(ItemInfo* item)
 	Camera.target.z = item->Pose.Position.z;
 
 	// Remastered controls fix: without it, a blocked camera swings to a fixed side and the stick no longer matches the view. -- divezzi, 29.10.26
-	if (g_Configuration.IsUsingRemasteredControls())
+	if (Modern::IsOrbitCameraEnabled())
 	{
 		Camera.targetDistance = BLOCK(1.5f);
 		Modern::OrbitCamera(*item);
