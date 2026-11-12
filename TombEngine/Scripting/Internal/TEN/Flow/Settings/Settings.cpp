@@ -584,6 +584,12 @@ namespace TEN::Scripting
 			sol::call_constructor, sol::constructors<SystemSettings()>(),
 			sol::meta_function::new_index, NewIndexErrorMaker(SystemSettings, ScriptReserved_SystemSettings),
 
+		/// Enable Discord Rich Presence integration.
+		// This option will display whether the player is currently using TombEngine, along with the name of the current
+		// level. For builder's privacy, this option will always be disabled when the engine is launched from the editor.
+		// @tfield[opt=true] bool discordIntegration Allows TombEngine to send game and level status to Discord.
+		"discordIntegration", &SystemSettings::DiscordIntegration,
+
 		/// How should the application respond to script errors?
 		// @tfield[opt=Flow.ErrorMode.WARN] Flow.ErrorMode errorMode Error mode to use.
 		"errorMode", &SystemSettings::ErrorMode,

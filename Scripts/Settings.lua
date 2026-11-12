@@ -72,6 +72,7 @@ local settings = Flow.Settings.new()
 	settings.Physics.gravity = 6
 	settings.Physics.swimVelocity = 50
 	
+	settings.System.discordIntegration = true
 	settings.System.errorMode = Flow.ErrorMode.WARN
 	settings.System.fastReload = true
 	settings.System.multithreaded = true

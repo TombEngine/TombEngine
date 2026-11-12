@@ -143,9 +143,10 @@ namespace TEN::Scripting
 
 	struct SystemSettings
 	{
-		ErrorMode ErrorMode		= ErrorMode::Warn;
-		bool	  FastReload	= true;
-		bool	  Multithreaded = true;
+		ErrorMode ErrorMode			 = ErrorMode::Warn;
+		bool	  DiscordIntegration = true;
+		bool	  FastReload		 = true;
+		bool	  Multithreaded		 = true;
 
 		int		  VariableFloodProtectionTimeLimit		= 1000;
 		int		  VariableFloodProtectionOverallLimit	= 5000;
