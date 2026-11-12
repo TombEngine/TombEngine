@@ -485,19 +485,6 @@ namespace TEN::Input
 		}
 	}
 
-	// Mark default bindings overridden by custom ones on the same device, so only the key on the Controls page works.
-	static void DefaultRemasteredConflict(BindingProfileID defaultProfileID, BindingProfileID customProfileID)
-	{
-		for (const auto& actionIDGroup : ACTION_ID_GROUPS)
-		{
-			for (auto actionID : actionIDGroup)
-			{
-				if (g_Bindings.GetBoundKeyID(customProfileID, actionID) != KEY_UNASSIGNED)
-					g_Bindings.SetConflict(actionID, true, defaultProfileID);
-			}
-		}
-	}
-
 	void DefaultConflict()
 	{
 		for (const auto& actionIDGroup : ACTION_ID_GROUPS)
@@ -520,13 +507,7 @@ namespace TEN::Input
 
 		// Remastered controls: marks gamepad defaults overridden by custom gamepad bindings. -- divezzi, 08.10.26
 		if (g_Configuration.IsUsingRemasteredControls())
-		{
 			DefaultGamepadConflict();
-
-			// Remastered controls fix: without it, a default key still works after its action is rebound. -- divezzi, 01.11.26
-			DefaultRemasteredConflict(BindingProfileID::Default, BindingProfileID::Custom);
-			DefaultRemasteredConflict(BindingProfileID::DefaultGamepad, BindingProfileID::CustomGamepad);
-		}
 	}
 
 	static void SetRemasteredDPadAxisValues(int keyID)
@@ -687,7 +668,7 @@ namespace TEN::Input
 		return ((OwnedShortcutKeys.count(it->second) != 0) ? it->second : KEY_UNASSIGNED);
 	}
 
-	// Same as GetBoundKeyID(), but under Remastered controls skips default bindings overridden by custom ones.
+	// Same as GetBoundKeyID(), but under Remastered controls skips default bindings that a custom binding uses.
 	static int GetRemasteredBoundKeyID(BindingProfileID profileID, ActionID actionID)
 	{
 		bool isDefaultProfile = (profileID == BindingProfileID::Default || profileID == BindingProfileID::DefaultGamepad);
@@ -703,7 +684,7 @@ namespace TEN::Input
 		{
 			auto profileID = (BindingProfileID)i;
 
-			// Remastered controls fix: without it, a default movement key still moves the player after rebinding. -- divezzi, 01.11.26
+			// Under Remastered controls, default movement keys that a custom binding uses are skipped.
 			if (GetRemasteredBoundKeyID(profileID, In::Forward) == keyID)
 			{
 				AxisMap[AxisID::Move].y = 1.0f;
