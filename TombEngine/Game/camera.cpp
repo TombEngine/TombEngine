@@ -582,6 +582,9 @@ namespace TEN::Controls::Modern
 	static auto CameraHeldTurn = Vector2i(0, 0); // Turn the orbit camera held by a wall has not taken yet. Only the fly cheat keeps one.
 	static auto ViewTurn	   = Vector2i(0, 0); // Turn added to the frame of a fixed shot or a flyby.
 
+	// Share of the camera ray left after last tick's clip.
+	static float CameraClipRatio = 1.0f;
+
 	// OrbitCamera() ran this tick.
 	static bool IsOrbitCameraRun = false;
 
@@ -604,6 +607,7 @@ namespace TEN::Controls::Modern
 		CameraPrevAltitude = CameraAltitude;
 		CameraHeldTurn = Vector2i::Zero;
 		ViewTurn = Vector2i::Zero;
+		CameraClipRatio = 1.0f;
 	}
 
 	// Move axis pushed, or Accelerate held in a vehicle.
@@ -1059,6 +1063,41 @@ namespace TEN::Controls::Modern
 		pos = GameVector(clipPos, GetPointCollision(clipPos, clipRoomNumber).GetRoomNumber());
 	}
 
+	// Settings of the lift toward the head. A control mode passes its own values.
+	struct CameraHeadSetup
+	{
+		float FreeRatio	 = 1.0f; // Share of the camera ray left at or above which nothing is lifted.
+		float TightRatio = 0.0f; // Share of the camera ray left at or below which the look-at is at the head.
+		float HeadMargin = 0.0f; // How far below the top of the player's bounds the head target sits.
+	};
+
+	// Moves the look-at toward the player's head as the camera ray gets shorter, up to the head at the tightest.
+	// The ideal position is built from the look-at afterwards, so the camera rises with it.
+	static void LiftCameraLookAtToHead(const ItemInfo& item, GameVector& lookAt, const CameraHeadSetup& setup)
+	{
+		constexpr auto CEILING_BUFFER = 32;
+
+		float alpha = 1.0f - Smoothstep(setup.TightRatio, setup.FreeRatio, CameraClipRatio);
+		if (alpha <= 0.0f)
+			return;
+
+		float headHeight = item.Pose.Position.y + GameBoundingBox(&item).Y1 + setup.HeadMargin;
+		if (headHeight >= lookAt.y)
+			return;
+
+		// Stay below the ceiling, so ClampCameraLookAtHeight() does not hold the pitch for it.
+		int liftedHeight = (int)Lerp((float)lookAt.y, headHeight, alpha);
+		int ceilingHeight = GetPointCollision(lookAt.ToVector3i(), lookAt.RoomNumber).GetCeilingHeight();
+		if (ceilingHeight != NO_HEIGHT)
+			liftedHeight = std::max(liftedHeight, ceilingHeight + CEILING_BUFFER);
+
+		if (liftedHeight >= lookAt.y)
+			return;
+
+		lookAt.y = liftedHeight;
+		lookAt.RoomNumber = GetPointCollision(lookAt.ToVector3i(), lookAt.RoomNumber).GetRoomNumber();
+	}
+
 	// Chase camera held at the player's orbit angle. Tests only that angle, then clips the ideal
 	// position against room geometry and pushes it off walls.
 	static void OrbitCamera(ItemInfo& item)
@@ -1066,6 +1105,7 @@ namespace TEN::Controls::Modern
 		constexpr auto CAMERA_SPEED				  = 3;
 		constexpr auto CLIP_SETUP				  = CameraClipSetup{ 64, 0 };
 		constexpr auto CLIP_SETUP_LOOK_AT_CLAMPED = CameraClipSetup{ 64, 250 };
+		constexpr auto HEAD_SETUP				  = CameraHeadSetup{ 0.4f, 0.1f, CLICK(0.25f) };
 
 		// A fixed shot has just ended: start behind the player.
 		bool isFixedShot = (Camera.type == CameraType::Fixed || Camera.type == CameraType::Heavy);
@@ -1098,6 +1138,9 @@ namespace TEN::Controls::Modern
 		if (TestEnvironment(ENV_FLAG_SWAMP, pointColl.GetRoomNumber()))
 			Camera.target.y = g_Level.Rooms[pointColl.GetRoomNumber()].TopHeight - CLICK(1);
 
+		// Lift the look-at toward the player's head when a wall shortens the camera ray.
+		LiftCameraLookAtToHead(item, Camera.target, HEAD_SETUP);
+
 		bool isLookAtClamped = ClampCameraLookAtHeight(Camera.target);
 
 		// Ideal position at the orbit angle.
@@ -1110,6 +1153,10 @@ namespace TEN::Controls::Modern
 		ideal.RoomNumber = Camera.target.RoomNumber;
 
 		ClipCameraToRoomGeometry(Camera.target, ideal, isLookAtClamped ? CLIP_SETUP_LOOK_AT_CLAMPED : CLIP_SETUP);
+
+		// The next tick lifts the look-at by how much this clip shortened the ray.
+		CameraClipRatio = (Camera.targetDistance > 0) ?
+			std::clamp(Vector3::Distance(Camera.target.ToVector3(), ideal.ToVector3()) / (float)Camera.targetDistance, 0.0f, 1.0f) : 1.0f;
 
 		bool isPushBlocked = CameraCollisionBounds(&ideal, CAMERA_WALL_PUSH, true);
 		ApplyCameraDiagonalPush(ideal, Camera.target);
