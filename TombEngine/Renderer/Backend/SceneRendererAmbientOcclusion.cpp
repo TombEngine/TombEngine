@@ -148,7 +148,7 @@ namespace TEN::Renderer::Backend
     // samples. The slice angles change every frame with the motion frame counter.
     void SceneRenderer::RenderAmbientOcclusion(ICommandBuffer& commandBuffer)
     {
-        constexpr auto FRAME_NOISE_STEPS = 16;
+        constexpr auto GOLDEN_RATIO_CONJUGATE = 0.6180339887498949;
 
         const auto& targetDesc = _aoHistory[0]->GetDesc();
         int nextHistory = (_aoHistoryIndex + 1) % AO_HISTORY_COUNT;
@@ -158,7 +158,8 @@ namespace TEN::Renderer::Backend
         uniforms.InverseProjection = _projection.Invert();
         uniforms.TargetSize = Vector2((float)targetDesc.Width, (float)targetDesc.Height);
         uniforms.TexelSize = Vector2(1.0f / targetDesc.Width, 1.0f / targetDesc.Height);
-        uniforms.FrameNoise = (float)(_motionFrame % FRAME_NOISE_STEPS) / FRAME_NOISE_STEPS;
+        // Golden ratio sequence: any run of frames covers the slice angles evenly, and it does not repeat.
+        uniforms.FrameNoise = (float)std::fmod((double)_motionFrame * GOLDEN_RATIO_CONJUGATE, 1.0);
         // The history is valid when the previous frame accumulated into it.
         uniforms.IsHistoryValid = (_isAoHistoryValid && _aoHistoryFrame == (_motionFrame - 1)) ? 1 : 0;
         uniforms.HasVelocity = _isVelocityActive ? 1 : 0;

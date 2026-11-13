@@ -129,8 +129,10 @@ float PS(PixelInput input) : SV_Target
     float2 screenRadius = Radius * 0.5f * float2(Projection._11, Projection._22) / max(abs(position.z), 1.0f);
     screenRadius = min(screenRadius, MaxScreenRadius);
 
-    float noise = GetNoise(input.Position.xy + FrameNoise * 64.0f);
-    float stepOffset = frac(noise + FrameNoise * 0.61803399f);
+    // The slice angle moves by the frame sequence from a per texel start, so the angles of a texel over the frames are evenly spread.
+    float spatialNoise = GetNoise(input.Position.xy);
+    float noise = frac(spatialNoise + FrameNoise);
+    float stepOffset = frac(spatialNoise + FrameNoise * 0.61803399f);
     float visibility = 0.0f;
 
     [unroll]
