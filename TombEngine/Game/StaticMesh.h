@@ -29,7 +29,7 @@ enum GAME_OBJECT_ID : short;
 
 		Pose  Pose		 = Pose::Zero;
 		int	  RoomNumber = 0;
-		Color Color		 = SimpleMath::Color();
+		Color Color		 = TEN::Math::Library::Color();
 
 		PropertyMap Properties = {};
 

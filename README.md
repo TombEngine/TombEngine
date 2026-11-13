@@ -26,12 +26,6 @@ Steps:
 7) Ensure you have the necessary level data and texture files.
 8) In case Windows warns about missing DLLs (bass.dll, etc.), copy the missing DLL files found inside the `Libs` folder to your main `TEN` directory.
 
-*Visual Studio* may warn about NuGet packages. To fix:
-1) Delete the `Packages` folder.
-2) Go back to *Microsoft Visual Studio*.
-3) Right-click on the *TEN* solution in the *Solution Explorer* tab and select "Restore NuGet Packages".
-4) If it doesn't help, manually install  `directxtk_desktop_2019` and `Microsoft.XAudio2.Redist` packages via NuGet Package Manager.
-
 Once done, you should be able to build a level with *Tomb Editor* and run it in *TEN*.
 
 # Contributions

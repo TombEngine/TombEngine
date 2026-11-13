@@ -10,7 +10,7 @@ namespace TEN::Serialization
 		return Common::EulerAngles(eulers.x, eulers.y, eulers.z);
 	}
 
-	Common::Vector2 FromVector2(const DirectX::SimpleMath::Vector2& vec)
+	Common::Vector2 FromVector2(const TEN::Math::Library::Vector2& vec)
 	{
 		return Common::Vector2(vec.x, vec.y);
 	}
@@ -20,7 +20,7 @@ namespace TEN::Serialization
 		return Common::Vector2((float)vec.x, (float)vec.y);
 	}
 
-	Common::Vector3 FromVector3(const DirectX::SimpleMath::Vector3& vec)
+	Common::Vector3 FromVector3(const TEN::Math::Library::Vector3& vec)
 	{
 		return Common::Vector3(vec.x, vec.y, vec.z);
 	}
@@ -30,7 +30,7 @@ namespace TEN::Serialization
 		return Common::Vector3((float)vec.x, (float)vec.y, (float)vec.z);
 	}
 
-	Common::Vector4 FromVector4(const DirectX::SimpleMath::Vector4& vec)
+	Common::Vector4 FromVector4(const TEN::Math::Library::Vector4& vec)
 	{
 		return Common::Vector4(vec.x, vec.y, vec.z, vec.w);
 	}
@@ -50,9 +50,9 @@ namespace TEN::Serialization
 		return ::EulerAngles((short)round(eulers->x()), (short)round(eulers->y()), (short)round(eulers->z()));
 	}
 
-	DirectX::SimpleMath::Vector2 ToVector2(const Common::Vector2* vec)
+	TEN::Math::Library::Vector2 ToVector2(const Common::Vector2* vec)
 	{
-		return DirectX::SimpleMath::Vector2(vec->x(), vec->y());
+		return TEN::Math::Library::Vector2(vec->x(), vec->y());
 	}
 
 	TEN::Math::Vector2i ToVector2i(const Common::Vector2* vec)
@@ -65,19 +65,19 @@ namespace TEN::Serialization
 		return ::Vector3i((int)round(vec->x()), (int)round(vec->y()), (int)round(vec->z()));
 	}
 
-	DirectX::SimpleMath::Vector3 ToVector3(const Common::Vector3* vec)
+	TEN::Math::Library::Vector3 ToVector3(const Common::Vector3* vec)
 	{
-		return DirectX::SimpleMath::Vector3(vec->x(), vec->y(), vec->z());
+		return TEN::Math::Library::Vector3(vec->x(), vec->y(), vec->z());
 	}
 
-	DirectX::SimpleMath::Vector4 ToVector4(const Common::Vector3* vec)
+	TEN::Math::Library::Vector4 ToVector4(const Common::Vector3* vec)
 	{
-		return DirectX::SimpleMath::Vector4(vec->x(), vec->y(), vec->z(), 1.0f);
+		return TEN::Math::Library::Vector4(vec->x(), vec->y(), vec->z(), 1.0f);
 	}
 
-	DirectX::SimpleMath::Vector4 ToVector4(const Common::Vector4* vec)
+	TEN::Math::Library::Vector4 ToVector4(const Common::Vector4* vec)
 	{
-		return DirectX::SimpleMath::Vector4(vec->x(), vec->y(), vec->z(), vec->w());
+		return TEN::Math::Library::Vector4(vec->x(), vec->y(), vec->z(), vec->w());
 	}
 
 	GameVector ToGameVector(const Common::GameVector* vec)

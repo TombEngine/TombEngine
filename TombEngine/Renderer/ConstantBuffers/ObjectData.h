@@ -1,12 +1,12 @@
 #pragma once
 
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 #include "Renderer/RendererEnums.h"
 #include "Renderer/ConstantBuffers/ShaderLight.h"
 
 namespace TEN::Renderer::ConstantBuffers
 {
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 
 	// Shared per-object payload uploaded inside both the per-item CB and the per-instance
 	// array CB. Field order and alignment match the HLSL Object struct one-to-one — keep

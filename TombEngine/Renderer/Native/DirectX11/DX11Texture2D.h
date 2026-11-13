@@ -4,16 +4,14 @@
 
 #include <d3d11.h>
 #include <wrl/client.h>
-#include <WICTextureLoader.h>
-#include <DDSTextureLoader.h>
 #include "Renderer/Native/DirectX11/DX11TextureBase.h"
+#include "Renderer/Graphics/ImageDecoding.h"
 #include "Renderer/Graphics/ITexture2D.h"
 #include "Renderer/Graphics/VRAMAllocation.h"
 
 namespace TEN::Renderer::Native::DirectX11
 {
 	using namespace TEN::Renderer::Graphics;
-	using namespace DirectX;
 
 	using Microsoft::WRL::ComPtr;
 
@@ -39,6 +37,9 @@ namespace TEN::Renderer::Native::DirectX11
 		DX11Texture2D(ID3D11Device* device, int width, int height, DXGI_FORMAT format, void* data, bool isDynamic = false);
 		DX11Texture2D(ID3D11Device* device, const std::string& fileName);
 		DX11Texture2D(ID3D11Device* device, int dataSize, unsigned char* data);
+
+	private:
+		void InitializeFromImage(ID3D11Device* device, const DecodedImage& image, const std::string& source);
 	};
 }
 

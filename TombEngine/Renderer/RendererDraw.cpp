@@ -2479,7 +2479,7 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::RoomAmbient);
 
 		// Bind and clear render target
-		_context->ClearRenderTargetView(renderTarget->RenderTargetView.Get(), Colors::Black);
+		_context->ClearRenderTargetView(renderTarget->RenderTargetView.Get(), &Colors::Black.x);
 		_context->ClearDepthStencilView(renderTarget->DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		_context->OMSetRenderTargets(1, renderTarget->RenderTargetView.GetAddressOf(), renderTarget->DepthStencilView.Get());
 
@@ -2680,7 +2680,7 @@ namespace TEN::Renderer
 		// TODO: to finish
 		/*
 		// Smooth the ambient map with guassian 5x5 filter
-		_context->ClearRenderTargetView(_tempRoomAmbientRenderTarget1.RenderTargetView.Get(), Colors::Black);
+		_context->ClearRenderTargetView(_tempRoomAmbientRenderTarget1.RenderTargetView.Get(), &Colors::Black.x);
 		_context->ClearDepthStencilView(_tempRoomAmbientRenderTarget1.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		_context->OMSetRenderTargets(1, _tempRoomAmbientRenderTarget1.RenderTargetView.GetAddressOf(), _tempRoomAmbientRenderTarget1.DepthStencilView.Get());
 
@@ -2689,7 +2689,7 @@ namespace TEN::Renderer
 		_postProcess->SetGaussianParameter(1);
 		_postProcess->Process(_context.Get());
 
-		_context->ClearRenderTargetView(_tempRoomAmbientRenderTarget2.RenderTargetView.Get(), Colors::Black);
+		_context->ClearRenderTargetView(_tempRoomAmbientRenderTarget2.RenderTargetView.Get(), &Colors::Black.x);
 		_context->ClearDepthStencilView(_tempRoomAmbientRenderTarget2.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		_context->OMSetRenderTargets(1, _tempRoomAmbientRenderTarget2.RenderTargetView.GetAddressOf(), _tempRoomAmbientRenderTarget2.DepthStencilView.Get());
 
@@ -2698,7 +2698,7 @@ namespace TEN::Renderer
 		_postProcess->SetGaussianParameter(1);
 		_postProcess->Process(_context.Get());
 
-		_context->ClearRenderTargetView(_tempRoomAmbientRenderTarget3.RenderTargetView.Get(), Colors::Black);
+		_context->ClearRenderTargetView(_tempRoomAmbientRenderTarget3.RenderTargetView.Get(), &Colors::Black.x);
 		_context->ClearDepthStencilView(_tempRoomAmbientRenderTarget3.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		_context->OMSetRenderTargets(1, _tempRoomAmbientRenderTarget3.RenderTargetView.GetAddressOf(), _tempRoomAmbientRenderTarget3.DepthStencilView.Get());
 
@@ -2707,7 +2707,7 @@ namespace TEN::Renderer
 		_postProcess->SetGaussianParameter(1);
 		_postProcess->Process(_context.Get());
 
-		_context->ClearRenderTargetView(_tempRoomAmbientRenderTarget4.RenderTargetView.Get(), Colors::Black);
+		_context->ClearRenderTargetView(_tempRoomAmbientRenderTarget4.RenderTargetView.Get(), &Colors::Black.x);
 		_context->ClearDepthStencilView(_tempRoomAmbientRenderTarget4.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		_context->OMSetRenderTargets(1, _tempRoomAmbientRenderTarget4.RenderTargetView.GetAddressOf(), _tempRoomAmbientRenderTarget4.DepthStencilView.Get());
 
@@ -2716,7 +2716,7 @@ namespace TEN::Renderer
 		_postProcess->SetGaussianParameter(1);
 		_postProcess->Process(_context.Get());
 
-		_context->ClearRenderTargetView(renderTarget->RenderTargetView.Get(), Colors::Black);
+		_context->ClearRenderTargetView(renderTarget->RenderTargetView.Get(), &Colors::Black.x);
 		_context->ClearDepthStencilView(renderTarget->DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		_context->OMSetRenderTargets(1, renderTarget->RenderTargetView.GetAddressOf(), renderTarget->DepthStencilView.Get());
 
@@ -3580,7 +3580,7 @@ namespace TEN::Renderer
 				auto* starLevelPtr = g_GameFlow->GetLevel(CurrentLevel);
 				if (starLevelPtr->GetLensFlareEnabled())
 				{
-					constexpr float SHORT_TO_RAD = (DirectX::XM_2PI / 65536.0f);
+					constexpr float SHORT_TO_RAD = (PI_MUL_2 / 65536.0f);
 					float pitch = (float)starLevelPtr->GetLensFlarePitch() * SHORT_TO_RAD;
 					float sunElev = std::sin(pitch);
 					starfieldAlphaScale = ComputeStarfieldVisibility(sunElev);

@@ -5,7 +5,7 @@
 
 namespace TEN::Effects::ParticleGroups
 {
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 
 	// Constants.
 	constexpr auto MAX_PARTICLE_GROUPS	  = 64;

@@ -4,7 +4,7 @@
 
 namespace TEN::Renderer::Structures
 {
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 
 	enum class AnimatedTextureType
 	{

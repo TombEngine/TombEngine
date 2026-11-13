@@ -5,10 +5,71 @@
 #include "Renderer/Native/DirectX11/DX11Texture2D.h"
 #include "Renderer/Native/DirectX11/DX11ErrorHelper.h"
 #include "Renderer/Native/DirectX11/DX11Utils.h"
+#include "Renderer/Graphics/ImageDecoding.h"
 #include "Specific/trutils.h"
 
 namespace TEN::Renderer::Native::DirectX11
 {
+	// Bytes per 4x4 block of a block-compressed format, or 0 if the format is not block-compressed.
+	static int GetBlockSize(DXGI_FORMAT format)
+	{
+		switch (format)
+		{
+		case DXGI_FORMAT_BC1_UNORM:
+		case DXGI_FORMAT_BC1_UNORM_SRGB:
+		case DXGI_FORMAT_BC4_UNORM:
+		case DXGI_FORMAT_BC4_SNORM:
+			return 8;
+
+		case DXGI_FORMAT_BC2_UNORM:
+		case DXGI_FORMAT_BC2_UNORM_SRGB:
+		case DXGI_FORMAT_BC3_UNORM:
+		case DXGI_FORMAT_BC3_UNORM_SRGB:
+		case DXGI_FORMAT_BC5_UNORM:
+		case DXGI_FORMAT_BC5_SNORM:
+		case DXGI_FORMAT_BC6H_UF16:
+		case DXGI_FORMAT_BC6H_SF16:
+		case DXGI_FORMAT_BC7_UNORM:
+		case DXGI_FORMAT_BC7_UNORM_SRGB:
+			return 16;
+
+		default:
+			return 0;
+		}
+	}
+
+	// Format of a DDS file without a DX10 header, from its FourCC. DirectXTex writes BC4 and BC5 with these legacy codes.
+	static DXGI_FORMAT GetLegacyFormat(unsigned int fourCC)
+	{
+		auto makeFourCC = [](char a, char b, char c, char d)
+		{
+			return ((unsigned int)(unsigned char)a | ((unsigned int)(unsigned char)b << 8) | ((unsigned int)(unsigned char)c << 16) | ((unsigned int)(unsigned char)d << 24));
+		};
+
+		if (fourCC == makeFourCC('D', 'X', 'T', '1'))
+			return DXGI_FORMAT_BC1_UNORM;
+
+		if (fourCC == makeFourCC('D', 'X', 'T', '2') || fourCC == makeFourCC('D', 'X', 'T', '3'))
+			return DXGI_FORMAT_BC2_UNORM;
+
+		if (fourCC == makeFourCC('D', 'X', 'T', '4') || fourCC == makeFourCC('D', 'X', 'T', '5'))
+			return DXGI_FORMAT_BC3_UNORM;
+
+		if (fourCC == makeFourCC('A', 'T', 'I', '1') || fourCC == makeFourCC('B', 'C', '4', 'U'))
+			return DXGI_FORMAT_BC4_UNORM;
+
+		if (fourCC == makeFourCC('B', 'C', '4', 'S'))
+			return DXGI_FORMAT_BC4_SNORM;
+
+		if (fourCC == makeFourCC('A', 'T', 'I', '2') || fourCC == makeFourCC('B', 'C', '5', 'U'))
+			return DXGI_FORMAT_BC5_UNORM;
+
+		if (fourCC == makeFourCC('B', 'C', '5', 'S'))
+			return DXGI_FORMAT_BC5_SNORM;
+
+		return DXGI_FORMAT_UNKNOWN;
+	}
+
 	DX11Texture2D::DX11Texture2D(ID3D11Device* device, int width, int height, DXGI_FORMAT format, void* data, bool isDynamic)
 	{
 		HRESULT res;
@@ -45,7 +106,7 @@ namespace TEN::Renderer::Native::DirectX11
 			subresourceData.pSysMem = data;
 			subresourceData.SysMemPitch = GetBytesPerPixel(format) * width;
 			subresourceData.SysMemSlicePitch = 0;
-		
+
 			res = device->CreateTexture2D(&desc, &subresourceData, _texture.GetAddressOf());
 		}
 		else
@@ -75,82 +136,246 @@ namespace TEN::Renderer::Native::DirectX11
 			" (" + BytesToMBString(vramSize) + " MB)");
 	}
 
-	DX11Texture2D::DX11Texture2D(ID3D11Device* device, const std::string& fileName)
+	// Uploads decoded pixels with a full mip chain generated on the GPU, in the sRGB format when the image asks for it, as
+	// the DirectXTK WIC loader did.
+	void DX11Texture2D::InitializeFromImage(ID3D11Device* device, const DecodedImage& image, const std::string& source)
 	{
-		HRESULT res;
+		_width = image.Width;
+		_height = image.Height;
 
-		ComPtr<ID3D11Resource> resource;
+		auto format = image.IsSrgb ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
+		int mipLevels = 1 + (int)std::floor(std::log2(std::max(_width, _height)));
+
+		auto desc = D3D11_TEXTURE2D_DESC{};
+		desc.Width = _width;
+		desc.Height = _height;
+		desc.Format = format;
+		desc.CPUAccessFlags = 0;
+		desc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+		desc.MipLevels = mipLevels;
+		desc.ArraySize = 1;
+		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Quality = 0;
+		desc.Usage = D3D11_USAGE_DEFAULT;
+
+		auto res = device->CreateTexture2D(&desc, nullptr, _texture.GetAddressOf());
+		throwIfFailed(res, device, "CreateTexture2D from " + source + " (" + std::to_string(_width) + "x" + std::to_string(_height) + "):");
+
 		ID3D11DeviceContext* context = nullptr;
 		device->GetImmediateContext(&context);
+		context->UpdateSubresource(_texture.Get(), 0, nullptr, image.Pixels.data(), _width * 4, 0);
 
-		auto wFileName = TEN::Utils::ToWString(fileName);
-		res = CreateWICTextureFromFile(device, context, wFileName.c_str(), resource.GetAddressOf(), _shaderResourceView.GetAddressOf(), (size_t)0);
-		throwIfFailed(res, "Opening Texture file '" + fileName + "': ");
+		auto srvDesc = D3D11_SHADER_RESOURCE_VIEW_DESC{};
+		srvDesc.Format = format;
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Texture2D.MostDetailedMip = 0;
+		srvDesc.Texture2D.MipLevels = mipLevels;
 
-		res = resource->QueryInterface(_texture.GetAddressOf());
-		throwIfFailed(res, device, "QueryInterface for Texture2D from file:");
+		res = device->CreateShaderResourceView(_texture.Get(), &srvDesc, _shaderResourceView.GetAddressOf());
+		throwIfFailed(res, device, "CreateSRV from " + source + ":");
 
-		D3D11_TEXTURE2D_DESC desc;
-		_texture->GetDesc(&desc);
+		context->GenerateMips(_shaderResourceView.Get());
+		context->Release();
 
-		_width = desc.Width;
-		_height = desc.Height;
-
-		int vramSize = ComputeTextureSize(desc.Width, desc.Height, desc.ArraySize, desc.MipLevels, desc.Format);
+		int vramSize = ComputeTextureSize(_width, _height, 1, mipLevels, format);
 		_vram = VRAMAllocation(VRAMCategory::Texture, vramSize,
-			"Texture2D allocated: " + std::to_string(desc.Width) + "x" + std::to_string(desc.Height) +
-			" " + DXGIFormatToString(desc.Format) + " mips=" + std::to_string(desc.MipLevels) +
+			"Texture2D allocated: " + std::to_string(_width) + "x" + std::to_string(_height) +
+			" " + DXGIFormatToString(format) + " mips=" + std::to_string(mipLevels) +
 			" (" + BytesToMBString(vramSize) + " MB)");
 	}
 
+	// ======================================================================
+	// Constructor 2: from file on disk.
+	// ======================================================================
+	DX11Texture2D::DX11Texture2D(ID3D11Device* device, const std::string& fileName)
+	{
+		auto file = std::ifstream(std::filesystem::path(TEN::Utils::ToWString(fileName)), std::ios::binary);
+		auto data = std::vector<unsigned char>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+		auto image = DecodedImage{};
+		if (data.empty() || !DecodeImage(data.data(), (int)data.size(), image))
+		{
+			TENLog("Failed to load texture: " + fileName, LogLevel::Error);
+			return;
+		}
+
+		InitializeFromImage(device, image, "file '" + fileName + "'");
+	}
+
+	// ======================================================================
+	// Constructor 3: from memory (DDS kept compressed, other formats decoded).
+	// ======================================================================
 	DX11Texture2D::DX11Texture2D(ID3D11Device* device, int dataSize, unsigned char* data)
 	{
 		HRESULT res;
 
-		ComPtr<ID3D11Resource> resource;
 		ID3D11DeviceContext* context = nullptr;
 		device->GetImmediateContext(&context);
 
-		if (data[0] == 0x44 && data[1] == 0x44 && data[2] == 0x53)
+		// Check for DDS magic number "DDS ".
+		if (dataSize >= 4 && data[0] == 'D' && data[1] == 'D' && data[2] == 'S' && data[3] == ' ')
 		{
-			// DDS texture (mipmaps are pre-authored by the level editor).
-			res = CreateDDSTextureFromMemory(
-				device,
-				data,
-				dataSize,
-				resource.GetAddressOf(),
-				_shaderResourceView.GetAddressOf());
-			throwIfFailed(res, device, "CreateDDSTextureFromMemory (" + std::to_string(dataSize) + " bytes):");
+			if (dataSize < 128)
+			{
+				TENLog("DDS data too small", LogLevel::Error);
+				context->Release();
+				return;
+			}
+
+			struct DDSHeader
+			{
+				unsigned int size;
+				unsigned int flags;
+				unsigned int height;
+				unsigned int width;
+				unsigned int pitchOrLinearSize;
+				unsigned int depth;
+				unsigned int mipMapCount;
+				unsigned int reserved1[11];
+				unsigned int pfSize;
+				unsigned int pfFlags;
+				unsigned int pfFourCC;
+				unsigned int pfRGBBitCount;
+				unsigned int pfRBitMask;
+				unsigned int pfGBitMask;
+				unsigned int pfBBitMask;
+				unsigned int pfABitMask;
+				unsigned int caps;
+				unsigned int caps2;
+				unsigned int caps3;
+				unsigned int caps4;
+				unsigned int reserved2;
+			};
+
+			const DDSHeader* hdr = reinterpret_cast<const DDSHeader*>(data + 4);
+			_width = hdr->width;
+			_height = hdr->height;
+			int mipCount = std::max((unsigned int)1, hdr->mipMapCount);
+
+			const unsigned char* pixelData = data + 128;
+
+			unsigned int fourCC = hdr->pfFourCC;
+			DXGI_FORMAT dxgiFormat = DXGI_FORMAT_UNKNOWN;
+			int blockSize = 0;
+
+			constexpr unsigned int FOURCC_DX10 = 0x30315844;
+
+			if (fourCC == FOURCC_DX10)
+			{
+				if (dataSize < 148)
+				{
+					TENLog("DDS DX10 data too small", LogLevel::Error);
+					context->Release();
+					return;
+				}
+
+				struct DX10Header
+				{
+					unsigned int dxgiFormat;
+					unsigned int resourceDimension;
+					unsigned int miscFlag;
+					unsigned int arraySize;
+					unsigned int miscFlags2;
+				};
+
+				const DX10Header* dx10 = reinterpret_cast<const DX10Header*>(data + 128);
+				pixelData = data + 148;
+
+				dxgiFormat = (DXGI_FORMAT)dx10->dxgiFormat;
+				blockSize = GetBlockSize(dxgiFormat);
+				if (blockSize == 0)
+				{
+					TENLog("Unsupported DX10 DXGI format: " + std::to_string(dx10->dxgiFormat), LogLevel::Error);
+					context->Release();
+					return;
+				}
+			}
+			else
+			{
+				dxgiFormat = GetLegacyFormat(fourCC);
+				blockSize = GetBlockSize(dxgiFormat);
+				if (blockSize == 0)
+				{
+					TENLog("Unsupported DDS FourCC: " + std::to_string(fourCC), LogLevel::Error);
+					context->Release();
+					return;
+				}
+			}
+
+			// Create immutable texture with subresource data for each mip.
+			std::vector<D3D11_SUBRESOURCE_DATA> initData(mipCount);
+			const unsigned char* mipPtr = pixelData;
+
+			for (int mip = 0; mip < mipCount; mip++)
+			{
+				int mipWidth = std::max((int)_width >> mip, 1);
+				int mipHeight = std::max((int)_height >> mip, 1);
+				int blocksX = std::max((mipWidth + 3) / 4, 1);
+				int blocksY = std::max((mipHeight + 3) / 4, 1);
+				int mipSize = blocksX * blocksY * blockSize;
+
+				if (mipPtr + mipSize > data + dataSize)
+				{
+					mipCount = mip;
+					initData.resize(mipCount);
+					break;
+				}
+
+				initData[mip].pSysMem = mipPtr;
+				initData[mip].SysMemPitch = blocksX * blockSize;
+				initData[mip].SysMemSlicePitch = 0;
+				mipPtr += mipSize;
+			}
+
+			auto desc = D3D11_TEXTURE2D_DESC{};
+			desc.Width = _width;
+			desc.Height = _height;
+			desc.Format = dxgiFormat;
+			desc.CPUAccessFlags = 0;
+			desc.MiscFlags = 0;
+			desc.MipLevels = mipCount;
+			desc.ArraySize = 1;
+			desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+			desc.SampleDesc.Count = 1;
+			desc.SampleDesc.Quality = 0;
+			desc.Usage = D3D11_USAGE_IMMUTABLE;
+
+			res = device->CreateTexture2D(&desc, initData.data(), _texture.GetAddressOf());
+			throwIfFailed(res, device,
+				"CreateTexture2D DDS (" + std::to_string(_width) + "x" + std::to_string(_height) +
+				" " + DXGIFormatToString(dxgiFormat) + " mips=" + std::to_string(mipCount) + "):");
+
+			auto srvDesc = D3D11_SHADER_RESOURCE_VIEW_DESC{};
+			srvDesc.Format = dxgiFormat;
+			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+			srvDesc.Texture2D.MostDetailedMip = 0;
+			srvDesc.Texture2D.MipLevels = mipCount;
+
+			res = device->CreateShaderResourceView(_texture.Get(), &srvDesc, _shaderResourceView.GetAddressOf());
+			throwIfFailed(res, device, "CreateSRV for DDS:");
+
+			int vramSize = ComputeTextureSize(_width, _height, 1, mipCount, dxgiFormat);
+			_vram = VRAMAllocation(VRAMCategory::Texture, vramSize,
+				"Texture2D DDS allocated: " + std::to_string(_width) + "x" + std::to_string(_height) +
+				" " + DXGIFormatToString(dxgiFormat) + " mips=" + std::to_string(mipCount) +
+				" (" + BytesToMBString(vramSize) + " MB)");
 		}
 		else
 		{
-			// PNG legacy texture (mipmaps generated on GPU).
-			res = CreateWICTextureFromMemory(
-				device,
-				context,
-				data,
-				dataSize,
-				resource.GetAddressOf(),
-				_shaderResourceView.GetAddressOf());
-			throwIfFailed(res, device, "CreateWICTextureFromMemory (" + std::to_string(dataSize) + " bytes):");
+			// Other formats, such as the PNG files of uncompressed level textures.
+			auto image = DecodedImage{};
+			if (!DecodeImage(data, dataSize, image))
+			{
+				TENLog("Failed to decode texture from memory", LogLevel::Error);
+				context->Release();
+				return;
+			}
 
-			context->GenerateMips(_shaderResourceView.Get());
+			InitializeFromImage(device, image, "memory");
 		}
 
-		res = resource->QueryInterface(_texture.GetAddressOf());
-		throwIfFailed(res, device, "QueryInterface for Texture2D from memory:");
-
-		D3D11_TEXTURE2D_DESC desc;
-		_texture->GetDesc(&desc);
-
-		_width = desc.Width;
-		_height = desc.Height;
-
-		int vramSize = ComputeTextureSize(desc.Width, desc.Height, desc.ArraySize, desc.MipLevels, desc.Format);
-		_vram = VRAMAllocation(VRAMCategory::Texture, vramSize,
-			"Texture2D allocated: " + std::to_string(desc.Width) + "x" + std::to_string(desc.Height) +
-			" " + DXGIFormatToString(desc.Format) + " mips=" + std::to_string(desc.MipLevels) +
-			" (" + BytesToMBString(vramSize) + " MB)");
+		context->Release();
 	}
 }
 

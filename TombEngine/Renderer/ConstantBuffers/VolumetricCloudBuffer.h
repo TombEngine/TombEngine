@@ -1,10 +1,10 @@
 #pragma once
 
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 
 namespace TEN::Renderer::ConstantBuffers
 {
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 
 	// Must match CBVolumetricCloud.hlsli layout exactly.
 	// Bound to register b9.

@@ -5,10 +5,7 @@
 
 #include "Renderer/Graphics/IGraphicsDevice.h"
 #include <wrl/client.h>
-#include <CommonStates.h>
-#include <SpriteFont.h>
-#include <PrimitiveBatch.h>
-#include <SimpleMath.h>
+#include "Math/SimpleMath.h"
 #include "Renderer/Native/DirectX11/DX11IndexBuffer.h"
 #include "Renderer/Native/DirectX11/DX11VertexBuffer.h"
 #include "Renderer/Native/DirectX11/DX11RenderTarget2D.h"
@@ -26,7 +23,7 @@
 
 using namespace TEN::Renderer::Graphics;
 using namespace TEN::Renderer::Structures;
-using namespace DirectX::SimpleMath;
+using namespace TEN::Math::Library;
 using namespace Microsoft::WRL;
 
 namespace TEN::Renderer::Native::DirectX11
@@ -38,11 +35,11 @@ namespace TEN::Renderer::Native::DirectX11
 		ComPtr<ID3D11DeviceContext> _context = nullptr;
 		ComPtr<IDXGISwapChain> _swapChain = nullptr;
 
-		std::unique_ptr<CommonStates> _renderStates = nullptr;
-
-		ComPtr <ID3D11SamplerState> _pointWrapSamplerState = nullptr;
-		ComPtr<ID3D11SamplerState> _shadowSampler;
-
+		// Blend states (replacing DXTK CommonStates).
+		ComPtr<ID3D11BlendState> _opaqueBlendState = nullptr;
+		ComPtr<ID3D11BlendState> _additiveBlendState = nullptr;
+		ComPtr<ID3D11BlendState> _nonPremultipliedBlendState = nullptr;
+		ComPtr<ID3D11BlendState> _premultipliedAlphaBlendState = nullptr;
 		ComPtr<ID3D11BlendState> _subtractiveBlendState = nullptr;
 		ComPtr<ID3D11BlendState> _distortionBlendState = nullptr;
 		ComPtr<ID3D11BlendState> _screenBlendState = nullptr;
@@ -51,9 +48,24 @@ namespace TEN::Renderer::Native::DirectX11
 		ComPtr<ID3D11BlendState> _transparencyBlendState = nullptr;
 		ComPtr<ID3D11BlendState> _finalTransparencyBlendState = nullptr;
 
+		// Depth-stencil states (replacing DXTK CommonStates).
+		ComPtr<ID3D11DepthStencilState> _depthDefaultState = nullptr;
+		ComPtr<ID3D11DepthStencilState> _depthReadState = nullptr;
+		ComPtr<ID3D11DepthStencilState> _depthNoneState = nullptr;
+
+		// Sampler states.
+		ComPtr<ID3D11SamplerState> _anisotropicClampSampler = nullptr;
+		ComPtr<ID3D11SamplerState> _anisotropicWrapSampler = nullptr;
+		ComPtr<ID3D11SamplerState> _linearClampSampler = nullptr;
+		ComPtr<ID3D11SamplerState> _linearWrapSampler = nullptr;
+		ComPtr<ID3D11SamplerState> _pointWrapSamplerState = nullptr;
+		ComPtr<ID3D11SamplerState> _shadowSampler;
+
+		// Rasterizer states.
 		ComPtr<ID3D11RasterizerState> _cullCounterClockwiseRasterizerState = nullptr;
 		ComPtr<ID3D11RasterizerState> _cullClockwiseRasterizerState = nullptr;
 		ComPtr<ID3D11RasterizerState> _cullNoneRasterizerState = nullptr;
+		ComPtr<ID3D11RasterizerState> _wireframeRasterizerState = nullptr;
 		
 		ComPtr<ID3D11InputLayout> _inputLayout = nullptr;
 		ComPtr<ID3D11InputLayout> _fullscreenTriangleInputLayout = nullptr;
@@ -149,9 +161,9 @@ namespace TEN::Renderer::Native::DirectX11
 		void DrawInstancedTriangles(int count, int instances, int baseVertex) override;
 		void DrawTriangles(int count, int baseVertex) override;
 
-		void ClearRenderTarget2D(IRenderTarget2D* renderTarget, XMVECTORF32 clearColor) override;
-		void ClearRenderTarget2D(IRenderTarget2D* renderTarget, int arrayIndex, XMVECTORF32 clearColor) override;
-		//void ClearRenderTarget2DOfCube(IRenderTargetCube* textureCube, int index, XMVECTORF32 clearColor) override;
+		void ClearRenderTarget2D(IRenderTarget2D* renderTarget, const Vector4& clearColor) override;
+		void ClearRenderTarget2D(IRenderTarget2D* renderTarget, int arrayIndex, const Vector4& clearColor) override;
+		//void ClearRenderTarget2DOfCube(IRenderTargetCube* textureCube, int index, const Vector4& clearColor) override;
 
 		void ClearDepthStencil(IDepthTarget* renderTarget, DepthStencilClearFlags clearFlags, float depth, unsigned char stencil) override;
 		void ClearDepthStencil(IDepthTarget* renderTarget, int arrayIndex, DepthStencilClearFlags clearFlags, float depth, unsigned char stencil) override;
