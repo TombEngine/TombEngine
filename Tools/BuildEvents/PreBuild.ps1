@@ -72,6 +72,7 @@ $scriptSourceDir = Join-Path $rootDir "Scripts"
 $scriptDir = Join-Path $BuildDir "Scripts"
 Copy-Newer (Join-Path $scriptSourceDir "Engine") (Join-Path $scriptDir "Engine") "*"
 Copy-Newer $scriptSourceDir $scriptDir "SystemStrings.lua" $false
+Copy-Newer $scriptSourceDir $scriptDir "WeatherPresets.lua" $false
 
 foreach ($name in @("Gameflow.lua", "Settings.lua", "Strings.lua"))
 {
