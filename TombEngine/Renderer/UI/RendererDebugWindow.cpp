@@ -628,8 +628,17 @@ namespace TEN::Renderer
 		const auto& stats = g_SceneRenderer.GetFrameStats();
 		const auto& gpuTimings = g_SceneRenderer.SampleGpuTimings();
 		float gpuTime = 0.0f;
+		float framePassTime = 0.0f;
 		for (const auto& timing : gpuTimings)
+		{
 			gpuTime += timing.Milliseconds;
+			if (timing.Name == "Frame")
+				framePassTime = timing.Milliseconds;
+		}
+
+		// The frame pass encloses the other passes, so it is the total; summing them all counts every pass twice.
+		if (framePassTime > 0.0f)
+			gpuTime = framePassTime;
 
 		int triangles = 0;
 		for (int categoryTriangles : stats.CategoryTriangles)
