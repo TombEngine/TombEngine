@@ -11,7 +11,7 @@
 #include "./ShaderInterop.hlsli"
 #include "./Fullscreen.hlsli"
 
-#define GTAO_SLICE_COUNT 1 // Per frame: the temporal accumulation gathers the slices of several frames.
+#define GTAO_SLICE_COUNT 2 // Per frame: the temporal accumulation gathers the slices of several frames.
 #define GTAO_STEP_COUNT  4
 #define GTAO_PI          3.14159265f
 #define GTAO_HALF_PI     1.57079633f
