@@ -2135,6 +2135,8 @@ namespace TEN::Renderer
 		_lines3DToDraw.clear();
 		_triangles3DToDraw.clear();
 		_stringsToDraw.clear();
+		_debugMessages.clear();
+		_debugLabels.clear();
 
 		_currentCausticsFrame++;
 		_currentCausticsFrame %= 32;
@@ -4204,10 +4206,21 @@ namespace TEN::Renderer
 
 		// ImGui debug overlay: NewFrame -> draw windows -> render.
 		// Must happen after RenderScene (so it draws on top) and before ClearState/Present.
+		ImGuiSetOverlayVisible(HasDebugOverlayContent());
 		ImGuiNewFrame();
 		if (ImGuiIsOverlayVisible())
 		{
-			TEN::Sky::DrawSkyDebugWindow();
+			if (_debugPage == RendererDebugPage::SkyDebug)
+			{
+				TEN::Sky::DrawSkyDebugWindow();
+			}
+			else
+			{
+				DrawDebugPages();
+			}
+
+			DrawDebugMessages();
+			DrawDebugLabels();
 		}
 		ImGuiRenderFrame();
 

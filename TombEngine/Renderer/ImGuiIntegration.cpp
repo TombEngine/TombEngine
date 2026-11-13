@@ -129,6 +129,6 @@ namespace TEN::Renderer
 		}
 	}
 
-	void ImGuiToggleOverlay() { s_OverlayVisible = !s_OverlayVisible; }
+	void ImGuiSetOverlayVisible(bool isVisible) { s_OverlayVisible = isVisible; }
 	bool ImGuiIsOverlayVisible() { return s_OverlayVisible; }
 }

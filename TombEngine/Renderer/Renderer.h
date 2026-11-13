@@ -44,6 +44,7 @@
 #include "Renderer/Structures/RendererBone.h"
 #include "Renderer/Structures/RendererDoor.h"
 #include "Renderer/Structures/RendererDofMode.h"
+#include "Renderer/Structures/RendererDebugLabel.h"
 #include "Renderer/Structures/RendererStringToDraw.h"
 #include "Renderer/Structures/RendererRoom.h"
 #include "Renderer/Structures/RendererSprite.h"
@@ -340,9 +341,16 @@ namespace TEN::Renderer
 		int _numExecutedMaterialsUpdates = 0;
 		int _numRequestedMaterialsUpdates = 0;
 
-		float _currentLineHeight = 0.0f;
-
 		RendererDebugPage _debugPage = RendererDebugPage::None;
+
+		// View counts captured in DrawDebugInfo(), because the view is cleared before the ImGui debug pages are drawn.
+		int _debugSpriteCount = 0;
+		int _debugSortedFaceCount = 0;
+		int _debugRoomCount = 0;
+
+		// Debug text queued during the game tick. Cleared in PrepareScene() and drawn by the ImGui overlay.
+		std::vector<std::string> _debugMessages;
+		std::vector<RendererDebugLabel> _debugLabels;
 
 		// Times for debug
 
@@ -658,6 +666,18 @@ namespace TEN::Renderer
 		void ResetItems();
 		void ResetScissor();
 		void ResetDebugVariables();
+		bool HasDebugOverlayContent() const;
+		void DrawDebugPages();
+		void DrawDebugMessages();
+		void DrawDebugLabels();
+		void DrawRendererStatsPage();
+		void DrawMemoryStatsPage();
+		void DrawDimensionStatsPage();
+		void DrawPlayerStatsPage();
+		void DrawInputStatsPage();
+		void DrawCollisionStatsPage();
+		void DrawPathfindingStatsPage();
+		void DrawPortalStatsPage();
 		void CollectFrameStats(const RenderView& view);
 		void RecordFrameStats(steady_clock::time_point renderStartTime, steady_clock::time_point presentStartTime);
 		float CalculateFrameRate();

@@ -10,7 +10,7 @@ namespace TEN::Renderer
 {
 	void Renderer::AddDebugString(const std::string& string, const Vector2& pos, const Color& color, float scale, RendererDebugPage page)
 	{
-		constexpr auto FLAGS = (int)PrintStringFlags::Outline | (int)PrintStringFlags::Center;
+		constexpr auto LABEL_COUNT_MAX = 512;
 
 		if (_isLocked)
 			return;
@@ -18,7 +18,10 @@ namespace TEN::Renderer
 		if (!DebugMode || (_debugPage != page && page != RendererDebugPage::None))
 			return;
 
-		AddString(string, pos, color, scale, FLAGS);
+		if (string.empty() || _debugLabels.size() >= LABEL_COUNT_MAX)
+			return;
+
+		_debugLabels.push_back({ string, pos, color, scale });
 	}
 
 	void Renderer::AddString(int x, int y, const std::string& string, unsigned int color, int flags)
