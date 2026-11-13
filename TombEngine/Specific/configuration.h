@@ -3,7 +3,7 @@
 #include "Math/Math.h"
 #include "Specific/Input/Input.h"
 #include "Renderer/RendererEnums.h"
-#include "Renderer/SkyQuality.h"
+#include "Renderer/Sky/SkyQuality.h"
 #include "Sound/sound.h"
 
 using namespace TEN::Input;
@@ -36,7 +36,9 @@ struct GameConfiguration
 	bool	   EnableDecals		  = true;
 	bool	   EnableAmbientOcclusion = false;
 	bool	   EnableHighFramerate    = true;
+	bool	   EnableHdr			  = false;
 	AntialiasingMode AntialiasingMode = AntialiasingMode::None;
+	RenderScaleMode RenderScale = RenderScaleMode::Native;
 	AtmosphericSkyQuality AtmosphericSkyQuality = AtmosphericSkyQuality::Medium;
 
 	// Sound
@@ -72,5 +74,7 @@ void InitDefaultConfiguration();
 bool LoadConfiguration();
 bool SaveConfiguration();
 void SetAudioConfiguration(const GameConfiguration& config);
+AntialiasingMode GetAntialiasingMode(int value);
+RenderScaleMode GetRenderScaleMode(int value);
 
 extern GameConfiguration g_Configuration;

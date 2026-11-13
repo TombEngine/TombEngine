@@ -1,428 +1,290 @@
-#include "./CBPostProcess.hlsli"
-#include "./CBCamera.hlsli"
-#include "./Blending.hlsli"
-#include "./Materials.hlsli"
-#include "./Math.hlsli"
-#include "./ShaderLight.hlsli"
+// TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=0
+// TEN_SHADER: Pixel PS samplers=7 storage_textures=0 storage_buffers=0 uniform_buffers=3
 
-#define MAX_BLUR_RADIUS 100
-#define USE_FAST_BILINEAR_BLUR 1
+// Distortion, depth of field, glow, lens flares, color scheme (monochrome, negative, exclusion), screen fade,
+// cinematic bars, tint and gamma in a single pass (SceneRendererPostProcess.cpp). PS reads the scene, the
+// distortion payload, the depth copy and the glow, depth of field and bloom targets. With the HDR scene target, the
+// bloom and the exposure are applied and the result is tonemapped before the color scheme.
 
-#define DISTORTION_MIN_WEIGHT 0.001f
-#define DISTORTION_REFERENCE_DEPTH 1024.0f
-#define DISTORTION_REFRACTION_PIXELS 56.0f
-#define DISTORTION_DEPTH_REJECT_MIN 64.0f
-#define DISTORTION_EDGE_GUARD_PIXELS 2.0f
-#define DISTORTION_EDGE_FADE_RANGE 0.04f
+#include "./ShaderInterop.hlsli"
+#include "./Common.hlsli"
+#include "./Fullscreen.hlsli"
+#include "./Noise.hlsli"
 
-#define DISTORTION_NOISE_STRENGTH_SURFACE 0.15f
-#define DISTORTION_NOISE_STRENGTH_BILLBOARD 0.035f
-#define DISTORTION_NOISE_SCALE_SURFACE 3.5f
-#define DISTORTION_NOISE_SCALE_BILLBOARD 25.0f
-#define DISTORTION_NOISE_SHIMMER_STRENGTH_SURFACE 0.35f
+#define COLOR_SCHEME_NONE       0
+#define COLOR_SCHEME_MONOCHROME 1
+#define COLOR_SCHEME_NEGATIVE   2
+#define COLOR_SCHEME_EXCLUSION  3
+
+#define LENS_FLARES_MAX 8
+
+TEN_PS_UNIFORMS(PostProcessUniforms, 2)
+{
+    float3 Tint;
+    float  Gamma;
+    uint   ColorScheme;
+    float  ColorSchemeStrength;
+    float  ScreenFade;
+    float  CinematicBarsHeight;
+    float  ViewportHeight;
+    float  ViewportWidth;
+    float  NearPlane;
+    float  FarPlane;
+    uint   IsDistortionActive;
+    float  Time;
+    uint   LensFlareCount;
+    uint   IsGlowActive;
+    uint   IsDofActive; // Bit 0 far blur, bit 1 near blur.
+    uint   IsHdrActive;
+    float  Exposure;
+    float  BloomIntensity;
+    float4 LensFlarePositions[LENS_FLARES_MAX]; // Normalized device xy, depth.
+    float4 LensFlareColors[LENS_FLARES_MAX];
+};
+
+TEN_PS_TEXTURE(Texture2D, SceneMap, 0);
+TEN_PS_TEXTURE(Texture2D, DistortionMap, 1);
+TEN_PS_TEXTURE(Texture2D, DepthMap, 2);
+TEN_PS_TEXTURE(Texture2D, GlowMap, 3);
+TEN_PS_TEXTURE(Texture2D, NearBlurMap, 4); // Depth of field, half resolution, alpha is the circle of confusion.
+TEN_PS_TEXTURE(Texture2D, FarBlurMap, 5);
+TEN_PS_TEXTURE(Texture2D, BloomMap, 6);    // Half resolution, HDR only.
+
+#define DISTORTION_MIN_WEIGHT                       0.001f
+#define DISTORTION_REFERENCE_DEPTH                  1024.0f
+#define DISTORTION_REFRACTION_PIXELS                56.0f
+#define DISTORTION_DEPTH_REJECT_MIN                 64.0f
+#define DISTORTION_EDGE_GUARD_PIXELS                2.0f
+#define DISTORTION_NOISE_STRENGTH_SURFACE           0.15f
+#define DISTORTION_NOISE_STRENGTH_BILLBOARD         0.035f
+#define DISTORTION_NOISE_SCALE_SURFACE              3.5f
+#define DISTORTION_NOISE_SCALE_BILLBOARD            25.0f
+#define DISTORTION_NOISE_SHIMMER_STRENGTH_SURFACE   0.35f
 #define DISTORTION_NOISE_SHIMMER_STRENGTH_BILLBOARD 0.8f
-#define DISTORTION_NOISE_SHIMMER_SCALE_SURFACE 40.0f
-#define DISTORTION_NOISE_SHIMMER_SCALE_BILLBOARD 65.0f
-#define DISTORTION_NOISE_SPEED_BILLBOARD 0.25f
-#define DISTORTION_NOISE_SPEED_SURFACE 0.05f
-#define DISTORTION_DISTANCE_FADE_START 4096.0f
-#define DISTORTION_DISTANCE_FADE_END 10240.0f
+#define DISTORTION_NOISE_SHIMMER_SCALE_SURFACE      40.0f
+#define DISTORTION_NOISE_SHIMMER_SCALE_BILLBOARD    65.0f
+#define DISTORTION_NOISE_SPEED_BILLBOARD            0.25f
+#define DISTORTION_NOISE_SPEED_SURFACE              0.05f
+#define DISTORTION_DISTANCE_FADE_START              4096.0f
+#define DISTORTION_DISTANCE_FADE_END                10240.0f
 
-struct PostProcessVertexShaderInput
-{
-    float3 Position : POSITION0;
-    float2 UV       : TEXCOORD0;
-    float4 Color    : COLOR0;
-};
+#define TONEMAP_KNEE 0.8f
 
-struct PixelShaderInput
-{
-    float4 Position     : SV_POSITION;
-    float2 UV           : TEXCOORD0;
-    float4 Color        : COLOR0;
-    float4 PositionCopy : TEXCOORD1;
-};
-
-Texture2D ColorTexture : register(t0);
-Texture2D DepthTexture : register(t6);
-Texture2D GlowTexture : register(t11);
-Texture2D DistortionTexture : register(t15);
-Texture2D NearBlurTexture : register(t16);
-Texture2D FarBlurTexture : register(t17);
-
-#include "./DOF.hlsli"
+// Depth buffer value mapped back to view space distance in world units.
 float GetSceneViewDepth(float2 uv)
 {
-    float depth = DepthTexture.Sample(PointWrapSampler, uv).x;
-    return abs(ReconstructViewPosition(uv, depth, InverseProjection).z);
+    float depth = DepthMap.SampleLevel(DepthMapSampler, uv, 0.0f).x;
+    return (NearPlane * FarPlane) / (FarPlane - depth * (FarPlane - NearPlane));
 }
 
-PixelShaderInput VS(PostProcessVertexShaderInput input)
+// Refracted scene UV, from the payload accumulated by the distortion pass.
+float2 GetDistortedUV(float2 uv)
 {
-    PixelShaderInput output;
-
-    output.Position = float4(input.Position, 1.0f);
-    output.UV = input.UV;
-    output.Color = input.Color;
-    output.PositionCopy = output.Position;
-
-    return output;
-}
-float4 PS(PixelShaderInput input) : SV_Target
-{
-    return ColorTexture.Sample(LinearClampSampler, input.UV);
-}
-
-float4 PSMonochrome(PixelShaderInput input) : SV_Target
-{
-    float4 color = ColorTexture.Sample(LinearClampSampler, input.UV);
-    float luma = Luma(color.rgb);
-    float3 output = lerp(color.rgb, float3(luma, luma, luma), EffectStrength);
-
-    return float4(output, color.a);
-}
-
-float4 PSNegative(PixelShaderInput input) : SV_Target
-{
-    float4 color = ColorTexture.Sample(LinearClampSampler, input.UV);
-
-	float luma = Luma(1.0f - color);
-	float3 output = lerp(color.rgb, float3(luma, luma, luma), EffectStrength);
-
-	return float4(output, color.a);
-}
-
-float4 PSExclusion(PixelShaderInput input) : SV_Target
-{
-    float4 color = ColorTexture.Sample(LinearClampSampler, input.UV);
-
-	float3 exColor = color.xyz + (1.0f - color.xyz) - 2.0f * color.xyz * (1.0f - color.xyz);
-	float3 output = lerp(color.rgb, exColor, EffectStrength);
-
-	return float4(output, color.a);
-}
-
-float4 PSDistortion(PixelShaderInput input) : SV_Target
-{
-    float4 color = ColorTexture.Sample(LinearClampSampler, input.UV);
-    float4 distortionData = DistortionTexture.Sample(LinearClampSampler, input.UV);
-
-    // x = accumulated luma strength; early-out if no distortion emitter covered this pixel.
-    float totalStrength = distortionData.x;
+    float4 distortion = DistortionMap.SampleLevel(DistortionMapSampler, uv, 0.0f);
+    float totalStrength = distortion.x;
     if (totalStrength <= DISTORTION_MIN_WEIGHT)
-        return color;
+        return uv;
 
-    // Reconstruct luma-weighted average emitter depth from packed 16-bit distance.
-    float distHigh = distortionData.y / totalStrength;
-    float distLow  = distortionData.z / totalStrength;
-    float emitterDist = distHigh * 255.0f * 256.0f + distLow * 255.0f;
+    // Undo the premultiplication of EncodeDistortionPayload (Common.hlsli): strength weighted average emitter depth
+    // from its high and low bytes, and the dominant emitter type.
+    float emitterDepth = (distortion.y / totalStrength) * 255.0f * 256.0f + (distortion.z / totalStrength) * 255.0f;
+    float typeBlend = step(0.5f, distortion.w / totalStrength);
+    if (GetSceneViewDepth(uv) - DISTORTION_DEPTH_REJECT_MIN < emitterDepth)
+        return uv;
 
-    // Reconstruct emitter type blend (0 = billboard, 1 = surface geometry).
-    float typeBlend = step(0.5f, distortionData.w / totalStrength);
-    
-    // Reconstruct world-space linearized depth of the sampled pixel and reject if in front of the distortion surface.
-    float centerDepth = GetSceneViewDepth(input.UV);
-    if (centerDepth - DISTORTION_DEPTH_REJECT_MIN < emitterDist)
-        return color;
-
-    // Distance attenuation.
-    float distFade = 1.0f - smoothstep(DISTORTION_DISTANCE_FADE_START, DISTORTION_DISTANCE_FADE_END, emitterDist);
-    float weight = totalStrength * distFade;
+    float distanceFade = 1.0f - smoothstep(DISTORTION_DISTANCE_FADE_START, DISTORTION_DISTANCE_FADE_END, emitterDepth);
+    float weight = saturate(totalStrength) * distanceFade;
     if (weight <= DISTORTION_MIN_WEIGHT)
-        return color;
+        return uv;
 
-    // Base noise parameters.
-    float noiseStrength   = lerp(DISTORTION_NOISE_STRENGTH_BILLBOARD, DISTORTION_NOISE_STRENGTH_SURFACE, typeBlend) * distFade;
-    float noiseScale      = lerp(DISTORTION_NOISE_SCALE_BILLBOARD, DISTORTION_NOISE_SCALE_SURFACE, typeBlend) * distFade;
-    float shimmerStrength = lerp(DISTORTION_NOISE_SHIMMER_STRENGTH_BILLBOARD, DISTORTION_NOISE_SHIMMER_STRENGTH_SURFACE, typeBlend) * distFade;
-    float shimmerScale    = lerp(DISTORTION_NOISE_SHIMMER_SCALE_BILLBOARD, DISTORTION_NOISE_SHIMMER_SCALE_SURFACE, typeBlend) * distFade;
-    float noiseSpeed      = lerp(DISTORTION_NOISE_SPEED_BILLBOARD, DISTORTION_NOISE_SPEED_SURFACE, typeBlend) * Frame;
+    float noiseStrength = lerp(DISTORTION_NOISE_STRENGTH_BILLBOARD, DISTORTION_NOISE_STRENGTH_SURFACE, typeBlend) * distanceFade;
+    float noiseScale = lerp(DISTORTION_NOISE_SCALE_BILLBOARD, DISTORTION_NOISE_SCALE_SURFACE, typeBlend) * distanceFade;
+    float shimmerStrength = lerp(DISTORTION_NOISE_SHIMMER_STRENGTH_BILLBOARD, DISTORTION_NOISE_SHIMMER_STRENGTH_SURFACE, typeBlend) * distanceFade;
+    float shimmerScale = lerp(DISTORTION_NOISE_SHIMMER_SCALE_BILLBOARD, DISTORTION_NOISE_SHIMMER_SCALE_SURFACE, typeBlend) * distanceFade;
+    float noiseSpeed = lerp(DISTORTION_NOISE_SPEED_BILLBOARD, DISTORTION_NOISE_SPEED_SURFACE, typeBlend) * Time;
 
-    // Base distortion noise.
-    float noiseX = SimplexNoise(float3(input.UV * noiseScale, noiseSpeed));
-    float noiseY = SimplexNoise(float3(input.UV * noiseScale + 5.7f, noiseSpeed + 1.3f));
-    float2 refractVector = float2(noiseX, noiseY) * 1.5f;
+    float2 refraction = float2(SimplexNoise(float3(uv * noiseScale, noiseSpeed)), SimplexNoise(float3(uv * noiseScale + 5.7f, noiseSpeed + 1.3f))) * 1.5f;
 
-    // Shimmer layer.
     float shimmerTime = noiseSpeed * 3.5f;
-	float shimmerX = SimplexNoise(float3(input.UV * shimmerScale * 1.7f, shimmerTime + 13.1f));
-	float shimmerY = SimplexNoise(float3(input.UV * shimmerScale * 2.3f, shimmerTime + 31.7f));
-	float2 shimmerVec = float2(shimmerX, shimmerY) * shimmerStrength;
+    float2 shimmer = float2(SimplexNoise(float3(uv * shimmerScale * 1.7f, shimmerTime + 13.1f)), SimplexNoise(float3(uv * shimmerScale * 2.3f, shimmerTime + 31.7f))) * shimmerStrength;
+    refraction += shimmer * (1.0f - smoothstep(DISTORTION_DISTANCE_FADE_START / 1.5f, DISTORTION_DISTANCE_FADE_END / 3.0f, emitterDepth));
 
-	// Distance-based fade.
-	float shimmerFade = 1.0f - smoothstep(DISTORTION_DISTANCE_FADE_START / 1.5f, DISTORTION_DISTANCE_FADE_END / 3.0f, emitterDist);
+    // Offset in pixels, shrinking with the square root of the emitter distance beyond the reference depth.
+    float2 texelSize = float2(1.0f / ViewportWidth, 1.0f / ViewportHeight);
+    float perspectiveScale = rsqrt(max(emitterDepth, DISTORTION_REFERENCE_DEPTH) / DISTORTION_REFERENCE_DEPTH);
+    float2 offset = refraction * (noiseStrength * DISTORTION_REFRACTION_PIXELS * weight * perspectiveScale) * texelSize;
+    float2 edgeGuard = texelSize * DISTORTION_EDGE_GUARD_PIXELS;
+    float2 refractedUV = clamp(uv + offset, edgeGuard, 1.0f - edgeGuard);
 
-	// Apply shimmer to distortion vector.
-	refractVector += shimmerVec * shimmerFade;
+    // Geometry in front of the emitter is not refracted into it.
+    if (GetSceneViewDepth(refractedUV) - DISTORTION_DEPTH_REJECT_MIN < emitterDepth)
+        return uv;
 
-    // Perspective-correct scaling.
-    float perspectiveScale = rsqrt(max(emitterDist, DISTORTION_REFERENCE_DEPTH) / DISTORTION_REFERENCE_DEPTH);
-	
-	// Final offset + edge guard calculation.
-    float2 offset = refractVector * (noiseStrength * DISTORTION_REFRACTION_PIXELS * weight * perspectiveScale) * TexelSize;
-    float2 edgeGuard = TexelSize * DISTORTION_EDGE_GUARD_PIXELS;
-    float2 refractedUV = clamp(input.UV + offset, edgeGuard, 1.0f - edgeGuard);
-
-    // Depth-based rejection (prevent foreground distortion).
-    float refractedDepth = GetSceneViewDepth(refractedUV);
-    if (refractedDepth - DISTORTION_DEPTH_REJECT_MIN < emitterDist)
-        return color;
-
-    return ColorTexture.Sample(LinearClampSampler, refractedUV);
+    return refractedUV;
 }
 
-float4 PSFinalPass(PixelShaderInput input) : SV_TARGET
+FullscreenPixelInput VS(uint vertexId : SV_VertexID)
 {
-    float4 output = ColorTexture.Sample(LinearClampSampler, input.UV);
-
-    float3 colorMul = min(input.Color.xyz, 1.0f);
-
-    float y = input.Position.y / ViewportSize.y;
-
-    if (y > 1.0f - CinematicBarsHeight ||
-        y < 0.0f + CinematicBarsHeight)
-    {
-        output = float4(0, 0, 0, 1);
-    }
-    else
-    {
-        output.xyz = output.xyz * colorMul.xyz * ScreenFadeFactor;
-        output.w = 1.0f;
-    }
-
-	output.xyz = GammaCorrection(ModulateColor(output.xyz * Tint));
-    return output;
+    return FullscreenVS(vertexId);
 }
 
-float3 LensFlare(float2 uv, float2 pos)
+float3 ApplyColorScheme(float3 color)
 {
-	float2 main = uv - pos;
-	float2 uvd = uv * length(uv);
+    float3 schemeColor = color;
+    if (ColorScheme == COLOR_SCHEME_MONOCHROME)
+        schemeColor = Luma(color);
+    else if (ColorScheme == COLOR_SCHEME_NEGATIVE)
+        schemeColor = Luma(1.0f - color);
+    else if (ColorScheme == COLOR_SCHEME_EXCLUSION)
+        schemeColor = color + (1.0f - color) - 2.0f * color * (1.0f - color);
 
-	// Angular and distance calculations
-	float ang = atan2(main.y, main.x);
-	float dist = length(main);
-	dist = pow(dist, 0.1f);
-
-	// Sunflare effect with rotation and ray length variation
-	float f0 = 1.0f / (length(uv - pos) * 35.0f + 1.0f);
-	f0 = pow(f0, 1.5f);
-
-	// Calculate position-based rotation offset
-	float rotationOffset = dot(pos, float2(0.5f, 0.5f)) * (PI / 2.0f);
-
-	// Modify starburst pattern with rotation and variation
-	f0 += f0 * (sin((ang + rotationOffset + 1.0f / 18.0f) * 8.0f) * 0.2f + dist * 0.1f + 0.2f);
-
-	// Lensflare glow components
-	float f2  = max(1.0f / (1.0f + 32.0f * pow(length(uvd + 0.8f  * pos), 1.0f)), 0.0f) * 0.25f;
-	float f22 = max(1.0f / (1.0f + 32.0f * pow(length(uvd + 0.85f * pos), 1.0f)), 0.0f) * 0.23f;
-	float f23 = max(1.0f / (1.0f + 32.0f * pow(length(uvd + 0.9f  * pos), 1.0f)), 0.0f) * 0.21f;
-
-	// Circular lens artifacts
-	float2 uvx = lerp(uv, uvd, -0.5f);
-	float f4  = max(0.01f - pow(length(uvx + 0.4f  * pos), 2.4f), 0.0f) * 9.0f;
-	float f42 = max(0.01f - pow(length(uvx + 0.45f * pos), 2.4f), 0.0f) * 7.0f;
-	float f43 = max(0.01f - pow(length(uvx + 0.5f  * pos), 2.4f), 0.0f) * 6.0f;
-
-	// Smaller lens artifacts
-	uvx = lerp(uv, uvd, -0.4f);
-	float f5  = max(0.01f - pow(length(uvx + 0.2f * pos), 5.5f), 0.0f) * 2.0f;
-	float f52 = max(0.01f - pow(length(uvx + 0.4f * pos), 5.5f), 0.0f) * 2.0f;
-	float f53 = max(0.01f - pow(length(uvx + 0.6f * pos), 5.5f), 0.0f) * 2.0f;
-
-	// Symmetric artifacts
-	uvx = lerp(uv, uvd, -0.5f);
-	float f6  = max(0.01f - pow(length(uvx - 0.3f   * pos), 1.6f), 0.0f) * 9.0f;
-	float f62 = max(0.01f - pow(length(uvx - 0.325f * pos), 1.6f), 0.0f) * 6.0f;
-	float f63 = max(0.01f - pow(length(uvx - 0.35f  * pos), 1.6f), 0.0f) * 7.0f;
-
-	// Sunflare and lensflare outputs
-	float3 sunflare = float3(f0, f0, f0);
-	float3 lensflare = float3(
-	    f2 + f4 + f5 + f6,
-	    f22 + f42 + f52 + f62,
-	    f23 + f43 + f53 + f63
-	);
-	
-    // Subtle anamorphic glare
-    float anamorphicScaleX = 1.2f; // Horizontal stretch factor
-    float anamorphicScaleY = 35.0f;  // Vertical compression factor
-	float2 anamorphicOffset = main; // Center at the lensflare source
-    float glare = exp(-pow(anamorphicOffset.x * anamorphicScaleX, 2.0f) - pow(anamorphicOffset.y * anamorphicScaleY, 2.0f));
-    float3 anamorphicGlare = float3(glare * 0.6f, glare * 0.5f, glare * 1.0f) * 0.05f;
-
-    // Combine the effects
-    float3 c = saturate(sunflare) * 0.5f + lensflare + anamorphicGlare;
-    c = c * 1.3f - float3(length(uvd) * 0.05f, length(uvd) * 0.05f, length(uvd) * 0.05f);
-
-    return c;
+    return lerp(color, schemeColor, ColorSchemeStrength);
 }
 
-float3 LensFlareColorCorrection(float3 color, float factor,float factor2) 
+// Identity up to the knee, then an exponential shoulder that approaches white: colors of the 8 bit range keep their look
+// and brighter ones roll off instead of clipping.
+float3 Tonemap(float3 color)
 {
-	float w = color.x + color.y + color.z;
-	return lerp(color, float3(w, w, w) * factor, w * factor2);
+    float3 over = max(color - TONEMAP_KNEE, 0.0f);
+    return min(max(color, 0.0f), TONEMAP_KNEE) + (1.0f - TONEMAP_KNEE) * (1.0f - exp(-over / (1.0f - TONEMAP_KNEE)));
 }
 
-float4 PSLensFlare(PixelShaderInput input) : SV_Target
+// Lens flare in normalized device coordinates.
+float3 GetLensFlare(float2 uv, float2 position)
 {
-    float4 color = ColorTexture.Sample(LinearClampSampler, input.UV);
-	
-	float4 position = input.PositionCopy;
-	float3 totalLensFlareColor = float3(0.0f, 0.0f, 0.0f);
+    float2 main = uv - position;
+    float2 uvd = uv * length(uv);
 
-	for (int i = 0; i < NumLensFlares; i++)
-	{
-		float4 lensFlarePosition = float4(LensFlares[i].Position, 1.0f);
-        lensFlarePosition = mul(mul(lensFlarePosition, View), Projection); 
-		lensFlarePosition.xyz /= lensFlarePosition.w;
+    float angle = atan2(main.y, main.x);
+    float distance = pow(length(main), 0.1f);
 
-		// Per-flare depth-buffer occlusion: compare scene depth at the projected
-		// sun position against the sun's projected depth. Any opaque geometry in
-		// front of the sun (rooms, statics, moveables) suppresses the entire
-		// flare, including the central starburst spike. This mirrors how the
-		// sun/moon disc is naturally occluded by overdrawn opaque geometry.
-		float occlusion = 1.0f;
-		if (lensFlarePosition.w > 0.0f &&
-			abs(lensFlarePosition.x) <= 1.0f && abs(lensFlarePosition.y) <= 1.0f)
-		{
-			float2 sunUV = float2(lensFlarePosition.x * 0.5f + 0.5f,
-			                      0.5f - lensFlarePosition.y * 0.5f);
+    // Starburst.
+    float f0 = pow(1.0f / (length(uv - position) * 35.0f + 1.0f), 1.5f);
+    float rotationOffset = dot(position, float2(0.5f, 0.5f)) * (PI / 2.0f);
+    f0 += f0 * (sin((angle + rotationOffset + 1.0f / 18.0f) * 8.0f) * 0.2f + distance * 0.1f + 0.2f);
 
-			// 9-tap soft visibility test in a small kernel around the sun position.
-			// Sky pixels (NDC depth ~1.0) count as visible; opaque geometry counts
-			// as occluding. Averaging the taps avoids hard pop-in when the flare
-			// peeks out from behind geometry edges.
-			const float2 KERNEL_RADIUS = float2(0.012f, 0.018f);
-			float visibility = 0.0f;
-			[unroll]
-			for (int oy = -1; oy <= 1; oy++)
-			{
-				[unroll]
-				for (int ox = -1; ox <= 1; ox++)
-				{
-					float2 offsetUV = saturate(sunUV + float2(ox, oy) * KERNEL_RADIUS);
-					float d = DepthTexture.SampleLevel(PointWrapSampler, offsetUV, 0).r;
-					visibility += (d >= 0.9999f) ? 1.0f : 0.0f;
-				}
-			}
-			occlusion = visibility / 9.0f;
-		}
+    // Glow.
+    float f2  = max(1.0f / (1.0f + 32.0f * length(uvd + 0.8f  * position)), 0.0f) * 0.25f;
+    float f22 = max(1.0f / (1.0f + 32.0f * length(uvd + 0.85f * position)), 0.0f) * 0.23f;
+    float f23 = max(1.0f / (1.0f + 32.0f * length(uvd + 0.9f  * position)), 0.0f) * 0.21f;
 
-		float3 lensFlareColor = max(float3(0.0f, 0.0f, 0.0f),
-			LensFlares[i].Color *
-			float3(4.5f, 4.5f, 4.5f) * 
-			LensFlare(position.xy, lensFlarePosition.xy));
-		lensFlareColor = LensFlareColorCorrection(lensFlareColor, 0.5f, 0.1f);
-		totalLensFlareColor += lensFlareColor * occlusion;
-	}
+    // Circular, smaller and symmetric lens artifacts.
+    float2 uvx = lerp(uv, uvd, -0.5f);
+    float f4  = max(0.01f - pow(length(uvx + 0.4f  * position), 2.4f), 0.0f) * 9.0f;
+    float f42 = max(0.01f - pow(length(uvx + 0.45f * position), 2.4f), 0.0f) * 7.0f;
+    float f43 = max(0.01f - pow(length(uvx + 0.5f  * position), 2.4f), 0.0f) * 6.0f;
 
-	color.xyz = lerp(color.xyz, color.xyz + totalLensFlareColor, saturate(dot(totalLensFlareColor, float3(0.5f, 0.5f, 0.5f))));
+    uvx = lerp(uv, uvd, -0.4f);
+    float f5  = max(0.01f - pow(length(uvx + 0.2f * position), 5.5f), 0.0f) * 2.0f;
+    float f52 = max(0.01f - pow(length(uvx + 0.4f * position), 5.5f), 0.0f) * 2.0f;
+    float f53 = max(0.01f - pow(length(uvx + 0.6f * position), 5.5f), 0.0f) * 2.0f;
 
-	return color;
+    uvx = lerp(uv, uvd, -0.5f);
+    float f6  = max(0.01f - pow(length(uvx - 0.3f   * position), 1.6f), 0.0f) * 9.0f;
+    float f62 = max(0.01f - pow(length(uvx - 0.325f * position), 1.6f), 0.0f) * 6.0f;
+    float f63 = max(0.01f - pow(length(uvx - 0.35f  * position), 1.6f), 0.0f) * 7.0f;
+
+    float3 lensFlare = float3(f2 + f4 + f5 + f6, f22 + f42 + f52 + f62, f23 + f43 + f53 + f63);
+
+    // Subtle anamorphic glare. Squares are products: pow of a negative base is NaN, which SPIR-V max does not filter.
+    float2 glareOffset = main * float2(1.2f, 35.0f);
+    float glare = exp(-dot(glareOffset, glareOffset));
+    float3 anamorphicGlare = float3(0.6f, 0.5f, 1.0f) * glare * 0.05f;
+
+    float3 color = saturate(f0) * 0.5f + lensFlare + anamorphicGlare;
+    return color * 1.3f - length(uvd) * 0.05f;
 }
 
-float4 PSBlurBilinear(PixelShaderInput input) : SV_Target
+// Soft visibility of a flare from 9 depth taps around it: sky texels (cleared depth) are visible.
+float GetLensFlareVisibility(float2 position)
 {
-    int r = clamp(BlurRadius, 0, MAX_BLUR_RADIUS);
-    
-    float w0 = Gaussian(0.0, BlurSigma);
-    float4 color = ColorTexture.Sample(LinearClampSampler, input.UV) * w0;
-    float weightSum = w0;
+    if (abs(position.x) > 1.0f || abs(position.y) > 1.0f)
+        return 1.0f;
+
+    const float2 KERNEL_RADIUS = float2(0.012f, 0.018f);
+
+    float2 flareUV = float2(position.x * 0.5f + 0.5f, 0.5f - position.y * 0.5f);
+    float visibility = 0.0f;
 
     [unroll]
-    for (int k = 1; k <= MAX_BLUR_RADIUS; ++k)
+    for (int y = -1; y <= 1; y++)
     {
-        if (k > r)
-            break;
-
-        float wk = Gaussian((float) k, BlurSigma);
-
-        float2 off = BlurDirection * TexelSize * k;
-        float4 c1 = ColorTexture.Sample(LinearClampSampler, input.UV + off);
-        float4 c2 = ColorTexture.Sample(LinearClampSampler, input.UV - off);
-
-        color += (c1 + c2) * wk;
-        weightSum += 2.0 * wk;
+        [unroll]
+        for (int x = -1; x <= 1; x++)
+        {
+            float depth = DepthMap.SampleLevel(DepthMapSampler, saturate(flareUV + float2(x, y) * KERNEL_RADIUS), 0.0f).x;
+            visibility += (depth >= 0.9999f) ? 1.0f : 0.0f;
+        }
     }
 
-    return color / weightSum;
+    return visibility / 9.0f;
 }
 
-float4 PSBlurFull(PixelShaderInput input) : SV_Target
+float3 ApplyLensFlares(float3 color, float2 uv)
 {
-    int r = clamp(BlurRadius, 0, MAX_BLUR_RADIUS);
+    float2 position = float2(uv.x * 2.0f - 1.0f, 1.0f - uv.y * 2.0f);
+    float3 totalColor = 0.0f;
 
-    float4 color = 0;
-    float weightSum = 0;
-
-    [unroll]
-    for (int k = -MAX_BLUR_RADIUS; k <= MAX_BLUR_RADIUS; ++k)
+    for (uint i = 0; i < min(LensFlareCount, LENS_FLARES_MAX); i++)
     {
-        if (abs(k) > r)
+        // Visibility is the same for every pixel, so occluded flares skip the flare math coherently.
+        float visibility = GetLensFlareVisibility(LensFlarePositions[i].xy);
+        if (visibility <= 0.0f)
             continue;
 
-        float w = Gaussian((float) k, BlurSigma);
-        float2 off = BlurDirection * TexelSize * k;
-        color += ColorTexture.Sample(LinearClampSampler, input.UV + off) * w;
-        weightSum += w;
+        float3 flareColor = max(0.0f, LensFlareColors[i].rgb * 4.5f * GetLensFlare(position, LensFlarePositions[i].xy));
+
+        // Color correction: desaturates bright flares.
+        float weight = flareColor.r + flareColor.g + flareColor.b;
+        flareColor = lerp(flareColor, weight * 0.5f, weight * 0.1f);
+
+        totalColor += flareColor * visibility;
     }
 
-    return color / weightSum;
+    return lerp(color, color + totalColor, saturate(dot(totalColor, 0.5f)));
 }
 
-float4 PSBlur(PixelShaderInput input) : SV_Target
+// Steps: cinematic bars, distortion, depth of field, glow, lens flares, HDR bloom and tonemap, color scheme and fade,
+// tint and gamma.
+float4 PS(FullscreenPixelInput input) : SV_Target
 {
-#if USE_FAST_BILINEAR_BLUR
-    return PSBlurBilinear(input);
-#else
-    return PSBlurFull(input);
-#endif
+    float y = input.Position.y / ViewportHeight;
+    if (y > 1.0f - CinematicBarsHeight || y < CinematicBarsHeight)
+        return float4(0.0f, 0.0f, 0.0f, 1.0f);
+
+    float2 uv = IsDistortionActive ? GetDistortedUV(input.UV) : input.UV;
+    float3 color = SceneMap.SampleLevel(SceneMapSampler, uv, 0.0f).rgb;
+
+    // Depth of field: far blur, then near blur on top.
+    if (IsDofActive & 1)
+    {
+        float4 farBlur = FarBlurMap.SampleLevel(FarBlurMapSampler, input.UV, 0.0f);
+        color = lerp(color, farBlur.rgb, saturate(farBlur.a));
+    }
+
+    if (IsDofActive & 2)
+    {
+        float4 nearBlur = NearBlurMap.SampleLevel(NearBlurMapSampler, input.UV, 0.0f);
+        color = lerp(color, nearBlur.rgb, saturate(nearBlur.a));
+    }
+
+    // Glow combine with soft add, or plain add for the HDR scene, whose colors may exceed 1.
+    if (IsGlowActive)
+    {
+        float3 glow = GlowMap.SampleLevel(GlowMapSampler, input.UV, 0.0f).rgb;
+        color = IsHdrActive ? (color + glow) : (1.0f - (1.0f - color) * (1.0f - glow));
+    }
+
+    if (LensFlareCount > 0)
+        color = ApplyLensFlares(color, input.UV);
+
+    if (IsHdrActive)
+        color = Tonemap((color + BloomMap.SampleLevel(BloomMapSampler, input.UV, 0.0f).rgb * BloomIntensity) * Exposure);
+
+    color = ApplyColorScheme(color) * ScreenFade;
+
+    // Neutral tint is 0.5, compensated by the color modulation scale.
+    color = saturate(pow(saturate(color * Tint * COLOR_MODULATION_SCALE), 1.0f / Gamma));
+    return float4(color, 1.0f);
 }
 
-float4 PSDownscale(PixelShaderInput input) : SV_Target
-{
-    float2 halfDstUV = 0.5f / (ViewportSize / DownscaleFactor);
-
-    const float wc = 0.5;
-    const float w1 = 0.125;
-    const float wd = 0.03125;
-
-    float2 dx = float2(halfDstUV.x, 0);
-    float2 dy = float2(0, halfDstUV.y);
-
-    float3 c = 0;
-
-    // center
-    c += ColorTexture.SampleLevel(LinearClampSampler, input.UV, 0).rgb * wc;
-
-    // N/S/E/W
-    c += ColorTexture.SampleLevel(LinearClampSampler, input.UV + dx, 0).rgb * w1;
-    c += ColorTexture.SampleLevel(LinearClampSampler, input.UV - dx, 0).rgb * w1;
-    c += ColorTexture.SampleLevel(LinearClampSampler, input.UV + dy, 0).rgb * w1;
-    c += ColorTexture.SampleLevel(LinearClampSampler, input.UV - dy, 0).rgb * w1;
-
-    // diagonals
-    c += ColorTexture.SampleLevel(LinearClampSampler, input.UV + dx + dy, 0).rgb * wd;
-    c += ColorTexture.SampleLevel(LinearClampSampler, input.UV + dx - dy, 0).rgb * wd;
-    c += ColorTexture.SampleLevel(LinearClampSampler, input.UV - dx + dy, 0).rgb * wd;
-    c += ColorTexture.SampleLevel(LinearClampSampler, input.UV - dx - dy, 0).rgb * wd;
-
-    return float4(c, 1);
-}
-
-float3 SoftAddBlend(float3 base, float3 add)
-{
-    return 1.0 - (1.0 - base) * (1.0 - add);
-}
-
-float4 PSGlowCombine(PixelShaderInput input) : SV_Target
-{
-    float3 base = ColorTexture.Sample(LinearClampSampler, input.UV).rgb;
-    float3 glow = GlowTexture.Sample(LinearClampSampler, input.UV).rgb * GlowIntensity;
-
-    float3 outc = (GlowSoftAdd != 0) ? SoftAddBlend(base, glow) : saturate(base + glow);
-
-    return float4(outc, 1);
-}

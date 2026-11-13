@@ -1,248 +1,326 @@
-#ifndef MATERIALSSHADER
-#define MATERIALSSHADER
+#ifndef TEN_MATERIALS
+#define TEN_MATERIALS
 
-#include "./Blending.hlsli"
-#include "./CBCamera.hlsli"
-#include "./CBPerDraw.hlsli"
+// Surface sampling of the material system: color, normal, ORSH (occlusion, roughness, specular, height) and emissive
+// maps of an atlas page, parallax occlusion mapping and per-material properties from a frame storage buffer.
+// Pixel textures use slots 0-3, slot 4 is the screen space ambient occlusion, slot 5 the shadow map
+// (Shadows.hlsli), slot 6 the caustics, slot 7 the previous frame reflections and slot 8 the sky reflections;
+// storage buffers follow at index 9 (lights), 10 (materials) and 11 (decals, Decals.hlsli).
+
+#include "./ShaderInterop.hlsli"
+#include "./Common.hlsli"
+#include "./FrameUniforms.hlsli"
 
 #define MATERIAL_DEFAULT           0
 #define MATERIAL_REFLECTIVE        1
 #define MATERIAL_SKYBOX_REFLECTIVE 2
 
-#define MATERIAL_FLAG_MASK 0xFF
-#define MATERIAL_FLAG_HEIGHTMAP 1 << 8
-#define MATERIAL_FLAG_OCCLUSION 1 << 9
-#define MATERIAL_FLAG_EMISSIVE  1 << 10
+#define MATERIAL_TYPE_MASK      0xFF
+#define MATERIAL_FLAG_HEIGHTMAP (1 << 8)
+#define MATERIAL_FLAG_OCCLUSION (1 << 9)
+#define MATERIAL_FLAG_EMISSIVE  (1 << 10)
 
-#define POM_MIN_STEPS 1
-#define POM_MAX_STEPS 16
-#define POM_FADE_START 5000
-#define POM_FADE_END 7000
+#define POM_MIN_STEPS      1
+#define POM_MAX_STEPS      16
+#define POM_FADE_START     5000.0f
+#define POM_FADE_END       7000.0f
 #define POM_FADE_TOLERANCE 0.001f
-#define POM_MIN_ANGLE 0.4f
-#define POM_HEIGHT_SCALE 0.0035f
+#define POM_MIN_ANGLE      0.4f
+#define POM_HEIGHT_SCALE   0.0035f
 
-#include "./Samplers.hlsli"
+// Material maps are texture arrays shared by the pages of the same size and format; TextureLayer selects the page.
+// The NO_NORMAL_MAP, NO_ORSH_MAP and NO_EMISSIVE_MAP variants serve texture groups without those maps: the values of
+// the default maps become constants, so the compiler removes the samples and the work depending on them.
+TEN_PS_TEXTURE(Texture2DArray, ColorMap, 0);
+TEN_PS_TEXTURE(Texture2DArray, NormalMap, 1);
+TEN_PS_TEXTURE(Texture2DArray, ORSHMap, 2);
+TEN_PS_TEXTURE(Texture2DArray, EmissiveMap, 3);
+TEN_PS_TEXTURE(Texture2D, AmbientOcclusionMap, 4);
+TEN_PS_TEXTURE(Texture2D, CausticsMap, 6);
+TEN_PS_TEXTURE(Texture2D, ReflectionMap, 7); // Previous frame, half resolution.
+TEN_PS_TEXTURE(Texture2DArray, SkyReflectionMap, 8); // Dual paraboloid sky, one hemisphere per layer.
+TEN_PS_RAW_BUFFER(GpuMaterial, Materials, 10);
 
-Texture2D SSAOTexture : register(t9);
-Texture2D ORSHTexture : register(t10);
-Texture2D EmissiveTexture : register(t11);
-Texture2D LegacyReflectionsTexture : register(t12);
-Texture2DArray SkyboxReflectionsTexture : register(t13);
-
-float GetEmissiveIntensity()
+float4 SampleColorMap(float2 uv)
 {
-    int materialType = MaterialTypeAndFlags & MATERIAL_FLAG_MASK;
-    return (materialType == MATERIAL_DEFAULT) ? MaterialProperties[0].x : 1.0f;
+    return ColorMap.Sample(ColorMapSampler, float3(uv, TextureLayer));
 }
 
-float3 GetReflectionTint()
+float4 SampleNormalMap(float2 uv)
 {
-    return saturate(MaterialProperties[0].rgb);
+#ifdef NO_NORMAL_MAP
+    return float4(0.5f, 0.5f, 1.0f, 1.0f);
+#else
+    return NormalMap.Sample(NormalMapSampler, float3(uv, TextureLayer));
+#endif
 }
 
-float GetReflectionVerticalMask(float3 worldPosition)
+float4 SampleORSHMap(float2 uv)
 {
-    float verticalOffset = MaterialProperties[1].x;
-    float verticalBias = MaterialProperties[2].x;
-
-    if (abs(verticalBias) <= EPSILON)
-        return 1.0f;
-
-    float feather = abs(verticalBias);
-    float signedDistance = (verticalBias < 0.0f) ? (worldPosition.y - verticalOffset) : (verticalOffset - worldPosition.y);
-    return saturate(signedDistance / feather);
+#ifdef NO_ORSH_MAP
+    return float4(1.0f, 1.0f, 0.0f, 1.0f);
+#else
+    return ORSHMap.Sample(ORSHMapSampler, float3(uv, TextureLayer));
+#endif
 }
 
-float2 ToCentralSquare(float2 uvEnv, float aspect)
+float4 SampleEmissiveMap(float2 uv)
 {
-    if (aspect >= 1.0)
-    {
-        float sx = rcp(aspect);
-        return float2(uvEnv.x * sx + (0.5 - 0.5 * sx), uvEnv.y);
-    }
-    else
-    {
-        float sy = aspect;
-        return float2(uvEnv.x, uvEnv.y * sy + (0.5 - 0.5 * sy));
-    }
+#ifdef NO_EMISSIVE_MAP
+    return float4(0.0f, 0.0f, 0.0f, 0.0f);
+#else
+    return EmissiveMap.Sample(EmissiveMapSampler, float3(uv, TextureLayer));
+#endif
 }
 
-float3 CalculateSkyBoxReflections(float3 worldPosition, float3 normal, float specular, float3 pixelColor)
+struct Surface
 {
-    float3 V = normalize(CamPositionWS - worldPosition);
-    float3 R = reflect(-V, normal);
+    float4 Color;
+    float3 Normal;
+    float3 Emissive;
+    float  Occlusion;
+    float  Roughness;
+    float  Specular;
+};
 
-    // Angle exaggeration factor to fake angular reflection difference.
-    R = normalize(lerp(V, R, 1.5f));
-    float3 d = normalize(mul(float4(R, 0.0f), DualParaboloidView).xyz);
-
-    float denom = max(1.0f + abs(d.z), EPSILON);
-    float2 uv = (d.xy / denom) * 0.5f + 0.5f;
-
-    // Crop hemisphere to avoid edge artifacts.
-    uv = 0.5f + (uv - 0.5f) * 0.985f;
-    uv = clamp(uv, EPSILON, 1.0f - EPSILON);
-
-    int slice = (d.z <= 0.0f) ? 0 : 1;
-    uv.y = 1.0f - uv.y;
-    
-    float3 reflectedColor = SkyboxReflectionsTexture.Sample(AnisotropicClampSampler, float3(uv, slice)).rgb;
-    reflectedColor *= GetReflectionTint();
-
-    float reflectionAmount = saturate(specular) * MaterialProperties[0].a * GetReflectionVerticalMask(worldPosition);
-    return lerp(pixelColor, reflectedColor, reflectionAmount);
+// A negative threshold keeps only the texels below its magnitude: the soft edge pass of alpha tested buckets.
+// The NO_ALPHA_TEST permutation has no clip, so draws without alpha test keep early depth testing.
+void ApplyAlphaTest(float alpha, float alphaThreshold)
+{
+#ifndef NO_ALPHA_TEST
+    clip((alphaThreshold >= 0.0f) ? (alpha - alphaThreshold) : (-alphaThreshold - alpha - 0.0001f));
+#endif
 }
 
-float3 CalculateLegacyReflections(float3 worldPosition, float3 normal, float specular, float3 pixelColor)
+// Tangent space normal from the map; z is rebuilt from x and y.
+float3 UnpackNormalMap(float4 n)
 {
-    float3 N = normalize(mul(float4(normal, 0.0f), View).xyz);
-    float3 V = normalize(mul(float4(CamPositionWS - worldPosition, 0.0f), View).xyz);
-    float3 R = reflect(-V, N);
-
-    // Project reflection vector into pseudo-screen UVs
-    float2 uv = R.xy * 0.5f + 0.5f;
-    uv.y = 1.0f - uv.y;
-
-    // Preserve aspect ratio
-    uv = ToCentralSquare(uv, AspectRatio);
-
-    // Sample legacy reflection buffer
-    float3 reflectedColor = LegacyReflectionsTexture.Sample(AnisotropicClampSampler, uv).rgb;
-    reflectedColor *= GetReflectionTint();
-
-    float reflectionAmount = saturate(specular) * MaterialProperties[0].a * GetReflectionVerticalMask(worldPosition);
-    return lerp(pixelColor, reflectedColor, reflectionAmount);
+    n = n * 2.0f - 1.0f;
+    n.z = saturate(1.0f - dot(n.xy, n.xy));
+    return n.xyz;
 }
 
-
-float3 CalculateReflections(float3 position, float3 color, float3 normal, float specular)
+// Normalized normal, falling back to the direction toward the camera when it is NaN or degenerate.
+float3 EnsureNormal(float3 normal, float3 position, float3 cameraPosition)
 {
-    int materialType = MaterialTypeAndFlags & MATERIAL_FLAG_MASK;
-	
-    if (materialType == MATERIAL_SKYBOX_REFLECTIVE)
-    {
-        return CalculateSkyBoxReflections(position, normal, specular, color);
-    }
-    else if (materialType == MATERIAL_REFLECTIVE)
-    {
-        return CalculateLegacyReflections(position, normal, specular, color);
-    }
-    else
-    {
-        return color;
-    }
+    normal = any(isnan(normal)) ? float3(0.0f, 0.0f, 0.0f) : normal;
+    if (dot(normal, normal) >= 0.001f)
+        return normalize(normal);
+
+    float3 view = cameraPosition - position;
+    return (dot(view, view) >= 0.001f) ? normalize(view) : float3(0.0f, 0.0f, 1.0f);
 }
 
-float2 ParallaxOcclusionMapping(float3x3 TBN, float3 pos, float2 baseUV)
+// Default materials store the emissive intensity in Properties[0].x; reflective materials use it for the tint.
+float GetEmissiveIntensity(GpuMaterial material)
 {
-    if (!(MaterialTypeAndFlags & MATERIAL_FLAG_HEIGHTMAP))
+    return ((material.TypeAndFlags & MATERIAL_TYPE_MASK) == MATERIAL_DEFAULT) ? material.Properties[0].x : 1.0f;
+}
+
+float SampleHeight(float2 uv)
+{
+    return 1.0f - SampleORSHMap(frac(uv)).w;
+}
+
+// Steps along the tangent space view ray through the height field until it falls below the surface, then
+// interpolates between the last two steps. Fewer steps at steep view angles; faded out with distance.
+float2 ParallaxOcclusionMapping(GpuMaterial material, float3 tangent, float3 binormal, float3 faceNormal, float3 position, float3 cameraPosition, float2 baseUV)
+{
+#ifdef NO_ORSH_MAP
+    bool hasHeightMap = false; // The height is the ORSH alpha.
+#else
+    bool hasHeightMap = (material.TypeAndFlags & MATERIAL_FLAG_HEIGHTMAP) != 0;
+#endif
+    if (!hasHeightMap)
         return baseUV;
 
-    float3 camVector = CamPositionWS - pos;
-	
-    // Discard parallax mapping over the distance.
-    float fade = saturate(1.0f - (length(camVector) - POM_FADE_START) / (POM_FADE_END - POM_FADE_START));
+    float3 cameraVector = cameraPosition - position;
+    float fade = saturate(1.0f - (length(cameraVector) - POM_FADE_START) / (POM_FADE_END - POM_FADE_START));
     if (fade <= POM_FADE_TOLERANCE)
         return baseUV;
 
-    // Build orthonormal TBN basis (fix potential handedness in TR coordinate system).
-    float3 t = normalize(TBN[0]);
-    float3 b = normalize(TBN[1]);
-    float3 n = normalize(TBN[2]);
-    float3 recomputedB = cross(n, t);
-    float handedness = dot(recomputedB, b) >= 0.0f ? 1.0f : -1.0f;
-    b = recomputedB * handedness;
+    // Orthonormal basis; the binormal keeps the handedness of the TR coordinate system.
+    float3 t = normalize(tangent);
+    float3 n = normalize(faceNormal);
+    float3 recomputedBinormal = cross(n, t);
+    float3 b = recomputedBinormal * ((dot(recomputedBinormal, normalize(binormal)) >= 0.0f) ? 1.0f : -1.0f);
 
-    // Compute view direction in tangent space.
-    float3 viewW = normalize(camVector);
-    float3 viewDirTangent = -normalize(float3(dot(viewW, t), dot(viewW, b), dot(viewW, n)));
+    float3 view = normalize(cameraVector);
+    float3 viewTangent = -normalize(float3(dot(view, t), dot(view, b), dot(view, n)));
+    viewTangent.y = -viewTangent.y;
 
-    // Flip tangent-space Y to match inverted TR coordinate system.
-    viewDirTangent.y = -viewDirTangent.y;
+    float factor = saturate((viewTangent.z - POM_MIN_ANGLE) / (1.0f - POM_MIN_ANGLE));
+    // Clamped after the conversion: a NaN view vector would otherwise give an unbounded loop.
+    int sampleCount = clamp((int)ceil(lerp((float)POM_MAX_STEPS, (float)POM_MIN_STEPS, factor)), POM_MIN_STEPS, POM_MAX_STEPS);
+    viewTangent.z = clamp(viewTangent.z, POM_MIN_ANGLE, 1.0f);
 
-    // Bring parallax angle to full available range, otherwise effect will be undersampled.
-    float factor = saturate((viewDirTangent.z - POM_MIN_ANGLE) / (1.0f - POM_MIN_ANGLE));
-    int numSamples = max(1, (int)ceil(lerp(POM_MAX_STEPS, POM_MIN_STEPS, factor)));
+    float layerDepth = 1.0f / sampleCount;
+    float2 deltaUV = (viewTangent.xy / viewTangent.z) * POM_HEIGHT_SCALE / sampleCount;
 
-    // Clamp steep angles to avoid artifacts.
-    viewDirTangent.z = clamp(viewDirTangent.z, POM_MIN_ANGLE, 1.0f);
-
-    // Adaptive sample count based on angle.
-    float layerDepth = 1.0f / numSamples;
-
-    // Parallax amount & delta UV.
-    float2 deltaUV = (viewDirTangent.xy / viewDirTangent.z) * POM_HEIGHT_SCALE / numSamples;
-
-    // Iterative depth search.
-	
     float currentDepth = 0.0f;
     float2 currentUV = baseUV;
-    float2 wrappedUV = frac(currentUV);
-    float currentMapDepth = 1.0f - ORSHTexture.Sample(AnisotropicClampSampler, wrappedUV).w;
+    float currentMapDepth = SampleHeight(currentUV);
 
     [loop]
-    for (int i = 0; i < numSamples; i++)
+    for (int i = 0; i < sampleCount; i++)
     {
         if (currentDepth >= currentMapDepth)
             break;
 
         currentUV += deltaUV;
         currentDepth += layerDepth;
-
-        wrappedUV = frac(currentUV);
-        currentMapDepth = 1.0f - ORSHTexture.Sample(AnisotropicClampSampler, wrappedUV).w;
+        currentMapDepth = SampleHeight(currentUV);
     }
 
-    // Linear refinement between last two steps.
-    float2 prevUV = currentUV - deltaUV;
-    float2 wrappedPrevUV = frac(prevUV);
-    float mapDepthPrev = 1.0f - ORSHTexture.Sample(AnisotropicClampSampler, wrappedPrevUV).w;
-
+    float2 previousUV = currentUV - deltaUV;
     float afterDepth = currentMapDepth - currentDepth;
-    float beforeDepth = mapDepthPrev - (currentDepth - layerDepth);
+    float beforeDepth = SampleHeight(previousUV) - (currentDepth - layerDepth);
 
-    float weight = saturate(afterDepth / (afterDepth - beforeDepth + EPSILON));
-    float2 finalUV = lerp(frac(currentUV), wrappedPrevUV, weight);
-
-    // Distance fade between parallax UV and flat UV.
-    return lerp(baseUV, finalUV, fade);
+    float weight = saturate(afterDepth / (afterDepth - beforeDepth + 0.001f));
+    return lerp(baseUV, lerp(frac(currentUV), frac(previousUV), weight), fade);
 }
 
-float CalculateOcclusion(float2 samplePosition, float alpha)
+// Samples every map of the bucket's atlas page. The normal is perturbed by the normal map in the tangent frame.
+Surface SampleSurface(GpuMaterial material, float2 uv, float alphaThreshold, float3 position, float3 cameraPosition,
+                      float3 normal, float3 tangent, float3 binormal, float3 faceNormal)
 {
-    if (AmbientOcclusion == 0 || !BlendModeSupportsSSAO() || (MaterialTypeAndFlags & MATERIAL_FLAG_HEIGHTMAP))
-		return 1.0f;
-		
-    float occlusion = pow(SSAOTexture.Sample(PointWrapSampler, samplePosition).x, AmbientOcclusionExponent);
-	
-	if (BlendMode == BLENDMODE_ALPHABLEND)
-		occlusion = lerp(occlusion, 1.0f, alpha);
-	
-	return occlusion;
+    uv = ParallaxOcclusionMapping(material, tangent, binormal, faceNormal, position, cameraPosition, uv);
+
+    Surface surface;
+    surface.Color = SampleColorMap(uv);
+    ApplyAlphaTest(surface.Color.a, alphaThreshold);
+
+    float4 orsh = SampleORSHMap(uv);
+    surface.Occlusion = orsh.x;
+    surface.Roughness = orsh.y;
+    surface.Specular = orsh.z;
+    surface.Emissive = SampleEmissiveMap(uv).rgb * GetEmissiveIntensity(material);
+
+    float3x3 tangentFrame = float3x3(tangent, binormal, normal);
+    surface.Normal = EnsureNormal(mul(UnpackNormalMap(SampleNormalMap(uv)), tangentFrame), position, cameraPosition);
+    return surface;
 }
 
-inline float3 EnsureNormal(float3 n, float3 worldPos)
+// Prepass surface: normal and emissive, the latter feeding the glow.
+float3 SampleSurfaceNormal(GpuMaterial material, float2 uv, float alphaThreshold, float3 position, float3 cameraPosition,
+                           float3 normal, float3 tangent, float3 binormal, float3 faceNormal, out float3 emissive)
 {
-    // Eliminate NaNs by replacing them with 0.
-    n = (n == n) ? n : float3(0, 0, 0);
+    uv = ParallaxOcclusionMapping(material, tangent, binormal, faceNormal, position, cameraPosition, uv);
+    ApplyAlphaTest(SampleColorMap(uv).a, alphaThreshold);
 
-    float l2 = dot(n, n);
+    emissive = SampleEmissiveMap(uv).rgb * GetEmissiveIntensity(material);
 
-    // If too small, choose a fallback facing the camera
-    if (l2 < EPSILON)
-    {
-        // Camera direction in world space
-        float3 viewDir = normalize(CamPositionWS - worldPos);
-
-        // Guarantee a valid vector even if Cam == worldPos
-        if (any(isnan(viewDir)) || dot(viewDir,viewDir) < EPSILON)
-            viewDir = float3(0, 0, 1);
-
-        return viewDir;
-    }
-
-    return normalize(n);
+    float3x3 tangentFrame = float3x3(tangent, binormal, normal);
+    return EnsureNormal(mul(UnpackNormalMap(SampleNormalMap(uv)), tangentFrame), position, cameraPosition);
 }
 
+// Blended surfaces fade the occlusion with their alpha, parallax surfaces skip it.
+float GetAmbientOcclusion(GpuMaterial material, float2 screenUV, float exponent, uint blendMode, float alpha)
+{
+    bool isSupported = (blendMode == BLENDMODE_OPAQUE || blendMode == BLENDMODE_ALPHATEST || blendMode == BLENDMODE_ALPHABLEND);
+    if (exponent <= 0.0f || !isSupported || (material.TypeAndFlags & MATERIAL_FLAG_HEIGHTMAP))
+        return 1.0f;
+
+    float occlusion = pow(AmbientOcclusionMap.Sample(AmbientOcclusionMapSampler, screenUV).x, exponent);
+    return (blendMode == BLENDMODE_ALPHABLEND) ? lerp(occlusion, 1.0f, alpha) : occlusion;
+}
+
+// The exaggerated reflection vector picks a texel of the dual paraboloid sky.
+float3 SampleSkyReflection(float3 position, float3 cameraPosition, float3 normal)
+{
+    float3 viewVector = normalize(cameraPosition - position);
+    float3 reflection = normalize(lerp(viewVector, reflect(-viewVector, normal), 1.5f));
+    return SkyReflectionMap.Sample(SkyReflectionMapSampler, GetSkyReflectionCoordinates(reflection)).rgb;
+}
+
+// The view space reflection vector picks a texel of the previous frame,
+// cropped to its central square.
+float3 SampleScreenReflection(float3 position, float3 cameraPosition, float3 normal, float4x4 view, float aspectRatio)
+{
+    float3 viewNormal = normalize(mul(float4(normal, 0.0f), view).xyz);
+    float3 viewVector = normalize(mul(float4(cameraPosition - position, 0.0f), view).xyz);
+    float3 reflection = reflect(-viewVector, viewNormal);
+
+    float2 uv = reflection.xy * 0.5f + 0.5f;
+    uv.y = 1.0f - uv.y;
+    if (aspectRatio >= 1.0f)
+        uv.x = uv.x / aspectRatio + (0.5f - 0.5f / aspectRatio);
+    else
+        uv.y = uv.y * aspectRatio + (0.5f - 0.5f * aspectRatio);
+
+    return ReflectionMap.Sample(ReflectionMapSampler, uv).rgb;
+}
+
+// Reflective materials blend toward the screen or sky reflection, tinted by Properties[0].rgb, with strength
+// Properties[0].a scaled by the specular intensity.
+float3 ApplyReflections(GpuMaterial material, float3 color, float3 position, float3 cameraPosition, float3 normal, float specular,
+                        float4x4 view, float aspectRatio)
+{
+#ifdef NO_ORSH_MAP
+    uint type = MATERIAL_DEFAULT; // The reflection strength is the specular intensity, zero without an ORSH map.
+#else
+    uint type = material.TypeAndFlags & MATERIAL_TYPE_MASK;
 #endif
+    if (type != MATERIAL_REFLECTIVE && type != MATERIAL_SKYBOX_REFLECTIVE)
+        return color;
+
+    float3 reflectedColor = (type == MATERIAL_SKYBOX_REFLECTIVE) ?
+        SampleSkyReflection(position, cameraPosition, normal) :
+        SampleScreenReflection(position, cameraPosition, normal, view, aspectRatio);
+    reflectedColor *= saturate(material.Properties[0].rgb);
+
+    // Vertical mask: offset in Properties[1].x, signed feather in Properties[2].x.
+    float mask = 1.0f;
+    float bias = material.Properties[2].x;
+    if (abs(bias) > 1e-6f)
+        mask = saturate(((bias < 0.0f) ? (position.y - material.Properties[1].x) : (material.Properties[1].x - position.y)) / abs(bias));
+
+    return lerp(color, reflectedColor, saturate(specular) * material.Properties[0].a * mask);
+}
+
+struct PrepassOutput
+{
+    float4 Normal   : SV_Target0;
+    float4 Emissive : SV_Target1;
+    float  Depth    : SV_Target2; // Copy of the depth for the later passes, so the depth buffer is never sampled.
+};
+
+// Distance fog fades the emissive. The normal alpha is the outdoor mask, read by the dust storm.
+PrepassOutput GetPrepassOutput(float3 viewNormal, float3 emissive, float fog, bool isOutdoor, float depth)
+{
+    PrepassOutput output;
+    output.Depth = depth;
+    output.Normal = float4(viewNormal, isOutdoor ? 1.0f : 0.0f);
+    output.Emissive = float4(emissive * (1.0f - fog * fog), 1.0f);
+    return output;
+}
+
+// Prepass with motion vectors, for the temporal antialiasing and ambient occlusion: the targets of PrepassOutput and
+// the screen motion of the texel.
+struct VelocityPrepassOutput
+{
+    float4 Normal   : SV_Target0;
+    float4 Emissive : SV_Target1;
+    float  Depth    : SV_Target2;
+    float2 Velocity : SV_Target3;
+};
+
+// Motion in UV units from the previous frame to this one, from the unjittered clip positions of both frames. A point
+// behind the camera in the previous frame has no usable motion.
+VelocityPrepassOutput AddVelocity(PrepassOutput prepass, float4 currentClip, float4 previousClip)
+{
+    VelocityPrepassOutput output;
+    output.Normal = prepass.Normal;
+    output.Emissive = prepass.Emissive;
+    output.Depth = prepass.Depth;
+    output.Velocity = (previousClip.w > 0.0f) ? (currentClip.xy / currentClip.w - previousClip.xy / previousClip.w) * float2(0.5f, -0.5f) : float2(0.0f, 0.0f);
+    return output;
+}
+
+// View space normal remapped from [-1, 1] to [0, 1] for storage in a color target.
+float3 EncodeViewNormal(float3 normal, float4x4 view)
+{
+    return normalize(mul(normal, (float3x3)view)) * 0.5f + 0.5f;
+}
+
+#endif // TEN_MATERIALS

@@ -1,89 +1,133 @@
-#include "./CBCamera.hlsli"
-#include "./Blending.hlsli"
-#include "./Math.hlsli"
+// TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=1 uniform_buffers=4
+// TEN_SHADER: Pixel PS samplers=2 storage_textures=0 storage_buffers=0 uniform_buffers=4
+// TEN_SHADER: Pixel PSSky samplers=4 storage_textures=0 storage_buffers=0 uniform_buffers=4
+
+// Billboards and 3D quads share one path: corners are expanded to world space on the CPU, each sprite
+// is one instance of six vertices, and the corner index comes from a static vertex stream (SceneRendererSprites.cpp).
+// PS draws scene sprites (soft particles, laser effects, distortion); PSSky draws stars and meteors.
+
+#include "./ShaderInterop.hlsli"
+#include "./Common.hlsli"
+#include "./FrameUniforms.hlsli"
+#include "./FogBulbs.hlsli"
 #include "./SpriteEffects.hlsli"
-#include "./ShaderLight.hlsli"
-#include "./VertexInput.hlsli"
-#include "./Samplers.hlsli"
 
-// NOTE: Shader is used for all 3D and alpha blended sprites because transformed vertices are already sent to GPU instead of instances.
+#define SPRITE_RENDER_DEFAULT       0
+#define SPRITE_RENDER_LASER_BARRIER 1
+#define SPRITE_RENDER_LASER_BEAM    2
+#define LASER_FADE_FACTOR           0.789f
 
-#define FADE_FACTOR .789f
-
-cbuffer SpriteBuffer : register(b9)
+// Slot 3: slot 2 holds the shadow uniforms read by room and object draws interleaved with sorted sprites.
+TEN_PS_UNIFORMS(SpriteUniforms, 3)
 {
-	float IsSoftParticle;
-	int RenderType;
+    uint  IsSoftParticle;
+    uint  RenderType;
+    float NearPlane;
+    float FarPlane;
+    float Time;
+    float MoonDiskCosRadius; // Above 1 when no moon hides the stars.
+    float SpritePadding0;
+    float SpritePadding1;
+    float3 MoonDirection;
+    float SpritePadding2;
 };
 
-struct PixelShaderInput
+TEN_VS_RAW_BUFFER(GpuSprite, Sprites, 0);
+
+TEN_PS_TEXTURE(Texture2D, ColorMap, 0);
+TEN_PS_TEXTURE(Texture2D, SceneDepthMap, 1); // Hardware depth of the opaque geometry, copied after the prepass.
+
+// Cloud layers of the previous frame, which hide the stars and meteors.
+TEN_PS_TEXTURE(Texture2D, CloudLayerA, 2);
+TEN_PS_TEXTURE(Texture2D, CloudLayerB, 3);
+
+struct VertexInput
 {
-	float4 Position: SV_POSITION;
-	float3 Normal: NORMAL;
-	float2 UV: TEXCOORD1;
-	float4 Color: COLOR;
-	float4 PositionCopy: TEXCOORD2;
-	float4 FogBulbs : TEXCOORD3;
-	float DistanceFog : FOG;
+    TEN_LOCATION(0) uint Corner        : TEXCOORD0;
+    TEN_LOCATION(1) uint InstanceIndex : TEXCOORD1;
 };
 
-Texture2D Texture : register(t0);
-Texture2D DepthTexture : register(t6);
-
-PixelShaderInput VS(VertexShaderInput input)
+struct PixelInput
 {
-	PixelShaderInput output;
+    float4 Position : SV_POSITION;
+    float2 UV       : TEXCOORD0;
+    float4 Color    : TEXCOORD1;
+    float  Fog      : TEXCOORD2;
+    float3 FogBulbs : TEXCOORD3;
+    float4 ClipPosition : TEXCOORD4;
+    float3 WorldDirection : TEXCOORD5; // From the camera, for the moon disc of the sky sprites.
+};
 
-	float4 worldPosition = float4(input.Position, 1.0f);
-
-	output.Position = mul(worldPosition, ViewProjection);
-	output.PositionCopy = output.Position;
-    output.Normal = input.Normal.xyz;
-	output.Color = input.Color;
-	output.UV = input.UV;
-
-	output.FogBulbs = DoFogBulbsForVertex(worldPosition);
-	output.DistanceFog = DoDistanceFogForVertex(worldPosition);
-
-	return output;
+// Packed RGBA8, red in the low byte.
+float4 UnpackColor(uint packedColor)
+{
+    return float4(packedColor & 0xFF, (packedColor >> 8) & 0xFF, (packedColor >> 16) & 0xFF, packedColor >> 24) / 255.0f;
 }
 
-float4 PS(PixelShaderInput input) : SV_TARGET
+PixelInput VS(VertexInput input)
 {
-		float4 output = Texture.Sample(LinearClampSampler, input.UV) * input.Color;
+    GpuSprite sprite = TEN_LOAD_RAW(GpuSprite, Sprites, input.InstanceIndex);
+    GpuSpriteCorner corner = sprite.Corners[input.Corner];
 
-	if (IsSoftParticle == 1)
-	{
-		float particleDepth = input.PositionCopy.z / input.PositionCopy.w;
-		input.PositionCopy.xy /= input.PositionCopy.w;
+    PixelInput output;
+    output.Position = mul(float4(corner.Position, 1.0f), ViewProjection);
+    output.ClipPosition = output.Position;
+    output.WorldDirection = corner.Position - CameraPosition;
+    output.UV = float2(sprite.UVX[input.Corner], sprite.UVY[input.Corner]);
+    output.Color = UnpackColor(corner.Color);
+    output.Fog = GetDistanceFog(corner.Position, CameraPosition, FogMinDistance, FogMaxDistance);
+    output.FogBulbs = GetFogBulbs(corner.Position, CameraPosition, false).rgb;
+    return output;
+}
 
-		float2 texCoord = 0.5f * (float2(input.PositionCopy.x, -input.PositionCopy.y) + 1.0f);
-		float sceneDepth = DepthTexture.Sample(PointWrapSampler, texCoord).x;
+// Shared sprite shading: alpha test, soft particle fade, laser effects, fog bulbs and distance fog, or the
+// distortion payload for distortion sprites. Fog fades sprites to black, so additive sprites vanish in it.
+float4 ShadeSprite(PixelInput input, float alphaScale)
+{
+    float4 texel = ColorMap.Sample(ColorMapSampler, input.UV) * input.Color;
+    float4 color = texel;
+    clip(color.a - AlphaThreshold);
+    color.a *= alphaScale;
 
-		sceneDepth = LinearizeDepth(sceneDepth, NearPlane, FarPlane);
-		particleDepth = LinearizeDepth(particleDepth, NearPlane, FarPlane);
+    // Soft particles fade where they meet the opaque geometry.
+    if (IsSoftParticle)
+    {
+        float2 screenUV = input.ClipPosition.xy / input.ClipPosition.w * float2(0.5f, -0.5f) + 0.5f;
+        float sceneDepth = LinearizeDepth(SceneDepthMap.SampleLevel(SceneDepthMapSampler, screenUV, 0.0f).x, NearPlane, FarPlane);
+        float particleDepth = LinearizeDepth(input.ClipPosition.z / input.ClipPosition.w, NearPlane, FarPlane);
 
-		if (particleDepth - sceneDepth > 0.01f)
-			discard;
+        if (particleDepth - sceneDepth > 0.01f)
+            discard;
 
-		float fade = (sceneDepth - particleDepth) * 1024.0f;
-		output.w = min(output.w, fade);
-	}
+        color.a = min(color.a, (sceneDepth - particleDepth) * 1024.0f);
+    }
 
-	if (RenderType == 1)
-	{
-		output = DoLaserBarrierEffect(input.Position, float4(ModulateColor(output.rgb), output.a), input.UV, FADE_FACTOR, Frame);
-	}
+    if (RenderType == SPRITE_RENDER_LASER_BARRIER)
+        color = DoLaserBarrierEffect(input.Position.xyz, float4(texel.rgb * COLOR_MODULATION_SCALE, texel.a), input.UV, LASER_FADE_FACTOR, Time);
+    else if (RenderType == SPRITE_RENDER_LASER_BEAM)
+        color = DoLaserBeamEffect(input.Position.xyz, float4(texel.rgb * COLOR_MODULATION_SCALE, texel.a), input.UV, LASER_FADE_FACTOR, Time);
 
-	if (RenderType == 2)
-	{
-		output = DoLaserBeamEffect(input.Position, float4(ModulateColor(output.rgb), output.a), input.UV, FADE_FACTOR, Frame);
-	}
+    color.rgb = ClampSceneColor(color.rgb * (1.0f - Luma(input.FogBulbs)));
+    color = ApplyDistanceFog(color, float4(0.0f, 0.0f, 0.0f, 0.0f), input.Fog, BlendMode);
+    if (BlendMode == BLENDMODE_DISTORTION)
+        return EncodeDistortionPayload(color, input.ClipPosition.w, 0.0f);
 
-	output.xyz *= 1.0f - Luma(input.FogBulbs.xyz);
-	output.xyz = saturate(output.xyz);
+    return color;
+}
 
-	output = DoDistanceFogForPixel(output, float4(0.0f, 0.0f, 0.0f, 0.0f), input.DistanceFog);
+float4 PS(PixelInput input) : SV_TARGET
+{
+    return ShadeSprite(input, 1.0f);
+}
 
-	return output;
+// Stars and meteors: hidden inside the moon disc and faded by the cloud coverage.
+float4 PSSky(PixelInput input) : SV_TARGET
+{
+    if (dot(normalize(input.WorldDirection), MoonDirection) > MoonDiskCosRadius)
+        discard;
+
+    float2 screenUV = input.ClipPosition.xy / input.ClipPosition.w * float2(0.5f, -0.5f) + 0.5f;
+    float coverageA = CloudLayerA.Sample(CloudLayerASampler, screenUV).a;
+    float coverageB = CloudLayerB.Sample(CloudLayerBSampler, screenUV).a;
+    return ShadeSprite(input, 1.0f - saturate(coverageA + coverageB - coverageA * coverageB));
 }

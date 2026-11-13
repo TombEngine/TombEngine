@@ -6,11 +6,11 @@
 
 namespace TEN::Renderer::Structures
 {
+	// Static mesh instance of a room, with interpolated world matrix, culling sphere and cached lights.
 	struct RendererStatic
 	{
 		int ObjectNumber;
 		int RoomNumber;
-		int IndexInRoom;
 
 		Pose 	PrevPose;
 		Pose	Pose;
@@ -25,6 +25,7 @@ namespace TEN::Renderer::Structures
 		BoundingSphere OriginalSphere;
 		BoundingSphere Sphere;
 
+		// Rebuilds the interpolated world matrix and sphere, and requests a light refresh.
 		void Update(float interpolationFactor)
 		{
 			if (Vector3i::Distance(PrevPose.Position, Pose.Position) > BIG_DISTANCE_THRESHOLD)

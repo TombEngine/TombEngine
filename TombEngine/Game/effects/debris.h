@@ -1,5 +1,5 @@
 #pragma once
-#include "Renderer/Graphics/Vertices/Vertex.h"
+#include "Renderer/Structures/Vertex.h"
 #include "Renderer/Renderer.h"
 #include "Specific/level.h"
 #include "Specific/Structures/newtypes.h"

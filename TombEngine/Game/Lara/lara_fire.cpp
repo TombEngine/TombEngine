@@ -484,7 +484,7 @@ void SpawnWeaponFlash(ItemInfo& laraItem, WeaponFlashMode mode, LaraWeaponType w
 	// Spawn gunflash light only when weapon is armed, because otherwise it is handled in HandleWeapon function.
 	if (mode == WeaponFlashMode::Auto || player.Control.HandStatus != HandStatus::WeaponReady)
 	{
-		auto color = Color(settings.FlashColor);
+		Color color = settings.FlashColor;
 
 		if (isDualWield)
 		{

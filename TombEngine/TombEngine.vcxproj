@@ -92,7 +92,7 @@
     <OutDir>$(SolutionDir)Build\$(Configuration)\Bin\x86\</OutDir>
     <ExecutablePath>$(ExecutablePath);$(DXSDK_DIR)Utilities\bin\x86</ExecutablePath>
     <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\glm;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\lz4;$(SolutionDir)Libs\sdl3\include;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\vlc\include;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\discordrpc;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x86;$(SolutionDir)Libs\spdlog\x86;$(SolutionDir)Libs\lua\x86;$(SolutionDir)Libs\zlib\x86;$(SolutionDir)Libs\lz4\x86;$(SolutionDir)Libs\sdl3\x86;$(SolutionDir)Libs\vlc\x86;$(SolutionDir)Libs\discordrpc\x86;$(SolutionDir)Libs\bass\x86</LibraryPath>
+    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x86;$(SolutionDir)Libs\spdlog\x86;$(SolutionDir)Libs\lua\x86;$(SolutionDir)Libs\zlib\x86;$(SolutionDir)Libs\lz4\x86;$(SolutionDir)Libs\sdl3\x86;$(SolutionDir)Libs\discordrpc\x86;$(SolutionDir)Libs\vlc\x86;$(SolutionDir)Libs\bass\x86</LibraryPath>
     <TargetExt>.exe</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -129,51 +129,17 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;pdh.lib;d3d11.lib;version.lib;liblz4_static_d.lib;sdl3.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;discord-rpc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;discord-rpc.lib;dbghelp.lib;dxgi.lib;dxguid.lib;pdh.lib;d3d11.lib;version.lib;liblz4_static_d.lib;sdl3.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       <StackReserveSize>8388608</StackReserveSize>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)Tools\BuildEvents\PostBuild.ps1" -Configuration $(Configuration) -Platform $(Platform) -BuildDir "$(SolutionDir)Build\$(Configuration)" -TargetDir "$(OutDir)."</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>powershell -ExecutionPolicy Bypass -File "$(SolutionDir)\Documentation\generate_objectlist.ps1"
-    powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Specific\serialization\schema\generate_code.ps1"
-
-CD "$(ProjectDir)..\Documentation\"
-CALL compile.bat .
-
-SET BuildDir=$(SolutionDir)Build\$(Configuration)
-SET ShaderDir=%BuildDir%\Shaders
-SET ScriptsDir=%BuildDir%\Scripts
-SET EngineDir=%ScriptsDir%\Engine
-
-if not exist %ShaderDir% mkdir %ShaderDir%
-if not exist %ScriptsDir% mkdir %ScriptsDir%
-if not exist %EngineDir% mkdir %EngineDir%
-
-xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
-if "$(Configuration)"=="Debug" (powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin" -DebugInfo) else (powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin")
-if errorlevel 1 exit 1
-
-xcopy /Y "$(SolutionDir)Libs\bass\x86\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\discordrpc\x86\discord-rpc.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\lua\x86\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\sdl3\x86\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\vlc\x86\*.dll" "$(TargetDir)"
-if exist "$(TargetDir)plugins" rmdir /S /Q "$(TargetDir)plugins"
-xcopy /Y /I /E "$(SolutionDir)Libs\vlc\x86\plugins\*.*" "$(TargetDir)plugins\"
-
-xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
-xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
-
-if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" %ScriptsDir%
-xcopy /D /Y "$(SolutionDir)Scripts\WeatherPresets.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" %ScriptsDir%</Command>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)Tools\BuildEvents\PreBuild.ps1" -Configuration $(Configuration) -Platform $(Platform) -BuildDir "$(SolutionDir)Build\$(Configuration)" -TargetDir "$(OutDir)."</Command>
       <Message>Generating documentation, FlatBuffers code and copying needed files...</Message>
     </PreBuildEvent>
   </ItemDefinitionGroup>
@@ -202,51 +168,17 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;pdh.lib;d3d11.lib;version.lib;liblz4_static_d.lib;sdl3.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;discord-rpc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;discord-rpc.lib;dbghelp.lib;dxgi.lib;dxguid.lib;pdh.lib;d3d11.lib;version.lib;liblz4_static_d.lib;sdl3.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       <StackReserveSize>8388608</StackReserveSize>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)Tools\BuildEvents\PostBuild.ps1" -Configuration $(Configuration) -Platform $(Platform) -BuildDir "$(SolutionDir)Build\$(Configuration)" -TargetDir "$(OutDir)."</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>powershell -ExecutionPolicy Bypass -File "$(SolutionDir)\Documentation\generate_objectlist.ps1"
-    powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Specific\serialization\schema\generate_code.ps1"
-
-CD "$(ProjectDir)..\Documentation\"
-CALL compile.bat .
-
-SET BuildDir=$(SolutionDir)Build\$(Configuration)
-SET ShaderDir=%BuildDir%\Shaders
-SET ScriptsDir=%BuildDir%\Scripts
-SET EngineDir=%ScriptsDir%\Engine
-
-if not exist %ShaderDir% mkdir %ShaderDir%
-if not exist %ScriptsDir% mkdir %ScriptsDir%
-if not exist %EngineDir% mkdir %EngineDir%
-
-xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
-if "$(Configuration)"=="Debug" (powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin" -DebugInfo) else (powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin")
-if errorlevel 1 exit 1
-
-xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\discordrpc\x64\discord-rpc.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\lua\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\sdl3\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\vlc\x64\*.dll" "$(TargetDir)"
-if exist "$(TargetDir)plugins" rmdir /S /Q "$(TargetDir)plugins"
-xcopy /Y /I /E "$(SolutionDir)Libs\vlc\x64\plugins\*.*" "$(TargetDir)plugins\"
-
-xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
-xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
-
-if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" %ScriptsDir%
-xcopy /D /Y "$(SolutionDir)Scripts\WeatherPresets.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" %ScriptsDir%</Command>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)Tools\BuildEvents\PreBuild.ps1" -Configuration $(Configuration) -Platform $(Platform) -BuildDir "$(SolutionDir)Build\$(Configuration)" -TargetDir "$(OutDir)."</Command>
       <Message>Generating documentation, FlatBuffers code and copying needed files...</Message>
     </PreBuildEvent>
   </ItemDefinitionGroup>
@@ -284,7 +216,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;pdh.lib;d3d11.lib;version.lib;liblz4_static.lib;sdl3.lib;spdlog.lib;libvlc.lib;libvlccore.lib;discord-rpc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;discord-rpc.lib;dbghelp.lib;dxgi.lib;dxguid.lib;pdh.lib;d3d11.lib;version.lib;liblz4_static.lib;sdl3.lib;spdlog.lib;libvlc.lib;libvlccore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <TargetMachine>MachineX86</TargetMachine>
@@ -292,47 +224,10 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <StackReserveSize>8388608</StackReserveSize>
     </Link>
     <PostBuildEvent>
-      <Command>del "$(TargetDir)*.pdb" /q
-del "$(TargetDir)*.lib" /q
-del "$(TargetDir)*.exp" /q</Command>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)Tools\BuildEvents\PostBuild.ps1" -Configuration $(Configuration) -Platform $(Platform) -BuildDir "$(SolutionDir)Build\$(Configuration)" -TargetDir "$(OutDir)."</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>powershell -ExecutionPolicy Bypass -File "$(SolutionDir)\Documentation\generate_objectlist.ps1"
-
-CD "$(ProjectDir)..\Documentation\"
-CALL compile.bat .
-
-CD "$(ProjectDir)Specific\serialization\schema\"
-CALL gen.bat
-
-SET BuildDir=$(SolutionDir)Build\$(Configuration)
-SET ShaderDir=%BuildDir%\Shaders
-SET ScriptsDir=%BuildDir%\Scripts
-SET EngineDir=%ScriptsDir%\Engine
-
-if not exist %ShaderDir% mkdir %ShaderDir%
-if not exist %ScriptsDir% mkdir %ScriptsDir%
-if not exist %EngineDir% mkdir %EngineDir%
-
-xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
-if "$(Configuration)"=="Debug" (powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin" -DebugInfo) else (powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin")
-if errorlevel 1 exit 1
-
-xcopy /Y "$(SolutionDir)Libs\bass\x86\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\discordrpc\x86\discord-rpc.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\lua\x86\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\sdl3\x86\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\vlc\x86\*.dll" "$(TargetDir)"
-if exist "$(TargetDir)plugins" rmdir /S /Q "$(TargetDir)plugins"
-xcopy /Y /I /E "$(SolutionDir)Libs\vlc\x86\plugins\*.*" "$(TargetDir)plugins\"
-
-xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
-xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
-
-if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" %ScriptsDir%
-xcopy /D /Y "$(SolutionDir)Scripts\WeatherPresets.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" %ScriptsDir%</Command>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)Tools\BuildEvents\PreBuild.ps1" -Configuration $(Configuration) -Platform $(Platform) -BuildDir "$(SolutionDir)Build\$(Configuration)" -TargetDir "$(OutDir)."</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating documentation, FlatBuffers code and copying needed files...</Message>
@@ -372,63 +267,28 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;pdh.lib;d3d11.lib;version.lib;liblz4_static.lib;sdl3.lib;spdlog.lib;libvlc.lib;libvlccore.lib;discord-rpc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;discord-rpc.lib;dbghelp.lib;dxgi.lib;dxguid.lib;pdh.lib;d3d11.lib;version.lib;liblz4_static.lib;sdl3.lib;spdlog.lib;libvlc.lib;libvlccore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <StackReserveSize>8388608</StackReserveSize>
     </Link>
     <PostBuildEvent>
-      <Command>del "$(TargetDir)*.pdb" /q
-del "$(TargetDir)*.lib" /q
-del "$(TargetDir)*.exp" /q</Command>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)Tools\BuildEvents\PostBuild.ps1" -Configuration $(Configuration) -Platform $(Platform) -BuildDir "$(SolutionDir)Build\$(Configuration)" -TargetDir "$(OutDir)."</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>powershell -ExecutionPolicy Bypass -File "$(SolutionDir)\Documentation\generate_objectlist.ps1"
-
-CD "$(ProjectDir)..\Documentation\"
-CALL compile.bat .
-
-CD "$(ProjectDir)Specific\serialization\schema\"
-CALL gen.bat
-
-SET "BuildDir=$(SolutionDir)Build\$(Configuration)"
-SET "ShaderDir=%BuildDir%\Shaders"
-SET "ScriptsDir=%BuildDir%\Scripts"
-SET "EngineDir=%ScriptsDir%\Engine"
-
-if not exist "%ShaderDir%" mkdir "%ShaderDir%"
-if not exist "%ScriptsDir%" mkdir "%ScriptsDir%"
-if not exist "%EngineDir%" mkdir "%EngineDir%"
-
-xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" "%ShaderDir%"
-if "$(Configuration)"=="Debug" (powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin" -DebugInfo) else (powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\CompileShaders.ps1" -OutputDir "%ShaderDir%\Bin")
-if errorlevel 1 exit 1
-
-xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\discordrpc\x64\discord-rpc.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\lua\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\sdl3\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\vlc\x64\*.dll" "$(TargetDir)"
-if exist "$(TargetDir)plugins" rmdir /S /Q "$(TargetDir)plugins"
-xcopy /Y /I /E "$(SolutionDir)Libs\vlc\x64\plugins\*.*" "$(TargetDir)plugins\"
-
-xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" "%EngineDir%"
-xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" "%ScriptsDir%"
-
-if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" "%ScriptsDir%"
-if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" "%ScriptsDir%"
-xcopy /D /Y "$(SolutionDir)Scripts\WeatherPresets.lua" "%ScriptsDir%"
-if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" "%ScriptsDir%"</Command>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)Tools\BuildEvents\PreBuild.ps1" -Configuration $(Configuration) -Platform $(Platform) -BuildDir "$(SolutionDir)Build\$(Configuration)" -TargetDir "$(OutDir)."</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating documentation, FlatBuffers code and copying needed files...</Message>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Game\Animation\Skeleton.h" />
+    <ClInclude Include="Objects\TR3\Emitter\tr3_bats_emitter.h" />
+    <ClInclude Include="Specific\Discord.h" />
     <ClInclude Include="Game\Animation\Animation.h" />
     <ClInclude Include="Game\Animation\Commands.h" />
-    <ClInclude Include="Game\Animation\Skeleton.h" />
     <ClInclude Include="Game\collision\Los.h" />
     <ClInclude Include="Game\collision\Point.h" />
     <ClInclude Include="Game\collision\Sphere.h" />
@@ -541,8 +401,8 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Math\Objects\Pose.h" />
     <ClInclude Include="Math\Objects\Vector2i.h" />
     <ClInclude Include="Math\Objects\Vector3i.h" />
-    <ClInclude Include="Math\Random.h" />
     <ClInclude Include="Math\SimpleMath.h" />
+    <ClInclude Include="Math\Random.h" />
     <ClInclude Include="Math\Solvers.h" />
     <ClInclude Include="Math\Utils.h" />
     <ClInclude Include="Objects\Effects\Boss.h" />
@@ -599,7 +459,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\Generic\puzzles_keys.h" />
     <ClInclude Include="Objects\Generic\Doors\breakable_wall.h" />
     <ClInclude Include="Objects\Generic\Traps\Pendulum.h" />
-    <ClInclude Include="Objects\Sink.h" />
     <ClInclude Include="Objects\TR1\Entity\Centaur.h" />
     <ClInclude Include="Objects\TR1\Entity\Cowboy.h" />
     <ClInclude Include="Objects\TR1\Entity\Kold.h" />
@@ -769,7 +628,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\TR4\Vehicles\motorbike.h" />
     <ClInclude Include="Objects\TR4\Vehicles\motorbike_info.h" />
     <ClInclude Include="Objects\TR4\tr4_objects.h" />
-    <ClInclude Include="Objects\TR3\Emitter\tr3_bats_emitter.h" />
     <ClInclude Include="Objects\TR5\Emitter\tr5_smoke_emitter.h" />
     <ClInclude Include="Objects\TR5\Emitter\tr5_bats_emitter.h" />
     <ClInclude Include="Objects\TR5\Emitter\tr5_rats_emitter.h" />
@@ -819,7 +677,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\TR5\Trap\tr5_romehammer.h" />
     <ClInclude Include="Objects\TR5\Trap\tr5_ventilator.h" />
     <ClInclude Include="Objects\TR5\Trap\tr5_wreckingball.h" />
-    <ClInclude Include="Objects\TR5\Trap\ZipLine.h" />
     <ClInclude Include="Objects\TR5\tr5_objects.h" />
     <ClInclude Include="Objects\Utils\VehicleHelpers.h" />
     <ClInclude Include="Objects\Utils\object_helper.h" />
@@ -828,73 +685,42 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Physics\Objects\CollisionMesh.h" />
     <ClInclude Include="Physics\Objects\CollisionMeshDesc.h" />
     <ClInclude Include="Physics\Physics.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\CameraMatrixBuffer.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\HUDBarBuffer.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\HUDBuffer.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\InstancedSpriteBuffer.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\ObjectData.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\ObjectsBuffer.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\PerDrawBuffer.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\PostProcessBuffer.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\RoomBuffer.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\ShaderDecal.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\ShaderFogBulb.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\ShaderLight.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\ShadowLightBuffer.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\SkyBuffer.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\SMAABuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\VolumetricCloudBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\AtmosphericSkyBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\GodRayBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\DustStormBuffer.h" />
-    <ClInclude Include="Renderer\AtmosphericSky\AtmosphericSkySettings.h" />
-    <ClInclude Include="Renderer\Frustum.h" />
-    <ClInclude Include="Renderer\Graphics\IRenderSurface2D.h" />
-    <ClInclude Include="Renderer\Graphics\AdapterInfo.h" />
-    <ClInclude Include="Renderer\Graphics\IDepthTarget.h" />
-    <ClInclude Include="Renderer\Graphics\IInputLayout.h" />
-    <ClInclude Include="Renderer\Graphics\IConstantBuffer.h" />
-    <ClInclude Include="Renderer\Graphics\IGraphicsDevice.h" />
-    <ClInclude Include="Renderer\Graphics\IIndexBuffer.h" />
-    <ClInclude Include="Renderer\Graphics\IPrimitiveBatch.h" />
-    <ClInclude Include="Renderer\Graphics\IRenderTarget2D.h" />
-    <ClInclude Include="Renderer\Graphics\IRenderTargetCube.h" />
-    <ClInclude Include="Renderer\Graphics\IShader.h" />
-    <ClInclude Include="Renderer\Graphics\ISpriteBatch.h" />
-    <ClInclude Include="Renderer\Graphics\IStructuredBuffer.h" />
-    <ClInclude Include="Renderer\Graphics\ISpriteFont.h" />
-    <ClInclude Include="Renderer\Graphics\ImageDecoding.h" />
-    <ClInclude Include="Renderer\Graphics\ITexture2D.h" />
-    <ClInclude Include="Renderer\Graphics\ITexture3D.h" />
-    <ClInclude Include="Renderer\Graphics\ITextureBase.h" />
-    <ClInclude Include="Renderer\Graphics\IGpuReadbackBuffer.h" />
-    <ClInclude Include="Renderer\Graphics\IVertexBuffer.h" />
-    <ClInclude Include="Renderer\Graphics\VRAMTracker.h" />
-    <ClInclude Include="Renderer\Graphics\VRAMAllocation.h" />
-    <ClInclude Include="Renderer\Graphics\IVideoPlayer.h" />
-    <ClInclude Include="Renderer\Graphics\Vertices\PostProcessVertex.h" />
-    <ClInclude Include="Renderer\Graphics\Vertices\SpriteVertex.h" />
-    <ClInclude Include="Renderer\Graphics\Vertices\Vertex.h" />
-    <ClInclude Include="Renderer\ImGuiIntegration.h" />
-    <ClInclude Include="Renderer\Native\DirectX11\DX11Utils.h" />
-    <ClInclude Include="Renderer\Native\DirectX11\DX11ErrorHelper.h" />
-    <ClInclude Include="Renderer\Native\DirectX11\DX11ConstantBuffer.h" />
-    <ClInclude Include="Renderer\Native\DirectX11\DX11DepthTarget.h" />
-    <ClInclude Include="Renderer\Native\DirectX11\DX11GraphicsDevice.h" />
-    <ClInclude Include="Renderer\Native\DirectX11\DX11IndexBuffer.h" />
-    <ClInclude Include="Renderer\Native\DirectX11\DX11InputLayout.h" />
-    <ClInclude Include="Renderer\Native\DirectX11\DX11PrimitiveBatch.h" />
-    <ClInclude Include="Renderer\Native\DirectX11\DX11RenderTarget2D.h" />
-    <ClInclude Include="Renderer\Native\DirectX11\DX11Shader.h" />
-    <ClInclude Include="Renderer\Native\DirectX11\DX11StructuredBuffer.h" />
-    <ClInclude Include="Renderer\Native\DirectX11\DX11SpriteBatch.h" />
-    <ClInclude Include="Renderer\Native\DirectX11\DX11SpriteFont.h" />
-    <ClInclude Include="Renderer\Native\DirectX11\DX11Texture2D.h" />
-    <ClInclude Include="Renderer\Native\DirectX11\DX11Texture3D.h" />
-    <ClInclude Include="Renderer\Native\DirectX11\DX11TextureBase.h" />
-    <ClInclude Include="Renderer\Native\DirectX11\DX11GpuReadbackBuffer.h" />
-    <ClInclude Include="Renderer\Native\DirectX11\DX11VertexBuffer.h" />
+    <ClInclude Include="Renderer\Sky\AtmosphericSkySettings.h" />
+    <ClInclude Include="Renderer\Scene\Frustum.h" />
+    <ClInclude Include="Renderer\UI\Font.h" />
+    <ClInclude Include="Renderer\Structures\Vertex.h" />
+    <ClInclude Include="Renderer\UI\ImGuiIntegration.h" />
     <ClInclude Include="Renderer\Renderer.h" />
+    <ClInclude Include="Renderer\RendererEnums.h" />
+    <ClInclude Include="Renderer\Structures\RendererDecal.h" />
+    <ClInclude Include="Renderer\Structures\RendererDofMode.h" />
+    <ClInclude Include="Renderer\Structures\RendererMirror.h" />
+    <ClInclude Include="Renderer\RendererUtils.h" />
+    <ClInclude Include="Renderer\Scene\RenderView.h" />
+    <ClInclude Include="Renderer\Backend\SMAA\AreaTex.h" />
+    <ClInclude Include="Renderer\Backend\SMAA\SearchTex.h" />
+    <ClInclude Include="Renderer\Structures\RendererAnimatedTexture.h" />
+    <ClInclude Include="Renderer\Structures\RendererAnimatedTextureSet.h" />
+    <ClInclude Include="Renderer\Structures\RendererBone.h" />
+    <ClInclude Include="Renderer\Structures\RendererBucket.h" />
+    <ClInclude Include="Renderer\Structures\RendererDoor.h" />
+    <ClInclude Include="Renderer\Structures\RendererEffect.h" />
+    <ClInclude Include="Renderer\Structures\RendererFogBulb.h" />
+    <ClInclude Include="Renderer\Structures\RendererHudBar.h" />
+    <ClInclude Include="Renderer\Structures\RendererImage.h" />
+    <ClInclude Include="Renderer\Structures\RendererItem.h" />
+    <ClInclude Include="Renderer\Structures\RendererLensFlare.h" />
+    <ClInclude Include="Renderer\Structures\RendererLight.h" />
+    <ClInclude Include="Renderer\Structures\RendererLine3D.h" />
+    <ClInclude Include="Renderer\Structures\RendererMesh.h" />
+    <ClInclude Include="Renderer\Structures\RendererObject.h" />
+    <ClInclude Include="Renderer\Structures\RendererPolygon.h" />
+    <ClInclude Include="Renderer\Structures\RendererRoom.h" />
+    <ClInclude Include="Renderer\Structures\RendererSortableObject.h" />
     <ClInclude Include="Renderer\RHI\RHITypes.h" />
     <ClInclude Include="Renderer\RHI\RHIDevice.h" />
     <ClInclude Include="Renderer\RHI\DirectX11\DX11Device.h" />
@@ -906,62 +732,26 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\RHI\TextureCapture.h" />
     <ClInclude Include="Renderer\RHI\RenderTargetPool.h" />
     <ClInclude Include="Renderer\RHI\UploadRing.h" />
-    <ClInclude Include="Renderer\RendererEnums.h" />
-    <ClInclude Include="Renderer\ShaderManager\ShaderManager.h" />
-    <ClInclude Include="Renderer\Structures\RendererDecal.h" />
-    <ClInclude Include="Renderer\Structures\RendererDofMode.h" />
-    <ClInclude Include="Renderer\Structures\RendererInputLayout.h" />
-    <ClInclude Include="Renderer\Structures\RendererMirror.h" />
-    <ClInclude Include="Renderer\RendererSprite2D.h" />
-    <ClInclude Include="Renderer\RendererBucket.h" />
-    <ClInclude Include="Renderer\RendererPolygon.h" />
-    <ClInclude Include="Renderer\RendererRectangle.h" />
-    <ClInclude Include="Renderer\RendererSpriteVertex.h" />
-    <ClInclude Include="Renderer\RendererTransparentFace.h" />
-    <ClInclude Include="Renderer\RendererUtils.h" />
-    <ClInclude Include="Renderer\RenderView.h" />
-    <ClInclude Include="Renderer\SMAA\AreaTex.h" />
-    <ClInclude Include="Renderer\SMAA\SearchTex.h" />
-    <ClInclude Include="Renderer\Structures\AnimatedFrame.h" />
-    <ClInclude Include="Renderer\Structures\RendererAnimatedTexture.h" />
-    <ClInclude Include="Renderer\Structures\RendererAnimatedTextureSet.h" />
-    <ClInclude Include="Renderer\Structures\RendererBone.h" />
-    <ClInclude Include="Renderer\Structures\RendererBucket.h" />
-    <ClInclude Include="Renderer\Structures\RendererDisplayMode.h" />
-    <ClInclude Include="Renderer\Structures\RendererDoor.h" />
-    <ClInclude Include="Renderer\Structures\RendererEffect.h" />
-    <ClInclude Include="Renderer\Structures\RendererFogBulb.h" />
-    <ClInclude Include="Renderer\Structures\RendererHudBar.h" />
-    <ClInclude Include="Renderer\Structures\RendererItem.h" />
-    <ClInclude Include="Renderer\Structures\RendererLensFlare.h" />
-    <ClInclude Include="Renderer\Structures\RendererLight.h" />
-    <ClInclude Include="Renderer\Structures\RendererLine2D.h" />
-    <ClInclude Include="Renderer\Structures\RendererLine3D.h" />
-    <ClInclude Include="Renderer\Structures\RendererMesh.h" />
-    <ClInclude Include="Renderer\Structures\RendererObject.h" />
-    <ClInclude Include="Renderer\Structures\RendererPolygon.h" />
-    <ClInclude Include="Renderer\Structures\RendererRectangle.h" />
-    <ClInclude Include="Renderer\Structures\RendererRoom.h" />
-    <ClInclude Include="Renderer\Structures\RendererRoomAmbientMap.h" />
-    <ClInclude Include="Renderer\Structures\RendererRoomNode.h" />
-    <ClInclude Include="Renderer\Structures\RendererSortableObject.h" />
-    <ClInclude Include="Renderer\Structures\RendererSortedBatch.h" />
+    <ClInclude Include="Renderer\Backend\DrawSort.h" />
+    <ClInclude Include="Renderer\Backend\GpuTypes.h" />
+    <ClInclude Include="Renderer\Backend\SceneRenderer.h" />
+    <ClInclude Include="Renderer\Backend\OverlayTypes.h" />
+    <ClInclude Include="Renderer\Backend\SkyTypes.h" />
+    <ClInclude Include="Renderer\Sky\AuroraSettings.h" />
+    <ClInclude Include="Renderer\Sky\MoonSettings.h" />
+    <ClInclude Include="Renderer\Sky\UnderwaterSkySettings.h" />
+    <ClInclude Include="Renderer\Backend\TextureLoader.h" />
     <ClInclude Include="Renderer\Structures\RendererSprite.h" />
     <ClInclude Include="Renderer\Structures\RendererSprite2D.h" />
-    <ClInclude Include="Renderer\Structures\RendererSpriteBucket.h" />
-    <ClInclude Include="Renderer\Structures\RendererSpriteSequence.h" />
     <ClInclude Include="Renderer\Structures\RendererSpriteToDraw.h" />
-    <ClInclude Include="Renderer\Structures\RendererStar.h" />
     <ClInclude Include="Renderer\Structures\RendererStatic.h" />
-    <ClInclude Include="Renderer\Structures\RendererDebugLabel.h" />
     <ClInclude Include="Renderer\Structures\RendererStringToDraw.h" />
     <ClInclude Include="Renderer\Structures\RendererTriangle3D.h" />
-    <ClInclude Include="Renderer\VolumetricCloud\VolumetricCloud.h" />
-    <ClInclude Include="Renderer\VolumetricCloud\CloudNoiseTexture.h" />
-    <ClInclude Include="Renderer\GodRay\GodRaySettings.h" />
-    <ClInclude Include="Renderer\DustStorm\DustStormSettings.h" />
-    <ClInclude Include="Renderer\SkyQuality.h" />
-    <ClInclude Include="Renderer\Structures\RendererViewport.h" />
+    <ClInclude Include="Renderer\Sky\VolumetricCloud.h" />
+    <ClInclude Include="Renderer\Sky\CloudNoiseTexture.h" />
+    <ClInclude Include="Renderer\Sky\GodRaySettings.h" />
+    <ClInclude Include="Renderer\Sky\DustStormSettings.h" />
+    <ClInclude Include="Renderer\Sky\SkyQuality.h" />
     <ClInclude Include="Scripting\Include\Flow\ScriptInterfaceFlowHandler.h" />
     <ClInclude Include="Scripting\Include\Objects\ScriptInterfaceObjectsHandler.h" />
     <ClInclude Include="Scripting\Include\ScriptInterfaceGame.h" />
@@ -1033,11 +823,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Scripting\Internal\TEN\Inventory\InventoryHandler.h" />
     <ClInclude Include="Scripting\Internal\TEN\Logic\LevelFunc.h" />
     <ClInclude Include="Scripting\Internal\TEN\Logic\LogicHandler.h" />
-    <ClInclude Include="Scripting\Internal\TEN\Misc\ActionIDs.h" />
-    <ClInclude Include="Scripting\Internal\TEN\Misc\CameraTypes.h" />
-    <ClInclude Include="Scripting\Internal\TEN\Misc\LevelLog.h" />
-    <ClInclude Include="Scripting\Internal\TEN\Misc\Miscellaneous.h" />
-    <ClInclude Include="Scripting\Internal\TEN\Misc\SoundTrackTypes.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\AIObject\AIObject.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\Camera\CameraObject.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\Lara\AmmoTypes.h" />
@@ -1078,7 +863,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Sound\sound.h" />
     <ClInclude Include="Sound\sound_effects.h" />
     <ClInclude Include="Specific\Input\Bindings.h" />
-    <ClInclude Include="Specific\Discord.h" />
     <ClInclude Include="Specific\Input\Keys.h" />
     <ClInclude Include="Specific\Input\Input.h" />
     <ClInclude Include="Specific\Input\InputAction.h" />
@@ -1122,9 +906,11 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Game\Animation\Skeleton.cpp" />
+    <ClCompile Include="Objects\TR3\Emitter\tr3_bats_emitter.cpp" />
+    <ClCompile Include="Specific\Discord.cpp" />
     <ClCompile Include="Game\Animation\Animation.cpp" />
     <ClCompile Include="Game\Animation\Commands.cpp" />
-    <ClCompile Include="Game\Animation\Skeleton.cpp" />
     <ClCompile Include="Game\camera.cpp" />
     <ClCompile Include="Game\collision\collide_item.cpp" />
     <ClCompile Include="Game\collision\collide_room.cpp" />
@@ -1443,7 +1229,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\TR4\Trap\tr4_teethspike.cpp" />
     <ClCompile Include="Objects\TR4\Vehicles\jeep.cpp" />
     <ClCompile Include="Objects\TR4\Vehicles\motorbike.cpp" />
-    <ClCompile Include="Objects\TR3\Emitter\tr3_bats_emitter.cpp" />
     <ClCompile Include="Objects\TR5\Emitter\tr5_smoke_emitter.cpp" />
     <ClCompile Include="Objects\TR5\Emitter\tr5_bats_emitter.cpp" />
     <ClCompile Include="Objects\TR5\Emitter\tr5_rats_emitter.cpp" />
@@ -1496,26 +1281,25 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\Utils\VehicleHelpers.cpp" />
     <ClCompile Include="Physics\Objects\CollisionMesh.cpp" />
     <ClCompile Include="Physics\Objects\CollisionMeshDesc.cpp" />
-    <ClCompile Include="Renderer\Frustum.cpp" />
-    <ClCompile Include="Renderer\Graphics\VRAMTracker.cpp" />
-    <ClCompile Include="Renderer\Graphics\VRAMAllocation.cpp" />
-    <ClCompile Include="Renderer\Native\DirectX11\DX11ErrorHelper.cpp" />
-    <ClCompile Include="Renderer\Native\DirectX11\DX11ConstantBuffer.cpp" />
-    <ClCompile Include="Renderer\Native\DirectX11\DX11StructuredBuffer.cpp" />
-    <ClCompile Include="Renderer\Native\DirectX11\DX11DepthTarget.cpp" />
-    <ClCompile Include="Renderer\Native\DirectX11\DX11GraphicsDevice.cpp" />
-    <ClCompile Include="Renderer\Native\DirectX11\DX11IndexBuffer.cpp" />
-    <ClCompile Include="Renderer\Native\DirectX11\DX11InputLayout.cpp" />
-    <ClCompile Include="Renderer\Native\DirectX11\DX11RenderTarget2D.cpp" />
-    <ClCompile Include="Renderer\Native\DirectX11\DX11PrimitiveBatch.cpp" />
-    <ClCompile Include="Renderer\Native\DirectX11\DX11SpriteBatch.cpp" />
-    <ClCompile Include="Renderer\Native\DirectX11\DX11SpriteFont.cpp" />
-    <ClCompile Include="Renderer\Graphics\ImageDecoding.cpp" />
-    <ClCompile Include="Renderer\Native\DirectX11\DX11Texture2D.cpp" />
-    <ClCompile Include="Renderer\Native\DirectX11\DX11Texture3D.cpp" />
-    <ClCompile Include="Renderer\Native\DirectX11\DX11GpuReadbackBuffer.cpp" />
-    <ClCompile Include="Renderer\Native\DirectX11\DX11VertexBuffer.cpp" />
+    <ClCompile Include="Renderer\Scene\Frustum.cpp" />
+    <ClCompile Include="Renderer\UI\Font.cpp" />
     <ClCompile Include="Renderer\Renderer.cpp" />
+    <ClCompile Include="Renderer\UI\ImGuiIntegration.cpp" />
+    <ClCompile Include="Renderer\Scene\RendererCompatibility.cpp" />
+    <ClCompile Include="Renderer\UI\RendererDebug.cpp" />
+    <ClCompile Include="Renderer\UI\RendererDebugWindow.cpp" />
+    <ClCompile Include="Renderer\Scene\RendererDraw.cpp" />
+    <ClCompile Include="Renderer\UI\RendererDraw2D.cpp" />
+    <ClCompile Include="Renderer\Scene\RendererDrawEffect.cpp" />
+    <ClCompile Include="Renderer\UI\RendererDrawMenu.cpp" />
+    <ClCompile Include="Renderer\Scene\RendererFrame.cpp" />
+    <ClCompile Include="Renderer\Scene\RendererHelper.cpp" />
+    <ClCompile Include="Renderer\RendererInit.cpp" />
+    <ClCompile Include="Renderer\Scene\RendererLara.cpp" />
+    <ClCompile Include="Renderer\Scene\RendererPostProcess.cpp" />
+    <ClCompile Include="Renderer\RendererSettings.cpp" />
+    <ClCompile Include="Renderer\Sky\RendererSkyEffects.cpp" />
+    <ClCompile Include="Renderer\Scene\RendererSorted.cpp" />
     <ClCompile Include="Renderer\RHI\RHIDevice.cpp" />
     <ClCompile Include="Renderer\RHI\DirectX11\DX11Device.cpp" />
     <ClCompile Include="Renderer\RHI\OpenGL\GLDevice.cpp" />
@@ -1526,26 +1310,38 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\RHI\TextureCapture.cpp" />
     <ClCompile Include="Renderer\RHI\RenderTargetPool.cpp" />
     <ClCompile Include="Renderer\RHI\UploadRing.cpp" />
-    <ClCompile Include="Renderer\RendererAntialiasing.cpp" />
-    <ClCompile Include="Renderer\ImGuiIntegration.cpp" />
-    <ClCompile Include="Renderer\RendererCompatibility.cpp" />
-    <ClCompile Include="Renderer\RendererDebug.cpp" />
-    <ClCompile Include="Renderer\RendererDebugPages.cpp" />
-    <ClCompile Include="Renderer\RendererDraw.cpp" />
-    <ClCompile Include="Renderer\RendererDraw2D.cpp" />
-    <ClCompile Include="Renderer\RendererDrawEffect.cpp" />
-    <ClCompile Include="Renderer\RendererDrawMenu.cpp" />
-    <ClCompile Include="Renderer\RendererDualClouds.cpp" />
-    <ClCompile Include="Renderer\RendererFrame.cpp" />
-    <ClCompile Include="Renderer\RendererHelper.cpp" />
-    <ClCompile Include="Renderer\RendererInit.cpp" />
-    <ClCompile Include="Renderer\RendererLara.cpp" />
-    <ClCompile Include="Renderer\RendererPostProcess.cpp" />
-    <ClCompile Include="Renderer\RendererSettings.cpp" />
-    <ClCompile Include="Renderer\RendererSorted.cpp" />
-    <ClCompile Include="Renderer\RendererSprites.cpp" />
-    <ClCompile Include="Renderer\stb_impl.cpp" />
-    <ClCompile Include="Renderer\RendererString.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRenderer.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererAtmosphere.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererBloom.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererDebug.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererDebris.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererDOF.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererGlow.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererMirrors.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererOverlay.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererSky.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererSkyReflections.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererSMAA.cpp" />
+    <ClCompile Include="Renderer\Backend\DrawSort.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererGeometry.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererLightClusters.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererPipelines.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererWater.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererTAA.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererDynamicResolution.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererImGui.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererTextures.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererVideo.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererEffects.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererPostProcess.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererShadows.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererSprites.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererStats.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererAmbientOcclusion.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererUpscale.cpp" />
+    <ClCompile Include="Renderer\Backend\TextureLoader.cpp" />
+    <ClCompile Include="Renderer\Scene\RendererSprites.cpp" />
+    <ClCompile Include="Renderer\UI\RendererString.cpp" />
     <ClCompile Include="Renderer\RendererUtils.cpp" />
     <ClCompile Include="..\Libs\imgui\imgui.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -1559,20 +1355,16 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="..\Libs\imgui\imgui_widgets.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\Libs\imgui\backends\imgui_impl_dx11.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="..\Libs\imgui\backends\imgui_impl_sdl3.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Renderer\RendererVolumetricClouds.cpp" />
-    <ClCompile Include="Renderer\VolumetricCloud\CloudNoiseTexture.cpp" />
-    <ClCompile Include="Renderer\RendererAtmosphericSky.cpp" />
-    <ClCompile Include="Renderer\RendererGodRay.cpp" />
-    <ClCompile Include="Renderer\RendererDustStorm.cpp" />
-    <ClCompile Include="Renderer\SkyQuality.cpp" />
-    <ClCompile Include="Renderer\RenderView.cpp" />
-    <ClCompile Include="Renderer\ShaderManager\ShaderManager.cpp" />
+    <ClCompile Include="Renderer\Sky\RendererVolumetricClouds.cpp" />
+    <ClCompile Include="Renderer\Sky\CloudNoiseTexture.cpp" />
+    <ClCompile Include="Renderer\Sky\RendererAtmosphericSky.cpp" />
+    <ClCompile Include="Renderer\Sky\RendererGodRay.cpp" />
+    <ClCompile Include="Renderer\Sky\RendererDustStorm.cpp" />
+    <ClCompile Include="Renderer\Sky\SkyQuality.cpp" />
+    <ClCompile Include="Renderer\Scene\RenderView.cpp" />
     <ClCompile Include="Scripting\Internal\LuaHandler.cpp" />
     <ClCompile Include="Scripting\Internal\ScriptAssert.cpp" />
     <ClCompile Include="Scripting\Internal\ScriptInterfaceState.cpp" />
@@ -1629,7 +1421,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Specific\Benchmark.cpp" />
     <ClCompile Include="Specific\clock.cpp" />
     <ClCompile Include="Specific\configuration.cpp" />
-    <ClCompile Include="Specific\Discord.cpp" />
     <ClCompile Include="Specific\Serialization\Flatbuffers.cpp" />
     <ClCompile Include="Specific\Input\Bindings.cpp" />
     <ClCompile Include="Specific\Input\Input.cpp" />
@@ -1651,294 +1442,67 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
   </ItemGroup>
   <ItemGroup>
     <None Include="Objects\Generic\Switches\rail_switch.h" />
-    <None Include="packages.config" />
-    <None Include="Renderer\TransparentSorting.md" />
     <None Include="Resources\crashmsg.exe" />
     <None Include="Resources\Title.bin" />
     <None Include="RuleSet.ruleset" />
     <None Include="Scripting\Internal\TEN\Properties\PropertySystem.md" />
-    <None Include="Shaders\CompileShaders.ps1" />
-    <None Include="Shaders\RHITest.hlsl" />
-    <None Include="Shaders\ShaderInterop.hlsli" />
-    <None Include="Shaders\AnimatedTextures.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\Blending.hlsli">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DeploymentContent>
-      <FileType>Document</FileType>
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\CBCamera.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\CBObjects.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\Object.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\CBPerDraw.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\CBPostProcess.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\CBRoom.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\CBSky.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\DOF.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\CBVolumetricCloud.hlsli" />
-    <None Include="Shaders\CBGodRay.hlsli" />
-    <None Include="Shaders\CBDustStorm.hlsli" />
-    <None Include="Shaders\Materials.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\Samplers.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\SMAA.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\ShaderLight.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\Math.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\Shadows.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\SpriteEffects.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\VertexEffects.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\VertexInput.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resources.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\HUD.hlsl">
-      <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.0</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0</ShaderModel>
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Shaders\FullscreenQuad.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <FileType>Document</FileType>
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\Inventory.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <FileType>Document</FileType>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">PS</EntryPointName>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.1</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.1</ShaderModel>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">PS</EntryPointName>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.1</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.1</ShaderModel>
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\InstancedSprites.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <FileType>Document</FileType>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">PS</EntryPointName>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.1</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.1</ShaderModel>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">PS</EntryPointName>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.1</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.1</ShaderModel>
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\Objects.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <FileType>Document</FileType>
-    </None>
-    <None Include="Shaders\Rooms.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <FileType>Document</FileType>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">PS</EntryPointName>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.1</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.1</ShaderModel>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">SHADOW_MAP_SIZE=512</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">SHADOW_MAP_SIZE=512</PreprocessorDefinitions>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">PS</EntryPointName>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.1</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.1</ShaderModel>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">SHADOW_MAP_SIZE=512</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">SHADOW_MAP_SIZE=512</PreprocessorDefinitions>
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\ShadowMap.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <FileType>Document</FileType>
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\Sky.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <FileType>Document</FileType>
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\Solid.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <FileType>Document</FileType>
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\Sprites.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <FileType>Document</FileType>
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Shaders\GBuffer.hlsl">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Shaders\RoomAmbient.hlsl">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\SMAA.hlsl">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Shaders\FXAA.hlsl">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Shaders\SSAO.hlsl">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Shaders\PostProcess.hlsl">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <Image Include="Resources\Ten.ico" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\Glow.hlsl">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Shaders\VolumetricClouds.hlsl" />
-    <None Include="Shaders\AtmosphericSkyDome.hlsl" />
-    <None Include="Shaders\GodRay.hlsl" />
-    <None Include="Shaders\DustStorm.hlsl" />
+    <None Include="Shaders\AtmosphericSky.hlsl" />
+    <None Include="Shaders\AtmosphericSkyCore.hlsli" />
+    <None Include="Shaders\AtmosphericSkyUniforms.hlsli" />
+    <None Include="Shaders\Bloom.hlsl" />
     <None Include="Shaders\CBAtmosphericSky.hlsli" />
+    <None Include="Shaders\CBDustStorm.hlsli" />
+    <None Include="Shaders\CBGodRay.hlsli" />
+    <None Include="Shaders\CBVolumetricCloud.hlsli" />
+    <None Include="Shaders\Common.hlsli" />
+    <None Include="Shaders\CompileShaders.ps1" />
+    <None Include="Shaders\DOF.hlsl" />
+    <None Include="Shaders\DebugPrimitives.hlsl" />
+    <None Include="Shaders\Decals.hlsli" />
+    <None Include="Shaders\DustStorm.hlsl" />
+    <None Include="Shaders\DustStormCore.hlsli" />
+    <None Include="Shaders\FSR.hlsl" />
+    <None Include="Shaders\FidelityFX\LICENSE.txt" />
+    <None Include="Shaders\FidelityFX\ffx_a.h" />
+    <None Include="Shaders\FidelityFX\ffx_fsr1.h" />
+    <None Include="Shaders\FogBulbs.hlsli" />
+    <None Include="Shaders\FrameUniforms.hlsli" />
+    <None Include="Shaders\Fullscreen.hlsli" />
+    <None Include="Shaders\Glow.hlsl" />
+    <None Include="Shaders\GodRay.hlsl" />
+    <None Include="Shaders\GodRayCore.hlsli" />
+    <None Include="Shaders\GpuShared.hlsli" />
+    <None Include="Shaders\LightClusters.hlsli" />
+    <None Include="Shaders\Lighting.hlsli" />
+    <None Include="Shaders\Materials.hlsli" />
+    <None Include="Shaders\Noise.hlsli" />
+    <None Include="Shaders\Objects.hlsl" />
+    <None Include="Shaders\Overlay.hlsl" />
+    <None Include="Shaders\PostProcess.hlsl" />
+    <None Include="Shaders\RHITest.hlsl" />
+    <None Include="Shaders\Rooms.hlsl" />
+    <None Include="Shaders\SMAA.hlsli" />
+    <None Include="Shaders\SMAACommon.hlsli" />
+    <None Include="Shaders\SMAAUltra.hlsl" />
+    <None Include="Shaders\GTAO.hlsl" />
+    <None Include="Shaders\ShaderInterop.hlsli" />
+    <None Include="Shaders\Shadows.hlsli" />
+    <None Include="Shaders\Skinning.hlsli" />
+    <None Include="Shaders\Sky.hlsl" />
+    <None Include="Shaders\SpriteEffects.hlsli" />
+    <None Include="Shaders\Sprites.hlsl" />
+    <None Include="Shaders\VolumetricClouds.hlsl" />
+    <None Include="Shaders\VolumetricCloudsCore.hlsli" />
+    <None Include="Shaders\Water.hlsl" />
+    <None Include="Shaders\TAA.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

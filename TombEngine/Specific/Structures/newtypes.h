@@ -13,7 +13,6 @@ struct POLYGON
 	std::vector<Vector2> textureCoordinates;
 	std::vector<Vector3> normals;
 	std::vector<Vector3> tangents;
-	std::vector<Vector3> binormals;
 };
 
 struct BUCKET

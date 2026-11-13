@@ -6,6 +6,7 @@
 #include "Game/collision/Point.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/debris.h"
+#include "Game/effects/Decal.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
@@ -15,6 +16,7 @@
 using namespace TEN::Animation;
 using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
+using namespace TEN::Effects::Decal;
 
 bool ShotLara(ItemInfo* item, AI_INFO* AI, const CreatureBiteInfo& gun, short extraRotation, int damage)
 {

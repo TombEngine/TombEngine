@@ -8,6 +8,8 @@ namespace TEN::Renderer::Structures
 {
 	using namespace TEN::Math::Library;
 
+	// Polygons sharing texture, blend mode, material and animation, with their vertex and index ranges in the level
+	// geometry arrays.
 	struct RendererBucket
 	{
 		int Texture;
@@ -18,7 +20,8 @@ namespace TEN::Renderer::Structures
 		int StartIndex;
 		int NumVertices;
 		int NumIndices;
-		Vector3 Centre;
+		Vector3 BoundsMin = Vector3::Zero; // Box of the bucket vertices: world space for rooms, object space for meshes.
+		Vector3 BoundsMax = Vector3::Zero;
 		std::vector<RendererPolygon> Polygons;
 	};
 }

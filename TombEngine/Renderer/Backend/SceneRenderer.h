@@ -1,0 +1,1398 @@
+#pragma once
+
+#include <mutex>
+
+#include "Objects/game_object_ids.h"
+#include "Renderer/UI/Font.h"
+#include "Renderer/Scene/Frustum.h"
+#include "Renderer/Structures/Vertex.h"
+#include "Renderer/Backend/DrawSort.h"
+#include "Renderer/Backend/GpuTypes.h"
+#include "Renderer/Backend/OverlayTypes.h"
+#include "Renderer/Backend/SkyTypes.h"
+#include "Renderer/RHI/RHIDevice.h"
+#include "Renderer/RHI/RenderTargetPool.h"
+#include "Renderer/RHI/TextureCapture.h"
+#include "Renderer/RHI/UploadRing.h"
+
+// Backend of the renderer (g_SceneRenderer). At level load it uploads the geometry prepared by the frontend into shared
+// vertex and index buffers and the level pages into texture arrays. Each frame it receives a RenderView and a
+// FrameEnvironment (RenderFrame) and a UiFrame (FinishFrame), collects instances, lights and materials into storage
+// buffers through an upload ring, and records the fixed FRAME_PASSES list through the RHI device (DX11, SDL GPU for
+// Vulkan and Direct3D 12, or OpenGL 4.5). The implementation is split over the SceneRenderer*.cpp files.
+
+struct TEXTURE;
+
+namespace TEN::Renderer
+{
+    struct RenderView;
+}
+
+namespace TEN::Renderer::Structures
+{
+    struct RendererRoom;
+    struct RendererAnimatedTextureSet;
+    struct RendererBucket;
+    struct RendererDoor;
+    struct RendererMesh;
+    struct RendererObject;
+    struct RendererLight;
+    struct RendererItem;
+    struct RendererMirror;
+    struct RendererSortableObject;
+    struct RendererSprite;
+    struct RendererSpriteToDraw;
+    struct RendererLine3D;
+    struct RendererTriangle3D;
+}
+
+namespace TEN::Renderer::Backend
+{
+    struct DecodedImage;
+    struct ArrayGroupKey;
+
+    // Level data prepared by the frontend (RendererCompatibility.cpp): vertex and index arrays, rooms, objects and sprites.
+    // Pointers to frontend vectors, which must stay alive while the level is loaded.
+    struct LevelGeometry
+    {
+        const std::vector<Structures::Vertex>*                        RoomVertices        = nullptr;
+        const std::vector<int>*                                       RoomIndices         = nullptr;
+        const std::vector<Structures::RendererRoom>*                  Rooms               = nullptr;
+        const std::vector<Structures::RendererAnimatedTextureSet>*    AnimatedTextureSets = nullptr;
+
+        const std::vector<Structures::Vertex>*                        StaticVertices   = nullptr;
+        const std::vector<int>*                                       StaticIndices    = nullptr;
+        const std::vector<Structures::Vertex>*                        MoveableVertices = nullptr;
+        const std::vector<int>*                                       MoveableIndices  = nullptr;
+        const std::vector<std::optional<Structures::RendererObject>>* StaticObjects    = nullptr;
+        const std::vector<std::optional<Structures::RendererObject>>* MoveableObjects  = nullptr;
+        const std::vector<Structures::RendererMesh*>*                 Meshes           = nullptr;
+        const std::vector<Structures::RendererItem>*                  Items            = nullptr;
+        const std::vector<Structures::RendererSprite>*                Sprites          = nullptr;
+    };
+
+    // Per-frame values owned by the game and the frontend, passed to RenderFrame with the RenderView. Pointers are only
+    // read during that call.
+    struct FrameEnvironment
+    {
+        Vector3      CameraPosition    = Vector3::Zero;
+        Vector4      FogColor          = Vector4::Zero;
+        float        FogMinDistance    = 0.0f;
+        float        FogMaxDistance    = 0.0f;
+        // Game frame counter, and the blend factor between the previous and current game state at high frame rates.
+        unsigned int Frame               = 0;
+        float        InterpolatedFrame   = 0.0f;
+        float        InterpolationFactor = 0.0f;
+        bool         IsCameraUnderwater  = false;
+        bool         IsAmbientOcclusionEnabled = false;
+
+        // Post-process values of the frontend.
+        Vector3      Tint                = Vector3(0.5f);
+        float        Gamma               = 1.0f;
+        int          ColorScheme         = 0;
+        float        ColorSchemeStrength = 1.0f;
+        float        ScreenFade          = 1.0f;
+        float        CinematicBarsHeight = 0.0f;
+        int          AntialiasingMode    = 0; // Antialiasing setting: 0 none, 3 SMAA, 4 TAA (the stored codes).
+        float        RenderScale         = 1.0f; // Scene resolution relative to the window; below 1, FSR 1 upscales the scene. 0 is dynamic.
+        float        TargetFrameTime     = 0.0f; // Milliseconds per frame the dynamic render scale aims at.
+
+        // HDR scene target, with bloom from the colors above 1 and tonemapping in the post-process.
+        bool         IsHdrEnabled        = false;
+        float        Exposure            = 1.0f;
+        float        BloomIntensity      = 0.5f;
+        float        BloomThreshold      = 1.0f;
+
+        // Background video of the video handler: BGRA8 frame, null when no background video plays.
+        const unsigned char*                 VideoFrame  = nullptr;
+        int                                  VideoWidth  = 0;
+        int                                  VideoHeight = 0;
+        const Structures::RendererSprite*    VideoSprite = nullptr; // Sprite of particles showing the video.
+        const Structures::RendererSprite*    WhiteSprite = nullptr; // Sprite of the colored quads, drawn untextured.
+
+        // Uniform block of the atmospheric sky dome (CAtmosphericSkyBuffer), null when the dome is disabled.
+        const void*  AtmosphericSkyUniforms     = nullptr;
+        int          AtmosphericSkyUniformsSize = 0;
+
+        // Stars and meteors of the classic sky, drawn additively after the sky layers.
+        const std::vector<Structures::RendererSpriteToDraw>* SkySprites = nullptr;
+        const Structures::RendererSpriteToDraw*              SkySunSprite = nullptr; // Classic sun sprite, drawn after the clouds.
+
+        // Volumetric cloud draws of the frontend in draw order, and the cloud noise it generated.
+        const std::vector<CloudLayerDraw>* CloudDraws = nullptr;
+        CloudNoiseData                     CloudNoise = {};
+        SkyEffectFlags                     SkyEffects = {};
+        GodRayDraw                         GodRays    = {};
+        std::array<HorizonLayerDraw, 2>    HorizonLayers = {};
+        DustStormDraw                      DustStorm     = {};
+
+        // Depth of field of the frontend (DOFState).
+        int          DofMode             = 0;
+        float        DofDistance         = 0.0f;
+        float        DofRange            = 0.0f;
+        float        DofStrength         = 0.0f;
+
+        // Lens flares of the frontend, with colors already attenuated by clouds and horizon.
+        Vector3      LensFlarePositions[LENS_FLARES_MAX] = {};
+        Vector3      LensFlareColors[LENS_FLARES_MAX]    = {};
+        int          LensFlareCount      = 0;
+
+        // Debug lines and triangles of the frontend, null when none are drawn.
+        const std::vector<Structures::RendererLine3D>*     DebugLines     = nullptr;
+        const std::vector<Structures::RendererTriangle3D>* DebugTriangles = nullptr;
+
+        // Shadows of the frontend: shadow casting light (null when none) and blob spheres.
+        const Structures::RendererLight* ShadowLight = nullptr;
+        bool         IsShadowMapEnabled  = false;
+        bool         IsPlayerShadowOnly  = false;
+        int          ShadowMapSize       = 1024;
+        Vector4      ShadowSpheres[SHADOW_SPHERES_MAX] = {};
+        int          ShadowSphereCount   = 0;
+    };
+
+    // Recording of one frame pass of the last frame.
+    struct ScenePassStats
+    {
+        const char* Name      = nullptr;
+        float       CpuTime   = 0.0f; // Milliseconds.
+        int         DrawCalls = 0;
+    };
+
+    float GetMilliseconds(std::chrono::steady_clock::time_point start, std::chrono::steady_clock::time_point end);
+
+    // Antialiasing setting of the temporal antialiasing (AntialiasingMode::Temporal); SMAA is skipped with it.
+    constexpr auto ANTIALIASING_MODE_TEMPORAL = 4;
+
+    // Content of a draw call, as the draw call statistics of the frontend.
+    enum class DrawCategory
+    {
+        Rooms,
+        Statics,
+        Moveables,
+        Sprites,
+        SortedRooms,
+        SortedStatics,
+        SortedMoveables,
+        SortedSprites,
+        Shadows,
+        Debris,
+        Sky,
+        Fullscreen,
+        Overlay,
+        Debug,
+        Water,
+
+        Count
+    };
+
+    const char* GetDrawCategoryName(DrawCategory category);
+
+    // Statistics of the last scene frame, shown by the graphics statistics debug page.
+    struct SceneFrameStats
+    {
+        float CpuTime     = 0.0f; // Milliseconds spent collecting, uploading and recording the frame.
+        float CollectTime = 0.0f;
+        float UploadTime  = 0.0f;
+        int   DrawCalls   = 0;
+        int   UploadBytes = 0;
+
+        std::array<int, (int)DrawCategory::Count> CategoryDrawCalls = {};
+        std::array<int, (int)DrawCategory::Count> CategoryTriangles = {};
+        int   InstancedDrawCalls = 0; // Object draws of more than one instance.
+        int   DrawnInstances     = 0;
+        float SortedCollectTime  = 0.0f;
+        float SortedRecordTime   = 0.0f;
+        int   MaterialUploads    = 0;
+
+        RHI::CommandCounters Api = {}; // API calls of the scene command buffer.
+
+        int RoomsDrawn      = 0;
+        int RoomDraws       = 0;
+        int ObjectDraws     = 0;
+        int ShadowDraws     = 0;
+        int Instances       = 0;
+        int Bones           = 0;
+        int Lights          = 0;
+        int Decals          = 0;
+        int Materials       = 0;
+        int Sprites         = 0;
+        int SpriteRuns      = 0;
+        int SkySprites      = 0;
+        int SortedDraws     = 0;
+        int SortedIndices   = 0;
+        int DebrisTriangles = 0;
+        int Mirrors         = 0;
+        int GunFlashes      = 0;
+        int FogBulbs        = 0;
+        int CloudDraws      = 0;
+        int DebugVertices   = 0;
+
+        std::vector<ScenePassStats> Passes = {};
+    };
+
+    // Device, targets and level resources of the scene renderer.
+    struct SceneRendererInfo
+    {
+        std::string Backend            = {};
+        std::string DeviceName         = {};
+        int         Width              = 0;
+        int         Height             = 0;
+        int         RoomVertices       = 0;
+        int         ObjectVertices     = 0;
+        int         TextureArrayGroups = 0;
+        int         TexturePages       = 0;
+        int         ScenePipelines     = 0;
+        int         PooledTargets      = 0;
+        int         UploadRingSize     = 0;
+    };
+
+    // Blend state of each blend mode.
+    RHI::BlendState GetBlendState(BlendMode blendMode);
+
+    class SceneRenderer
+    {
+    private:
+        // Standalone texture page with its material maps. Only sprite atlases use it, with the color map alone; level
+        // pages live in texture array groups.
+        struct RoomTexture
+        {
+            std::unique_ptr<RHI::ITexture> ColorMap    = nullptr;
+            std::unique_ptr<RHI::ITexture> NormalMap   = nullptr;
+            std::unique_ptr<RHI::ITexture> ORSHMap     = nullptr;
+            std::unique_ptr<RHI::ITexture> EmissiveMap = nullptr;
+        };
+
+        // Material maps of a level texture page, in the order of the pixel shader texture slots.
+        enum class MaterialMap
+        {
+            Color,
+            Normal,
+            ORSH,
+            Emissive,
+
+            Count
+        };
+
+        // Texture arrays of level pages sharing size and format, one per material map; pages without a map use the default array.
+        struct TextureArrayGroup
+        {
+            std::unique_ptr<RHI::ITexture> Maps[(int)MaterialMap::Count] = {};
+            int                            SkippedMips[(int)MaterialMap::Count] = {}; // Top mips left out to fit the video memory.
+            int                            Index = 0; // Position in the group list, part of the draw sort keys.
+        };
+
+        // Layer of a level texture page in its array group; the layer is selected with a per draw uniform.
+        struct TexturePage
+        {
+            const TextureArrayGroup* Group = nullptr;
+            int                      Layer = 0;
+        };
+
+        // Level page waiting for its array layer.
+        struct ArrayPageSource
+        {
+            const ::TEXTURE* Texture     = nullptr;
+            bool             IsColorOnly = false;
+            TexturePage*     Target      = nullptr;
+        };
+
+        // Level texture waiting to be decoded and uploaded with the others.
+        struct LevelTextureRequest
+        {
+            const std::vector<unsigned char>* EncodedData = nullptr;
+            std::string                       Name        = {};
+            std::unique_ptr<RHI::ITexture>*   Target      = nullptr;
+        };
+
+        // Instance waiting to be grouped with the other instances of its mesh.
+        struct QueuedMeshInstance
+        {
+            const Structures::RendererMesh* Mesh          = nullptr;
+            GpuObjectInstance               Instance      = {};
+            int                             RoomNumber    = NO_VALUE;
+            bool                            IsReflectable = true; // Mirrors skip items with cleared bodies.
+        };
+
+        // Debris draws of the scene pass: opaque with the opaque draws, additive with the additive draws, and blended
+        // after the sorted faces.
+        enum class DebrisPass
+        {
+            Opaque,
+            Additive,
+            Blended
+        };
+
+        // Debris triangles sharing texture page and blend mode.
+        struct DebrisDraw
+        {
+            const std::vector<TexturePage>* Pages       = nullptr;
+            int                             Page        = 0;
+            BlendMode                       BlendMode   = BlendMode::Opaque;
+            int                             FirstVertex = 0;
+            int                             VertexCount = 0;
+        };
+
+        // Per draw values of bucket draws: room state for room buckets, animated set override for objects.
+        struct BucketDrawInfo
+        {
+            unsigned int IsWaterRoom         = 0;
+            unsigned int IsCausticsRoom      = 0;
+            unsigned int IsOutdoorRoom       = 0;
+            unsigned int DecalOffset         = 0;
+            unsigned int DecalCount          = 0;
+            int          AnimatedSetOverride = NO_VALUE;
+            bool         IsAlphaEdgePass     = false;
+            bool         IsForcedAlphaTest   = false;
+            bool         IsAlphaTestDisabled = false;
+        };
+
+        // Draw state of consecutive bucket draws; pushes and binds are skipped when unchanged.
+        struct BucketBindState
+        {
+            DrawPixelUniforms        PixelUniforms  = { -1.0f };
+            DrawVertexUniforms       VertexUniforms = { INT_MIN };
+            const TextureArrayGroup* Group          = nullptr;
+            bool                     IsGroupBound   = false;
+        };
+
+        // Section of the level geometry buffers a mesh comes from; also the order of the sections in the index buffer.
+        enum class MeshSource
+        {
+            Statics,
+            Moveables,
+            Rooms,
+
+            Count
+        };
+
+        // Source of an instance, for mirrors that reflect only some categories of the mirror room.
+        enum class InstanceCategory
+        {
+            None,
+            Player,
+            Moveable,
+            Static
+        };
+
+        // Room and category of a frame instance, kept beside the instance data for mirrors and the outdoor flag.
+        struct InstanceOrigin
+        {
+            int              RoomNumber = NO_VALUE;
+            InstanceCategory Category   = InstanceCategory::None;
+        };
+
+        // Instanced draw of one mesh bucket; instances are contiguous in the frame instance buffer.
+        struct ObjectDraw
+        {
+            MeshSource                        Source        = MeshSource::Statics;
+            const Structures::RendererBucket* Bucket        = nullptr;
+            int                               FirstInstance = 0;
+            int                               InstanceCount = 0;
+            int                               AnimatedSetOverride = NO_VALUE; // Waterfall scrolling.
+            Vector4                           Bounds        = Vector4(0.0f, 0.0f, 0.0f, -1.0f); // World sphere of shadow casters, unknown when negative.
+        };
+
+        // GPU buffer rewritten every frame from CPU data through the upload ring.
+        struct FrameStorageBuffer
+        {
+            std::unique_ptr<RHI::IBuffer> Buffer   = nullptr;
+            int                           Capacity = 0;
+        };
+
+        // Vertex and pixel shader pair of a scene pipeline, the first index of _scenePipelines.
+        enum class SceneShader
+        {
+            Rooms,
+            Objects,
+            Sky,
+            Sprites,
+            RoomsPrepass,
+            ObjectsPrepass,
+            ObjectsShadow,
+            ObjectsDebris,
+            ObjectsMirrored, // Reflected by a mirror plane: inverted culling.
+            SkyParaboloid,   // Sky into the dual paraboloid map of skybox reflective materials.
+            Inventory,       // Objects of the 2D layer: depth written by every blend mode.
+            SkyHorizonMask,  // Horizon silhouette of the god rays.
+            SkySprites,      // Stars and meteors, hidden by the moon disc and the clouds.
+            RoomsPrepassVelocity,   // Prepass with motion vectors, while a temporal pass is active.
+            ObjectsPrepassVelocity,
+
+            Count
+        };
+
+        // Pass of the room and object bucket draws: selects the buckets drawn (IsBucketInPass) and the pipeline blend mode.
+        enum class ScenePass
+        {
+            Prepass,
+            Opaque,
+            AlphaEdges, // Second pass of alpha tested buckets: blended texels below the threshold.
+            Additive,
+            Distortion  // Payload accumulated in the distortion target, applied by the post-process.
+        };
+
+        // Instanced draw of consecutive sprites sharing texture and blend mode.
+        struct SpriteDraw
+        {
+            RHI::ITexture* Texture        = nullptr;
+            BlendMode      BlendMode      = BlendMode::Additive;
+            int            FirstSprite    = 0;
+            int            SpriteCount    = 0;
+            bool           IsSoftParticle = false;
+            int            RenderType     = 0;
+        };
+
+        // Run of consecutive sorted polygons sharing one draw group, drawn with one call. Sprite runs
+        // use the sprite draw instead of the index range.
+        struct SortedDraw
+        {
+            MeshSource                        Source     = MeshSource::Statics;
+            bool                              IsRoom     = false;
+            bool                              IsSprite   = false;
+            bool                              IsWaterRoom = false;
+            bool                              IsCausticsRoom = false;
+            bool                              IsForcedAlphaTest = false; // Alpha test for every bucket, e.g. moveables drawn as statics.
+            const Structures::RendererBucket* Bucket     = nullptr;
+            BlendMode                         BlendMode  = BlendMode::AlphaBlend;
+            int                               FirstIndex = 0;
+            int                               IndexCount = 0;
+            int                               Instance   = 0;
+            const Structures::RendererRoom*   Room       = nullptr; // Room faces only, for the portal scissor.
+            SpriteDraw                        Sprites    = {};
+        };
+
+        // Visible room bucket of the frame.
+        struct RoomDraw
+        {
+            const Structures::RendererRoom*   Room   = nullptr;
+            const Structures::RendererBucket* Bucket = nullptr;
+        };
+
+        // Water surface generated at load on a horizontal portal from a water room to the dry room above it: a grid
+        // of triangles in the water vertex buffer.
+        struct WaterSurface
+        {
+            int     FirstVertex = 0;
+            int     VertexCount = 0;
+            int     WaterRoom   = NO_VALUE;
+            int     DryRoom     = NO_VALUE;
+            Vector3 BoundsMin   = Vector3::Zero;
+            Vector3 BoundsMax   = Vector3::Zero;
+            int     Frame       = NO_VALUE; // Last frame that collected the surface.
+        };
+
+        // Shared level vertex and index buffers, created by LoadLevel.
+        struct GeometryBuffers
+        {
+            std::unique_ptr<RHI::IBuffer> Vertices = nullptr;
+            std::unique_ptr<RHI::IBuffer> Indices  = nullptr;
+        };
+
+        // Range of one mesh source in the level buffers. Indices are relative to the base vertex; the CPU indices feed the sorted faces.
+        struct GeometrySection
+        {
+            int                     RegionOffset = 0; // Byte offset of the vertex region: rooms, or statics and moveables.
+            int                     BaseVertex   = 0;
+            int                     BaseIndex    = 0;
+            int                     VertexCount  = 0;
+            const std::vector<int>* Indices      = nullptr;
+        };
+
+        // RHI device of the selected backend, its window and the compiled shader directory.
+        std::unique_ptr<RHI::IDevice> _device = nullptr;
+        SDL_Window*                   _window = nullptr;
+        std::string                   _shaderDirectory = {};
+
+        // Scene shaders and pipelines, the classic sky geometry and the sprite resources.
+        std::unique_ptr<RHI::IShader>           _roomsVertexShader   = nullptr;
+        std::unique_ptr<RHI::IShader>           _roomsPixelShader    = nullptr;
+        // Pixel shader variants of rooms and objects: bit 0 leaves out the alpha test, the next bits the normal, ORSH and
+        // emissive maps a texture group lacks. Variant 0 is the base shader.
+        static constexpr auto PIXEL_VARIANT_NO_ALPHA_TEST = 1;
+        static constexpr auto PIXEL_VARIANT_MAP_SHIFT     = 1;
+        static constexpr auto PIXEL_VARIANT_COUNT         = 16;
+
+        // Created on first use by GetScenePipeline, indexed by shader, blend mode slot and pixel variant.
+        std::unique_ptr<RHI::IGraphicsPipeline> _scenePipelines[(int)SceneShader::Count][16][PIXEL_VARIANT_COUNT] = {};
+        std::unique_ptr<RHI::IShader>           _pixelShaderVariants[(int)SceneShader::Count][PIXEL_VARIANT_COUNT] = {};
+        std::unique_ptr<RHI::IShader>           _objectsVertexShader = nullptr;
+        std::unique_ptr<RHI::IShader>           _objectsPixelShader  = nullptr;
+        std::unique_ptr<RHI::IShader>           _skyVertexShader     = nullptr;
+        std::unique_ptr<RHI::IShader>           _skyPixelShader      = nullptr;
+        std::unique_ptr<RHI::IShader>           _horizonMaskPixelShader = nullptr;
+        std::unique_ptr<RHI::IBuffer>           _skyVertexBuffer     = nullptr;
+        std::unique_ptr<RHI::IBuffer>           _skyIndexBuffer      = nullptr;
+        TexturePage                             _skyPage             = {};
+        std::unique_ptr<RHI::IShader>           _spritesVertexShader = nullptr;
+        std::unique_ptr<RHI::IShader>           _spritesPixelShader  = nullptr;
+        std::unique_ptr<RHI::IShader>           _skySpritesPixelShader = nullptr;
+        std::unique_ptr<RHI::IBuffer>           _spriteCornerBuffer  = nullptr;
+        std::unique_ptr<RHI::ISampler>          _linearClampSampler  = nullptr;
+
+        // Post-process (SceneRendererPostProcess.cpp). The scene renders into _sceneTarget, post-process into _colorTarget.
+        std::unique_ptr<RHI::IShader>           _postProcessVertexShader = nullptr;
+        std::unique_ptr<RHI::IShader>           _postProcessPixelShader  = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _postProcessPipeline     = nullptr;
+        std::unique_ptr<RHI::ITexture>          _sceneTarget             = nullptr;
+        std::unique_ptr<RHI::ITexture>          _sceneDepthCopy          = nullptr; // R32 float copy of the prepass depth.
+        std::unique_ptr<RHI::ITexture>          _distortionTarget        = nullptr;
+        std::unique_ptr<RHI::ITexture>          _emissiveTarget          = nullptr; // Prepass emissive, source of the glow.
+        std::unique_ptr<RHI::ITexture>          _glowTarget              = nullptr; // Blurred emissive read by the post-process.
+        std::unique_ptr<RHI::IShader>           _glowVertexShader        = nullptr;
+        std::unique_ptr<RHI::IShader>           _glowDownscaleShader     = nullptr;
+        std::unique_ptr<RHI::IShader>           _glowBlurShader          = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _glowDownscalePipeline   = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _glowBlurPipeline        = nullptr;
+        std::unique_ptr<RHI::IShader>           _glowCombineShader       = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _glowCombinePipeline     = nullptr; // Menu frames only.
+
+        // HDR and bloom (SceneRendererBloom.cpp). With HDR, the scene target is half float and the scene shaders keep colors
+        // above 1; the bloom pass blurs the bright part, which the post-process adds before tonemapping. The pipelines that
+        // draw into the scene target are listed here, to be created again for the format of the other mode.
+        static constexpr int BLOOM_STEP_COUNT = 5;
+
+        struct SceneColorPipeline
+        {
+            std::unique_ptr<RHI::IGraphicsPipeline>* Pipeline = nullptr;
+            RHI::GraphicsPipelineDesc                Desc     = {};
+        };
+
+        std::vector<SceneColorPipeline>         _sceneColorPipelines     = {};
+        bool                                    _isHdrSupported          = false; // Half float scene and TAA history targets.
+        bool                                    _isHdrActive             = false;
+        bool                                    _isBloomActive           = false;
+        RHI::PixelFormat                        _bloomFormat             = RHI::PixelFormat::R11G11B10Float;
+        std::unique_ptr<RHI::IShader>           _bloomVertexShader       = nullptr;
+        std::unique_ptr<RHI::IShader>           _bloomPrefilterShader    = nullptr;
+        std::unique_ptr<RHI::IShader>           _bloomDownsampleShader   = nullptr;
+        std::unique_ptr<RHI::IShader>           _bloomUpsampleShader     = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _bloomPrefilterPipeline  = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _bloomDownsamplePipeline = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _bloomUpsamplePipeline   = nullptr;
+        RHI::ITexture*                          _bloomTarget             = nullptr; // Pooled, from the bloom pass to the post-process.
+
+        // FSR 1 upscaling (SceneRendererUpscale.cpp). Below native scale, the post-process writes _upscaleSource at render
+        // resolution and the upscale pass writes _colorTarget at window resolution.
+        std::unique_ptr<RHI::IShader>           _easuPixelShader = nullptr;
+        std::unique_ptr<RHI::IShader>           _rcasPixelShader = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _easuPipeline    = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _rcasPipeline    = nullptr;
+        bool                                    _isColorTargetSharpened = false; // EASU or TAA output, sharpened by RCAS when the overlay draws it.
+        RHI::ITexture*                          _upscaleSource   = nullptr; // Pooled, from the post-process to the upscale pass.
+        float                                   _renderScale     = 1.0f;
+
+        // Dynamic resolution (SceneRendererDynamicResolution.cpp).
+        bool                                    _isRenderScaleDynamic = false;
+        float                                   _dynamicScale         = 1.0f;
+        float                                   _dynamicUpDelay       = 2.0f;  // Seconds of headroom before a rise, doubled by failed rises.
+        bool                                    _isDynamicRise        = false; // The last change was a rise.
+        float                                   _dynamicFrameTimeSum  = 0.0f;
+        float                                   _dynamicFenceWaitSum  = 0.0f;
+        int                                     _dynamicFrameCount    = 0;
+        std::chrono::steady_clock::time_point   _dynamicLastFrameTime = {};
+        std::chrono::steady_clock::time_point   _dynamicChangeTime    = {};
+        float                                   _fenceWaitTime        = 0.0f;  // Milliseconds the last scene frame waited for its frame slot.
+        float                                   _materialLodBias = 0.0f; // Keeps the texture detail of the window resolution.
+        bool                                    _isUpscaleActive = false;
+
+        // Targets of the overlay objects and the menu post-process, which draw at window resolution: the scene targets
+        // at native scale, pooled targets of the window size below it. The menu post-process acquires its antialiasing
+        // source from the pool.
+        struct OverlayTargets
+        {
+            RHI::ITexture* Emissive           = nullptr;
+            RHI::ITexture* Depth              = nullptr;
+            RHI::ITexture* Glow               = nullptr;
+            RHI::ITexture* AntialiasingSource = nullptr;
+        };
+
+        OverlayTargets _overlayTargets = {};
+        bool                                    _hasEmissiveMaps         = false;
+        bool                                    _hasVisibleEmissive      = false; // A draw of the frame has an emissive material.
+        std::unique_ptr<RHI::ITexture>          _reflectionTarget        = nullptr; // Half resolution scene of the previous frame.
+        bool                                    _hasReflectiveMaterials  = false;
+        std::unique_ptr<RHI::ITexture>          _skyReflectionTarget     = nullptr; // Dual paraboloid sky, one hemisphere per layer.
+        bool                                    _hasSkyReflectiveMaterials = false;
+        bool                                    _isSkyReflectionActive   = false; // Sky reflective materials, or water reflecting a visible sky.
+
+        // Water surfaces (SceneRendererWater.cpp).
+        std::unique_ptr<RHI::IShader>           _waterVertexShader       = nullptr;
+        std::unique_ptr<RHI::IShader>           _waterPixelShader        = nullptr;
+        std::unique_ptr<RHI::IShader>           _waterReflectionShader   = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _waterPipeline           = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _waterReflectionPipeline = nullptr; // Half resolution reflection trace.
+        std::unique_ptr<RHI::IShader>           _underwaterFogVertexShader = nullptr;
+        std::unique_ptr<RHI::IShader>           _underwaterFogPixelShader = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _underwaterFogPipeline   = nullptr;
+        std::unique_ptr<RHI::ITexture>          _waveNormalTexture       = nullptr; // Tileable wave slopes, generated at initialization.
+        std::unique_ptr<RHI::IBuffer>           _waterVertexBuffer       = nullptr;
+        std::vector<WaterSurface>               _waterSurfaces           = {};
+        std::vector<std::vector<int>>           _roomWaterSurfaces       = {}; // Surfaces of each room, by room number.
+        std::unordered_set<const Structures::RendererBucket*> _waterCoveredBuckets = {}; // Builder made water faces, replaced by the surfaces.
+        std::vector<int>                        _waterDraws              = {}; // Visible surfaces of the frame.
+        int                                     _waterFrame              = 0;
+        bool                                    _isCameraUnderwater      = false;
+        bool                                    _isWaterSkyReflected     = false;
+        float                                   _underwaterSurfaceHeight = 0.0f; // Where the fog of the rays rising out of the water ends.
+        Vector3                                 _underwaterAmbient       = Vector3::One;
+
+        // Temporal antialiasing and motion vectors (SceneRendererTAA.cpp).
+        static constexpr auto TAA_HISTORY_COUNT = 2;
+
+        // Interpolated transforms of an item in the frame Frame, the previous transforms of its motion vectors.
+        struct PreviousItemTransforms
+        {
+            Matrix World                  = Matrix::Identity;
+            Matrix Bones[BONE_COUNT_MAX]  = {};
+            int    Frame                  = NO_VALUE;
+        };
+
+        std::unique_ptr<RHI::IShader>           _roomsVelocityVertexShader   = nullptr;
+        std::unique_ptr<RHI::IShader>           _objectsVelocityVertexShader = nullptr;
+        std::unique_ptr<RHI::IShader>           _roomsVelocityPixelShader    = nullptr;
+        std::unique_ptr<RHI::IShader>           _objectsVelocityPixelShader  = nullptr;
+        std::unique_ptr<RHI::IShader>           _taaShader                   = nullptr;
+        std::unique_ptr<RHI::IComputePipeline>  _taaPipeline                 = nullptr;
+        std::unique_ptr<RHI::IShader>           _taaHdrShader                = nullptr;
+        std::unique_ptr<RHI::IComputePipeline>  _taaHdrPipeline              = nullptr; // Half float history of the HDR scene.
+        std::unique_ptr<RHI::ITexture>          _velocityTarget              = nullptr; // Prepass motion in UV units, RG16F.
+        std::unique_ptr<RHI::ITexture>          _taaHistory[TAA_HISTORY_COUNT] = {};    // Antialiased scenes, read and written in turn.
+        int                                     _taaHistoryIndex             = 0;       // History written by the last frame.
+        bool                                    _isTaaHistoryValid           = false;
+        bool                                    _isTaaActive                 = false;
+        bool                                    _isVelocityActive            = false;   // The prepass writes motion vectors.
+        int                                     _motionFrame                 = 0;       // Frame counter of the motion data.
+        Matrix                                  _unjitteredViewProjection    = Matrix::Identity;
+        Matrix                                  _prevViewProjection          = Matrix::Identity;
+        bool                                    _hasPrevViewProjection       = false;
+        Vector3                                 _prevCameraPosition          = Vector3::Zero;
+        std::unordered_map<int, PreviousItemTransforms> _previousItemTransforms = {}; // By item number.
+
+        // Depth of field (SceneRendererDOF.cpp).
+        static constexpr int DOF_PASS_COUNT   = 4;
+        static constexpr int DOF_TARGET_COUNT = 2;
+
+        std::unique_ptr<RHI::IShader>           _dofVertexShader                   = nullptr;
+        std::unique_ptr<RHI::IShader>           _dofPixelShaders[DOF_PASS_COUNT]   = {};
+        std::unique_ptr<RHI::IGraphicsPipeline> _dofPipelines[DOF_PASS_COUNT]      = {};
+        std::unique_ptr<RHI::ITexture>          _dofTargets[DOF_TARGET_COUNT]      = {}; // Near blur and far blur.
+        bool                                    _isDofActive                       = false;
+
+        // SMAA antialiasing (SceneRendererSMAA.cpp).
+        static constexpr int SMAA_PASS_COUNT   = 3;
+
+        struct SmaaPreset
+        {
+            std::unique_ptr<RHI::IShader>           VertexShader                  = nullptr;
+            std::unique_ptr<RHI::IShader>           PixelShaders[SMAA_PASS_COUNT] = {};
+            std::unique_ptr<RHI::IGraphicsPipeline> Pipelines[SMAA_PASS_COUNT]    = {};
+        };
+
+        SmaaPreset                              _smaa                           = {}; // Ultra preset.
+        RHI::PixelFormat                        _smaaStencilFormat              = RHI::PixelFormat::Unknown; // Unknown without stencil support.
+        std::unique_ptr<RHI::ITexture>          _smaaAreaTexture                = nullptr;
+        std::unique_ptr<RHI::ITexture>          _smaaSearchTexture              = nullptr;
+
+        // The frame has distortion draws: enables the distortion pass.
+        bool                                    _hasDistortion           = false;
+
+        // Fixed pass order of a scene frame. Each pass runs in its own debug group; a pass with a flag is skipped while the flag is false.
+        struct FramePass
+        {
+            const char*          Name      = nullptr;
+            bool SceneRenderer::* IsEnabled = nullptr;
+            void (SceneRenderer::* Execute)(RHI::ICommandBuffer&) = nullptr;
+        };
+
+        static const FramePass FRAME_PASSES[];
+
+        // Target pool and the inputs of the frame being recorded; view and environment are set only while RenderFrame
+        // runs the passes.
+        RHI::RenderTargetPool   _targetPool          = {}; // Intermediate targets of the screen space passes.
+        const RenderView*       _frameView           = nullptr;
+        const FrameEnvironment* _frameEnvironment    = nullptr;
+        FrameVertexUniforms     _frameVertexUniforms = {};
+
+        // Camera of the frame, with the projection rebuilt for the aspect ratio of the window.
+        float                                   _nearPlane               = 1.0f;
+        float                                   _farPlane                = 1.0f;
+        float                                   _time                    = 0.0f;
+        Matrix                                  _viewProjection          = Matrix::Identity;
+        Matrix                                  _view                    = Matrix::Identity;
+        Matrix                                  _projection              = Matrix::Identity;
+        Frustum                                 _frustum                 = {}; // Of the target projection, which may differ in aspect from the frontend one.
+        float                                   _roomClipScaleX          = 1.0f; // Frontend to target horizontal NDC scale of the room portal rectangles.
+
+        // Atmospheric sky dome, sun and moon discs and aurora (SceneRendererAtmosphere.cpp).
+        std::unique_ptr<RHI::IShader>           _atmosphericSkyVertexShader = nullptr;
+        std::unique_ptr<RHI::IShader>           _atmosphericSkyPixelShader  = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _atmosphericSkyPipeline     = nullptr;
+        std::unique_ptr<RHI::IShader>           _skyDiscPixelShader         = nullptr;
+        std::unique_ptr<RHI::IShader>           _auroraPixelShader          = nullptr;
+        std::unique_ptr<RHI::IShader>           _skyCopyPixelShader         = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _skyDiscPipeline            = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _auroraPipeline             = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _auroraHalfPipeline         = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _auroraUpscalePipeline      = nullptr;
+        const void*                             _atmosphericSkyUniforms     = nullptr;
+
+        // Glyphs of the game font and their texture.
+        struct FontData
+        {
+            Font                           Metrics = {};
+            std::unique_ptr<RHI::ITexture> Texture = nullptr;
+        };
+
+        // Debug line and triangle vertex in world space.
+        struct DebugVertex
+        {
+            Vector3      Position = Vector3::Zero;
+            unsigned int Color    = 0;
+        };
+
+        struct OverlayVertex
+        {
+            Vector2      Position = Vector2::Zero; // Pixels from the top left corner of the target.
+            Vector2      UV       = Vector2::Zero;
+            unsigned int Color    = 0;
+        };
+
+        // Same layout as BarUniforms in Overlay.hlsl.
+        struct OverlayBarUniforms
+        {
+            Vector2      BarStartUV   = Vector2::Zero;
+            Vector2      BarScale     = Vector2::One;
+            float        Percent      = 1.0f;
+            float        PoisonFactor = 0.0f;
+            unsigned int IsInner      = 0;
+            float        Padding      = 0.0f;
+        };
+
+        // Quad run, or with IsObjects a range of object draws rendered in their own pass with depth: FirstVertex and
+        // VertexCount then index _overlayObjectDraws.
+        struct OverlayDraw
+        {
+            RHI::ITexture*     Texture     = nullptr;
+            int                FirstVertex = 0;
+            int                VertexCount = 0;
+            bool               IsBar       = false;
+            OverlayBarUniforms Bar         = {};
+            BlendMode          BlendMode   = BlendMode::PremultipliedAlphaBlend;
+            bool               IsObjects   = false;
+            bool               IsSharpened = false; // Upscaled scene, sharpened by RCAS while drawn.
+        };
+
+        struct OverlayObjectDraw
+        {
+            const Structures::RendererBucket* Bucket        = nullptr;
+            int                               Instance      = 0;
+            int                               Object        = 0; // Index in UiFrame::Objects.
+            BlendMode                         BlendMode     = BlendMode::Opaque;
+            bool                              IsAlphaTested = false;
+        };
+
+        // 2D layer resources and the per-frame data collected from the UiFrame (SceneRendererOverlay.cpp).
+        FontData                                _font                       = {};
+        std::unique_ptr<RHI::IShader>           _overlayVertexShader        = nullptr;
+        std::unique_ptr<RHI::IShader>           _overlayPixelShader         = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _overlayPipeline            = nullptr;
+        std::unique_ptr<RHI::IShader>           _overlayBarPixelShader      = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _overlayBarPipeline         = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _overlayPipelines[16]       = {}; // Per blend mode, created on first use.
+        RHI::GraphicsPipelineDesc               _overlayPipelineDesc        = {};
+        std::vector<unsigned char>              _overlayVertexData          = {};
+        std::vector<OverlayDraw>                _overlayDraws               = {};
+        std::vector<OverlayObjectDraw>          _overlayObjectDraws         = {};
+        std::vector<unsigned char>              _overlayInstanceData        = {};
+        std::vector<unsigned char>              _overlayBoneData            = {};
+        std::unique_ptr<RHI::IShader>           _inventoryVertexShader      = nullptr;
+        std::unique_ptr<RHI::IShader>           _inventoryPixelShader       = nullptr;
+        std::unordered_map<std::string, std::unique_ptr<RHI::ITexture>> _overlayImages = {}; // By file path, null when not decodable.
+
+        // Size of the frontend atmospheric sky uniform block, beside _atmosphericSkyUniforms.
+        int                                     _atmosphericSkyUniformsSize = 0;
+
+        // Shadow map (SceneRendererShadows.cpp).
+        std::unique_ptr<RHI::IShader>           _objectsShadowPixelShader = nullptr;
+        std::unique_ptr<RHI::ITexture>          _shadowMap                = nullptr;
+        std::unique_ptr<RHI::ITexture>          _dummyShadowMap           = nullptr;
+        std::unique_ptr<RHI::ITexture>          _shadowDepth              = nullptr;
+        std::vector<ObjectDraw>                 _shadowDraws              = {};
+        GpuShadowUniforms                       _shadowUniforms           = {};
+        Frustum                                 _shadowFaceFrustums[6]    = {};
+        bool                                    _isShadowMapActive        = false;
+        bool                                    _isPlayerShadowOnly       = false;
+        bool                                    _isRenderingShadowMap     = false;
+        RHI::ITexture*                          _causticsTexture          = nullptr; // Atlas page of the current caustics frame.
+
+        // Depth and normals prepass and ground truth ambient occlusion (SceneRendererAmbientOcclusion.cpp).
+        static constexpr auto AO_HISTORY_COUNT = 2;
+
+        std::unique_ptr<RHI::IShader>           _roomsPrepassPixelShader    = nullptr;
+        std::unique_ptr<RHI::IShader>           _objectsPrepassPixelShader  = nullptr;
+        std::unique_ptr<RHI::IShader>           _aoVertexShader             = nullptr;
+        std::unique_ptr<RHI::IShader>           _gtaoPixelShader            = nullptr;
+        std::unique_ptr<RHI::IShader>           _aoTemporalPixelShader      = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _gtaoPipeline               = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _aoTemporalPipeline         = nullptr;
+        std::unique_ptr<RHI::ITexture>          _normalTarget               = nullptr;
+        std::unique_ptr<RHI::ITexture>          _aoHistory[AO_HISTORY_COUNT] = {};     // Accumulated occlusion, read and written in turn; the last one is read by the scene pass.
+        int                                     _aoHistoryIndex             = 0;       // History written by the last frame.
+        bool                                    _isAoHistoryValid           = false;
+        int                                     _aoHistoryFrame             = NO_VALUE; // Motion frame of the last accumulation.
+        std::unique_ptr<RHI::ISampler>          _pointClampSampler          = nullptr;
+        bool                                    _isAmbientOcclusionActive   = false;
+
+        // Material sampler and the 1x1 defaults bound in place of missing maps and inactive effect textures.
+        std::unique_ptr<RHI::ISampler>          _anisotropicSampler  = nullptr;
+        std::unique_ptr<RHI::ITexture>          _whiteTexture        = nullptr;
+        std::unique_ptr<RHI::ITexture>          _flatNormalTexture   = nullptr;
+        std::unique_ptr<RHI::ITexture>          _defaultORSHTexture  = nullptr;
+        std::unique_ptr<RHI::ITexture>          _blackTexture        = nullptr;
+
+        // Level resources created by LoadLevel (geometry, room and animated pages, animated texture sets), then the
+        // background video state, the upload ring and the screenshot readback.
+        GeometryBuffers               _geometry         = {}; // Rooms, statics and moveables.
+        GeometrySection               _geometrySections[(int)MeshSource::Count] = {};
+        std::vector<TexturePage>      _roomTextures     = {};
+        std::vector<TexturePage>      _animatedTextures = {};
+        std::unique_ptr<RHI::IBuffer> _animatedFramesBuffer = nullptr;
+        std::unique_ptr<RHI::IBuffer> _animatedSetsBuffer   = nullptr;
+        std::unordered_map<int, int>  _waterfallSets        = {}; // Object ID to animated set.
+        std::unordered_map<int, int>  _videoSets            = {}; // Video animated set to its normalized UV set.
+        std::unique_ptr<RHI::ITexture>    _videoTexture  = nullptr;
+        std::unique_ptr<RHI::ITexture>    _videoArrayTexture = nullptr; // Copy of the video frame as a one layer array, bound in place of animated pages.
+        bool                              _isVideoActive = false;
+        const Structures::RendererSprite* _videoSprite   = nullptr;
+        const Structures::RendererSprite* _whiteSprite   = nullptr;
+        RHI::UploadRing                   _uploadRing    = {}; // Per-frame uploads of every copy pass.
+        RHI::TextureReadback              _readback      = {}; // Screenshots, written when the GPU has rendered them.
+
+        // Fences of the last finished frames: a new frame waits for the oldest one, so the game thread cannot queue frames
+        // faster than the GPU renders them. Without it, DX11 queued frames until the driver blocked a present, and slow GPUs
+        // alternated very short and very long frames.
+        static constexpr auto FRAMES_IN_FLIGHT_MAX = 2;
+
+        std::array<std::shared_ptr<RHI::IFence>, FRAMES_IN_FLIGHT_MAX> _frameFences     = {};
+        int                                                           _frameFenceIndex = 0;
+
+        // More level resources: object pages, sprite atlases, the texture array groups holding every page, and the
+        // level data the frame collection reads.
+        std::vector<TexturePage>      _staticTextures   = {};
+        std::vector<TexturePage>      _moveableTextures = {};
+        std::vector<RoomTexture>      _spriteTextures   = {};
+        std::vector<std::unique_ptr<TextureArrayGroup>> _textureArrayGroups = {};
+        std::unique_ptr<RHI::ITexture> _defaultMapArrays[(int)MaterialMap::Count] = {}; // One layer arrays: white, flat normal, default ORSH, black.
+        LevelGeometry           _levelGeometry   = {};
+
+        // Light counts hold the count in the low 16 bits and the light type mask in the high bits.
+        static constexpr auto LIGHT_COUNT_MASK = 0xFFFF;
+
+        // Frame instance data: collected on the CPU, uploaded once per frame before the scene pass.
+        std::unique_ptr<RHI::IBuffer> _instanceIndexBuffer = nullptr;
+        FrameStorageBuffer            _instanceBuffer      = {};
+        FrameStorageBuffer            _lightBuffer         = {};
+        FrameStorageBuffer            _boneBuffer          = {};
+        std::vector<unsigned char>    _boneData            = {};
+        std::vector<unsigned char>    _instanceData        = {};
+        std::vector<unsigned char>    _lightData           = {};
+        FrameStorageBuffer            _lightClusterBuffer  = {};
+        std::vector<unsigned char>    _lightClusterData    = {}; // Room light masks per cluster of the view frustum.
+        std::vector<ObjectDraw>       _objectDraws         = {};
+        std::vector<DrawSortKey>      _objectDrawOrder     = {}; // Object draws by draw state, for the passes whose order does not matter.
+        std::vector<RoomDraw>         _roomDraws           = {}; // Portal order, front to back.
+        std::vector<DrawSortKey>      _roomDrawOrder       = {};
+        std::vector<DrawSortKey>      _drawSortScratch     = {};
+        std::vector<QueuedMeshInstance> _queuedMeshInstances = {};
+
+        // Further per-frame buffers and their CPU data: decals, debris, 2D layer, ImGui and debug primitives.
+        FrameStorageBuffer            _decalBuffer         = {};
+        FrameStorageBuffer            _debrisVertexBuffer   = {};
+        FrameStorageBuffer            _overlayVertexBuffer  = {};
+        FrameStorageBuffer            _imGuiVertexBuffer    = {};
+        FrameStorageBuffer            _imGuiIndexBuffer     = {};
+        std::vector<unsigned char>    _imGuiVertexData      = {};
+        std::vector<unsigned char>    _imGuiIndexData       = {};
+        std::unique_ptr<RHI::ITexture> _imGuiFontTexture    = nullptr;
+
+        // ImGui font atlas version of _imGuiFontTexture; a new version recreates it.
+        int                            _imGuiFontGeneration = -1;
+        FrameStorageBuffer            _overlayInstanceBuffer = {};
+        FrameStorageBuffer            _overlayBoneBuffer    = {};
+        FrameStorageBuffer            _debrisInstanceBuffer = {};
+        std::vector<unsigned char>    _debrisVertexData     = {};
+        std::vector<unsigned char>    _debrisInstanceData   = {};
+        std::vector<DebrisDraw>       _debrisDraws          = {};
+        FrameStorageBuffer            _debugVertexBuffer    = {};
+        std::vector<unsigned char>    _debugVertexData      = {};
+        int                           _debugLineVertexCount     = 0;
+        int                           _debugTriangleVertexCount = 0;
+        std::unique_ptr<RHI::IShader>           _debugVertexShader     = nullptr;
+        std::unique_ptr<RHI::IShader>           _debugPixelShader      = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _debugLinePipeline     = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _debugTrianglePipeline = nullptr;
+
+        // Gun flash draws, and the object draws reflected by mirrors over mirrored instances.
+        std::vector<ObjectDraw>       _gunFlashDraws        = {};
+        std::vector<ObjectDraw>       _mirrorDraws          = {};
+        std::vector<InstanceOrigin>   _instanceOrigins      = {}; // One per instance.
+        InstanceOrigin                _currentOrigin        = {}; // Assigned to the instances being added.
+        std::vector<unsigned char>    _decalData           = {};
+
+        // Offset and count of the decals of each visible room, by room number.
+        std::unordered_map<int, std::pair<int, int>> _roomDecalSlices = {};
+
+        // Light offset and count of the room lights used by effect meshes, by room number, filled on demand; the list
+        // holds the rooms filled this frame, for the reset.
+        std::vector<std::pair<int, int>> _roomLightSlices    = {};
+        std::vector<int>              _roomLightSliceList  = {};
+
+        // Sorted transparent faces: frame index buffer of the runs, and the draws of the view and of mirrors.
+        FrameStorageBuffer            _sortedIndexBuffer   = {};
+        std::vector<unsigned char>    _sortedIndexData     = {};
+        std::vector<SortedDraw>       _sortedDraws         = {};
+        std::vector<SortedDraw>       _mirrorSortedDraws   = {};
+        std::vector<SpriteDraw>       _mirrorSpriteDraws   = {};
+
+        // Stars and meteors, and the classic sun sprite.
+        std::vector<SpriteDraw>       _skySpriteDraws      = {};
+        std::vector<SpriteDraw>       _skySunDraws         = {};
+
+        // Volumetric cloud layers replayed from the frontend draws.
+        static constexpr auto CLOUD_LAYER_COUNT = 2;
+
+        std::unique_ptr<RHI::IShader>           _cloudVertexShader                     = nullptr;
+        std::unique_ptr<RHI::IShader>           _cloudRaymarchPixelShader              = nullptr;
+        std::unique_ptr<RHI::IShader>           _cloudCompositePixelShader             = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _cloudRaymarchPipeline                 = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _cloudCompositePipeline                = nullptr;
+        std::unique_ptr<RHI::IShader>           _cloudOcclusionPixelShader             = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _cloudOcclusionPipeline                = nullptr;
+        std::unique_ptr<RHI::ISampler>          _linearWrapSampler                     = nullptr;
+        std::unique_ptr<RHI::ITexture>          _cloudNoise3D                          = nullptr;
+        std::unique_ptr<RHI::ITexture>          _cloudWorley2D                         = nullptr;
+        std::unique_ptr<RHI::ITexture>          _cloudTargets[CLOUD_LAYER_COUNT]        = {};
+        std::unique_ptr<RHI::ITexture>          _cloudHistoryTargets[CLOUD_LAYER_COUNT] = {};
+        std::unique_ptr<RHI::ITexture>          _cloudOcclusionTargets[CLOUD_LAYER_COUNT] = {}; // Sun transmittance, 1x1.
+        float                                   _cloudTransmittances[CLOUD_LAYER_COUNT]   = {};
+        bool                                    _isCloudTransmittanceRead[CLOUD_LAYER_COUNT] = {};
+
+        // God rays and dust storm.
+        std::unique_ptr<RHI::IShader>           _godRayVertexShader                    = nullptr;
+        std::unique_ptr<RHI::IShader>           _godRayPixelShader                     = nullptr;
+        std::unique_ptr<RHI::IShader>           _godRayCompositePixelShader            = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _godRayPipeline                        = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _godRayCompositePipeline               = nullptr;
+        std::unique_ptr<RHI::IShader>           _dustStormVertexShader                 = nullptr;
+        std::unique_ptr<RHI::IShader>           _dustStormPixelShader                  = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _dustStormPipeline                     = nullptr;
+
+        // Per-frame sprites, sorted object instances (keyed by their static, effect or item) and materials.
+        std::vector<const Structures::RendererSpriteToDraw*> _spriteSources = {}; // One per frame sprite.
+        std::unordered_map<const void*, int> _sortedInstances = {};
+        std::array<int, 2>            _hairInstances       = { NO_VALUE, NO_VALUE }; // Primary and secondary hair unit instances.
+        FrameStorageBuffer            _materialBuffer      = {};
+        std::vector<unsigned char>    _materialData        = {};
+        std::vector<unsigned char>    _uploadedMaterialData = {}; // Content of the material buffer.
+        FrameStorageBuffer            _spriteBuffer        = {};
+        std::vector<unsigned char>    _spriteData          = {};
+        std::vector<SpriteDraw>       _spriteDraws         = {};
+
+        // Count of the view lights shared by every room, with the light type mask in the high bits (LIGHT_COUNT_MASK).
+        int                           _roomLightCount      = 0;
+
+        // Statistics, GPU timings and presentation settings.
+        SceneFrameStats                _frameStats          = {};
+        std::vector<RHI::GpuTiming> _gpuTimings                  = {};
+        std::vector<RHI::GpuTiming> _gpuTimingTotals             = {}; // Sum of the sampled milliseconds of the run, for the exit log.
+        int                         _gpuTimingFrames             = 0;
+        bool                        _isGpuTimingRequested        = false;
+        bool                        _isVsyncEnabled              = true;
+        bool                        _isBenchmarkGpuTimingEnabled = true; // Off to benchmark SDL GPU without split command buffers.
+        bool                          _isLevelLoaded    = false;
+
+        // Scene frame in _colorTarget; with the 2D layer in _finalTarget, handed from the render thread to the window thread.
+        std::unique_ptr<RHI::ITexture> _colorTarget  = nullptr;
+        std::unique_ptr<RHI::ITexture> _finalTarget  = nullptr;
+        bool                           _hasScene     = false;
+        bool                           _isFramePending = false; // Scene rendered and not yet finished: stats add up.
+        std::unique_ptr<RHI::ITexture> _depthTarget  = nullptr;
+        std::mutex                     _frameMutex   = {};
+        std::atomic<bool>              _isFrameReady = false;
+        std::atomic<int>               _windowWidth  = 0;
+        std::atomic<int>               _windowHeight = 0;
+        std::string                    _screenshotPath = {};
+
+        // Initialization and render targets (SceneRenderer.cpp).
+        bool CreatePipelines();
+        bool EnsureRenderTargets(int width, int height);
+        void ReserveTransientTargets();
+        bool CreateFrameTargets(int width, int height);
+        bool CreateSceneTargets(int width, int height, int windowWidth);
+
+        // Standalone textures and overlay images (SceneRendererTextures.cpp, SceneRendererOverlay.cpp, SceneRenderer.cpp).
+        std::unique_ptr<RHI::ITexture> CreateLevelTexture(const std::vector<unsigned char>& encodedData, const std::string& name, bool allowMips = true);
+        void LoadOverlayImages(const UiFrame& ui);
+        void LoadOverlayImage(const std::string& path);
+        RHI::ITexture* GetOverlayImageTexture(const std::string& path) const;
+        std::unique_ptr<RHI::ITexture> CreateSolidTexture(const unsigned char color[4], const std::string& name, RHI::TextureType type = RHI::TextureType::Texture2D);
+        void UploadTexture(RHI::ITexture* texture, const void* data, int size);
+
+        // Materials, decals, bucket draw state, animated textures and scene pipelines (SceneRenderer.cpp).
+        void CollectMaterials(float interpolationFactor);
+        void BindPageColorMap(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const TexturePage* page);
+        void BindTexturePage(RHI::IRenderPass& renderPass, const TexturePage* page, RHI::ITexture* colorOverride = nullptr, RHI::ITexture* emissiveOverride = nullptr);
+        static float GetAlphaThreshold(const Structures::RendererBucket& bucket, const BucketDrawInfo& info);
+        void BindBucket(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const Structures::RendererBucket& bucket, const std::vector<TexturePage>& pages,
+                        BlendMode blendMode, unsigned int lightCount, const BucketDrawInfo& room, BucketBindState& state);
+        BucketDrawInfo GetBucketDrawInfo(int roomNumber, bool hasDecals);
+        void CollectDecals(const RenderView& view);
+        bool IsCausticsRoom(int roomNumber) const;
+        void AppendInstance(const GpuObjectInstance& instance, const InstanceOrigin& origin);
+        void PrepareCaustics(FramePixelUniforms& uniforms);
+        void BindScenePixelStorage(RHI::IRenderPass& renderPass);
+        void UploadBuffer(RHI::IBuffer* buffer, const void* data, int size, int offset = 0);
+        void LoadAnimatedTextures(const LevelGeometry& geometry);
+        void AddWaterfallSets(const LevelGeometry& geometry, std::vector<GpuAnimatedFrame>& frames, std::vector<GpuAnimatedSet>& sets);
+        bool LoadPixelShaderVariants();
+        RHI::IGraphicsPipeline* GetScenePipeline(SceneShader shader, BlendMode blendMode, bool isAlphaTested = true, int missingMaps = 0, bool isAlphaEdge = false);
+        int GetMissingMaps(const Structures::RendererBucket& bucket, const std::vector<TexturePage>& pages) const;
+        void BindPixelVariant(RHI::IRenderPass& renderPass, SceneShader shader, ScenePass pass, bool isAlphaTested, int missingMaps, int& boundMissingMaps);
+        void ClearPipelineCaches();
+
+        // Pipeline precompilation at load (SceneRendererPipelines.cpp).
+        int  GetScenePipelineCount() const;
+        void PrecompileLevelPipelines(const LevelGeometry& geometry);
+        static SceneShader GetVelocityPrepassShader(SceneShader prepassShader);
+        void PrecompilePassPipelines(SceneShader shader, SceneShader prepassShader);
+        void PrecompileObjectPipelines(const std::vector<std::optional<Structures::RendererObject>>& objects, const std::vector<TexturePage>& pages);
+        void PrecompileBucketPipelines(const Structures::RendererBucket& bucket, const std::vector<TexturePage>& pages, SceneShader shader, SceneShader prepassShader);
+
+        // Level textures (SceneRendererTextures.cpp).
+        static void AddTextureRequest(std::vector<LevelTextureRequest>& requests, const std::vector<unsigned char>& encodedData, const std::string& name,
+                                      std::unique_ptr<RHI::ITexture>& target);
+        std::unique_ptr<RHI::ITexture> RecordTextureUpload(RHI::ICopyPass& copyPass, const DecodedImage& image, const std::string& name, bool allowMips,
+                                                           std::vector<std::unique_ptr<RHI::ITransferBuffer>>& transferBuffers);
+        void CreateLevelTextures(const std::vector<LevelTextureRequest>& requests, bool allowMips);
+        void RecordImageUpload(RHI::ICopyPass& copyPass, const DecodedImage& image, RHI::ITexture* texture, int layer,
+                               std::vector<std::unique_ptr<RHI::ITransferBuffer>>& transferBuffers, int skippedMips = 0);
+        void AddArrayPages(const std::vector<::TEXTURE>& source, std::vector<TexturePage>& destination, bool isColorOnly, std::vector<ArrayPageSource>& pages);
+        std::unique_ptr<TextureArrayGroup> CreateTextureArrayGroup(const ArrayGroupKey& key, int layerCount, int groupIndex);
+        void LoadTextureArrays(const std::vector<ArrayPageSource>& pages);
+        void UploadTextureArrayLayers(const std::vector<ArrayPageSource>& pages, const std::vector<ArrayGroupKey>& pageKeys);
+        void FreeEncodedLevelTextures();
+        void LoadLevelTextures();
+
+        // Level geometry (SceneRendererGeometry.cpp).
+        void SetGeometrySection(MeshSource source, int regionOffset, int baseVertex, int vertexCount, const std::vector<int>& indices);
+        bool CreateLevelGeometry(const LevelGeometry& geometry);
+        void BindLevelGeometry(RHI::IRenderPass& renderPass, MeshSource source, bool hasInstanceStream);
+        void DrawBucket(RHI::IRenderPass& renderPass, MeshSource source, const Structures::RendererBucket& bucket, int instanceCount, int firstInstance);
+        bool IsRoomBucketVisible(const Structures::RendererBucket& bucket) const;
+        bool IsRoomBucketInPortals(const Structures::RendererBucket& bucket, const Structures::RendererRoom& room, const Matrix& viewProjection) const;
+        RHI::ScissorRect GetRoomScissor(const Structures::RendererRoom& room, int targetWidth, int targetHeight) const;
+
+        // Object collection (SceneRenderer.cpp).
+        void CollectObjects(const RenderView& view, float interpolationFactor);
+        void CollectPlayer(float interpolationFactor);
+        void CollectPlayerHair(const Structures::RendererItem& item, const Vector4& ambientLight, int lightOffset, int lightCount, float interpolationFactor);
+        int  AddInstance(const Matrix& world, const Vector4& color, const Vector4& ambientLight, LightMode lightMode, int lightOffset, int lightCount, int boneOffset, int skinningMode);
+        int  AddBones(const Matrix* bones, int count);
+        void AddMeshDraws(const Structures::RendererMesh& mesh, int firstInstance, int instanceCount = 1);
+        void RemoveFadedDraws(int firstDraw, float alpha);
+
+        // Mesh effects, gun shells and swarms (SceneRendererEffects.cpp).
+        void GetRoomLightSlice(int roomNumber, float interpolationFactor, int& lightOffset, int& lightCount);
+        void QueueMeshInstance(const Structures::RendererMesh& mesh, const Matrix& world, const Vector4& color, const Vector4& ambientLight,
+                               LightMode lightMode, int lightOffset, int lightCount, int roomNumber, bool isReflectable = true, const Matrix* prevWorld = nullptr);
+        void FlushMeshInstances();
+        void CollectEffectMeshes(const RenderView& view, float interpolationFactor);
+
+        // Mirrors (SceneRendererMirrors.cpp), sky sprites (SceneRendererSprites.cpp) and gun flashes (SceneRendererEffects.cpp).
+        static bool IsMirrored(const InstanceOrigin& origin, const Structures::RendererMirror& mirror);
+        int  AddMirroredInstance(int instanceIndex, const Structures::RendererMirror& mirror);
+        void CollectMirrors(const RenderView& view);
+        void CollectSkySprites(const RenderView& view, const FrameEnvironment& environment);
+        bool AddSkySprite(const Structures::RendererSpriteToDraw& sprite, const RenderView& view, std::vector<SpriteDraw>& draws);
+        int  AddMirroredSprites(int firstSprite, int count, const Structures::RendererMirror& mirror, const RenderView& view);
+        void CollectMirroredSorted(const RenderView& view);
+        void AddGunFlash(GAME_OBJECT_ID flashObjectID, const Matrix& world, const Vector4& color, const Vector4& ambientLight);
+        void CollectGunFlashes(const RenderView& view);
+        void DrawGunFlashes(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
+
+        // Debug primitives (SceneRendererDebug.cpp).
+        bool CreateDebugPrimitiveResources();
+        void CollectDebugPrimitives(const FrameEnvironment& environment);
+        void DrawDebugPrimitives(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
+
+        // Debris (SceneRendererDebris.cpp).
+        void CollectDebris(float interpolationFactor);
+        void DrawDebris(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, DebrisPass pass);
+
+        // Lights (SceneRenderer.cpp) and light clusters (SceneRendererLightClusters.cpp).
+        int  AddLights(const std::vector<Structures::RendererLight*>& lights, float interpolationFactor, int roomNumber, int prevRoomNumber, float fade, int& lightOffset);
+        void SetLightClusterUniforms(FramePixelUniforms& uniforms) const;
+        void BuildLightClusters(int lightOffset, int lightCount);
+        void AddClusterLight(const GpuLight& light, int lightIndex);
+        static GpuLight ToGpuLight(const Structures::RendererLight& light, float interpolationFactor, float fade);
+
+        // Frame uploads, sorted faces and frame pacing (SceneRenderer.cpp).
+        void UploadMaterials();
+        void UploadFrameStorage(FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, unsigned int usage, const char* name);
+        void UploadFrameData(RHI::ICommandBuffer& commandBuffer, const FrameEnvironment& environment);
+        void CollectSortedFaces(const RenderView& view, float interpolationFactor);
+        bool CanMergeSortedRoomRuns(const SortedDraw& previous, const SortedDraw& next) const;
+        int  GetSortedObjectInstance(const Structures::RendererSortableObject& object, float interpolationFactor);
+        void DrawSortedFaces(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, bool isMirrored = false);
+        void LogGpuTimings();
+        void AddGpuTimingTotals(const std::vector<RHI::GpuTiming>& timings);
+        void LogMemoryUsage();
+        void WaitForFrameInFlight();
+
+        // Statistics (SceneRendererStats.cpp).
+        void CollectFrameStats(const RenderView& view, const FrameEnvironment& environment);
+        void ResetFrameStats();
+        void CountDraw(DrawCategory category, int triangles);
+
+        // Fog bulbs and classic sky layers and horizons (SceneRenderer.cpp).
+        static FogBulbUniforms GetFogBulbUniforms(const RenderView& view);
+        bool CreateSkyGeometry();
+        void DrawSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere = 0);
+        bool IsSkyVisible(const RenderView& view) const;
+        SkyVertexUniforms GetSkyVertexUniforms(const Matrix& world, bool isFogBulbsEnabled, const RenderView& view, int hemisphere) const;
+        void DrawSkyBackground(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, int hemisphere);
+        void DrawSkySprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const std::vector<SpriteDraw>& draws, bool isOccluded);
+        void DrawSkyHorizons(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere);
+        void DrawHorizonMeshes(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere, bool isMask);
+        SkyPixelUniforms GetHorizonPixelUniforms(int layer, float alpha, int hemisphere, bool isMask) const;
+
+        // Sky pass (SceneRendererSky.cpp).
+        bool CreateCloudResources();
+        void EnsureCloudNoise(const CloudNoiseData& noise);
+        bool EnsureCloudTargets(RHI::ICommandBuffer& commandBuffer, int width, int height);
+        void ClearColorTarget(RHI::ICommandBuffer& commandBuffer, RHI::ITexture* texture);
+        bool HasCloudDraws(bool isAfterHorizons) const;
+        void DrawCloudLayers(RHI::ICommandBuffer& commandBuffer, bool isAfterHorizons);
+        void RaymarchCloudLayer(RHI::ICommandBuffer& commandBuffer, const CloudLayerDraw& draw);
+        void CompositeCloudLayer(RHI::ICommandBuffer& commandBuffer, int layer);
+        void QueryCloudOcclusion(RHI::ICommandBuffer& commandBuffer, const CloudLayerDraw& draw);
+        bool CreateGodRayResources();
+        void DrawGodRays(RHI::ICommandBuffer& commandBuffer);
+        bool CreateDustStormResources();
+        void DrawDustStorm(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
+        RHI::IRenderPass* BeginSkyRenderPass(RHI::ICommandBuffer& commandBuffer, RHI::LoadOp load);
+        void RenderSkyPass(RHI::ICommandBuffer& commandBuffer);
+
+        // Sky reflections (SceneRendererSkyReflections.cpp).
+        bool CreateSkyReflectionResources();
+
+        // Temporal antialiasing and motion vectors (SceneRendererTAA.cpp).
+        bool CreateTemporalResources();
+        void EnsureTemporalTargets(RHI::ICommandBuffer& commandBuffer);
+        void PrepareTemporalFrame(const RenderView& view, const FrameEnvironment& environment, Matrix& projection);
+        Matrix GetPrevViewProjection() const;
+        RHI::ITexture* GetResolvedSceneTarget() const;
+        void FinishTemporalFrame();
+        const PreviousItemTransforms* GetPreviousItemTransforms(int itemNumber) const;
+        void StoreItemTransforms(const Structures::RendererItem& item);
+        void SetInstanceMotion(int instance, const Matrix& prevWorld, int prevBoneOffset);
+        void RenderTemporalAntialiasing(RHI::ICommandBuffer& commandBuffer);
+
+        // Water surfaces (SceneRendererWater.cpp).
+        bool CreateWaterResources();
+        bool CreateWaveNormalTexture();
+        void LoadWaterSurfaces(const LevelGeometry& geometry);
+        void AddWaterSurface(const Structures::RendererDoor& portal, int waterRoom);
+        void AddWaterSurfaceGrid(WaterSurface& surface, std::vector<Vector4>& vertices) const;
+        float GetSwellWeight(const WaterSurface& surface, float x, float z) const;
+        bool IsWaterSurfaceAt(const Vector2& point, float height) const;
+        void HideWaterSurfaceBuckets(const LevelGeometry& geometry);
+        static bool IsWaterSurfaceBucket(const Structures::RendererBucket& bucket, const WaterSurface& surface);
+        unsigned int GetWaterRoomFlag(int roomNumber) const;
+        void CollectWaterSurfaces(const RenderView& view);
+        WaterPixelUniforms GetWaterUniforms() const;
+        RHI::IRenderPass* BeginScenePass(RHI::ICommandBuffer& commandBuffer, bool isDepthKept);
+        void DrawWaterSurfaceList(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, WaterPixelUniforms& uniforms);
+        RHI::ITexture* CopySceneTarget(RHI::ICommandBuffer& commandBuffer);
+        void RestoreSceneUniforms(RHI::ICommandBuffer& commandBuffer);
+        void PrepareUnderwaterFog(const RenderView& view);
+        RHI::IRenderPass* DrawUnderwaterFog(RHI::ICommandBuffer& commandBuffer);
+        RHI::IRenderPass* DrawWaterSurfaces(RHI::ICommandBuffer& commandBuffer);
+
+        // Atmospheric sky (SceneRendererAtmosphere.cpp).
+        bool CreateAtmosphereResources();
+
+        // 2D layer (SceneRendererOverlay.cpp).
+        bool LoadFont(const std::string& path);
+        bool CreateOverlayResources(const std::string& fontPath);
+        void AddOverlayQuad(RHI::ITexture* texture, const Vector2& position, const Vector2& size, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color,
+                            BlendMode blendMode = BlendMode::PremultipliedAlphaBlend);
+        void AddOverlayCorners(RHI::ITexture* texture, const Vector2* corners, const Vector2* uvs, const Vector4& color, BlendMode blendMode);
+        void AddOverlaySprite(const OverlaySprite& sprite);
+        void AddScreenOverlays(const UiFrame& ui);
+        RHI::IGraphicsPipeline* GetOverlayPipeline(BlendMode blendMode);
+        void CollectOverlay(const UiFrame& ui);
+        void AddOverlayText(const OverlayText& text, const Vector2& scale);
+        void AddOverlayBar(const OverlayBar& bar);
+        void AddOverlayObjects(const UiFrame& ui, const OverlayLayer& layer);
+        void UploadOverlayData(bool hasScene);
+        int  DrawOverlayQuads(RHI::ICommandBuffer& commandBuffer, int firstDraw, bool isFirstPass);
+        void DrawOverlayObjects(RHI::ICommandBuffer& commandBuffer, const UiFrame& ui, const OverlayDraw& draw, bool isFirstPass, bool isFirstObjectPass);
+        void RenderOverlay(RHI::ICommandBuffer& commandBuffer, const UiFrame& ui);
+        void RenderMenuPostProcess(RHI::ICommandBuffer& commandBuffer, const UiFrame& ui);
+
+        // ImGui debug overlay (SceneRendererImGui.cpp).
+        bool EnsureImGuiFontTexture();
+        void UploadImGuiData(const UiFrame& ui);
+        void DrawImGui(RHI::ICommandBuffer& commandBuffer, const UiFrame& ui);
+
+        // Atmospheric sky discs and aurora (SceneRendererAtmosphere.cpp).
+        void DrawAtmosphericSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
+        void PushSkyUniforms(RHI::ICommandBuffer& commandBuffer);
+        bool HasSkyDiscsOrAurora() const;
+        void DrawSkyDiscsAndAurora(RHI::ICommandBuffer& commandBuffer);
+        RHI::ITexture* DrawHalfResolutionAurora(RHI::ICommandBuffer& commandBuffer, const RHI::TextureSamplerBinding& coverageBinding);
+        void DrawFullscreen(RHI::IRenderPass& renderPass, RHI::IGraphicsPipeline* pipeline, const RHI::TextureSamplerBinding& binding);
+
+        // Sky reflections (SceneRendererSkyReflections.cpp).
+        void RenderSkyReflections(RHI::ICommandBuffer& commandBuffer);
+
+        // Object draws and pass filters (SceneRenderer.cpp).
+        void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
+        void DrawObjectBuckets(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const std::vector<ObjectDraw>& draws, ScenePass pass,
+                               bool isMirrored, bool isAlphaTested);
+        static BlendMode GetPassBlendMode(ScenePass pass);
+        static bool IsBucketInPass(const Structures::RendererBucket& bucket, ScenePass pass);
+        static bool IsAlphaTestVariantInPass(ScenePass pass, bool isAlphaTested);
+
+        // Post-process (SceneRendererPostProcess.cpp).
+        static RHI::GraphicsPipelineDesc GetFullscreenPipelineDesc(RHI::IShader* vertexShader, RHI::IShader* pixelShader, RHI::PixelFormat format, const char* name);
+        std::unique_ptr<RHI::IGraphicsPipeline> CreateFullscreenPipeline(RHI::IShader* vertexShader, RHI::IShader* pixelShader, RHI::PixelFormat format, const char* name);
+        bool CreatePostProcessResources();
+        RHI::TextureDesc GetPostProcessTargetDesc() const;
+        void RenderPostProcess(RHI::ICommandBuffer& commandBuffer);
+        bool HasDistortionDraws(const RenderView& view) const;
+        void RenderDistortion(RHI::ICommandBuffer& commandBuffer);
+
+        // HDR and bloom (SceneRendererBloom.cpp).
+        bool             CreateBloomResources();
+        RHI::PixelFormat GetSceneColorFormat() const;
+        void             CreateSceneColorPipeline(std::unique_ptr<RHI::IGraphicsPipeline>& pipeline, const RHI::GraphicsPipelineDesc& desc);
+        void             ApplyHdrMode(bool isEnabled);
+        RHI::TextureDesc GetBloomStepDesc(int step) const;
+        void             RenderBloom(RHI::ICommandBuffer& commandBuffer);
+
+        // Shadow map (SceneRendererShadows.cpp).
+        bool         CreateShadowResources();
+        bool         EnsureShadowMap(int size);
+        bool         IsShadowCaster(int objectID) const;
+        unsigned int GetShadowReceiverMask(int objectID) const;
+        void         MarkShadowCasterDraws(int firstDraw, const Vector4& bounds);
+        Vector4      GetItemBounds(const Structures::RendererItem& item, float margin) const;
+        void         PrepareShadows(const FrameEnvironment& environment, float interpolationFactor);
+        void         RenderShadowMap(RHI::ICommandBuffer& commandBuffer);
+
+        // Prepass and ambient occlusion (SceneRendererAmbientOcclusion.cpp).
+        bool  CreateAmbientOcclusionResources();
+        bool  EnsureAmbientOcclusionTargets(int width, int height);
+
+        // Depth of field (SceneRendererDOF.cpp).
+        bool  CreateDOFResources();
+        void  EnsureDOFTargets(RHI::ICommandBuffer& commandBuffer);
+        static bool IsDOFActive(const FrameEnvironment& environment);
+        static int  GetDOFLayers(const FrameEnvironment& environment); // Bit 0 far blur, bit 1 near blur.
+        void  RenderDOF(RHI::ICommandBuffer& commandBuffer);
+
+        // Background video (SceneRendererVideo.cpp).
+        void  AddVideoSets(const LevelGeometry& geometry, std::vector<GpuAnimatedFrame>& frames, std::vector<GpuAnimatedSet>& sets);
+        void  UploadVideoFrame(const unsigned char* frame, int width, int height);
+        int   GetVideoSet(const Structures::RendererBucket& bucket) const;
+
+        // Glow and reflection source (SceneRendererGlow.cpp); ClearSampledTargets is in SceneRenderer.cpp.
+        bool  CreateGlowResources();
+        bool  EnsureGlowTargets(int width, int height);
+        void  RenderGlow(RHI::ICommandBuffer& commandBuffer);
+        void  BlurEmissive(RHI::ICommandBuffer& commandBuffer, RHI::ITexture* emissive, RHI::ITexture* glow);
+        RHI::TextureDesc GetGlowTargetDesc(int width, int height) const;
+        void  CopyReflectionSource(RHI::ICommandBuffer& commandBuffer);
+        void  ClearSampledTargets(bool includeFrameTargets);
+        void  ReleaseFeatureTargets();
+        void  DownscaleTexture(RHI::ICommandBuffer& commandBuffer, RHI::ITexture* source, RHI::ITexture* target, const char* name);
+
+        // Prepass, ambient occlusion and fullscreen pass helpers (SceneRendererAmbientOcclusion.cpp).
+        float GetAmbientOcclusionExponent() const;
+        void  RenderDepthPrepass(RHI::ICommandBuffer& commandBuffer);
+        void  RenderAmbientOcclusion(RHI::ICommandBuffer& commandBuffer);
+        void  RenderFullscreenPass(RHI::ICommandBuffer& commandBuffer, RHI::IGraphicsPipeline* pipeline, RHI::ITexture* target,
+                                   const RHI::TextureSamplerBinding* bindings, int bindingCount, const char* name, RHI::LoadOp load = RHI::LoadOp::DontCare,
+                                   const RHI::DepthTargetInfo* depthTarget = nullptr);
+
+        // SMAA antialiasing (SceneRendererSMAA.cpp).
+        bool  CreateSMAAResources();
+        void  RenderAntialiasing(RHI::ICommandBuffer& commandBuffer, RHI::ITexture* source, RHI::ITexture* target);
+        void  GetSMAATargetDescs(const RHI::TextureDesc& targetDesc, RHI::TextureDesc& edgesDesc, RHI::TextureDesc& weightsDesc, RHI::TextureDesc& stencilDesc) const;
+        std::unique_ptr<RHI::IGraphicsPipeline> CreateSMAAPipeline(const SmaaPreset& preset, int pass, const char* name);
+
+        // FSR 1 upscaling and overlay targets (SceneRendererUpscale.cpp); CreateMaterialSampler is in SceneRenderer.cpp.
+        bool  CreateUpscaleResources();
+        void  PushRcasUniforms(RHI::ICommandBuffer& commandBuffer);
+        bool  CreateMaterialSampler();
+        int   GetRenderSize(int windowSize) const;
+        void  RenderUpscale(RHI::ICommandBuffer& commandBuffer);
+
+        // Dynamic resolution (SceneRendererDynamicResolution.cpp).
+        float UpdateDynamicResolution(float targetFrameTime);
+        void  ResetDynamicResolution();
+        void  AcquireOverlayTargets();
+        void  ReleaseOverlayTargets();
+
+        // Sprites (SceneRendererSprites.cpp).
+        bool           CreateSpriteResources();
+        RHI::ITexture* GetSpriteTexture(const Structures::RendererSprite* sprite) const;
+        bool           AddSprite(const Structures::RendererSpriteToDraw& sprite, const RenderView& view, const Structures::RendererMirror* mirror = nullptr);
+        Vector3        GetSpriteLight(const Vector3& position) const;
+        void           CollectSprites(const RenderView& view);
+        void           DrawSpriteRun(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const SpriteDraw& draw, const RHI::IGraphicsPipeline*& lastPipeline, const RHI::ITexture*& lastTexture, bool isSky = false, DrawCategory category = DrawCategory::Sprites);
+        void           SetSkySpriteMoon(Vector3& direction, float& diskCosRadius) const;
+        void           DrawSprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
+
+        // Room draws, draw state sorting and the scene pass (SceneRenderer.cpp).
+        void CollectRoomDraws(const RenderView& view);
+        void DrawRooms(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass);
+        void DrawRoomBuckets(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isAlphaTested);
+        static bool IsStateSortedPass(ScenePass pass);
+        const std::vector<TexturePage>& GetSourcePages(MeshSource source) const;
+        unsigned long long GetBucketSortKey(MeshSource source, const Structures::RendererBucket& bucket) const;
+        void SortObjectDraws();
+        void RenderScenePass(RHI::ICommandBuffer& commandBuffer);
+
+    public:
+        // Device lifetime and presentation settings.
+        bool Initialize(SDL_Window* window, RHI::GraphicsApi backend, const std::string& gameDirectory, bool preferLowPowerGpu);
+        void Shutdown();
+        bool IsActive() const;
+        void SetVsyncEnabled(bool enabled);
+        bool IsVsyncEnabled() const;
+        void SetBenchmarkGpuTimingEnabled(bool enabled) { _isBenchmarkGpuTimingEnabled = enabled; }
+        bool IsPresentedOnWindowThread() const;
+        void ReleaseThread();
+
+        // Level load and frame entry points. The game thread calls RenderFrame (scene) and FinishFrame (2D layer and
+        // submit) every frame; PresentOnWindowThread runs on the window thread. A frame mutex serializes them.
+        void LoadLevel(const LevelGeometry& geometry);
+        void RenderFrame(const RenderView& view, const FrameEnvironment& environment);
+        void FinishFrame(const UiFrame& ui);
+        void PresentOnWindowThread();
+        void RequestScreenshot(const std::string& path);
+        bool ReadCloudTransmittance(int layer, float& transmittance);
+        void ReloadShaders();
+        void UpdateMoveableVertices(const std::vector<Structures::Vertex>& vertices);
+
+        // Debug statistics.
+        const SceneFrameStats& GetFrameStats() const;
+        SceneRendererInfo      GetInfo() const;
+        const std::vector<RHI::GpuTiming>& SampleGpuTimings(bool isRequested = true);
+    };
+
+    extern SceneRenderer g_SceneRenderer;
+}

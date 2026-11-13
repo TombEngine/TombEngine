@@ -11,7 +11,7 @@
 
 #include "framework.h"
 #include "Game/Effects/LensFlareDebug.h"
-#include "Renderer/ImGuiIntegration.h"
+#include "Renderer/UI/ImGuiIntegration.h"
 
 #include <imgui.h>
 #include <algorithm>

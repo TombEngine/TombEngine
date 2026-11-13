@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include "RendererAnimatedTexture.h"
+#include "Renderer/Structures/RendererAnimatedTexture.h"
 
 namespace TEN::Renderer::Structures
 {
@@ -16,7 +16,6 @@ namespace TEN::Renderer::Structures
 	struct RendererAnimatedTextureSet
 	{
 		AnimatedTextureType Type = AnimatedTextureType::Frames;
-		int NumTextures = 0;
 		int Fps = 0;
 		float UVRotateSpeed = 0.0f;
 		float UVRotateDirection = 0.0f;

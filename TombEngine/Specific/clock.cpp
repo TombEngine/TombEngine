@@ -76,6 +76,12 @@ bool HighFramerateSynchronizer::Synced()
 void HighFramerateSynchronizer::Step()
 {
 	_controlDelay -= CONTROL_FRAME_TIME;
+	_stepCount++;
+}
+
+unsigned int HighFramerateSynchronizer::GetStepCount() const
+{
+	return _stepCount;
 }
 
 float HighFramerateSynchronizer::GetInterpolationFactor()

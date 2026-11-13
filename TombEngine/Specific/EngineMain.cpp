@@ -4,8 +4,8 @@
 #include "Game/control/control.h"
 #include "Game/savegame.h"
 #include "Renderer/Renderer.h"
-#include "Renderer/ImGuiIntegration.h"
-#include "Renderer/RHI/RHIDevice.h"
+#include "Renderer/UI/ImGuiIntegration.h"
+#include "Renderer/Backend/SceneRenderer.h"
 #include "Renderer/RHI/Test/RHITest.h"
 #include "resource.h"
 #include "Sound/sound.h"
@@ -21,7 +21,6 @@
 #include "Scripting/Internal/LanguageScript.h"
 #include "Video/Video.h"
 
-using namespace TEN::Benchmark;
 using namespace TEN::Renderer;
 using namespace TEN::Input;
 using namespace TEN::Utils;
@@ -82,6 +81,16 @@ TEN::Renderer::RHI::GraphicsApi ParseRHIBackend(const std::string& name)
 		return TEN::Renderer::RHI::GraphicsApi::Metal;
 
 	return TEN::Renderer::RHI::GraphicsApi::Vulkan;
+}
+
+// Starts the scene renderer on DirectX 11, the only backend of the main window for now. Returns false when it does not start.
+bool StartSceneRenderer(SDL_Window* window, bool preferLowPowerGpu)
+{
+	if (TEN::Renderer::Backend::g_SceneRenderer.Initialize(window, TEN::Renderer::RHI::GraphicsApi::DirectX11, GameDirectory, preferLowPowerGpu))
+		return true;
+
+	TENLog("Scene renderer could not start on the DirectX 11 backend.", LogLevel::Error);
+	return false;
 }
 
 Vector2i GetScreenResolution()
@@ -224,7 +233,7 @@ static void HandleWindowFocusLost(SDL_Window* window)
 		(SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) != 0;
 
 	// Benchmarks keep running in the background, so a focus change does not invalidate the measurement.
-	if ((!DebugMode || isMinimized) && ThreadSuspendCount == 0 && !IsBenchmarkActive())
+	if ((!DebugMode || isMinimized) && ThreadSuspendCount == 0 && !TEN::Benchmark::IsBenchmarkActive())
 	{
 		TENLog("Suspending game thread.", LogLevel::Info);
 
@@ -282,8 +291,17 @@ int main(int argc, char* argv[])
 	// Process command line arguments.
 	auto levelFile = std::string();
 	auto gameDir = std::string();
-	auto rhiTestBackend = std::string();
 	float benchmarkDuration = 0.0f;
+	auto rhiTestBackend = std::string();
+	bool isOnLowPowerGpu = false;
+	bool isVsyncDisabled = false;
+	bool isGpuTimingDisabled = false;
+	int renderScaleOverride = -1;
+	int ambientOcclusionOverride = -1;
+	int antialiasingOverride = -1;
+	int hdrOverride = -1;
+	int widthOverride = 0;
+	int heightOverride = 0;
 
 	for (int i = 1; i < argc; ++i)
 	{
@@ -305,13 +323,55 @@ int main(int argc, char* argv[])
 		{
 			gameDir = argv[++i];
 		}
+		else if (ArgEquals(arg.c_str(), "benchmark") && i + 1 < argc)
+		{
+			benchmarkDuration = std::stof(argv[++i]);
+		}
 		else if (ArgEquals(arg.c_str(), "rhitest") && i + 1 < argc)
 		{
 			rhiTestBackend = argv[++i];
 		}
-		else if (ArgEquals(arg.c_str(), "benchmark") && i + 1 < argc)
+		else if (ArgEquals(arg.c_str(), "nogputiming"))
 		{
-			benchmarkDuration = std::stof(argv[++i]);
+			// Benchmarks without GPU pass timings, which split the command buffers on SDL GPU.
+			isGpuTimingDisabled = true;
+		}
+		else if (ArgEquals(arg.c_str(), "novsync"))
+		{
+			// Presents without waiting for vertical sync, for benchmarks.
+			isVsyncDisabled = true;
+		}
+		else if (ArgEquals(arg.c_str(), "renderscale") && i + 1 < argc)
+		{
+			// Render scale mode for this run (0 native, 2 performance, 5 dynamic; 1, 3 and 4 as 2), overriding the configuration.
+			// For benchmarks.
+			renderScaleOverride = std::stoi(argv[++i]);
+		}
+		else if (ArgEquals(arg.c_str(), "ssao") && i + 1 < argc)
+		{
+			// Ambient occlusion on or off for this run, overriding the configuration, for benchmarks.
+			ambientOcclusionOverride = std::stoi(argv[++i]);
+		}
+		else if (ArgEquals(arg.c_str(), "antialiasing") && i + 1 < argc)
+		{
+			// Antialiasing mode for this run (0 none to 3 high, 4 temporal), overriding the configuration, for benchmarks.
+			antialiasingOverride = std::stoi(argv[++i]);
+		}
+		else if (ArgEquals(arg.c_str(), "hdr") && i + 1 < argc)
+		{
+			// HDR on or off for this run, overriding the configuration, for benchmarks.
+			hdrOverride = std::stoi(argv[++i]);
+		}
+		else if (ArgEquals(arg.c_str(), "resolution") && i + 2 < argc)
+		{
+			// Windowed screen resolution for this run, overriding the configuration, for benchmarks.
+			widthOverride = std::stoi(argv[++i]);
+			heightOverride = std::stoi(argv[++i]);
+		}
+		else if (ArgEquals(arg.c_str(), "lowpower"))
+		{
+			// Runs the renderer on the integrated GPU of hybrid systems.
+			isOnLowPowerGpu = true;
 		}
 	}
 
@@ -323,7 +383,7 @@ int main(int argc, char* argv[])
 	g_Platform->InstallCrashHandler();
 
 	if (benchmarkDuration > 0.0f)
-		InitializeBenchmark(benchmarkDuration, GameDirectory);
+		TEN::Benchmark::InitializeBenchmark(benchmarkDuration, GameDirectory);
 
 	// Initialize SDL3.
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS))
@@ -412,7 +472,6 @@ int main(int argc, char* argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	g_Renderer.Create();
 	g_Bindings.Initialize();
 
 	// Load configuration and optionally show setup dialog.
@@ -422,14 +481,32 @@ int main(int argc, char* argv[])
 		SetAudioConfiguration(g_Configuration);
 	}
 
+	if (renderScaleOverride >= 0)
+		g_Configuration.RenderScale = GetRenderScaleMode(renderScaleOverride);
+
+	if (ambientOcclusionOverride >= 0)
+		g_Configuration.EnableAmbientOcclusion = (ambientOcclusionOverride != 0);
+
+	if (antialiasingOverride >= 0)
+		g_Configuration.AntialiasingMode = GetAntialiasingMode(antialiasingOverride);
+
+	if (hdrOverride >= 0)
+		g_Configuration.EnableHdr = (hdrOverride != 0);
+
+	if (widthOverride > 0 && heightOverride > 0)
+	{
+		g_Configuration.ScreenWidth = widthOverride;
+		g_Configuration.ScreenHeight = heightOverride;
+		g_Configuration.EnableWindowedMode = true;
+	}
+
 	// Initialize main window.
 	int width = g_Configuration.ScreenWidth;
 	int height = g_Configuration.ScreenHeight;
 
-	unsigned int windowFlags = SDL_WINDOW_RESIZABLE;
-	if (!rhiTestBackend.empty())
-		windowFlags |= TEN::Renderer::RHI::GetWindowFlags(ParseRHIBackend(rhiTestBackend)); // OpenGL needs its flag at creation.
-
+	// OpenGL needs its window flag at creation, which only the rhitest mode can request.
+	auto windowBackend = rhiTestBackend.empty() ? TEN::Renderer::RHI::GraphicsApi::DirectX11 : ParseRHIBackend(rhiTestBackend);
+	unsigned int windowFlags = SDL_WINDOW_RESIZABLE | TEN::Renderer::RHI::GetWindowFlags(windowBackend);
 	if (!g_Configuration.EnableWindowedMode)
 		windowFlags |= SDL_WINDOW_FULLSCREEN;
 
@@ -469,9 +546,18 @@ int main(int argc, char* argv[])
 		Sound_Init(GameDirectory);
 
 		// Initialize renderer.
+		// The scene renderer draws the main window from the frames the renderer frontend prepares.
+		if (!StartSceneRenderer(sdlWindow, isOnLowPowerGpu))
+			throw std::runtime_error("The DirectX 11 renderer could not be started.");
+
+		if (isVsyncDisabled)
+			TEN::Renderer::Backend::g_SceneRenderer.SetVsyncEnabled(false);
+
+		TEN::Renderer::Backend::g_SceneRenderer.SetBenchmarkGpuTimingEnabled(!isGpuTimingDisabled);
+
 		g_Renderer.Initialize(GameDirectory, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight, g_Configuration.EnableWindowedMode);
 
-		// Initialize ImGui (debug overlay) — must come after the D3D11 device exists.
+		// Initialize ImGui (debug overlay), drawn by the scene renderer.
 		TEN::Renderer::ImGuiInit(sdlWindow);
 
 		// Initialize input.
@@ -485,6 +571,7 @@ int main(int argc, char* argv[])
 
 		SDL_ShowWindow(sdlWindow);
 		SDL_RaiseWindow(sdlWindow);
+
 	}
 	catch (std::exception& ex)
 	{
@@ -514,6 +601,8 @@ int main(int argc, char* argv[])
 		exit(EXIT_FAILURE);
 	}
 
+	// The game thread renders from now on.
+	TEN::Renderer::Backend::g_SceneRenderer.ReleaseThread();
 	GameThread = SDL_CreateThread(GameMain, "GameMain", nullptr);
 	if (!GameThread)
 	{
@@ -531,7 +620,8 @@ int main(int argc, char* argv[])
 	bool running = true;
 	while (running && !ThreadEnded && DoTheGame)
 	{
-		UpdateBenchmark();
+		TEN::Benchmark::UpdateBenchmark();
+		TEN::Renderer::Backend::g_SceneRenderer.PresentOnWindowThread();
 
 		auto event = SDL_Event{};
 		while (SDL_PollEvent(&event))
@@ -586,15 +676,18 @@ int main(int argc, char* argv[])
 
 	ThreadEnded = true;
 
-	while (DoTheGame)
-		SDL_Delay(1);
+	// The game thread may still render a last frame (EndGameLoop) after DoTheGame was cleared here,
+	// so it must finish before renderers and windows are released.
+	WaitForGameThread();
 
 	TENLog("Cleaning up and exiting...", LogLevel::Info);
 
-	ShutdownBenchmark();
+	TEN::Benchmark::ShutdownBenchmark();
 
-	// Tear ImGui down before the renderer / window: backends hold raw D3D11 + SDL handles.
+	// Tear ImGui down before the window: its SDL backend holds the window.
 	TEN::Renderer::ImGuiShutdown();
+
+	TEN::Renderer::Backend::g_SceneRenderer.Shutdown();
 
 	SDL_DestroyWindow(sdlWindow);
 	EngineClose();
@@ -631,19 +724,24 @@ void ApplyPendingWindowResize()
 	SaveConfiguration();
 }
 
+void WaitForGameThread()
+{
+	if (GameThread == nullptr)
+		return;
+
+	int status = 0;
+	SDL_LockMutex(GamePauseMutex);
+	GamePaused = false;
+	SDL_BroadcastCondition(GamePauseCond);
+	SDL_UnlockMutex(GamePauseMutex);
+
+	SDL_WaitThread(GameThread, &status);
+	GameThread = nullptr;
+}
+
 void EngineClose()
 {
-	if (GameThread)
-	{
-		int status = 0;
-		SDL_LockMutex(GamePauseMutex);
-		GamePaused = false;
-		SDL_BroadcastCondition(GamePauseCond);
-		SDL_UnlockMutex(GamePauseMutex);
-
-		SDL_WaitThread(GameThread, &status);
-		GameThread = nullptr;
-	}
+	WaitForGameThread();
 
 	if (GamePauseCond)
 	{
