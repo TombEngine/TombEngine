@@ -1394,23 +1394,4 @@ namespace TEN::Renderer
 		}
 #endif
 	}
-
-	// The debug window selects the tab of the new page; the ImGui overlay is shown while a page is active.
-	void Renderer::SwitchDebugPage(bool goBack)
-	{
-		int page = (int)_debugPage;
-		goBack ? --page : ++page;
-
-		if (page < (int)RendererDebugPage::None)
-		{
-			page = (int)RendererDebugPage::Count - 1;
-		}
-		else if (page >= (int)RendererDebugPage::Count)
-		{
-			page = (int)RendererDebugPage::None;
-		}
-
-		_debugPage = (RendererDebugPage)page;
-		_debugPageSelectionFrames = 2;
-	}
 }

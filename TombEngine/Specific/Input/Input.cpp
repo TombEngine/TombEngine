@@ -675,11 +675,14 @@ namespace TEN::Input
 		if (!DebugMode)
 			return;
 
-		// Switch debug page.
+		// Switch debug page, or debug page group with Shift.
 		static bool dbDebugPage = true;
 		bool debugPageKey = KeyMap[SDL_SCANCODE_F10] || KeyMap[SDL_SCANCODE_F11];
 		if (debugPageKey && dbDebugPage)
-			g_Renderer.SwitchDebugPage(KeyMap[SDL_SCANCODE_F10] != 0.0f);
+		{
+			bool shiftHeld = KeyMap[SDL_SCANCODE_LSHIFT] || KeyMap[SDL_SCANCODE_RSHIFT];
+			g_Renderer.SwitchDebugPage(KeyMap[SDL_SCANCODE_F10] != 0.0f, shiftHeld);
+		}
 		dbDebugPage = !debugPageKey;
 
 		// Toggle performance overlay.

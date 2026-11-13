@@ -44,6 +44,15 @@ namespace TEN::Renderer
 		ImGui::TextUnformatted(buffer);
 	}
 
+	// Adds a highlighted heading row that groups the rows below it.
+	static void AddStatSection(const char* name)
+	{
+		ImGui::TableNextRow();
+		ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImGuiCol_TableHeaderBg));
+		ImGui::TableSetColumnIndex(0);
+		ImGui::TextUnformatted(name);
+	}
+
 	static bool BeginStatTable(const char* id)
 	{
 		if (!ImGui::BeginTable(id, 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp))
@@ -380,6 +389,7 @@ namespace TEN::Renderer
 		if (!BeginStatTable("##Dimensions"))
 			return;
 
+		AddStatSection("Player");
 		AddStatRow("Position", "%d, %d, %d", playerItem.Pose.Position.x, playerItem.Pose.Position.y, playerItem.Pose.Position.z);
 		AddStatRow("Orientation", "%d, %d, %d", playerItem.Pose.Orientation.x, playerItem.Pose.Orientation.y, playerItem.Pose.Orientation.z);
 		AddStatRow("Scale", "%.3f, %.3f, %.3f", playerItem.Pose.Scale.x, playerItem.Pose.Scale.y, playerItem.Pose.Scale.z);
@@ -390,8 +400,11 @@ namespace TEN::Renderer
 		else
 			AddStatRow("Water surface distance", "%d", player.Context.WaterSurfaceDist);
 
+		AddStatSection("Room");
 		AddStatRow("Room bounds", "%d, %d, %d, %d", room.Position.x, room.Position.z, room.Position.x + BLOCK(room.XSize), room.Position.z + BLOCK(room.ZSize));
 		AddStatRow("Room Y, bottom, top", "%d, %d, %d", room.Position.y, room.BottomHeight, room.TopHeight);
+
+		AddStatSection("Camera");
 		AddStatRow("Camera position", "%d, %d, %d", Camera.pos.x, Camera.pos.y, Camera.pos.z);
 		AddStatRow("Camera target", "%d, %d, %d", Camera.target.x, Camera.target.y, Camera.target.z);
 		AddStatRow("Camera room number", "%d", Camera.pos.RoomNumber);
@@ -405,17 +418,23 @@ namespace TEN::Renderer
 		if (!BeginStatTable("##Player"))
 			return;
 
+		AddStatSection("Animation");
 		AddStatRow("Animation object", "%d", playerItem.Animation.AnimObjectID);
 		AddStatRow("Animation number", "%d", playerItem.Animation.AnimNumber);
 		AddStatRow("Frame number", "%d", playerItem.Animation.FrameNumber);
 		AddStatRow("Active state", "%d", playerItem.Animation.ActiveState);
 		AddStatRow("Target state", "%d", playerItem.Animation.TargetState);
+
+		AddStatSection("Motion");
 		AddStatRow("Velocity", "%.3f, %.3f, %.3f", playerItem.Animation.Velocity.z, playerItem.Animation.Velocity.y, playerItem.Animation.Velocity.x);
 		AddStatRow("Airborne", "%s", YesNo(playerItem.Animation.IsAirborne));
+
+		AddStatSection("Control");
 		AddStatRow("Hand status", "%d", (int)player.Control.HandStatus);
 		AddStatRow("Water status", "%d", (int)player.Control.WaterStatus);
 		AddStatRow("Can climb ladder", "%s", YesNo(player.Control.CanClimbLadder));
 		AddStatRow("Can monkey swing", "%s", YesNo(player.Control.CanMonkeySwing));
+		AddStatSection("Health");
 		AddStatRow("Hit points", "%d", playerItem.HitPoints);
 		AddStatRow("Target hit points", "%d", (player.TargetEntity != nullptr) ? player.TargetEntity->HitPoints : 0);
 		ImGui::EndTable();
@@ -446,9 +465,12 @@ namespace TEN::Renderer
 		if (!BeginStatTable("##Input"))
 			return;
 
+		AddStatSection("Actions");
 		AddStatRow("Clicked actions", "%s", clickedActions.ToString().c_str());
 		AddStatRow("Held actions", "%s", heldActions.ToString().c_str());
 		AddStatRow("Released actions", "%s", releasedActions.ToString().c_str());
+
+		AddStatSection("Axes and cursor");
 		AddStatRow("Move axes", "%.3f, %.3f", GetMoveAxis().x, GetMoveAxis().y);
 		AddStatRow("Camera axes", "%.3f, %.3f", GetCameraAxis().x, GetCameraAxis().y);
 		AddStatRow("Mouse axes", "%.3f, %.3f", GetMouseAxis().x, GetMouseAxis().y);
@@ -461,11 +483,16 @@ namespace TEN::Renderer
 		if (!BeginStatTable("##Collision"))
 			return;
 
+		AddStatSection("Contact");
 		AddStatRow("Collision type", "%d", (int)LaraCollision.CollisionType);
 		AddStatRow("Bridge item", "%d", LaraCollision.Middle.Bridge);
+
+		AddStatSection("Floor");
 		AddStatRow("Front floor", "%d", LaraCollision.Front.Floor);
 		AddStatRow("Front left floor", "%d", LaraCollision.FrontLeft.Floor);
 		AddStatRow("Front right floor", "%d", LaraCollision.FrontRight.Floor);
+
+		AddStatSection("Ceiling");
 		AddStatRow("Front ceiling", "%d", LaraCollision.Front.Ceiling);
 		AddStatRow("Front left ceiling", "%d", LaraCollision.FrontLeft.Ceiling);
 		AddStatRow("Front right ceiling", "%d", LaraCollision.FrontRight.Ceiling);
@@ -482,9 +509,12 @@ namespace TEN::Renderer
 		if (!BeginStatTable("##Portals"))
 			return;
 
+		AddStatSection("Visibility");
 		AddStatRow("Camera room number", "%d", Camera.pos.RoomNumber);
-		AddStatRow("Room collector time", "%d", _timeRoomsCollector);
 		AddStatRow("Rooms drawn", "%d", _debugViewCounts.Rooms);
+
+		AddStatSection("Cost");
+		AddStatRow("Room collector time", "%d", _timeRoomsCollector);
 		AddStatRow("Portal checks", "%d", _numCheckPortalCalls);
 		AddStatRow("Visible room searches", "%d", _numGetVisibleRoomsCalls);
 		AddStatRow("Dot products", "%d", _numDotProducts);
@@ -499,7 +529,9 @@ namespace TEN::Renderer
 		if (!BeginStatTable("##Pathfinding"))
 			return;
 
+		AddStatSection("Player");
 		AddStatRow("Player box", "%d", playerBoxID);
+		AddStatSection("Creatures");
 		AddStatRow("Active creatures", "%d", (int)creatures.size());
 		if (PathfindingDisplayIndex >= 0 && PathfindingDisplayIndex < (int)creatures.size())
 		{
@@ -517,6 +549,7 @@ namespace TEN::Renderer
 			case MoodType::Bored:  mood = "Bored";  break;
 			}
 
+			AddStatSection("Selected enemy");
 			AddStatRow("Player zone", "%d", (playerBoxID == NO_VALUE) ? NO_VALUE : zones[playerBoxID]);
 			AddStatRow("Enemy", "%s", enemy.Name.c_str());
 			AddStatRow("Enemy box", "%d", enemy.BoxNumber);
@@ -673,22 +706,94 @@ namespace TEN::Renderer
 		ImGui::EndTable();
 	}
 
-	// Debug messages of the game code, along the bottom edge.
-	void Renderer::DrawDebugMessagePanel()
+	// Debug messages of the game code for the current page, in a scrollable section at the bottom of the page panel.
+	void Renderer::DrawDebugMessageSection()
 	{
+		constexpr auto SECTION_HEIGHT_MAX = 160.0f;
+
 		if (_debugMessages.empty())
 			return;
 
-		float scale = ImGuiGetUiScale();
-		float margin = 8.0f * scale;
-		const auto& display = ImGui::GetIO().DisplaySize;
-		if (!BeginOverlayPanel("Messages", ImVec2(margin, display.y - margin), ImVec2(0.0f, 1.0f), ImVec2(420.0f * scale, 0.0f), ImVec2(display.x * 0.5f, display.y * 0.35f)))
+		auto title = fmt::format("Messages ({})", (int)_debugMessages.size());
+		if (!ImGui::CollapsingHeader(title.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
 			return;
 
-		for (const auto& message : _debugMessages)
-			ImGui::TextUnformatted(message.c_str());
+		float contentHeight = (ImGui::GetTextLineHeightWithSpacing() * (float)_debugMessages.size()) + (ImGui::GetStyle().WindowPadding.y * 2.0f);
+		float height = std::min(contentHeight, SECTION_HEIGHT_MAX * ImGuiGetUiScale());
+		if (ImGui::BeginChild("##DebugMessages", ImVec2(0.0f, height), true))
+		{
+			for (const auto& message : _debugMessages)
+				ImGui::TextUnformatted(message.c_str());
+		}
 
-		ImGui::End();
+		ImGui::EndChild();
+	}
+
+	// Debug pages in the order of their tabs. The debug keys step through this list and the page panel draws it.
+	const std::vector<Renderer::DebugPageTab>& Renderer::GetDebugPageTabs()
+	{
+		static const auto TABS = std::vector<DebugPageTab>
+		{
+			{ RendererDebugPage::RendererStats, "Renderer", "Statistics", &Renderer::DrawDebugRendererPage },
+			{ RendererDebugPage::PortalStats, "Renderer", "Portals", &Renderer::DrawDebugPortalPage },
+			{ RendererDebugPage::WireframeMode, "Renderer", "Wireframe", &Renderer::DrawDebugWireframePage },
+			{ RendererDebugPage::PlayerStats, "Player", "Player", &Renderer::DrawDebugPlayerPage },
+			{ RendererDebugPage::DimensionStats, "Player", "Dimensions", &Renderer::DrawDebugDimensionPage },
+			{ RendererDebugPage::InputStats, "Player", "Input", &Renderer::DrawDebugInputPage },
+			{ RendererDebugPage::CollisionStats, "Collision", "Collision", &Renderer::DrawDebugCollisionPage },
+			{ RendererDebugPage::CollisionMeshStats, "Collision", "Collision mesh", &Renderer::DrawDebugCollisionMeshPage },
+			{ RendererDebugPage::PathfindingStats, "Collision", "Pathfinding", &Renderer::DrawDebugPathfindingPage },
+			{ RendererDebugPage::SkyDebug, "Sky", "Sky", &Renderer::DrawDebugSkyPage }
+		};
+
+		return TABS;
+	}
+
+	// Steps to the next or previous page, or with byGroup to the first page of the next or previous group.
+	// Pages wrap through the closed state; groups wrap directly.
+	void Renderer::SwitchDebugPage(bool goBack, bool byGroup)
+	{
+		const auto& tabs = GetDebugPageTabs();
+		int count = (int)tabs.size();
+		int step = goBack ? -1 : 1;
+
+		// Position in the list; -1 is no page.
+		int index = -1;
+		for (int i = 0; i < count; i++)
+		{
+			if (tabs[i].Page == _debugPage)
+				index = i;
+		}
+
+		if (byGroup)
+		{
+			// From no page, go to the first page, or the first page of the last group when going back.
+			const char* group = (index >= 0) ? tabs[index].Group : nullptr;
+			int next = (index >= 0) ? index : (goBack ? 0 : count - 1);
+			for (int i = 0; i < count; i++)
+			{
+				next = (next + step + count) % count;
+				if (group == nullptr || strcmp(tabs[next].Group, group) != 0)
+					break;
+			}
+
+			// Going back lands on the last page of the previous group; move to its first page.
+			while (goBack && next > 0 && strcmp(tabs[next - 1].Group, tabs[next].Group) == 0)
+				next--;
+
+			index = next;
+		}
+		else
+		{
+			index += step;
+			if (index < -1)
+				index = count - 1;
+			else if (index >= count)
+				index = -1;
+		}
+
+		_debugPage = (index >= 0) ? tabs[index].Page : RendererDebugPage::None;
+		_debugPageSelectionFrames = 2;
 	}
 
 	// Selected page of a group: its tab becomes the debug page, so the scene debug drawing follows it.
@@ -726,22 +831,7 @@ namespace TEN::Renderer
 	// Debug pages in a column along the right edge, grouped by topic in tabs.
 	void Renderer::DrawDebugPagePanel(const RenderView& view)
 	{
-		// Debug pages grouped by topic; the debug keys cycle through them in enum order.
-		static const auto DEBUG_PAGE_TABS = std::vector<DebugPageTab>
-		{
-			{ RendererDebugPage::RendererStats, "Renderer", "Statistics", &Renderer::DrawDebugRendererPage },
-			{ RendererDebugPage::PortalStats, "Renderer", "Portals", &Renderer::DrawDebugPortalPage },
-			{ RendererDebugPage::WireframeMode, "Renderer", "Wireframe", &Renderer::DrawDebugWireframePage },
-			{ RendererDebugPage::PlayerStats, "Player", "Player", &Renderer::DrawDebugPlayerPage },
-			{ RendererDebugPage::DimensionStats, "Player", "Dimensions", &Renderer::DrawDebugDimensionPage },
-			{ RendererDebugPage::InputStats, "Player", "Input", &Renderer::DrawDebugInputPage },
-			{ RendererDebugPage::CollisionStats, "Collision", "Collision", &Renderer::DrawDebugCollisionPage },
-			{ RendererDebugPage::CollisionMeshStats, "Collision", "Collision mesh", &Renderer::DrawDebugCollisionMeshPage },
-			{ RendererDebugPage::PathfindingStats, "Collision", "Pathfinding", &Renderer::DrawDebugPathfindingPage },
-			{ RendererDebugPage::SkyDebug, "Sky", "Sky", &Renderer::DrawDebugSkyPage }
-		};
-
-		constexpr const char* DEBUG_PAGE_GROUPS[] = { "Renderer", "Player", "Collision", "Sky" };
+		const auto& tabs = GetDebugPageTabs();
 
 		float scale = ImGuiGetUiScale();
 		float margin = 8.0f * scale;
@@ -750,7 +840,7 @@ namespace TEN::Renderer
 		float height = display.y - margin * 2.0f;
 
 		bool isOpen = true;
-		if (!BeginOverlayPanel("Debug pages (F10, F11)", ImVec2(display.x - margin, margin), ImVec2(1.0f, 0.0f), ImVec2(width, 0.0f), ImVec2(width, height), &isOpen))
+		if (!BeginOverlayPanel("Debug pages", ImVec2(display.x - margin, margin), ImVec2(1.0f, 0.0f), ImVec2(width, 0.0f), ImVec2(width, height), &isOpen))
 		{
 			if (!isOpen)
 				_debugPage = RendererDebugPage::None;
@@ -758,21 +848,36 @@ namespace TEN::Renderer
 			return;
 		}
 
+		// Path of the current page and its position in the list.
+		for (int i = 0; i < (int)tabs.size(); i++)
+		{
+			if (tabs[i].Page == _debugPage)
+				ImGui::TextDisabled("%s > %s   (%d/%d)", tabs[i].Group, tabs[i].Name, i + 1, (int)tabs.size());
+		}
+
 		if (ImGui::BeginTabBar("##DebugGroups"))
 		{
 			// A page selected with the debug keys takes a frame to become the selected tab.
 			bool isSelectionPending = (_debugPageSelectionFrames > 0);
-			for (const char* group : DEBUG_PAGE_GROUPS)
+			const char* previousGroup = nullptr;
+			for (const auto& groupTab : tabs)
 			{
+				// Pages of a group are consecutive in the list.
+				const char* group = groupTab.Group;
+				if (previousGroup != nullptr && strcmp(previousGroup, group) == 0)
+					continue;
+
+				previousGroup = group;
+
 				bool hasSelectedPage = false;
-				for (const auto& tab : DEBUG_PAGE_TABS)
+				for (const auto& tab : tabs)
 					hasSelectedPage |= (strcmp(tab.Group, group) == 0 && tab.Page == _debugPage);
 
 				auto flags = (isSelectionPending && hasSelectedPage) ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None;
 				if (!ImGui::BeginTabItem(group, nullptr, flags))
 					continue;
 
-				DrawDebugPageGroup(group, DEBUG_PAGE_TABS, view, isSelectionPending);
+				DrawDebugPageGroup(group, tabs, view, isSelectionPending);
 				ImGui::EndTabItem();
 			}
 
@@ -780,6 +885,10 @@ namespace TEN::Renderer
 			ImGui::EndTabBar();
 		}
 
+		DrawDebugMessageSection();
+
+		ImGui::Separator();
+		ImGui::TextDisabled("F10/F11 page   Shift+F10/F11 group   F8 performance");
 		ImGui::End();
 
 		if (!isOpen)
@@ -801,7 +910,6 @@ namespace TEN::Renderer
 			return;
 
 		DrawDebugPagePanel(view);
-		DrawDebugMessagePanel();
 	}
 
 	void Renderer::TogglePerformanceOverlay()

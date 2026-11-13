@@ -14,6 +14,12 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added a benchmark mode (`benchmark <seconds>` command line argument) that logs frame timings to a CSV file, writes a summary and saves a screenshot.
 * Added a dynamic sky and weather system: volumetric clouds, atmospheric sky dome with day and night cycle, aurora, god rays, dust storms, underwater sky, weather presets and global wind.
 * Removed the DirectXTK dependency: math types now use GLM, and sprites, fonts and textures use built-in code. Loading screens in TIFF format are no longer supported.
+* Added a new renderer: a CPU frontend prepares each frame and a scene renderer draws it through the rendering hardware interface. DirectX 11 is its only backend for now, and it replaces the previous DirectX 11 renderer.
+* Added optional HDR rendering with bloom, exposure and tonemapping, with a `hdr` graphics setting and a menu option.
+* Added temporal antialiasing (TAA), ground truth ambient occlusion (GTAO) in place of SSAO, and a 3D resolution option (native, automatic or performance) that upscales with AMD FSR 1 below native scale.
+* Changed the antialiasing options to none, SMAA and TAA. FXAA and the former medium and high modes load as SMAA.
+* Reorganized the debug overlay into groups of pages, navigated with F10 and F11 (Shift to change group), with a performance panel toggled with F8.
+* Added `renderscale`, `ssao`, `antialiasing`, `hdr`, `resolution`, `novsync`, `nogputiming` and `lowpower` command line arguments for benchmarks.
 
 ## [Version 2.0.2]
 

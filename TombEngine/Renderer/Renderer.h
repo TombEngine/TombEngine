@@ -263,8 +263,9 @@ namespace TEN::Renderer
 		void DrawDebugOverlay(const RenderView& view);
 		void DrawPerformancePanel();
 		void DrawVideoMemoryStats();
-		void DrawDebugMessagePanel();
+		void DrawDebugMessageSection();
 		void DrawDebugPagePanel(const RenderView& view);
+		static const std::vector<DebugPageTab>& GetDebugPageTabs();
 		void DrawDebugPageGroup(const char* group, const std::vector<DebugPageTab>& tabs, const RenderView& view, bool isSelectionPending);
 		void DrawDebugRendererPage(const RenderView& view);
 		void DrawDebugDimensionPage(const RenderView& view);
@@ -664,7 +665,7 @@ namespace TEN::Renderer
 		void PrintDebugMessage(const char* msg, va_list args);
 		void PrintDebugMessage(const char* msg, ...);
 		void DrawDebugInfo(RenderView& view);
-		void SwitchDebugPage(bool goBack);
+		void SwitchDebugPage(bool goBack, bool byGroup = false);
 
 		// Screen, animation, bone and display item queries.
 		void ChangeScreenResolution(int width, int height, bool windowed, bool resyncWindow = true);
