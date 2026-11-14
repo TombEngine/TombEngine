@@ -10,6 +10,8 @@
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/misc.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Specific/level.h"
 
 namespace TEN::Entities::Creatures::TR3
@@ -66,6 +68,8 @@ namespace TEN::Entities::Creatures::TR3
 		short angle = 0;
 		short tilt = 0;
 		short vertTilt = 0;
+
+		auto poisonAttack = PropertyHandler::Get(item, PropName_Poisonous, true);
 
 		if (item->HitPoints <= 0 && item->HitPoints != NOT_TARGETABLE)
 		{
@@ -186,7 +190,7 @@ namespace TEN::Entities::Creatures::TR3
 					DoDamage(creature->Enemy, COBRA_BITE_ATTACK_DAMAGE);
 					CreatureEffect(item, CobraBite, DoBloodSplat);
 
-					if (creature->Enemy.IsLara())
+					if (creature->Enemy.IsLara() && poisonAttack)
 						GetLaraInfo(creature->Enemy)->Status.Poison += COBRA_BITE_POISON_POTENCY;
 				}
 
