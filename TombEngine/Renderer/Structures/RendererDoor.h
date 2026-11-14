@@ -5,6 +5,7 @@ namespace TEN::Renderer::Structures
 {
 	using namespace TEN::Math::Library;
 
+	// Portal to a neighbour room, with world space vertices and the per-frame culling state.
 	struct RendererDoor
 	{
 		bool Visited;

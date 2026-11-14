@@ -57,6 +57,7 @@
 #include "Objects/TR5/Emitter/tr5_spider_emitter.h"
 #include "Objects/TR5/Trap/LaserBarrier.h"
 #include "Objects/TR5/Trap/LaserBeam.h"
+#include "Renderer/Backend/SceneRenderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
 #include "Scripting/Include/ScriptInterfaceGame.h"
@@ -407,6 +408,7 @@ int SDLCALL GameMain(void *)
 	
 	// Exit game.
 	DeInitialize();
+	TEN::Renderer::Backend::g_SceneRenderer.ReleaseThread();
 	DoTheGame = false;
 
 	SDL_Event ev{};

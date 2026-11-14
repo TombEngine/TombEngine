@@ -20,6 +20,7 @@
 #include "Game/spotcam.h"
 #include "Objects/Generic/Doors/generic_doors.h"
 #include "Physics/Physics.h"
+#include "Renderer/Backend/SceneRenderer.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
@@ -180,6 +181,27 @@ void ReadBytes(void* dest, int count)
 	CurrentDataPtr += count;
 }
 
+void SkipBytes(int count)
+{
+	CurrentDataPtr += count;
+}
+
+// Corner data of a polygon, read in blocks. Binormals are stored in the level file but unused.
+static void ReadPolygonCorners(POLYGON& poly)
+{
+	int count = (poly.shape == 0) ? 4 : 3;
+	poly.indices.resize(count);
+	poly.textureCoordinates.resize(count);
+	poly.normals.resize(count);
+	poly.tangents.resize(count);
+
+	ReadBytes(poly.indices.data(), (int)sizeof(int) * count);
+	ReadBytes(poly.textureCoordinates.data(), (int)sizeof(Vector2) * count);
+	ReadBytes(poly.normals.data(), (int)sizeof(Vector3) * count);
+	ReadBytes(poly.tangents.data(), (int)sizeof(Vector3) * count);
+	SkipBytes((int)sizeof(Vector3) * count);
+}
+
 long long ReadLEB128(bool sign)
 {
 	long long result = 0;
@@ -336,32 +358,14 @@ void LoadObjects()
 			bucket.polygons.reserve(polyCount);
 			for (int k = 0; k < polyCount; k++)
 			{
-				auto poly = POLYGON{};
+				auto& poly = bucket.polygons.emplace_back();
 
 				poly.shape = ReadInt32();
 				poly.animatedSequence = ReadInt32();
 				poly.animatedFrame = ReadInt32();
 				poly.shineStrength = ReadFloat();
 				poly.normal = ReadVector3();
-				int count = (poly.shape == 0 ? 4 : 3);
-				poly.indices.resize(count);
-				poly.textureCoordinates.resize(count);
-				poly.normals.resize(count);
-				poly.tangents.resize(count);
-				poly.binormals.resize(count);
-				
-				for (int n = 0; n < count; n++)
-					poly.indices[n] = ReadInt32();
-				for (int n = 0; n < count; n++)
-					poly.textureCoordinates[n] = ReadVector2();
-				for (int n = 0; n < count; n++)
-					poly.normals[n] = ReadVector3();
-				for (int n = 0; n < count; n++)
-					poly.tangents[n] = ReadVector3();
-				for (int n = 0; n < count; n++)
-					poly.binormals[n] = ReadVector3();
-
-				bucket.polygons.push_back(poly);
+				ReadPolygonCorners(poly);
 
 				if (poly.shape == 0)
 					bucket.numQuads++;
@@ -369,10 +373,10 @@ void LoadObjects()
 					bucket.numTriangles++;
 			}
 
-			mesh.buckets.push_back(bucket);
+			mesh.buckets.push_back(std::move(bucket));
 		}
 
-		g_Level.Meshes.push_back(mesh);
+		g_Level.Meshes.push_back(std::move(mesh));
 	}
 
 	int boneCount = ReadCount();
@@ -980,17 +984,12 @@ void LoadStaticRoomData()
 
 		int vertexCount = ReadCount(CUBE(1024));
 
-		room.positions.reserve(vertexCount);
-		for (int j = 0; j < vertexCount; j++)
-			room.positions.push_back(ReadVector3());
-
-		room.colors.reserve(vertexCount);
-		for (int j = 0; j < vertexCount; j++)
-			room.colors.push_back(ReadVector3());
-
-		room.effects.reserve(vertexCount);
-		for (int j = 0; j < vertexCount; j++)
-			room.effects.push_back(ReadVector3());
+		room.positions.resize(vertexCount);
+		room.colors.resize(vertexCount);
+		room.effects.resize(vertexCount);
+		ReadBytes(room.positions.data(), (int)sizeof(Vector3) * vertexCount);
+		ReadBytes(room.colors.data(), (int)sizeof(Vector3) * vertexCount);
+		ReadBytes(room.effects.data(), (int)sizeof(Vector3) * vertexCount);
 
 		int bucketCount = ReadCount();
 		room.buckets.reserve(bucketCount);
@@ -1010,41 +1009,18 @@ void LoadStaticRoomData()
 			bucket.polygons.reserve(polyCount);
 			for (int k = 0; k < polyCount; k++)
 			{
-				auto poly = POLYGON{};
-				
+				auto& poly = bucket.polygons.emplace_back();
+
 				poly.shape = ReadInt32();
 				poly.animatedSequence = ReadInt32();
 				poly.animatedFrame = ReadInt32();
 				poly.normal = ReadVector3();
-
-				int count = (poly.shape == 0 ? 4 : 3);
-				poly.indices.resize(count);
-				poly.textureCoordinates.resize(count);
-				poly.normals.resize(count);
-				poly.tangents.resize(count);
-				poly.binormals.resize(count);
-
-				for (int l = 0; l < count; l++)
-					poly.indices[l] = ReadInt32();
-
-				for (int n = 0; n < count; n++)
-					poly.textureCoordinates[n] = ReadVector2();
-
-				for (int n = 0; n < count; n++)
-					poly.normals[n] = ReadVector3();
-
-				for (int n = 0; n < count; n++)
-					poly.tangents[n] = ReadVector3();
-
-				for (int n = 0; n < count; n++)
-					poly.binormals[n] = ReadVector3();
-
-				bucket.polygons.push_back(poly);
+				ReadPolygonCorners(poly);
 
 				(poly.shape == 0) ? bucket.numQuads++ : bucket.numTriangles++;
 			}
 
-			room.buckets.push_back(bucket);
+			room.buckets.push_back(std::move(bucket));
 		}
 
 		int portalCount = ReadCount();
@@ -1902,7 +1878,14 @@ bool LoadLevelFile(int levelIndex)
 	CleanUp();
 	FreeLevel(fastReload);
 	
-	LevelLoadTask = std::async(std::launch::async, LoadLevel, levelPath, fastReload);
+	// The loading thread renders the loading screen, so the OpenGL context moves to it and back.
+	TEN::Renderer::Backend::g_SceneRenderer.ReleaseThread();
+	LevelLoadTask = std::async(std::launch::async, [&]()
+	{
+		bool isLoaded = LoadLevel(levelPath, fastReload);
+		TEN::Renderer::Backend::g_SceneRenderer.ReleaseThread();
+		return isLoaded;
+	});
 	bool loadSuccess = LevelLoadTask.get();
 
 	if (loadSuccess && isDummyLevel)

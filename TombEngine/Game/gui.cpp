@@ -50,6 +50,26 @@ namespace TEN::Gui
 
 	GuiController g_Gui;
 
+	// Next value of an option in a list of values, in both directions; values missing from the list continue from the first.
+	template <typename T, int N>
+	static T CycleOption(T value, const T (&values)[N], int step)
+	{
+		int index = 0;
+		for (int i = 0; i < N; i++)
+		{
+			if (values[i] == value)
+				index = i;
+		}
+
+		return values[(index + step + N) % N];
+	}
+
+	// Render scale modes cycle in both directions; the scale applies from the next frame.
+	static void CycleRenderScale(GameConfiguration& configuration, int step)
+	{
+		configuration.RenderScale = CycleOption(configuration.RenderScale, RENDER_SCALE_MODES, step);
+	}
+
 	std::vector<std::string> OptionStrings =
 	{
 		STRING_USE,
@@ -530,6 +550,7 @@ namespace TEN::Gui
 			HighFramerate,
 			Gamma,
 			SkyQuality,
+			RenderScale,
 			Save,
 			Cancel,
 
@@ -587,10 +608,7 @@ namespace TEN::Gui
 			case DisplaySettingsOption::Antialiasing:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 
-				if (CurrentSettings.Configuration.AntialiasingMode == AntialiasingMode::None)
-					CurrentSettings.Configuration.AntialiasingMode = AntialiasingMode::High;
-				else
-					CurrentSettings.Configuration.AntialiasingMode = AntialiasingMode(int(CurrentSettings.Configuration.AntialiasingMode) - 1);
+				CurrentSettings.Configuration.AntialiasingMode = CycleOption(CurrentSettings.Configuration.AntialiasingMode, ANTIALIASING_MODES, -1);
 
 				break;
 
@@ -631,6 +649,11 @@ namespace TEN::Gui
 					g_Configuration.AtmosphericSkyQuality = CurrentSettings.Configuration.AtmosphericSkyQuality;
 					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				}
+				break;
+
+			case DisplaySettingsOption::RenderScale:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CycleRenderScale(CurrentSettings.Configuration, -1);
 				break;
 
 			}
@@ -674,10 +697,7 @@ namespace TEN::Gui
 			case DisplaySettingsOption::Antialiasing:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 
-				if (CurrentSettings.Configuration.AntialiasingMode == AntialiasingMode::High)
-					CurrentSettings.Configuration.AntialiasingMode = AntialiasingMode::None;
-				else
-					CurrentSettings.Configuration.AntialiasingMode = AntialiasingMode(int(CurrentSettings.Configuration.AntialiasingMode) + 1);
+				CurrentSettings.Configuration.AntialiasingMode = CycleOption(CurrentSettings.Configuration.AntialiasingMode, ANTIALIASING_MODES, 1);
 
 				break;
 
@@ -719,6 +739,11 @@ namespace TEN::Gui
 					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				}
 				break;
+
+			case DisplaySettingsOption::RenderScale:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CycleRenderScale(CurrentSettings.Configuration, 1);
+				break;
 			}
 		}
 
@@ -738,10 +763,6 @@ namespace TEN::Gui
 				CurrentSettings.Configuration.ScreenWidth = screenResolution.x;
 				CurrentSettings.Configuration.ScreenHeight = screenResolution.y;
 
-				// Determine whether we should update AA shaders.
-				bool shouldRecompileAAShaders = CurrentSettings.Configuration.AntialiasingMode != AntialiasingMode::Low &&
-					(screenResolutionChanged || g_Configuration.AntialiasingMode != CurrentSettings.Configuration.AntialiasingMode);
-
 				g_Configuration = CurrentSettings.Configuration;
 				SaveConfiguration();
 
@@ -753,7 +774,6 @@ namespace TEN::Gui
 					RebuildDisplayResolutions();
 				}
 
-				g_Renderer.ReloadShaders(shouldRecompileAAShaders);
 				g_Renderer.SetGraphicsSettingsChanged();
 
 				MenuToDisplay = Menu::Options;

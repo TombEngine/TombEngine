@@ -6,6 +6,8 @@
 
 namespace TEN::Renderer::Structures
 {
+	// Renderer state of an item: world and bone transforms of the current and previous game frame and their
+	// interpolated values, mesh swaps and lights.
 	struct RendererItem
 	{
 		int ItemNumber = NO_VALUE;
@@ -14,9 +16,6 @@ namespace TEN::Renderer::Structures
 		Vector3 Position	= Vector3::Zero;
 		int		RoomNumber	= NO_VALUE;
 		Matrix	World		= Matrix::Identity;
-		Matrix	Translation = Matrix::Identity;
-		Matrix	Rotation	= Matrix::Identity;
-		Matrix	Scale		= Matrix::Identity;
 		Matrix	AnimationTransforms[BONE_COUNT_MAX] = {};
 
 		Quaternion BoneOrientations[BONE_COUNT_MAX] = {};
@@ -36,17 +35,11 @@ namespace TEN::Renderer::Structures
 
 		Vector3 InterpolatedPosition                       = Vector3::Zero;
 		Matrix  InterpolatedWorld                          = Matrix::Identity;
-		Matrix  InterpolatedTranslation                    = Matrix::Identity;
-		Matrix  InterpolatedRotation                       = Matrix::Identity;
-		Matrix  InterpolatedScale                          = Matrix::Identity;
 		Matrix  InterpolatedAnimationTransforms[BONE_COUNT_MAX] = {};
 
 		Vector3 PrevPosition                       = Vector3::Zero;
 		int     PrevRoomNumber                     = NO_VALUE;
 		Matrix  PrevWorld                          = Matrix::Identity;
-		Matrix  PrevTranslation                    = Matrix::Identity;
-		Matrix  PrevRotation                       = Matrix::Identity;
-		Matrix  PrevScale                          = Matrix::Identity;
 		Matrix  PrevAnimationTransforms[BONE_COUNT_MAX] = {};
 	};
 }

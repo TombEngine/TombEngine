@@ -20,8 +20,6 @@ namespace TEN::Renderer::Structures
 		
 		BoundingSphere BoundingSphere;
 		int RoomNumber;
-		float LocalIntensity;
-		float Distance;
 		bool AffectNeighbourRooms;
 		bool CastShadows;
 		float Luma;
@@ -32,6 +30,7 @@ namespace TEN::Renderer::Structures
 		int Hash = 0;
 	};
 
+	// Light candidate during light collection; dynamic lights rank first, then by local intensity.
 	struct RendererLightNode
 	{
 		RendererLight* Light;

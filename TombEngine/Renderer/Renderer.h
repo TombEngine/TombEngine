@@ -11,40 +11,30 @@
 #include "Game/effects/effects.h"
 #include "Game/effects/Electricity.h"
 #include "Game/Setup.h"
-#include "Renderer/ConstantBuffers/HUDBarBuffer.h"
-#include "Renderer/ConstantBuffers/HUDBuffer.h"
-#include "Renderer/ConstantBuffers/ShadowLightBuffer.h"
-#include "Renderer/ConstantBuffers/RoomBuffer.h"
-#include "Renderer/ConstantBuffers/ObjectsBuffer.h"
-#include "Renderer/ConstantBuffers/CameraMatrixBuffer.h"
-#include "Renderer/Structures/AnimatedFrame.h"
-#include "Renderer/ConstantBuffers/PerDrawBuffer.h"
-#include "Renderer/ConstantBuffers/InstancedSpriteBuffer.h"
-#include "Renderer/ConstantBuffers/PostProcessBuffer.h"
-#include "Renderer/ConstantBuffers/SMAABuffer.h"
-#include "Renderer/ConstantBuffers/SkyBuffer.h"
 #include "Renderer/ConstantBuffers/VolumetricCloudBuffer.h"
 #include "Renderer/ConstantBuffers/AtmosphericSkyBuffer.h"
 #include "Renderer/ConstantBuffers/GodRayBuffer.h"
 #include "Renderer/ConstantBuffers/DustStormBuffer.h"
-#include "Renderer/AtmosphericSky/AtmosphericSkySettings.h"
-#include "Renderer/Aurora/AuroraSettings.h"
-#include "Renderer/UnderwaterSky/UnderwaterSkySettings.h"
-#include "Renderer/DustStorm/DustStormSettings.h"
-#include "Renderer/GodRay/GodRaySettings.h"
-#include "Renderer/Moon/MoonSettings.h"
-#include "Renderer/VolumetricCloud/VolumetricCloud.h"
-#include "Renderer/VolumetricCloud/CloudNoiseTexture.h"
-#include "Renderer/Frustum.h"
-#include "Renderer/Graphics/IGraphicsDevice.h"
-#include "Renderer/Graphics/Vertices/PostProcessVertex.h"
+#include "Renderer/Sky/AtmosphericSkySettings.h"
+#include "Renderer/Sky/AuroraSettings.h"
+#include "Renderer/Sky/UnderwaterSkySettings.h"
+#include "Renderer/Sky/DustStormSettings.h"
+#include "Renderer/Sky/GodRaySettings.h"
+#include "Renderer/Sky/MoonSettings.h"
+#include "Renderer/Sky/VolumetricCloud.h"
+#include "Renderer/Sky/CloudNoiseTexture.h"
+#include "Renderer/UI/Font.h"
+#include "Renderer/Scene/Frustum.h"
+#include "Renderer/Structures/Vertex.h"
+#include "Renderer/Backend/OverlayTypes.h"
+#include "Renderer/Backend/SkyTypes.h"
 #include "Renderer/RendererEnums.h"
-#include "Renderer/RenderView.h"
-#include "Renderer/ShaderManager/ShaderManager.h"
+#include "Renderer/RendererUtils.h"
+#include "Renderer/RHI/MemoryTracker.h"
+#include "Renderer/Scene/RenderView.h"
 #include "Renderer/Structures/RendererBone.h"
 #include "Renderer/Structures/RendererDoor.h"
 #include "Renderer/Structures/RendererDofMode.h"
-#include "Renderer/Structures/RendererDebugLabel.h"
 #include "Renderer/Structures/RendererStringToDraw.h"
 #include "Renderer/Structures/RendererRoom.h"
 #include "Renderer/Structures/RendererSprite.h"
@@ -55,15 +45,10 @@
 #include "Renderer/Structures/RendererLine3D.h"
 #include "Renderer/Structures/RendererTriangle3D.h"
 #include "Renderer/Structures/RendererMesh.h"
-#include "Renderer/Structures/RendererSpriteSequence.h"
-#include "Renderer/Structures/RendererSpriteBucket.h"
 #include "Renderer/Structures/RendererLight.h"
-#include "Renderer/Structures/RendererLine2D.h"
 #include "Renderer/Structures/RendererHudBar.h"
-#include "Renderer/Structures/RendererRoomAmbientMap.h"
+#include "Renderer/Structures/RendererImage.h"
 #include "Renderer/Structures/RendererObject.h"
-#include "Renderer/Structures/RendererSortedBatch.h"
-#include "Renderer/Structures/RendererStar.h"
 #include "Specific/Benchmark.h"
 #include "Specific/level.h"
 #include "Specific/Structures/fast_vector.h"
@@ -76,108 +61,48 @@ class EulerAngles;
 struct AnimFrameInterpData;
 struct CAMERA_INFO;
 
+namespace TEN::Effects::Environment
+{
+	struct StarParticle;
+	struct MeteorParticle;
+}
+
+namespace TEN::Renderer::Backend
+{
+	struct SceneFrameStats;
+}
+
 namespace TEN::Renderer
 {
-	using namespace std::chrono;
-	using namespace TEN::Benchmark;
 	using namespace TEN::Effects::Electricity;
 	using namespace TEN::Gui;
 	using namespace TEN::Hud;
 	using namespace TEN::Renderer::ConstantBuffers;
-	using namespace TEN::Renderer::Graphics;
 	using namespace TEN::Renderer::Structures;
 	using namespace TEN::Renderer::Utils;
 	using namespace TEN::Math::Library;
 
-	using AtlasTexturesSet = std::tuple<
-		std::unique_ptr<ITexture2D>, 
-		std::unique_ptr<ITexture2D>, 
-		std::unique_ptr<ITexture2D>, 
-		std::unique_ptr<ITexture2D>>;
-
+	// CPU frontend of the renderer used by the game code (g_Renderer). Each frame it culls rooms through portals,
+	// collects items, statics, lights, effects, sprites and sorted faces into a RenderView, prepares sky effects
+	// and records the 2D layer; SubmitFrame then hands everything to Backend::g_SceneRenderer, which owns all GPU work.
 	class Renderer
 	{
 	private:
-		std::unique_ptr<IGraphicsDevice> _graphicsDevice;
-
-		std::unique_ptr<IInputLayout> _vertexInputLayout;
-		std::unique_ptr<IInputLayout> _fullScreenVertexInputLayout;
-
-		// Adapter info
-		AdapterInfo _adapterInfo = {};
-
-		// Render targets
-		std::unique_ptr<IRenderSurface2D> _normalsAndMaterialIndexRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _depthRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _emissiveAndRoughnessRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _distortionRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _dofRenderTarget[3];
-		std::unique_ptr<IRenderSurface2D> _dumpScreenRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _renderTarget;
-		std::unique_ptr<IRenderSurface2D> _postProcessRenderTarget[2];
-		std::unique_ptr<IRenderSurface2D> _glowRenderTarget[2];
-		std::unique_ptr<IRenderSurface2D> _tempRoomAmbientRenderTarget1;
-		std::unique_ptr<IRenderSurface2D> _tempRoomAmbientRenderTarget2;
-		std::unique_ptr<IRenderSurface2D> _tempRoomAmbientRenderTarget3;
-		std::unique_ptr<IRenderSurface2D> _tempRoomAmbientRenderTarget4;
-		std::unique_ptr<IRenderSurface2D> _shadowMap;
-		std::unique_ptr<IRenderSurface2D> _legacyReflectionsRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _SSAORenderTarget;
-		std::unique_ptr<IRenderSurface2D> _SSAOBlurredRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _SMAASceneRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _SMAASceneSRGBRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _SMAADepthRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _SMAAEdgesRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _SMAABlendRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _skyboxRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _backBuffer;
-		std::unique_ptr<IRenderSurface2D> _outdoorMaskRenderTarget;
-
-		// Constant buffers
-
+		// Cameras: current game camera, previous one for interpolation and the interpolated one rendered this frame.
 		RenderView _gameCamera;
 		RenderView _oldGameCamera;
 		RenderView _currentGameCamera;
-		std::unique_ptr<IConstantBuffer> _cbCameraMatrices;
-		CObjectsBuffer _stObjects;
-		std::unique_ptr<IConstantBuffer> _cbObjects;
-		CRoomBuffer _stRoom;
-		std::unique_ptr<IConstantBuffer> _cbRoom;
-		std::array<AnimatedFrame, MAX_ANIMATED_FRAMES> _animatedFrames = {};
-		std::unique_ptr<IStructuredBuffer> _animatedFramesBuffer;
-		CShadowLightBuffer _stShadowMap;
-		std::unique_ptr<IConstantBuffer> _cbShadowMap;
-		CHUDBuffer _stHUD;
-		std::unique_ptr<IConstantBuffer> _cbHUD;
-		CHUDBarBuffer _stHUDBar;
-		std::unique_ptr<IConstantBuffer> _cbHUDBar;
-		CPostProcessBuffer _stPostProcessBuffer;
-		std::unique_ptr<IConstantBuffer> _cbPostProcessBuffer;
-		CInstancedSpriteBuffer _stInstancedSpriteBuffer;
-		std::unique_ptr<IConstantBuffer> _cbInstancedSpriteBuffer;
-		CPerDrawBuffer _stPerDraw;
-		std::unique_ptr<IConstantBuffer> _cbPerDraw;
-		bool _perDrawBufferDirty = true;
-		CSMAABuffer _stSMAABuffer;
-		std::unique_ptr<IConstantBuffer> _cbSMAABuffer;
-		CSkyBuffer _stSky;
-		std::unique_ptr<IConstantBuffer> _cbSky;
+		std::vector<BoundingSphere> _blobShadowSpheres = {}; // Nearest blob shadow casters of the frame.
+
+		// Sky effects state. The C*Buffer members are uniform blocks filled on the CPU and pushed by the scene renderer.
 
 		// Volumetric clouds
 		ConstantBuffers::CVolumetricCloudBuffer _stVolumetricCloud;
-		std::unique_ptr<IConstantBuffer> _cbVolumetricCloud;
 		VolumetricCloud::CloudNoiseTextures _cloudNoiseTextures;
-		std::unique_ptr<IRenderSurface2D> _cloudRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _cloudPrevFrameRT;              // Previous frame's cloud result for temporal checkerboard
-		std::unique_ptr<IRenderSurface2D> _cloudOcclusionTarget;
-		std::unique_ptr<IGpuReadbackBuffer> _cloudOcclusionReadback;
-		std::unique_ptr<IRenderSurface2D> _scenePreCloudBackup;          // Full-res copy of scene before cloud composite
 
 		// Atmospheric sky dome
 		ConstantBuffers::CAtmosphericSkyBuffer _stAtmosphericSky;
-		std::unique_ptr<IConstantBuffer> _cbAtmosphericSky;
 		AtmosphericSkySettings _atmosphericSkySettings;
-		VolumetricCloud::CloudRenderSettings _volumetricCloudSettings;
 		VolumetricCloud::CloudRuntimeState _cloudState;
 
 		// Moon system
@@ -185,7 +110,6 @@ namespace TEN::Renderer
 
 		// Aurora system
 		Aurora::AuroraSettings _auroraSettings;
-		std::unique_ptr<IRenderSurface2D> _auroraHalfResRenderTarget;   // Half-res offscreen RT for Low quality rendering.
 		float _auroraTime        = 0.0f;   // Accumulated animation time.
 		float _auroraPresetFade  = 0.0f;   // [0,1] fade multiplier driven by preset selection.
 		float _auroraPresetFadeDuration = 5.0f; // Duration in seconds for aurora to fade in/out on preset change.
@@ -197,64 +121,31 @@ namespace TEN::Renderer
 
 		// God rays
 		ConstantBuffers::CGodRayBuffer _stGodRay;
-		std::unique_ptr<IConstantBuffer> _cbGodRay;
-		std::unique_ptr<IRenderSurface2D> _godRayRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _horizonMaskRenderTarget;
 		GodRay::GodRaySettings _godRaySettings;
 
 		// Volumetric dust storm
 		ConstantBuffers::CDustStormBuffer _stDustStorm;
-		std::unique_ptr<IConstantBuffer> _cbDustStorm;
 		DustStorm::DustStormSettings _dustStormSettings;
 
 		// Dual volumetric cloud layer B (layer A reuses the members above).
-		std::unique_ptr<IRenderSurface2D> _cloudRenderTargetB;
-		std::unique_ptr<IRenderSurface2D> _cloudPrevFrameRTB;   // Layer B previous-frame RT for temporal checkerboard
-		std::unique_ptr<IRenderSurface2D> _cloudOcclusionTargetB;
-		std::unique_ptr<IGpuReadbackBuffer> _cloudOcclusionReadbackB;
 		VolumetricCloud::CloudRuntimeState _cloudStateB;
-
-		// Primitive batches
-
-		bool _primitiveBatchActive = false;
-
-		RendererViewport _viewport;
-		RendererViewport _distortionViewport;
-		RendererViewport _dofViewport;
-		RendererViewport _shadowMapViewport;
 
 		// Text
 
-		std::unique_ptr<ISpriteFont> _gameFont;
+		Font _gameFont = {};
 		std::vector<RendererStringToDraw> _stringsToDraw;
 		Vector4 _blinkColorValue = Vector4::Zero;
 		float _blinkTime = 0.0f;
-		float _oldBlinkTime = 0.0f;
-
-		// Sprites
-		std::vector<Vertex> _spriteVertices;
-		std::unique_ptr<IVertexBuffer> _spriteVertexBuffer;
 
 		// Graphics resources
 
-		std::unique_ptr<ITexture2D> _logo;
-		std::unique_ptr<ITexture2D> _skyTexture;
-		std::unique_ptr<ITexture2D> _whiteTexture;
+		RendererImage _logo = {};
 		RendererSprite _whiteSprite;
-		std::unique_ptr<ITexture2D> _loadingBarBorder;
-		std::unique_ptr<ITexture2D> _loadingBarInner;
-		std::unique_ptr<ITexture2D> _loadingScreenTexture;
+		RendererImage _loadingBarBorder = {};
+		RendererImage _loadingBarInner = {};
+		RendererImage _loadingScreenTexture = {};
 
-		std::unique_ptr<IVertexBuffer> _roomsVertexBuffer;
-		std::unique_ptr<IIndexBuffer> _roomsIndexBuffer;
-		std::unique_ptr<IVertexBuffer> _moveablesVertexBuffer;
-		std::unique_ptr<IIndexBuffer> _moveablesIndexBuffer;
-		std::unique_ptr<IVertexBuffer> _staticsVertexBuffer;
-		std::unique_ptr<IIndexBuffer> _staticsIndexBuffer;
-		std::unique_ptr<IVertexBuffer> _skyVertexBuffer;
-		std::unique_ptr<IIndexBuffer> _skyIndexBuffer;
-		std::unique_ptr<IVertexBuffer> _quadVertexBuffer;
-
+		// Level geometry built by PrepareDataForTheRenderer and passed to the scene renderer as Backend::LevelGeometry.
 		std::vector<Vertex> _roomsVertices;
 		std::vector<int> _roomsIndices;
 		std::vector<Vertex> _moveablesVertices;
@@ -266,19 +157,19 @@ namespace TEN::Renderer
 		// Rooms and collector
 
 		std::vector<RendererRoom> _rooms;
+		// Cache invalidation forces statics to refresh their cached data on the next collection; the visited rooms
+		// stack holds the rooms on the current portal traversal path, to detect cycles.
 		bool _invalidateCache;
 		std::vector<short> _visitedRoomsStack;
 
 		// Lights
 
 		int _dynamicLightList = 0;
-		int _frozenLightCount = NO_VALUE;
 		std::vector<RendererLight> _dynamicLights[2];
 		RendererLight* _shadowLight;
 
 		// Lines
 
-		std::vector<RendererLine2D>		_lines2DToDraw = {};
 		std::vector<RendererLine3D>		_lines3DToDraw = {};
 		std::vector<RendererTriangle3D> _triangles3DToDraw = {};
 
@@ -287,207 +178,179 @@ namespace TEN::Renderer
 		std::vector<std::optional<RendererObject>>			   _moveableObjects;
 		std::vector<std::optional<RendererObject>>			   _staticObjects; // Key = static ID, value = renderer object.
 		std::vector<RendererSprite>							   _sprites;
-		std::vector<RendererSpriteSequence>					   _spriteSequences;
 		std::vector<RendererAnimatedTextureSet>				   _animatedTextureSets;
 		std::vector<RendererMesh*>							   _meshes;
-		std::vector<AtlasTexturesSet>						   _roomTextures;
-		std::vector<AtlasTexturesSet>						   _animatedTextures;
-		std::vector<AtlasTexturesSet>						   _moveablesTextures;
-		std::vector<AtlasTexturesSet>						   _staticTextures;
-		std::vector<std::unique_ptr<ITexture2D>>			   _spritesTextures;
 		RendererSprite										   _videoSprite; // Video texture is an unique case
+
+		// Sky draws of the frame, prepared by the frontend and replayed by the scene renderer.
+		std::vector<RendererSpriteToDraw>        _skySprites    = {};
+		RendererSpriteToDraw                     _sunSprite     = {}; // Classic sun sprite.
+		std::vector<Backend::CloudLayerDraw>     _cloudDraws    = {};
+		Backend::SkyEffectFlags                  _skyEffects    = {}; // Atmospheric sky passes.
+		Backend::GodRayDraw                      _godRayDraw    = {};
+		std::array<Backend::HorizonLayerDraw, 2> _horizonLayers = {};
+		Backend::DustStormDraw                   _dustStormDraw = {};
 
 		Matrix _playerWorldMatrix;
 
 		// Preallocated pools of objects for avoiding new/delete.
 		// Items and effects are safe (can't be more than 1024 items in TR), 
-		// lights should be oversized (eventually ignore lights more than MAX_LIGHTS)
+		// lights should be oversized.
 
 		std::vector<RendererItem> _items;
 		std::vector<RendererEffect> _effects;
 
 		// Debug variables
 
-		int _numDrawCalls = 0;
-
-		int _numRoomsDrawCalls = 0;
-		int _numSortedRoomsDrawCalls = 0;
-		int _numMoveablesDrawCalls = 0;
-		int _numSortedMoveablesDrawCalls = 0;
-		int _numStaticsDrawCalls = 0;
-		int _numInstancedStaticsDrawCalls = 0;
-		int _numSortedStaticsDrawCalls = 0;
-		int _numSpritesDrawCalls = 0;
-		int _numInstancedSpritesDrawCalls = 0;
-		int _numSortedSpritesDrawCalls = 0;
-
-		int _numLinesDrawCalls = 0;
-
-		int _numTriangles = 0;
-		int _numSortedTriangles = 0;
-
-		int _numShadowMapDrawCalls = 0;
-		int _numDebrisDrawCalls = 0;
-		int _numEffectsDrawCalls = 0;
-
 		int _numDotProducts = 0;
 		int _numCheckPortalCalls = 0;
 		int _numGetVisibleRoomsCalls = 0;
 
-		int _numConstantBufferUpdates = 0;
-		unsigned long long _numConstantBufferBytes = 0;
-		int _numPerDrawUpdates = 0;
-
-		int _numExecutedMaterialsUpdates = 0;
-		int _numRequestedMaterialsUpdates = 0;
+		int _numInterleavedSortedGroups = 0;
 
 		RendererDebugPage _debugPage = RendererDebugPage::None;
-
-		// View counts captured in DrawDebugInfo(), because the view is cleared before the ImGui debug pages are drawn.
-		int _debugSpriteCount = 0;
-		int _debugSortedFaceCount = 0;
-		int _debugRoomCount = 0;
-
-		// Debug text queued during the game tick. Cleared in PrepareScene() and drawn by the ImGui overlay.
-		std::vector<std::string> _debugMessages;
-		std::vector<RendererDebugLabel> _debugLabels;
 
 		// Times for debug
 
 		int _timeUpdate;
 		int _timeRoomsCollector;
-		int _timeDraw;
 		int _timeFrame;
+		float _timeSortedCollect = 0.0f;
+		float _timeSortedSort = 0.0f;
 
-		BenchmarkFrameStats _frameStats = {};
-		steady_clock::time_point _lastPresentTime = {};
+		TEN::Benchmark::BenchmarkFrameStats _frameStats = {};
+		std::chrono::steady_clock::time_point _lastPresentTime = {};
+		const char* _benchmarkPassNames[TEN::Benchmark::BENCHMARK_GPU_PASSES_MAX] = {};
+		std::chrono::steady_clock::time_point _lastFrameTime   = {};
+		float                                 _frameRate       = 0.0f; // Presented frames per second, smoothed.
+		unsigned long long                    _framePaceTime   = 0;    // Start of the paced frame, in SDL nanosecond ticks.
 		float _fps;
-		int _currentCausticsFrame;
+
+		// ImGui debug window (RendererDebugWindow.cpp). Debug messages of the game code are kept for the window.
+
+		// View counts of the last scene, kept for the debug window: the view is cleared before the window is drawn.
+		struct DebugViewCounts
+		{
+			int Rooms       = 0;
+			int Sprites     = 0;
+			int Lights      = 0;
+			int FogBulbs    = 0;
+			int SortedFaces = 0;
+		};
+
+		DebugViewCounts _debugViewCounts = {};
+
+		struct DebugPageTab
+		{
+			RendererDebugPage Page  = RendererDebugPage::None;
+			const char*       Group = nullptr;
+			const char*       Name  = nullptr;
+			void (Renderer::* Draw)(const RenderView& view) = nullptr;
+		};
+
+		std::vector<std::string> _debugMessages            = {};
+		int                      _debugPageSelectionFrames = 0;
+		bool                     _isPerformanceOverlayVisible = true; // Shown in debug mode, toggled with F8.
+		RHI::MemoryStats         _memoryStats                 = {}; // Video memory, sampled by the performance panel.
+		int                      _memoryStatsFrames           = 0;
+
+		static constexpr auto GRAPHICS_STATS_HISTORY = 240;
+
+		std::array<float, GRAPHICS_STATS_HISTORY> _statsFrameTimes   = {};
+		std::array<float, GRAPHICS_STATS_HISTORY> _statsBackendCpuTimes = {};
+		int                                       _statsHistoryIndex = 0;
+
+		void DrawDebugOverlay(const RenderView& view);
+		void DrawPerformancePanel();
+		void DrawVideoMemoryStats();
+		void DrawDebugMessageSection();
+		void DrawDebugPagePanel(const RenderView& view);
+		static const std::vector<DebugPageTab>& GetDebugPageTabs();
+		void DrawDebugPageGroup(const char* group, const std::vector<DebugPageTab>& tabs, const RenderView& view, bool isSelectionPending);
+		void DrawDebugRendererPage(const RenderView& view);
+		void DrawDebugDimensionPage(const RenderView& view);
+		void DrawDebugPlayerPage(const RenderView& view);
+		void DrawDebugInputPage(const RenderView& view);
+		void DrawDebugCollisionPage(const RenderView& view);
+		void DrawDebugCollisionMeshPage(const RenderView& view);
+		void DrawDebugPortalPage(const RenderView& view);
+		void DrawDebugPathfindingPage(const RenderView& view);
+		void DrawDebugWireframePage(const RenderView& view);
+		void DrawDebugSkyPage(const RenderView& view);
+		void DrawGraphicsStatsOverview();
+		void DrawGraphicsStatsBackend();
+		void DrawGraphicsStatsSky();
+		void DrawGraphicsStatsFrontend();
 
 		// Screen settings
-		float _farView = DEFAULT_FAR_VIEW;
+		int _screenWidth  = 0;
+		int _screenHeight = 0;
 		bool _isWindowed;
 
-		// A flag to prevent extra renderer object additions
+		// Set by Lock() to block debug primitives, debug messages and dynamic lights until the next PrepareScene.
 
 		bool _isLocked = false;
 
-		// Caching state changes
-
-		ITextureBase* _lastTexture;
-		BlendMode _lastBlendMode;
-		DepthState _lastDepthState;
-		CullMode _lastCullMode;
-		int _lastMaterialIndex;
-		int _lastSortedRoomNumber = NO_VALUE;
-		RendererObjectType _lastSortedObjectType = RendererObjectType::Unknown;
-		const void* _lastSortedObject = nullptr;
-		bool _lastSortedSkinned = false;
-
-		std::vector<RendererSpriteBucket> _spriteBuckets;
-
-		// Antialiasing
-
-		std::unique_ptr<ITexture2D> _SMAAAreaTexture;
-		std::unique_ptr<ITexture2D> _SMAASearchTexture;
-
 		// Post-process
 
-		bool _hasDistortionMask = false;
 		PostProcessMode _postProcessMode = PostProcessMode::None;
 		float _postProcessStrength = 1.0f;
 		Vector3 _postProcessTint = (Vector3)NEUTRAL_COLOR;
 		DOFState _currentDOF;
 		DOFState _lastDOF;
 
-		std::unique_ptr<IVertexBuffer> _fullscreenTriangleVertexBuffer;
-
-		bool _doingFullscreenPass = false;
-
-		// SSAO
-
-		std::unique_ptr<ITexture2D> _SSAONoiseTexture;
-		std::vector<Vector4> _SSAOKernel;
-
-		// Special effects
-		RendererMirror* _currentMirror = nullptr;
-
 		// Transparency
-
-		fast_vector<Vertex> _sortedPolygonsVertices;
-		fast_vector<int> _sortedPolygonsIndices;
-
-		std::vector<RendererSortedBatch> _sortedPolygonsBatches;
 		std::vector<RendererSortKey> _sortKeysScratch;
-		std::unique_ptr<IVertexBuffer> _sortedPolygonsVertexBuffer;
-		std::unique_ptr<IIndexBuffer> _sortedPolygonsIndexBuffer;
 
 		// High framerate
 
 		float _interpolationFactor = 0.0f;
 		bool  _graphicsSettingsChanged = false;
 
-		// Shader manager
-
-		ShaderManager _shaders;
-
-		std::unique_ptr<IPrimitiveBatch> _primitiveBatch;
-		std::unique_ptr<ISpriteBatch> _spriteBatch;
-
-		void ApplySMAA(IRenderSurface2D* renderTarget, RenderView& view);
-		void ApplyFXAA(IRenderSurface2D* renderTarget, RenderView& view);
-		void ApplyAntialiasing(IRenderSurface2D* renderTarget, RenderView& view);
-		void ApplyDistortion(IRenderSurface2D* renderTarget, RenderView& view);
-		void ApplyDOF(IRenderSurface2D* renderTarget, RenderView& view);
-		void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType);
-		int  BindLight(RendererLight& light, ShaderLight* lights, int index);
-		void BindRoomLights(std::vector<RendererLight*>& lights);
-		void BindInstancedStaticLights(std::vector<RendererLight*>& lights, int instanceID);
-		void BindMoveableLights(std::vector<RendererLight*>& lights, int roomNumber, int prevRoomNumber, float fade, bool shadow);
-		void BindRoomDecals(const std::vector<RendererDecal>& decals);
-		void BindRenderTargetAsTexture(TextureRegister registerType, IRenderTarget2D* target, SamplerStateRegister samplerType);
-		void BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer);
-		void BindMaterial(int materialIndex, bool force);
+		// Frame collection, lights and 2D layer helpers (RendererFrame.cpp, RendererHelper.cpp, RendererDraw.cpp, UI/).
 		void BuildHierarchy(RendererObject* obj);
 		void BuildHierarchyRecursive(RendererObject* obj, RendererBone* node, RendererBone* parentNode);
-		void UpdateAnimation(RendererObject& rendererObject, const FrameData& frame);
+		void UpdateAnimation(RendererItem* rendererItem, RendererObject& rendererObject, const FrameData& frame, int mask, bool useObjectWorldRotation = false, const MoveableAnimBlendData* blend = nullptr, const RootMotionData* rootMotionOffset = nullptr);
 		bool CheckPortal(short parentRoomNumber, RendererDoor* door, Vector4 viewPort, Vector4* clipPort, RenderView& renderView);
 		void GetVisibleRooms(short from, short to, Vector4 viewPort, bool water, int count, bool onlyRooms, RenderView& renderView);
 		void CollectMirrors(RenderView& renderView);
 		void CollectRooms(RenderView& renderView, bool onlyRooms);
 		void CollectItems(short roomNumber, RenderView& renderView);
 		void CollectStatics(short roomNumber, RenderView& renderView);
-		void CollectLights(const Vector3& pos, float radius, int roomNumber, int prevRoomNumber, bool prioritizeShadowLight, bool useCachedRoomLights, std::vector<RendererLightNode>* roomsLights, std::vector<RendererLight*>* outputLights);
+		void CollectLights(const Vector3& pos, float radius, int roomNumber, int prevRoomNumber, bool prioritizeShadowLight, bool useCachedRoomLights, std::vector<RendererLightNode>* roomsLights, std::vector<RendererLight*>* outputLights, bool isDynamicIncluded = true);
 		void CollectLightsForItem(RendererItem* item);
 		void CollectLightsForEffect(short roomNumber, RendererEffect* effect);
 		void CollectLightsForRoom(short roomNumber, RenderView& renderView);
 		void CollectLightsForCamera();
 		void CalculateLightFades(RendererItem* item);
 		void CollectDecalsForRoom(short roomNumber, RenderView& renderView);
-		void ClearShadowMap();
-		void CalculateSSAO(RenderView& view);
 		void UpdateItemAnimations(RenderView& view);
-		void InitializeScreen(int w, int h, bool reset, bool resyncWindow = true);
+		void InitializeScreen(int w, int h, bool resyncWindow = true);
 		void InitializeCommonTextures();
 		void InitializeGameBars();
 		void InitializeMenuBars(int y);
-		void InitializeSky();
 		void DrawAllStrings();
+		void GetResolvedStrings(std::vector<Backend::OverlayText>& texts);
+		const RendererSprite* GetOpticOverlaySprite() const;
+		Backend::UiFrame _uiFrame = {}; // 2D layer recorded for the scene renderer until the frame is presented.
+		void AddUiLayer(Backend::OverlayLayerType type, int first);
+		void AddUiImage(const std::string& path, const Vector2& min, const Vector2& max, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color, BlendMode blendMode);
+		void BeginUiObject(const Matrix& viewProjection, const Vector4& color, const Vector4& ambientLight, unsigned int frame, float interpolatedFrame, bool isAlphaTested);
+		void AddUiObjectMesh(const RendererMesh* mesh, const Matrix& world, const Matrix* bones = nullptr, int boneCount = 0);
+		void AddUiSkinMesh(const RendererObject& moveableObject, const RendererMesh* skinMesh, const Matrix& world);
+		void PresentFrame();
+		void UpdateFrameRate();
+		void PaceFrame();
 		void PrepareDynamicLight(RendererLight& light);
 		void PrepareLaserBarriers(RenderView& view);
 		void PrepareSingleLaserBeam(RenderView& view);
-		void DrawHorizonAndSky(IDepthTarget* depthTarget, RenderView& renderView, int arrayIndex = 0, bool reflectionPass = false);
-		void DrawHorizonAndSkyForReflections(RenderView& renderView);
-		void DrawHorizonDepth(RenderView& renderView);
-		void DrawHorizonMask(RenderView& renderView);
-		void RenderHorizonMeshLayers(RenderView& renderView);
+		float GetStarfieldAlphaScale() const;
+		RendererSpriteToDraw GetStarSprite(const TEN::Effects::Environment::StarParticle& star, const RenderView& renderView, float alphaScale);
+		RendererSpriteToDraw GetMeteorSprite(const TEN::Effects::Environment::MeteorParticle& meteor, const RenderView& renderView, float alphaScale);
+		bool GetSunSprite(const RenderView& renderView, RendererSpriteToDraw& sprite);
 
 		// Atmospheric sky dome
-		void InitializeAtmosphericSky();
 		void UpdateAtmosphericSkyBuffer(RenderView& renderView);
-		void DrawAtmosphericSkyDome(RenderView& renderView);
-		void DrawAurora(RenderView& renderView);
-		void DrawSunMoonDisc(RenderView& renderView);
 	public:
 		float ComputeDayNightBlend(float sunElevation) const;
 		float ComputeStarfieldVisibility(float sunElevation) const;
@@ -508,9 +371,7 @@ namespace TEN::Renderer
 	private:
 
 		// God rays
-		void InitializeGodRays();
 		void UpdateGodRayBuffer(RenderView& renderView);
-		void DrawGodRays(RenderView& renderView);
 	public:
 		GodRay::GodRaySettings& GetGodRaySettings() { return _godRaySettings; }
 		const GodRay::GodRaySettings& GetGodRaySettings() const { return _godRaySettings; }
@@ -518,9 +379,7 @@ namespace TEN::Renderer
 	private:
 
 		// Volumetric dust storm
-		void InitializeDustStorm();
 		void UpdateDustStormBuffer(RenderView& view);
-		void DrawDustStorm(RenderView& view);
 	public:
 		DustStorm::DustStormSettings& GetDustStormSettings() { return _dustStormSettings; }
 		const DustStorm::DustStormSettings& GetDustStormSettings() const { return _dustStormSettings; }
@@ -528,51 +387,45 @@ namespace TEN::Renderer
 
 		// Volumetric clouds
 		void InitializeVolumetricClouds();
-		void ResizeVolumetricCloudTargets();
 		void UpdateVolumetricCloudBuffer(const VolumetricCloud::CloudRenderSettings& settings,
 		                                 const VolumetricCloud::CloudRuntimeState& runtimeState,
 		                                 RenderView& view);
-		void UpdateCloudLensFlareOcclusion(RenderView& renderView);
 		void UpdateLightningThunder(const VolumetricCloud::CloudRenderSettings& settings, VolumetricCloud::CloudRuntimeState& state, float dt);
-		const VolumetricCloud::CloudRenderSettings* GetActiveVolumetricCloudSettings() const;
 	public:
-		float GetCloudLensFlareOcclusion() const;
+		float GetLensFlareCloudOcclusion() const;
+		Vector3 GetLensFlareColor(const RendererLensFlare& lensFlare, float cloudOcclusion) const;
 
-		// Diagnostic getters — used by the ImGui debug overlay to display live CB values.
+		// Diagnostic getters, used by the ImGui debug overlay to display the current cloud uniform values.
 		const ConstantBuffers::CVolumetricCloudBuffer& GetVolumetricCloudCB() const { return _stVolumetricCloud; }
 		int GetCloudFrameCounterA() const { return _cloudState.FrameCounter; }
 		int GetCloudFrameCounterB() const { return _cloudStateB.FrameCounter; }
 
-		// Dual volumetric cloud layers (new layered system).
-		void InitializeDualVolumetricClouds();
-		void ResizeDualCloudTargets();
-		void DrawDualVolumetricClouds(RenderView& renderView);
-		void DrawSingleVolumetricCloudLayer(
-			const VolumetricCloud::CloudRenderSettings& settings,
-			VolumetricCloud::CloudRuntimeState& state,
-			IRenderSurface2D* renderTarget,
-			RenderView& renderView,
-			IRenderSurface2D* prevFrameRT = nullptr,
-			bool advanceState = true,
-			bool skipRaymarch = false);
-		void UpdateDualCloudLensFlareOcclusion(RenderView& renderView);
-		float ComputeSingleLayerOcclusion(
-			const VolumetricCloud::CloudRenderSettings& settings,
-			VolumetricCloud::CloudRuntimeState& state,
-			IRenderSurface2D* occlusionTarget,
-			IRenderSurface2D* cloudColorTarget,
-			IGpuReadbackBuffer* readback,
-			RenderView& renderView);
-		void DrawRooms(RenderView& view, RendererPass rendererPass);
-		void DrawItems(RenderView& view, RendererPass rendererPass, bool onlyPlayer = false);
-		void DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass);
-		void DrawEffects(RenderView& view, RendererPass rendererPass);
-		void DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass);
+		// Sky effect state and draw records, prepared once per frame (RendererSkyEffects.cpp).
+		void PrepareSkyEffects(RenderView& view);
+		void PrepareAtmosphericSky(RenderView& view);
+		void PrepareCloudLayers(RenderView& view);
+		bool PrepareCloudLayer(const VolumetricCloud::CloudRenderSettings& settings, VolumetricCloud::CloudRuntimeState& state, int layer, RenderView& view, bool isBleed);
+		void AdvanceCloudLayer(const VolumetricCloud::CloudRenderSettings& settings, VolumetricCloud::CloudRuntimeState& state);
+		void UpdateCloudOcclusion(int layer, VolumetricCloud::CloudRuntimeState& state, Backend::CloudLayerDraw& draw);
+		void PrepareHorizonLayers(RenderView& view);
+		void GetHorizonMeshHeightRange(int layer, const RenderView& view, float& yMin, float& yRange);
+		void PrepareCloudBleed(RenderView& view);
+		void PrepareGodRays(RenderView& view);
+		bool AreGodRaysEnabled();
+		void PrepareDustStorm(RenderView& view);
+		bool IsSkyboxVisible(const RenderView& view) const;
+		bool IsHorizonLayerDrawn(int layer);
+		Matrix GetHorizonWorldMatrix(int layer, const RenderView& view);
+
+		// Sorted face collection (RendererDraw.cpp, RendererLara.cpp, RendererDrawEffect.cpp, RendererSorted.cpp),
+		// effect sprite preparation (RendererDrawEffect.cpp) and 2D layer recording (UI/).
+		void CollectSortedRoomFaces(RenderView& view);
+		void CollectSortedItemFaces(RenderView& view);
+		void CollectSortedMoveableFaces(RendererItem* item, RenderView& view);
+		void CollectSortedEffectFaces(RenderView& view);
 		void CollectEffect(int itemNumber, RendererRoom& room);
-		void DrawWaterfalls(RendererItem* item, RenderView& view, float speed, RendererPass rendererPass);
-		void DrawBaddyGunflashes(RenderView& view);
-		void DrawStatics(RenderView& view, RendererPass rendererPass);
-		void DrawLara(RenderView& view, RendererPass rendererPass);
+		void CollectSortedStaticFaces(RenderView& view);
+		void CollectSortedPlayerFaces(RenderView& view);
 		void PrepareFires(RenderView& view);
 		void PrepareParticles(RenderView& view);
 		void PrepareSmokes(RenderView& view);
@@ -583,60 +436,39 @@ namespace TEN::Renderer
 		void PrepareWeatherParticles(RenderView& view);
 		void PrepareDrips(RenderView& view);
 		void PrepareBubbles(RenderView& view);
-		void DoRenderPass(RendererPass pass, RenderView& view, bool drawMirrors);
-		void DrawObjects(RendererPass pass, RenderView& view, bool player, bool moveables, bool statics, bool sprites);
+		void CollectSortedFaces(RenderView& view);
 		void PrepareSplashes(RenderView& view);
-		void DrawSprites(RenderView& view, RendererPass rendererPass);
 		void DrawDisplaySprites(RenderView& view, bool negativePriority);
 		void DrawDisplayItems();
-		void DrawSortedFaces(RenderView& view);
-		void DrawSingleSprite(RendererSortableObject* object, RendererObjectType lastObjectType, RenderView& view);
-		void DrawRoomSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
-		void DrawItemSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
-		void DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
-		void DrawSpriteSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseVertex, int count);
-		void DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
-		void DrawEffectSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
-		void DrawHairSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int index, int baseIndex, int count);
-		void DrawLines2D();
-		void DrawLines3D(RenderView& view);
-		void DrawTriangles3D(RenderView& view);
 		void DrawOverlays(RenderView& view);
 		void PrepareRopes(RenderView& view);
-		void DrawFishSwarm(RenderView& view, RendererPass rendererPass);
-		void DrawBats(RenderView& view, RendererPass rendererPass);
-		void DrawRats(RenderView& view, RendererPass rendererPass);
-		void DrawScarabs(RenderView& view, RendererPass rendererPass);
-		void DrawTr3Bats(RenderView& view, RendererPass rendererPass);
-		void DrawSpiders(RenderView& view, RendererPass rendererPass);
-		bool DrawGunFlashes(RenderView& view);
-		void DrawGunShells(RenderView& view, RendererPass rendererPass);
-		void DrawLocusts(RenderView& view, RendererPass rendererPass);
+		void CollectSortedFishFaces(RenderView& view);
+		void CollectSortedBatFaces(RenderView& view);
+		void CollectSortedRatFaces(RenderView& view);
+		void CollectSortedScarabFaces(RenderView& view);
+		void CollectSortedLocustFaces(RenderView& view);
 		void DrawStatistics();
 		void DrawExamines();
-		void DrawDebris(RenderView& view, RendererPass rendererPass);
-		void DrawFullScreenImage(ITextureBase* texture, float fade, IRenderTarget2D* target,
-			IDepthTarget* depthTarget);
+		void DrawFullScreenImage(const RendererImage& image, float fade);
 		void PrepareShockwaves(RenderView& view);
 		void PrepareRipples(RenderView& view);
 		void PrepareUnderwaterBloodParticles(RenderView& view);
-		void DrawFullScreenQuad(ITextureBase* texture, Vector3 color, bool fit = true, float customAspect = 0.0f);
-		void DrawFullScreenSprite(RendererSprite* sprite, TEN::Math::Library::Vector3 color, bool fit = true);
+		void DrawFullScreenQuad(const RendererImage& image, Vector3 color, bool fit = true, float customAspect = 0.0f);
 		void PrepareSmokeParticles(RenderView& view);
 		void PrepareSparkParticles(RenderView& view);
 		void PrepareExplosionParticles(RenderView& view);
-		void DrawLaraHolsters(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass);
-		void DrawLaraJoints(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass);
-		void DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass);
-		void DrawMesh(RendererItem* itemToDraw, RendererMesh* mesh, RendererObjectType type, int boneIndex, bool skinned, RenderView& view, RendererPass rendererPass);
+		void CollectSortedPlayerHolsterFaces(RendererItem* itemToDraw, RendererRoom* room, RenderView& view);
+		void CollectSortedPlayerJointFaces(RendererItem* itemToDraw, RendererRoom* room, RenderView& view);
+		void CollectSortedPlayerHairFaces(RendererItem* itemToDraw, RendererRoom* room, RenderView& view);
+		void CollectSortedMeshFaces(RendererItem* itemToDraw, RendererMesh* mesh, RendererObjectType type, int boneIndex, bool skinned, RenderView& view);
 		void PrepareSimpleParticles(RenderView& view);
 		void PrepareParticleGroups(RenderView& view);
-		void DrawParticleGroupMeshes(RenderView& view, RendererPass rendererPass);
+		void CollectSortedParticleGroupFaces(RenderView& view);
 		void PrepareStreamers(RenderView& view);
 		void PrepareFootprints(RenderView& view);
 		void DrawLoadingBar(float percent);
-		void DrawPostprocess(IRenderSurface2D* renderTarget, RenderView& view, SceneRenderMode renderMode);
-		void RenderInventoryScene(IRenderSurface2D* renderTarget, ITextureBase* background, float backgroundFade);
+		void RenderInventoryScene(float backgroundFade);
+		void AddTitleLogo();
 		void RenderTitleMenu(Menu menu);
 		void RenderPauseMenu(Menu menu);
 		void RenderLoadSaveMenu();
@@ -644,54 +476,23 @@ namespace TEN::Renderer
 		void RenderOptionsMenu(Menu menu, int initialY);
 		void RenderNewInventory();
 		void RenderBlobShadows(RenderView& renderView);
-		void RenderShadowMap(RendererItem* item, RenderView& view);
-		void RenderItemShadows(RenderView& renderView);
-		void SetBlendMode(BlendMode blendMode, bool force = false);
-		void SetDepthState(DepthState depthState, bool force = false);
-		void SetCullMode(CullMode cullMode, bool force = false);
-		void SetAlphaTest(AlphaTestMode mode, float threshold, bool force = false);
-		void SetScissor(RendererRectangle rectangle);
-		bool SetupBlendModeAndAlphaTest(BlendMode blendMode, RendererPass rendererPass, int drawPass);
-        void InvalidatePerDrawBuffer();
-        void FlushPerDrawBuffer();
-        void BeginPrimitiveBatch();
-        void EndPrimitiveBatch();
-        static bool IsBlendModeSupported(BlendMode blendMode, RendererPass rendererPass);
-        static bool HasMeshForPass(const RendererMesh& mesh, RendererPass rendererPass, float alpha = 1.0f);
-        bool HasItemForPass(RendererItem& item, RendererObject& object, RendererPass rendererPass);
 		void SortAndPrepareSprites(RenderView& view);
 		void SortTransparentFaces(RenderView& view);
 		void CollectSortedBucket(RenderView& view, const RendererSortableObject& object, const Matrix* world, const Vector3& cameraPosition);
 		void CollectSortedSprite(RenderView& view, const RendererSortableObject& object, int distance);
 		void ResetItems();
-		void ResetScissor();
 		void ResetDebugVariables();
-		bool HasDebugOverlayContent() const;
-		void DrawDebugPages();
-		void DrawDebugMessages();
-		void DrawDebugLabels();
-		void DrawRendererStatsPage();
-		void DrawMemoryStatsPage();
-		void DrawDimensionStatsPage();
-		void DrawPlayerStatsPage();
-		void DrawInputStatsPage();
-		void DrawCollisionStatsPage();
-		void DrawPathfindingStatsPage();
-		void DrawPortalStatsPage();
 		void CollectFrameStats(const RenderView& view);
-		void RecordFrameStats(steady_clock::time_point renderStartTime, steady_clock::time_point presentStartTime);
+		void FillBenchmarkPassTimes(const Backend::SceneFrameStats& stats);
+		void RecordBenchmarkFrame(std::chrono::steady_clock::time_point renderStartTime, std::chrono::steady_clock::time_point presentStartTime);
 		float CalculateFrameRate();
 		void InterpolateCamera(float interpFactor);
-		void CopyRenderTarget(IRenderSurface2D* source, IRenderSurface2D* dest, RenderView& view);
-		void CopyRenderTargetAndDownscale(IRenderSurface2D* source, IRenderSurface2D* dest, float factor, RenderView& view);
-		void BindBucketTextures(const RendererBucket& bucket, TextureSource textureSource, bool animated);
-		void BindAtlasTextures(const RendererBucket& bucket, TextureSource textureSource);
-		void PackSpriteTextureCoordinates(int instanceId, RendererSprite* sprite);
-		void ApplyGlow(IRenderSurface2D* renderTarget, RenderView& view);
 
+		// Level load helpers (RendererCompatibility.cpp).
 		void ProcessSkinJoints(RendererObject& jointsMoveable, RendererObject& skinMoveable, ObjectInfo& jointsObj);
-		void Renderer::ProcessHair(GAME_OBJECT_ID hairID, RendererObject& skinMoveable, bool isSecond);
+		void ProcessHair(GAME_OBJECT_ID hairID, RendererObject& skinMoveable, bool isSecond);
 
+		// Sprite and quad records added to the view (RendererSprites.cpp).
 		void AddSpriteBillboard(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D, float scale,
 			Vector2 size, BlendMode blendMode, bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
 		void AddSpriteBillboardConstrained(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D,
@@ -715,90 +516,15 @@ namespace TEN::Renderer
 			const Vector4& color0, const Vector4& color1, const Vector4& color2, const Vector4& color3,
 			BlendMode blendMode, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
 
-		Matrix GetWorldMatrixForSprite(const RendererSpriteToDraw& sprite, RenderView& view);
+		// Object, mesh and blend mode helpers.
 		Matrix GetWorldMatrixForMoveable(const ItemInfo& item, Matrix* rotationMatrix = nullptr, Matrix* translationMatrix = nullptr) const;
 		RendererObject& GetRendererObject(GAME_OBJECT_ID id);
 		RendererMesh* GetMesh(int meshIndex);
 		void BackupObjectVertices(GAME_OBJECT_ID objectID);
 		void RestoreObjectVertices(GAME_OBJECT_ID objectID);
-		Vector4 GetPortalRect(Vector4 v, Vector4 vp);
-		bool SphereBoxIntersection(BoundingBox box, Vector3 sphereCentre, float sphereRadius);
-		void InitializeSpriteQuad();
-		void InitializePostProcess();
-		void CreateSSAONoiseTexture();
-		void InitializeSMAA();
-		void SetupAnimatedTextures(const RendererBucket& bucket);
-		std::unique_ptr<ITexture2D> CreateDefaultTexture(std::vector<unsigned char> color);
-		std::optional<Vector2> ProjectDisplayItemPointToScreen(const Vector3& worldPos) const;
 		bool IsRoomReflected(RenderView& renderView, int roomNumber);
 
-		inline bool IgnoreReflectionPassForRoom(int roomNumber)
-		{
-			return (_currentMirror != nullptr && roomNumber != _currentMirror->RoomNumber);
-		}
-
-		inline void ReflectVectorOptionally(Vector3& vector)
-		{
-			if (_currentMirror == nullptr)
-				return;
-
-			vector = Vector3::Transform(vector, _currentMirror->ReflectionMatrix);
-		}
-
-		inline void ReflectMatrixOptionally(Matrix& matrix)
-		{
-			if (_currentMirror == nullptr)
-				return;
-
-			matrix = matrix * _currentMirror->ReflectionMatrix;
-		}
-
-		inline void DrawIndexedTriangles(int count, int baseIndex, int baseVertex)
-		{
-            FlushPerDrawBuffer();
-			_graphicsDevice->DrawIndexedTriangles(count, baseIndex, baseVertex);
-			_numTriangles += count / 3;
-			_numDrawCalls++;
-		}
-
-		inline void DrawIndexedInstancedTriangles(int count, int instances, int baseIndex, int baseVertex)
-		{
-            FlushPerDrawBuffer();
-			_graphicsDevice->DrawIndexedInstancedTriangles(count, instances, baseIndex, baseVertex);
-			_numTriangles += (count / 3 * instances) * (count % 4 == 0 ? 2 : 1);
-			_numDrawCalls++;
-		}
-
-		inline void DrawInstancedTriangles(int count, int instances, int baseVertex)
-		{
-            FlushPerDrawBuffer();
-			_graphicsDevice->DrawInstancedTriangles(count, instances, baseVertex);
-			_numTriangles += (count / 3 * instances) * (count % 4 == 0 ? 2 : 1);
-			_numDrawCalls++;
-		}
-
-		inline void DrawTriangles(int count, int baseVertex)
-		{
-            FlushPerDrawBuffer();
-			_graphicsDevice->DrawTriangles(count, baseVertex);
-			_numTriangles += count / 3;
-			_numDrawCalls++;
-		}
-
-        template <typename CBuff>
-        inline void UpdateConstantBuffer(CBuff* data, IConstantBuffer* cb, int size = 0) noexcept
-		{
-			_graphicsDevice->UpdateConstantBuffer(cb, data, size);
-			_numConstantBufferUpdates++;
-            _numConstantBufferBytes += (size > 0 && size < (int)sizeof(CBuff)) ? size : (int)sizeof(CBuff);
-		}
-
-		template <typename CBuff>
-		std::unique_ptr<IConstantBuffer> CreateConstantBuffer()
-		{
-			return std::move(_graphicsDevice->CreateConstantBuffer(sizeof(CBuff), "")); //typeid(CBuff).name()
-		}
-
+		// Blend modes whose faces are depth sorted with the transparent faces instead of drawn in batches.
 		static inline bool IsSortedBlendMode(BlendMode blendMode)
 		{
 			return !(blendMode == BlendMode::Opaque ||
@@ -808,6 +534,7 @@ namespace TEN::Renderer
 				blendMode == BlendMode::FastAlphaBlend);
 		}
 
+		// Opaque, alpha tested and fast alpha blended faces of a translucent object become alpha blended.
 		static inline BlendMode GetBlendModeFromAlpha(BlendMode blendMode, float alpha)
 		{
 			if (alpha < ALPHA_BLEND_THRESHOLD &&
@@ -824,19 +551,6 @@ namespace TEN::Renderer
 			return _staticObjects[Statics.GetIndex(objectNumber)].value();
 		}
 
-		inline void TexturesAreNotAnimated()
-		{
-			if (_stPerDraw.Animated == 0)
-				return;
-			_stPerDraw.Animated = 0;
-            InvalidatePerDrawBuffer();
-		}
-
-		static inline bool IsWaterfall(short objectNumber)
-		{
-			return (objectNumber >= ID_WATERFALL1 && objectNumber <= ID_WATERFALLSS2);
-		}
-
 		static inline unsigned int PackEffectsAndIndexInPoly(Vector3 effects, float sheen, int indexInPoly)
 		{
 			// Clamp values to 254 (UCHAR_MAX - 1) to avoid overflow during back conversion in shaders.
@@ -851,6 +565,7 @@ namespace TEN::Renderer
 			return packed;
 		}
 
+		// Vertex packing helpers used when building level geometry.
 		static inline unsigned int PackVector3(Vector3 n)
 		{
 			if (n.Length() > EPSILON)
@@ -867,7 +582,7 @@ namespace TEN::Renderer
 			const unsigned char Z = (unsigned char)(ToS8(n.z));
 			const unsigned char W = (unsigned char)(ToS8(0.0f));
 
-			// Little-endian: memoria [R][G][B][A], come DXGI_FORMAT_R8G8B8A8_SNORM
+			// Little-endian byte order X, Y, Z, W, read by the GPU as an RGBA8 signed normalized attribute.
 			return (unsigned int)X | ((unsigned int)Y << 8) | ((unsigned int)Z << 16) | ((unsigned int)W << 24);
 		}
 
@@ -886,27 +601,29 @@ namespace TEN::Renderer
 		}
 
 	public:
+		// Public API used by the game code.
 		Renderer();
 		~Renderer();
 
 		RendererMesh* GetRendererMeshFromTrMesh(RendererObject* obj, MESH* meshPtr, short boneIndex, int isJoints, int isHairs, int* lastVertex, int* lastIndex);
 		void DrawBar(float percent, const RendererHudBar& bar, GAME_OBJECT_ID textureSlot, int frame, bool poison);
-		void Create();
 		void Initialize(const std::string& gameDir, int w, int h, bool windowed);
 
-		// Backend escape hatch — used by ImGui DX11 init. Returns the underlying
-		// IGraphicsDevice; callers must downcast to the concrete backend type.
-		IGraphicsDevice* GetGraphicsDevice() const { return _graphicsDevice.get(); }
-		void ReloadShaders(bool recompileAAShaders = false);
+		// Frame and scene flow.
+		void ReloadShaders();
+		bool IsVideoSpriteActive() const;
 		void Render(float interpFactor);
 		void RenderTitle(float interpFactor);
 		void Lock();
 		bool PrepareDataForTheRenderer();
 		void UpdateCameraMatrices(CAMERA_INFO* cam, float farView);
-		void RenderSimpleSceneToParaboloid(IRenderTarget2D* renderTarget, Vector3 position, int hemisphere);
 		void DumpGameScene(SceneRenderMode renderMode = SceneRenderMode::Full, float blur = 0.0f);
 		void RenderInventory();
-		void RenderScene(IRenderSurface2D* renderTarget, RenderView& view, SceneRenderMode renderMode = SceneRenderMode::Full);
+		void CaptureMenuScreenshot();
+		void RenderScene(RenderView& view, SceneRenderMode renderMode = SceneRenderMode::Full);
+		void PrepareSceneSprites(RenderView& view);
+		void CollectHud(RenderView& view, SceneRenderMode renderMode);
+		void SubmitFrame(RenderView& view);
 		void PrepareScene();
 		void ClearScene();
 		void DrawDisplayPickup(const DisplayPickup& pickup);
@@ -922,9 +639,9 @@ namespace TEN::Renderer
 		void AddDynamicSpotLight(const Vector3& pos, const Vector3& dir, float radius, float falloff, float distance, const Color& color, bool castShadows, int hash = 0);
 		void RenderLoadingScreen(float percentage);
 		void RenderFreezeMode(float interpFactor, bool staticBackground);
-		void RenderFullScreenTexture(ITextureBase* texture, float aspect);
-		void UpdateVideoTexture(ITexture2D* texture);
-		void ClearVideoTexture();
+		void RenderVideoFrame(float aspect);
+		void UpdateVideoSprite(int width, int height);
+		void ClearVideoSprite();
 		void UpdateProgress(float value);
 		void UpdatePlayerSkinVertices(GAME_OBJECT_ID skinID, GAME_OBJECT_ID skinJointsID, GAME_OBJECT_ID hairPrimaryID, GAME_OBJECT_ID hairSecondaryID);
 		void ToggleFullScreen(bool force = false);
@@ -932,8 +649,7 @@ namespace TEN::Renderer
 		bool IsFullScreen();
 		void RenderTitleImage();
 
-		void AddLine2D(const Vector2& origin, const Vector2& target, const Color& color, RendererDebugPage page = RendererDebugPage::None);
-
+		// Debug primitives and messages, shown in debug mode.
 		void AddDebugLine(const Vector3& origin, const Vector3& target, const Color& color, RendererDebugPage page = RendererDebugPage::None);
 		void AddDebugTriangle(const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Color& color, RendererDebugPage page = RendererDebugPage::None);
 		void AddDebugTarget(const Vector3& center, const Quaternion& orient, float radius, const Color& color, RendererDebugPage page = RendererDebugPage::None);
@@ -949,38 +665,40 @@ namespace TEN::Renderer
 		void PrintDebugMessage(const char* msg, va_list args);
 		void PrintDebugMessage(const char* msg, ...);
 		void DrawDebugInfo(RenderView& view);
-		void DrawDebugRenderTargets(RenderView& view);
-		void SwitchDebugPage(bool goBack);
-		RendererDebugPage GetCurrentDebugPage();
+		void SwitchDebugPage(bool goBack, bool byGroup = false);
 
+		// Screen, animation, bone and display item queries.
 		void ChangeScreenResolution(int width, int height, bool windowed, bool resyncWindow = true);
 		void FlipRooms(short roomNumber1, short roomNumber2);
-		void UpdateRoomCrossReferences(short roomNumber);
 		void UpdateLaraAnimations(bool force);
 		void UpdateItemAnimations(int itemNumber, bool force);
 		std::vector<BoundingSphere> GetSpheres(int itemNumber);
+		int GetSpheres(int itemNumber, BoundingSphere* spheres, int maxCount);
+		void GetBoneMatrix(short itemNumber, int jointIndex, Matrix* outMatrix);
 		SkinningMode GetSkinningMode(const RendererObject& obj, int skinIndex);
 		void DrawObjectIn2DSpace(int objectNumber, Vector2 pos2D, EulerAngles orient, float scale1, float opacity = 1.0f, int meshBits = NO_JOINT_BITS);
 		void DrawObjectIn3DSpace(const DisplayItem& item);
 		void SetLoadingScreen(const std::string& fileName);
-		std::unique_ptr<ITexture2D> SetTextureOrDefault(std::string path);
-		std::string GetDefaultAdapterName();
+		RendererImage LoadImage(const std::string& path);
 		std::string SaveScreenshot();
-		const AdapterInfo& GetAdapterInfo() const;
 		void SaveOldState();
 
 		float						GetFramerateMultiplier() const;
+		float						GetFrameRate() const;
 		float						GetInterpolationFactor(bool forceRawValue = false) const;
 		Vector2i					GetScreenResolution() const;
 		int							GetScreenRefreshRate() const;
 		std::optional<Vector2>		Get2DPosition(const Vector3& pos) const;
 		std::pair<Vector3, Vector3> GetRay(const Vector2& pos) const;
 		std::optional<std::pair<Vector2, Vector2>> GetDisplayItemBounds(const DisplayItem& item) const;
+		Vector3	   GetMoveableBonePosition(int itemNumber, int boneID, const Vector3& relOffset = Vector3::Zero);
+		Quaternion GetMoveableBoneOrientation(int itemNumber, int boneID);
 
 		void AddDisplaySprite(const RendererSprite& sprite, const Vector2& pos2D, short orient, const Vector2& size, const Vector4& color,
 			int priority, BlendMode blendMode, const Vector2& aspectCorrection, RenderView& renderView);
 		void CollectDisplaySprites(RenderView& renderView);
 
+		// Post-process and depth of field settings.
 		PostProcessMode	GetPostProcessMode();
 		void			SetPostProcessMode(PostProcessMode mode);
 		float			GetPostProcessStrength();
@@ -995,7 +713,13 @@ namespace TEN::Renderer
 		void UpdateDumpScreenRenderTarget();
 
 		RendererDebugPage GetDebugPage() const;
+		void TogglePerformanceOverlay();
+		bool IsDebugOverlayVisible() const;
 	};
 
 	extern Renderer g_Renderer;
 }
+
+// Game code refers to the renderer and its structures without namespaces.
+using namespace TEN::Renderer;
+using namespace TEN::Renderer::Structures;

@@ -1,224 +1,241 @@
-#include "./CBCamera.hlsli"
-#include "./CBRoom.hlsli"
-#include "./VertexInput.hlsli"
-#include "./VertexEffects.hlsli"
-#include "./Blending.hlsli"
-#include "./Math.hlsli"
-#include "./AnimatedTextures.hlsli"
-#include "./Shadows.hlsli"
-#include "./ShaderLight.hlsli"
+// TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=4
+// TEN_SHADER: Pixel PS samplers=9 storage_textures=0 storage_buffers=4 uniform_buffers=3 options=NO_ALPHA_TEST,NO_NORMAL_MAP,NO_ORSH_MAP,NO_EMISSIVE_MAP
+// TEN_SHADER: Pixel PSDepthNormal samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 options=NO_ALPHA_TEST,NO_NORMAL_MAP,NO_ORSH_MAP,NO_EMISSIVE_MAP
+// TEN_SHADER: Vertex VSVelocity samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=4
+// TEN_SHADER: Pixel PSDepthNormalVelocity samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 options=NO_ALPHA_TEST,NO_NORMAL_MAP,NO_ORSH_MAP,NO_EMISSIVE_MAP
+
+// Room geometry: baked vertex lighting plus the room's dynamic lights with specular, material maps (normal,
+// ORSH, emissive, parallax), animated textures, vertex effects, water refraction and distance fog.
+// Screen space ambient occlusion comes from the prepass (PSDepthNormal); shadows from the cube shadow map and
+// blob spheres; fog bulbs per vertex; caustics in water rooms; decals; screen and sky reflections of reflective
+// materials. Room lights are culled per pixel by the light clusters. PSDepthNormal writes the prepass targets.
+
+#include "./ShaderInterop.hlsli"
+#include "./Common.hlsli"
+#include "./FrameUniforms.hlsli"
+#include "./Lighting.hlsli"
 #include "./Materials.hlsli"
+#include "./Shadows.hlsli"
+#include "./FogBulbs.hlsli"
+#include "./Decals.hlsli"
 
-// This value is here for historic reasons, dynamic lights were 0.3 less powerful for rooms
-#define ROOM_LIGHT_COEFF 0.7f
+TEN_VS_RAW_BUFFER(GpuAnimatedFrame, AnimatedFrames, 0);
+TEN_VS_RAW_BUFFER(GpuAnimatedSet, AnimatedSets, 1);
 
-struct PixelShaderInput
+TEN_PS_RAW_BUFFER(GpuLight, Lights, 9);
+TEN_PS_RAW_BUFFER(uint2, LightClusters, 12);
+
+#include "./LightClusters.hlsli"
+
+struct VertexInput
 {
-	float4 Position: SV_POSITION;
-	float3 WorldPosition: POSITION0;
-	float3 Normal: NORMAL;
-	float2 UV: TEXCOORD0;
-	float4 Color: COLOR;
-	float Sheen : SHEEN;
-	float4 PositionCopy : TEXCOORD1;
-	float4 FogBulbs : TEXCOORD2;
-	float DistanceFog : FOG;
-	float3 Tangent: TANGENT;
-    float3 Binormal : BINORMAL;
-    float3 FaceNormal : TEXCOORD3;
+    TEN_LOCATION(0) float3 Position      : TEXCOORD0;
+    TEN_LOCATION(1) float2 UV            : TEXCOORD1;
+    TEN_LOCATION(2) float4 Color         : TEXCOORD2;
+    TEN_LOCATION(3) uint   Effects       : TEXCOORD3;
+    TEN_LOCATION(4) uint   AnimationData : TEXCOORD4;
+    TEN_LOCATION(5) float4 Normal        : TEXCOORD5;
+    TEN_LOCATION(6) float4 Tangent       : TEXCOORD6;
+    TEN_LOCATION(7) float4 FaceNormal    : TEXCOORD7;
 };
 
-Texture2D Texture : register(t0);
-Texture2D NormalTexture : register(t1);
-Texture2D CausticsTexture : register(t2);
-
-struct PixelShaderOutput
+struct PixelInput
 {
-	float4 Color: SV_TARGET0;
+    float4 Position                 : SV_POSITION;
+    float2 UV                       : TEXCOORD0;
+    float4 Color                    : TEXCOORD1;
+    float  Fog                      : TEXCOORD2;
+    nointerpolation float3 UVScroll : TEXCOORD3;
+    float3 WorldPosition            : TEXCOORD4;
+    float3 Normal                   : TEXCOORD5;
+    float3 Tangent                  : TEXCOORD6;
+    float3 Binormal                 : TEXCOORD7;
+    float3 FaceNormal               : TEXCOORD8;
+    float4 FogBulbs                 : TEXCOORD9;
 };
 
-PixelShaderInput VS(VertexShaderInput input)
+PixelInput VS(VertexInput input)
 {
-	PixelShaderInput output;
-
-	// Setting effect weight on TE side prevents portal vertices from moving.
-	// Here we just read weight and decide if we should apply refraction or movement effect.
+    // The weight bit keeps portal vertices still and enables refraction.
     float weight = DecodeWeight(input.Effects);
+    float wibble = Wibble(input.Effects, DecodeHash(input.AnimationData), InterpolatedFrame);
+    float3 position = Move(input.Position, (weight > 0.0f) ? input.Effects : 0, wibble);
 
-	// Calculate vertex effects
-	float wibble = Wibble(input.Effects, DecodeHash(input.AnimationFrameOffsetIndexHash));
-	float waterDepthFactor = Water && WaterEffectStrength > 0.0f ?
-		GetWaterEffectDepthFactor(input.Position, CamPositionWS.xyz, WaterEffectDepth) : 0.0f;
-	float moveStrength = Water ? waterDepthFactor * WaterEffectStrength : 1.0f;
-	float3 pos = Move(input.Position, input.Effects * weight, wibble * moveStrength);
-	float3 col = Glow(input.Color.xyz, input.Effects, wibble);
-
-	// Refraction
-	float4 screenPos = mul(float4(pos, 1.0f), ViewProjection);
-
-	if (CameraUnderwater != Water && WaterEffectStrength > 0.0f)
-	{
-		float depthAttenuation = CameraUnderwater ? 1.0f : smoothstep(0.0f, 1.0f,
-			GetWaterEffectDepthFactor(pos, CamPositionWS.xyz, WaterEffectDepth));
-		float attenuation = depthAttenuation * WaterEffectStrength;
-		float factor = InterpolatedFrame + (pos.x + pos.z) * 0.2f;
-		float xOffset = (sin(factor * PI / 20.0f)) * (screenPos.z / 1024.0f) * 3.0f * attenuation;
-		float yOffset = (cos(factor * PI / 20.0f)) * (screenPos.z / 1024.0f) * 3.0f * attenuation;
-		screenPos.x += xOffset * weight;
-		screenPos.y += yOffset * weight;
-	}
-	
-	output.Position = screenPos;
-    output.Normal = input.Normal.xyz;
-    output.Color = float4(col, input.Color.w);
-	output.PositionCopy = screenPos;
-    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
-	output.WorldPosition = pos;
-    output.Tangent = input.Tangent.xyz;
-    output.Binormal = cross(input.Normal.xyz, input.Tangent.xyz);
-    output.FaceNormal = input.FaceNormal;
-	
-	output.FogBulbs = DoFogBulbsForVertex(output.WorldPosition);
-	output.DistanceFog = DoDistanceFogForVertex(output.WorldPosition);
-
-	return output;
-}
-
-PixelShaderOutput PS(PixelShaderInput input)
-{
-	PixelShaderOutput output;
-	
-    input.UV = ConvertAnimUV(input.UV);
-   
-    // Apply parallax mapping
-    float3x3 TBNf = float3x3(input.Tangent, input.Binormal, input.FaceNormal);
-    input.UV = ParallaxOcclusionMapping(TBNf, input.WorldPosition, input.UV);                	  
-
-    output.Color = Texture.Sample(AnisotropicClampSampler, input.UV);
-    DoAlphaTest(output.Color);
-
-	float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(AnisotropicClampSampler, input.UV));
-    float ambientOcclusion = ORSH.x;
-    float roughness = ORSH.y;
-    float specular = ORSH.z;
-
-	float3 emissive = EmissiveTexture.Sample(AnisotropicClampSampler, input.UV).xyz * GetEmissiveIntensity();
-	
-    float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
-	float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(AnisotropicClampSampler, input.UV)));
-    normal = EnsureNormal(mul(normal, TBN), input.WorldPosition);
-
-    // Material effects
-	float3 blendedNormal = normalize(lerp(input.FaceNormal, normal, 0.1f)); // TODO: Make alpha customizable
-    output.Color.xyz = CalculateReflections(input.WorldPosition, output.Color.xyz, blendedNormal, specular);
-
-	// Ambient occlusion
-    float occlusion = CalculateOcclusion(GetSamplePosition(input.PositionCopy), output.Color.w);
-    occlusion *= ambientOcclusion;
-
-    float3 lighting = ModulateColor(input.Color.xyz);
-	
-	// Shadows
-	lighting = DoShadow(input.WorldPosition, normal, lighting, -2.5f);
-	lighting = DoBlobShadows(input.WorldPosition, lighting);
-
-	bool onlyPointLights = (NumRoomLights & ~LT_MASK) == LT_MASK_POINT;
-	int numLights = NumRoomLights & LT_MASK;
-
-	for (int i = 0; i < numLights; i++)
-	{
-		if (onlyPointLights)
-		{
-			lighting += ModulateColor(DoPointLight(input.WorldPosition, normal, RoomLights[i])) * ROOM_LIGHT_COEFF;
-			lighting += ModulateColor(DoSpecularPoint(input.WorldPosition, normal, RoomLights[i], 0.0f, specular, roughness));
-		}
-		else
-		{
-			// Room dynamic lights can only be spot or point, so we use simplified function for that.
-
-			float isPoint = step(0.5f, RoomLights[i].Type == LT_POINT);
-			float isSpot  = step(0.5f, RoomLights[i].Type == LT_SPOT);
-
-			float3 pointLight = float3(0.0f, 0.0f, 0.0f);
-			float3 spotLight  = float3(0.0f, 0.0f, 0.0f);
-			DoPointAndSpotLight(input.WorldPosition, normal, RoomLights[i], specular, roughness, pointLight, spotLight);
-
-			lighting += ModulateColor(pointLight) * isPoint * ROOM_LIGHT_COEFF + ModulateColor(spotLight) * isSpot * ROOM_LIGHT_COEFF;
-		}
-	}
-
-	// Decals
-	if (!Animated && NumRoomDecals > 0 && !(MaterialTypeAndFlags & MATERIAL_FLAG_HEIGHTMAP))
-	{
-		float decalMask = 0.0f;
-
-		for (int i = 0; i < NumRoomDecals; i++)
-		{
-			float radius   = RoomDecals[i].Radius;
-			float3 pos     = input.WorldPosition - RoomDecals[i].Position;
-			float distance = length(pos);
-
-			if (distance > radius * 1.3f)
-				continue;
-				
-			float2 uv = float2(dot(pos, input.Tangent), dot(pos, input.Binormal));
-			uv *= (8.0f / (RoomDecals[i].Pattern + 1) * 2.0f / radius);
-
-			float noiseVal = NebularNoise(uv, 1, 0.5f, 0.3f);
-
-			float noisyRadius = radius * (1.0f + 0.25f * (noiseVal * 2.0f - 1.0f));
-			float holeRadius = radius / 4.0f;
-
-			float edge = saturate((noisyRadius - distance) / noisyRadius);
-			float fade = saturate((radius - distance) / radius);
-			float hole = saturate((holeRadius - distance) / (holeRadius * 1.3f)) * (1 - RoomDecals[i].Pattern);
-
-			decalMask = max(decalMask, (edge * fade + hole) * RoomDecals[i].Opacity);
-		}
-
-		lighting *= (1.0 - decalMask);
-	}
-
-	// Caustics
-    if (Caustics)
+    float4 clipPosition = mul(float4(position, 1.0f), ViewProjection);
+    // Water refraction: rooms on the other side of the water surface wobble in clip space, more with distance.
+    if (CameraUnderwater != IsWaterRoom)
     {
-        float attenuation = saturate(dot(float3(0.0f, -1.0f, 0.0f), normal));
-
-        float3 blending = abs(normal);
-        blending = normalize(max(blending, 0.00001f));
-        float b = (blending.x + blending.y + blending.z);
-        blending /= float3(b, b, b);
-
-        float3 p = frac(input.WorldPosition.xyz / 2048.0f);
-	
-		float2 uv_x = CausticsStartUV + float2(p.z, p.y) * CausticsSize;
-        float2 uv_y = CausticsStartUV + float2(p.z, p.x) * CausticsSize;
-        float2 uv_z = CausticsStartUV + float2(p.y, p.x) * CausticsSize;
-
-		float3 xaxis = CausticsTexture.SampleLevel(AnisotropicClampSampler, uv_x, 0).xyz;
-		float3 yaxis = CausticsTexture.SampleLevel(AnisotropicClampSampler, uv_y, 0).xyz;
-		float3 zaxis = CausticsTexture.SampleLevel(AnisotropicClampSampler, uv_z, 0).xyz;
-
-        float3 xc = xaxis * blending.x;
-        float3 yc = yaxis * blending.y;
-        float3 zc = zaxis * blending.z;
-
-        float3 caustics = xc + yc + zc;
-
-        lighting += (caustics * attenuation * 2.0f);
+        float factor = (InterpolatedFrame + (position.x + position.z) * 0.2f) * 3.14159265359f / 20.0f;
+        clipPosition.x += sin(factor) * (clipPosition.z / 1024.0f) * 3.0f * weight;
+        clipPosition.y += cos(factor) * (clipPosition.z / 1024.0f) * 3.0f * weight;
     }
 
-	// Emissive materials
-    lighting += emissive;
-		
-	// Fog bulbs and final color and light mixing
-	lighting -= float3(input.FogBulbs.w, input.FogBulbs.w, input.FogBulbs.w);
-	output.Color.xyz = output.Color.xyz * lighting * occlusion;
-	output.Color.xyz = saturate(output.Color.xyz);
+    PixelInput output;
+    output.Position = clipPosition;
+    output.UV = input.UV;
+    output.UVScroll = float3(0.0f, 0.0f, 0.0f);
 
-	output.Color = DoFogBulbsForPixel(output.Color, float4(input.FogBulbs.xyz, 1.0f));
-	output.Color = DoDistanceFogForPixel(output.Color, FogColor, input.DistanceFog);
-	output.Color = ApplyBlendModeColor(output.Color, input.PositionCopy, false);
+    if (AnimatedSetIndex >= 0)
+    {
+        GpuAnimatedSet set = TEN_LOAD_RAW(GpuAnimatedSet, AnimatedSets, AnimatedSetIndex);
+        if (set.Type == ANIM_TYPE_UVROTATE)
+        {
+            output.UVScroll = GetUVRotateScroll(TEN_LOAD_RAW(GpuAnimatedFrame, AnimatedFrames, set.FirstFrame), set, InterpolatedFrame);
+        }
+        else
+        {
+            uint frameIndex = GetAnimatedFrameIndex(set, Frame, DecodeAnimationFrameOffset(input.AnimationData));
+            output.UV = GetFrameCorner(TEN_LOAD_RAW(GpuAnimatedFrame, AnimatedFrames, frameIndex), DecodeIndexInPoly(input.Effects));
+        }
+    }
 
+    output.Color = float4(Glow(input.Color.rgb, input.Effects, wibble), input.Color.a);
+    output.WorldPosition = position;
+    output.Normal = input.Normal.xyz;
+    output.Tangent = input.Tangent.xyz;
+    output.Binormal = cross(input.Normal.xyz, input.Tangent.xyz);
+    output.FaceNormal = input.FaceNormal.xyz;
+    output.FogBulbs = GetFogBulbs(position, CameraPosition, false);
+    output.Fog = GetDistanceFog(position, CameraPosition, FogMinDistance, FogMaxDistance);
     return output;
+}
+
+// Triplanar projection of the animated caustics texture, brighter on upward facing surfaces.
+float3 GetCaustics(float3 position, float3 normal)
+{
+    float attenuation = saturate(dot(float3(0.0f, -1.0f, 0.0f), normal));
+
+    float3 blending = normalize(max(abs(normal), 0.00001f));
+    blending /= blending.x + blending.y + blending.z;
+
+    float3 p = frac(position / 2048.0f);
+    float3 xAxis = CausticsMap.SampleLevel(CausticsMapSampler, CausticsStartUV + p.zy * CausticsSize, 0.0f).rgb;
+    float3 yAxis = CausticsMap.SampleLevel(CausticsMapSampler, CausticsStartUV + p.zx * CausticsSize, 0.0f).rgb;
+    float3 zAxis = CausticsMap.SampleLevel(CausticsMapSampler, CausticsStartUV + p.yx * CausticsSize, 0.0f).rgb;
+
+    return (xAxis * blending.x + yAxis * blending.y + zAxis * blending.z) * attenuation * 2.0f;
+}
+
+// Classic room light model: with mixed light types, point lights get the spot specular term.
+// Room lights have no sheen, so without an ORSH map the specular intensity is zero and the terms are left out.
+float3 GetRoomLight(GpuLight light, bool onlyPointLights, float3 position, Surface surface)
+{
+    float3 lighting = float3(0.0f, 0.0f, 0.0f);
+    if (onlyPointLights)
+    {
+        lighting += DoPointLight(position, surface.Normal, light) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
+#ifndef NO_ORSH_MAP
+        lighting += DoSpecularPoint(position, surface.Normal, CameraDirection, light, 0.0f, surface.Specular, surface.Roughness) * COLOR_MODULATION_SCALE;
+#endif
+    }
+    else if (light.Type == LT_POINT || light.Type == LT_SPOT)
+    {
+        float3 diffuse = (light.Type == LT_POINT) ? DoPointLight(position, surface.Normal, light) : DoSpotLight(position, surface.Normal, light);
+        lighting += saturate(diffuse) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
+#ifndef NO_ORSH_MAP
+        lighting += DoSpecularSpot(position, surface.Normal, CameraDirection, light, 0.0f, surface.Specular, surface.Roughness) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
+#endif
+    }
+
+    return lighting;
+}
+
+// Lights of one mask word, lowest bit first as in the light list.
+float3 GetMaskedRoomLights(uint bits, uint firstLight, bool onlyPointLights, float3 position, Surface surface)
+{
+    float3 lighting = float3(0.0f, 0.0f, 0.0f);
+
+    [loop]
+    while (bits != 0)
+    {
+        uint light = firstLight + firstbitlow(bits);
+        bits &= bits - 1;
+        lighting += GetRoomLight(TEN_LOAD_RAW(GpuLight, Lights, LightOffset + light), onlyPointLights, position, surface);
+    }
+
+    return lighting;
+}
+
+// Baked vertex light darkened by shadows, plus the dynamic room lights; decals darken and caustics brighten the
+// result, and the emissive is added last.
+float3 GetRoomLighting(float3 vertexColor, float3 position, Surface surface, float3 tangent, float3 binormal)
+{
+    float3 lighting = vertexColor * COLOR_MODULATION_SCALE;
+    lighting = DoShadow(position, surface.Normal, lighting, -2.5f, BlendMode);
+    lighting = DoBlobShadows(position, lighting);
+
+    uint count = min(LightCount & LT_MASK, LIGHTS_PER_DRAW_MAX);
+    bool onlyPointLights = (LightCount & ~LT_MASK) == LT_MASK_POINT;
+
+    // Only the lights reaching the light cluster of the position are evaluated.
+    uint2 mask;
+    if (count > 0 && count <= LIGHT_CLUSTER_LIGHTS_MAX && GetClusterLightMask(position, mask))
+    {
+        lighting += GetMaskedRoomLights(mask.x, 0, onlyPointLights, position, surface);
+        lighting += GetMaskedRoomLights(mask.y, 32, onlyPointLights, position, surface);
+    }
+    else
+    {
+        for (uint i = 0; i < count; i++)
+            lighting += GetRoomLight(TEN_LOAD_RAW(GpuLight, Lights, LightOffset + i), onlyPointLights, position, surface);
+    }
+
+    if (DecalCount > 0)
+        lighting *= 1.0f - GetDecalMask(position, tangent, binormal, DecalOffset, DecalCount);
+
+    if (IsCausticsRoom)
+        lighting += GetCaustics(position, surface.Normal);
+
+    return lighting + surface.Emissive;
+}
+
+float4 PS(PixelInput input) : SV_TARGET
+{
+    GpuMaterial material = TEN_LOAD_RAW(GpuMaterial, Materials, MaterialIndex);
+    Surface surface = SampleSurface(material, ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition, PixelCameraPosition,
+                                    input.Normal, input.Tangent, input.Binormal, input.FaceNormal);
+    surface.Color.rgb = ApplyReflections(material, surface.Color.rgb, input.WorldPosition, PixelCameraPosition,
+                                         normalize(lerp(input.FaceNormal, surface.Normal, 0.1f)), surface.Specular, View,
+                                         InverseViewportSize.y / InverseViewportSize.x);
+
+    float occlusion = surface.Occlusion * GetAmbientOcclusion(material, input.Position.xy * InverseViewportSize, AmbientOcclusionExponent, BlendMode, surface.Color.a);
+    float3 lighting = GetRoomLighting(input.Color.rgb, input.WorldPosition, surface, input.Tangent, input.Binormal) - input.FogBulbs.w;
+    float4 color = float4(saturate(surface.Color.rgb * lighting * occlusion), surface.Color.a);
+    color = ApplyFogBulbs(color, input.FogBulbs.rgb, BlendMode);
+    float4 result = ApplyDistanceFog(color, FogColor, input.Fog, BlendMode);
+    if (BlendMode == BLENDMODE_DISTORTION)
+        return EncodeDistortionPayload(result, dot(input.WorldPosition - PixelCameraPosition, CameraDirection), 1.0f);
+
+    return result;
+}
+
+PrepassOutput PSDepthNormal(PixelInput input)
+{
+    float3 emissive;
+    float3 normal = SampleSurfaceNormal(TEN_LOAD_RAW(GpuMaterial, Materials, MaterialIndex), ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition,
+                                        PixelCameraPosition, input.Normal, input.Tangent, input.Binormal, input.FaceNormal, emissive);
+    return GetPrepassOutput(EncodeViewNormal(normal, View), emissive, input.Fog, IsOutdoorRoom != 0, input.Position.z);
+}
+
+// Prepass with motion vectors: room geometry does not move, so the camera motion alone moves its texels. Vertex
+// effects (wibble, refraction) are left out of the motion.
+struct VelocityPixelInput
+{
+    PixelInput Base;
+    float4 CurrentClip  : TEXCOORD10;
+    float4 PreviousClip : TEXCOORD11;
+};
+
+VelocityPixelInput VSVelocity(VertexInput input)
+{
+    VelocityPixelInput output;
+    output.Base = VS(input);
+    output.CurrentClip = mul(float4(output.Base.WorldPosition, 1.0f), UnjitteredViewProjection);
+    output.PreviousClip = mul(float4(output.Base.WorldPosition, 1.0f), PrevViewProjection);
+    return output;
+}
+
+VelocityPrepassOutput PSDepthNormalVelocity(VelocityPixelInput input)
+{
+    return AddVelocity(PSDepthNormal(input.Base), input.CurrentClip, input.PreviousClip);
 }

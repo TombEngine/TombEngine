@@ -78,6 +78,10 @@ static void HandlePlayerDebug(const ItemInfo& item)
 		auto bridgeItemNumbers = std::set<int>{};
 		const auto& room = g_Level.Rooms[Camera.pos.RoomNumber];
 
+		// Room meshes are drawn near the camera only: whole rooms send hundreds of thousands of primitives.
+		constexpr auto ROOM_MESH_DEBUG_RADIUS = BLOCK(8);
+		auto roomMeshBounds = BoundingSphere(Camera.pos.ToVector3(), ROOM_MESH_DEBUG_RADIUS);
+
 		PrintDebugMessage("Room number: %d", Camera.pos.RoomNumber);
 		PrintDebugMessage("Sectors: %d", room.Sectors.size());
 		PrintDebugMessage("Bridges: %d", room.Bridges.GetIds().size());
@@ -87,7 +91,7 @@ static void HandlePlayerDebug(const ItemInfo& item)
 		{
 			const auto& neighborRoom = g_Level.Rooms[neighborRoomNumber];
 
-			neighborRoom.CollisionMesh.DrawDebug();
+			neighborRoom.CollisionMesh.DrawDebug(&roomMeshBounds);
 
 			// Draw door collision meshes.
 			for (int doorItemNumber : neighborRoom.Doors.GetIds())

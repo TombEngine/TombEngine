@@ -22,4 +22,5 @@ void PauseGameThread();
 void ResumeGameThread();
 void WaitIfGamePaused();
 void ApplyPendingWindowResize();
+void WaitForGameThread();
 void EngineClose();

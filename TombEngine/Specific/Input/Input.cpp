@@ -7,6 +7,8 @@
 #include "Game/items.h"
 #include "Game/savegame.h"
 #include "Math/Math.h"
+#include "Renderer/Backend/SceneRenderer.h"
+#include "Renderer/UI/ImGuiIntegration.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
@@ -18,6 +20,8 @@ using namespace TEN::Gui;
 using namespace TEN::Math;
 using namespace TEN::Utils;
 using TEN::Renderer::g_Renderer;
+using TEN::Renderer::ImGuiIsOverlayVisible;
+
 
 namespace TEN::Input
 {
@@ -240,16 +244,17 @@ namespace TEN::Input
 
 	void SetRelativeMouseMode(bool relative)
 	{
-#ifdef _DEBUG
-		return;
-#endif
-		relative = relative || g_Renderer.IsFullScreen();
+	 // The ImGui debug overlay needs the visible cursor, even in fullscreen.
+		if (ImGuiIsOverlayVisible())
+			relative = false;
+		else
+			relative = relative || g_Renderer.IsFullScreen();
 
 		if (MouseRelativeMode == relative)
 			return;
 
 		if (SDL_SetWindowRelativeMouseMode(g_Platform->GetSDL3Window(), relative))
-			MouseRelativeMode = relative;
+			 MouseRelativeMode = relative;
 	}
 
 	GamepadType GetGamepadType()
@@ -670,12 +675,21 @@ namespace TEN::Input
 		if (!DebugMode)
 			return;
 
-		// Switch debug page.
+		// Switch debug page, or debug page group with Shift.
 		static bool dbDebugPage = true;
 		bool debugPageKey = KeyMap[SDL_SCANCODE_F10] || KeyMap[SDL_SCANCODE_F11];
 		if (debugPageKey && dbDebugPage)
-			g_Renderer.SwitchDebugPage(KeyMap[SDL_SCANCODE_F10] != 0.0f);
+		{
+			bool shiftHeld = KeyMap[SDL_SCANCODE_LSHIFT] || KeyMap[SDL_SCANCODE_RSHIFT];
+			g_Renderer.SwitchDebugPage(KeyMap[SDL_SCANCODE_F10] != 0.0f, shiftHeld);
+		}
 		dbDebugPage = !debugPageKey;
+
+		// Toggle performance overlay.
+		static bool dbPerformanceOverlay = true;
+		if (KeyMap[SDL_SCANCODE_F8] && dbPerformanceOverlay)
+			g_Renderer.TogglePerformanceOverlay();
+		dbPerformanceOverlay = !KeyMap[SDL_SCANCODE_F8];
 
 		// Cycle pathfinding display.
 		static bool dbPathfindingCycle = true;
@@ -689,7 +703,10 @@ namespace TEN::Input
 		// Reload shaders.
 		static bool dbReloadShaders = true;
 		if (KeyMap[SDL_SCANCODE_F9] && dbReloadShaders)
+		{
 			g_Renderer.ReloadShaders();
+		}
+
 		dbReloadShaders = !KeyMap[SDL_SCANCODE_F9];
 	}
 

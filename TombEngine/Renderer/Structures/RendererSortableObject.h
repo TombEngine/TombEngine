@@ -1,5 +1,5 @@
 #pragma once
-#include "Renderer/Graphics/Vertices/Vertex.h"
+#include "Renderer/Structures/Vertex.h"
 #include "Renderer/RendererEnums.h"
 #include "Renderer/Structures/RendererBucket.h"
 #include "Renderer/Structures/RendererEffect.h"
@@ -27,8 +27,9 @@ namespace TEN::Renderer::Structures
 		// sharing the group draw as a single batch.
 		int GroupIndex = 0;
 
-		// Depth range and normalized screen rectangle (min x, min y, max x, max y) of the polygon
-		// centres, used to find overlapping objects whose polygons must be interleaved.
+		// Depth range of the polygon centres and normalized screen rectangle (min x, min y, max x, max y) of
+		// the bucket box (or of the polygon centres), used to find overlapping objects whose polygons must
+		// be interleaved.
 		int		MinDistance	 = INT_MAX;
 		int		MaxDistance	 = 0;
 		Vector4 ScreenBounds = Vector4(FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX);
@@ -47,8 +48,7 @@ namespace TEN::Renderer::Structures
 		};
 	};
 
-	// Per-polygon entry of the transparent pass. Sprites use a single entry with no polygon, so Polygon
-	// may only be read once the owning object is known not to be a sprite.
+	// Per-polygon entry of the transparent pass. Sprites use a single entry with no polygon.
 	struct RendererSortablePolygon
 	{
 		RendererPolygon* Polygon	 = nullptr;
@@ -56,9 +56,8 @@ namespace TEN::Renderer::Structures
 		int				 ObjectIndex = 0;
 	};
 
-	// Compact sort entry for the transparent pass. Key packs cluster rank (high 32 bits), inverted
-	// distance (24 bits) and blend mode priority (low 8 bits), built by BuildSortKeys; Index points
-	// into RenderView::TransparentPolygonsToDraw.
+	// Compact sort entry for the transparent pass. Key packs cluster rank (high 32 bits) and
+	// inverted distance (low 32 bits); Index points into RenderView::TransparentPolygonsToDraw.
 	struct RendererSortKey
 	{
 		unsigned long long Key	 = 0;

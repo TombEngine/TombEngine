@@ -7,7 +7,7 @@
 
 #include <sol/sol.hpp>
 #include "Game/Sky/SkyCloudSystem.h"
-#include "Renderer/Aurora/AuroraSettings.h"
+#include "Renderer/Sky/AuroraSettings.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Internal/ScriptAssert.h"
 

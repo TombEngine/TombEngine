@@ -1,0 +1,68 @@
+#pragma once
+
+#include "Game/camera.h"
+#include "Renderer/Scene/Frustum.h"
+#include "Renderer/RendererEnums.h"
+#include "Specific/memory/LinearArrayBuffer.h"
+#include "Renderer/Structures/RendererSprite2D.h"
+#include "Renderer/Structures/RendererSprite.h"
+#include "Renderer/Structures/RendererFogBulb.h"
+#include "Renderer/Structures/RendererStatic.h"
+#include "Renderer/Structures/RendererItem.h"
+#include "Renderer/Structures/RendererLight.h"
+#include "Renderer/Structures/RendererEffect.h"
+#include "Renderer/Structures/RendererRoom.h"
+#include "Renderer/Structures/RendererSortableObject.h"
+#include "Renderer/Structures/RendererSpriteToDraw.h"
+#include "Renderer/Structures/RendererLensFlare.h"
+#include "Renderer/Structures/RendererMirror.h"
+
+namespace TEN::Renderer 
+{
+	using namespace TEN::Renderer::Structures;
+
+	// Camera of a render view: matrices, frustum and viewport size.
+	struct RenderViewCamera
+	{
+		Matrix ViewProjection;
+		Matrix View;
+		Matrix Projection;
+		Vector3 WorldPosition;
+		Vector3 WorldDirection;
+		Vector2 ViewSize;
+		Vector2 InvViewSize;
+		int RoomNumber;
+		Frustum Frustum;
+		float NearPlane;
+		float FarPlane;
+		float FOV;
+
+		RenderViewCamera(CAMERA_INFO* cam, float roll, float fov, float n, float f, int w, int h);
+		RenderViewCamera(const Vector3& pos, const Vector3& dir, const Vector3& up, int room, int width, int height, float fov, float n, float f);
+	};
+
+	// Everything collected by the frontend for one frame of a camera: visible rooms (in portal traversal order),
+	// lights, fog bulbs, sprites, statics grouped by ID, transparent objects with their polygons and sort keys,
+	// lens flares and mirrors. The scene renderer draws the frame from it.
+	struct RenderView
+	{
+		RenderViewCamera Camera;
+
+		std::vector<RendererRoom*>					RoomsToDraw				 = {};
+		std::vector<RendererLight*>					LightsToDraw			 = {};
+		std::vector<RendererFogBulb>				FogBulbsToDraw			 = {};
+		std::vector<RendererSpriteToDraw>			SpritesToDraw			 = {};
+		std::vector<RendererDisplaySpriteToDraw>	DisplaySpritesToDraw	 = {};
+		std::map<int, std::vector<RendererStatic*>> SortedStaticsToDraw		 = {};
+		std::vector<RendererSortableObject>			TransparentObjectsToDraw  = {};
+		std::vector<RendererSortablePolygon>		TransparentPolygonsToDraw = {};
+		std::vector<RendererSortKey>				TransparentSortKeys		  = {};
+		std::vector<RendererLensFlare>				LensFlaresToDraw		 = {};
+		std::vector<RendererMirror>					Mirrors					 = {};
+
+		RenderView(CAMERA_INFO* cam, float roll, float fov, float nearPlane, float farPlane, int w, int h);
+		RenderView(const Vector3& pos, const Vector3& dir, const Vector3& up, int w, int h, int room, float nearPlane, float farPlane, float fov);
+		
+		void Clear();
+	};
+}

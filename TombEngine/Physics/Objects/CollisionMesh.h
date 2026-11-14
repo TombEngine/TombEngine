@@ -81,7 +81,8 @@ namespace TEN::Physics
 
 		// Debug
 
-		void DrawDebug() const;
+		// Bounds limit the triangles drawn to those touching the sphere, for dense room meshes.
+		void DrawDebug(const BoundingSphere* bounds = nullptr) const;
 
 	private:
 		// Helpers
