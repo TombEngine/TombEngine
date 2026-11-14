@@ -1312,7 +1312,6 @@
     <ClCompile Include="Renderer\RHI\UploadRing.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRenderer.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererAtmosphere.cpp" />
-    <ClCompile Include="Renderer\Backend\SceneRendererBloom.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererDebug.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererDebris.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererDOF.cpp" />

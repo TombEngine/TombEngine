@@ -58,22 +58,19 @@ namespace TEN::Renderer::Backend
         _roomsVelocityPixelShader = LoadShader(*_device, _shaderDirectory, "Rooms", "PSDepthNormalVelocity");
         _objectsVelocityPixelShader = LoadShader(*_device, _shaderDirectory, "Objects", "PSDepthNormalVelocity");
         _taaShader = LoadShader(*_device, _shaderDirectory, "TAA", "CS");
-        _taaHdrShader = LoadShader(*_device, _shaderDirectory, "TAA", "CS", "TAA_HDR");
         if (_roomsVelocityVertexShader == nullptr || _objectsVelocityVertexShader == nullptr || _roomsVelocityPixelShader == nullptr ||
-            _objectsVelocityPixelShader == nullptr || _taaShader == nullptr || _taaHdrShader == nullptr)
+            _objectsVelocityPixelShader == nullptr || _taaShader == nullptr)
         {
             return false;
         }
 
         _taaPipeline = _device->CreateComputePipeline(ComputePipelineDesc{ _taaShader.get(), "TAA" });
-        _taaHdrPipeline = _device->CreateComputePipeline(ComputePipelineDesc{ _taaHdrShader.get(), "TAA.HDR" });
-        return (_taaPipeline != nullptr && _taaHdrPipeline != nullptr);
+        return (_taaPipeline != nullptr);
     }
 
     // Motion vectors and the two history targets the resolve alternates between, written by the compute shader. They exist
     // only while TAA is active and are cleared when created; TAA stays off when they cannot be created. The history has
-    // 8 bits per channel, as the scene, and the resolve rounds it stochastically so slow blends converge; with HDR it is
-    // half float.
+    // 8 bits per channel, as the scene, and the resolve rounds it stochastically so slow blends converge.
     void SceneRenderer::EnsureTemporalTargets(ICommandBuffer& commandBuffer)
     {
         if (!_isTaaActive)
@@ -97,7 +94,7 @@ namespace TEN::Renderer::Backend
         desc.Name = "Prepass.Velocity";
         _velocityTarget = _device->CreateTexture(desc);
 
-        desc.Format = _isHdrActive ? PixelFormat::RGBA16Float : PixelFormat::RGBA8Unorm;
+        desc.Format = PixelFormat::RGBA8Unorm;
         desc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler | TextureUsage::ComputeStorageWrite; // Cleared as targets.
         for (int i = 0; i < TAA_HISTORY_COUNT; i++)
         {
@@ -218,7 +215,7 @@ namespace TEN::Renderer::Backend
         passDesc.NumRWTextures = 1;
 
         auto* computePass = commandBuffer.BeginComputePass(passDesc);
-        computePass->BindPipeline(_isHdrActive ? _taaHdrPipeline.get() : _taaPipeline.get());
+        computePass->BindPipeline(_taaPipeline.get());
 
         TextureSamplerBinding bindings[4] =
         {

@@ -209,8 +209,8 @@ struct GpuFogBulb
     float4x4 ClusterViewProjection    TEN_DEFAULT(Matrix::Identity); \
     uint     ClusterLightOffset       TEN_DEFAULT(0); \
     uint     ClusterLightCount        TEN_DEFAULT(0); \
-    float    SceneColorMax            TEN_DEFAULT(1.0f); \
-    float    ClusterPadding           TEN_DEFAULT(0.0f);
+    float    ClusterPadding0          TEN_DEFAULT(0.0f); \
+    float    ClusterPadding1          TEN_DEFAULT(0.0f);
 
 // Pixel slot 1, per draw. Light and decal slices and the caustics flag apply to rooms only.
 // TextureLayer selects the page in the texture arrays of the bound material maps.

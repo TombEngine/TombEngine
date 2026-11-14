@@ -118,7 +118,6 @@ static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 	g_Configuration.EnableDecals = config->enable_decals();
 	g_Configuration.AntialiasingMode = GetAntialiasingMode(config->antialiasing_mode());
 	g_Configuration.RenderScale = GetRenderScaleMode(config->render_scale());
-	g_Configuration.EnableHdr = config->enable_hdr();
 	g_Configuration.EnableAmbientOcclusion = config->enable_ambient_occlusion();
 	g_Configuration.EnableHighFramerate = config->enable_high_framerate();
 	g_Configuration.AtmosphericSkyQuality = (AtmosphericSkyQuality)std::clamp(config->atmospheric_sky_quality(), (int)AtmosphericSkyQuality::Low, (int)AtmosphericSkyQuality::High);
@@ -198,7 +197,6 @@ void InitDefaultConfiguration()
 	g_Configuration.EnableDecals = true;
 	g_Configuration.AntialiasingMode = AntialiasingMode::Smaa;
 	g_Configuration.RenderScale = RenderScaleMode::Automatic;
-	g_Configuration.EnableHdr = false;
 	g_Configuration.EnableAmbientOcclusion = true;
 	g_Configuration.EnableHighFramerate = true;
 	g_Configuration.Gamma = 1.0f;
@@ -277,7 +275,6 @@ static std::vector<unsigned char> BuildConfigurationBuffer()
 	builder.add_enable_high_framerate(g_Configuration.EnableHighFramerate);
 	builder.add_atmospheric_sky_quality((int)g_Configuration.AtmosphericSkyQuality);
 	builder.add_render_scale((int)g_Configuration.RenderScale);
-	builder.add_enable_hdr(g_Configuration.EnableHdr);
 	builder.add_adapter_name(adapterNameOffset);
 	builder.add_sound_device(g_Configuration.SoundDevice);
 	builder.add_enable_reverb(g_Configuration.EnableReverb);

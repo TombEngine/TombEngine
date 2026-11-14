@@ -40,7 +40,6 @@ table Configuration {
 
 	atmospheric_sky_quality: int32 = 1;
 	render_scale: int32;
-	enable_hdr: bool;
 }
 
 root_type Configuration;

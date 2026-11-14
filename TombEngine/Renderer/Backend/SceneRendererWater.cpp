@@ -66,10 +66,10 @@ namespace TEN::Renderer::Backend
         desc.DepthStencil.EnableDepthWrite = false;
         desc.DepthFormat = PixelFormat::D32Float;
         desc.NumColorTargets = 1;
-        desc.ColorTargets[0].Format = GetSceneColorFormat();
+        desc.ColorTargets[0].Format = _device->GetSwapchainFormat();
         desc.ColorTargets[0].Blend = GetBlendState(BlendMode::Opaque);
         desc.Name = "Water";
-        CreateSceneColorPipeline(_waterPipeline, desc);
+        _waterPipeline = _device->CreateGraphicsPipeline(desc);
 
         // The reflection trace has no depth target: hidden surfaces are traced too, but never shown. Its target has the
         // format of the scene copy it traces.
@@ -77,9 +77,9 @@ namespace TEN::Renderer::Backend
         desc.DepthStencil.EnableDepthTest = false;
         desc.DepthFormat = PixelFormat::Unknown;
         desc.Name = "WaterReflection";
-        CreateSceneColorPipeline(_waterReflectionPipeline, desc);
+        _waterReflectionPipeline = _device->CreateGraphicsPipeline(desc);
 
-        CreateSceneColorPipeline(_underwaterFogPipeline, GetFullscreenPipelineDesc(_underwaterFogVertexShader.get(), _underwaterFogPixelShader.get(), GetSceneColorFormat(), "UnderwaterFog"));
+        _underwaterFogPipeline = _device->CreateGraphicsPipeline(GetFullscreenPipelineDesc(_underwaterFogVertexShader.get(), _underwaterFogPixelShader.get(), _device->GetSwapchainFormat(), "UnderwaterFog"));
 
         return (_waterPipeline != nullptr && _waterReflectionPipeline != nullptr && _underwaterFogPipeline != nullptr && CreateWaveNormalTexture());
     }

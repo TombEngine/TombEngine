@@ -299,7 +299,6 @@ int main(int argc, char* argv[])
 	int renderScaleOverride = -1;
 	int ambientOcclusionOverride = -1;
 	int antialiasingOverride = -1;
-	int hdrOverride = -1;
 	int widthOverride = 0;
 	int heightOverride = 0;
 
@@ -356,11 +355,6 @@ int main(int argc, char* argv[])
 		{
 			// Antialiasing mode for this run (0 none to 3 high, 4 temporal), overriding the configuration, for benchmarks.
 			antialiasingOverride = std::stoi(argv[++i]);
-		}
-		else if (ArgEquals(arg.c_str(), "hdr") && i + 1 < argc)
-		{
-			// HDR on or off for this run, overriding the configuration, for benchmarks.
-			hdrOverride = std::stoi(argv[++i]);
 		}
 		else if (ArgEquals(arg.c_str(), "resolution") && i + 2 < argc)
 		{
@@ -489,9 +483,6 @@ int main(int argc, char* argv[])
 
 	if (antialiasingOverride >= 0)
 		g_Configuration.AntialiasingMode = GetAntialiasingMode(antialiasingOverride);
-
-	if (hdrOverride >= 0)
-		g_Configuration.EnableHdr = (hdrOverride != 0);
 
 	if (widthOverride > 0 && heightOverride > 0)
 	{

@@ -37,16 +37,16 @@ namespace TEN::Renderer::Backend
         desc.DepthStencil.EnableDepthWrite = false;
         desc.DepthFormat = PixelFormat::D32Float;
         desc.NumColorTargets = 1;
-        desc.ColorTargets[0].Format = GetSceneColorFormat();
+        desc.ColorTargets[0].Format = _device->GetSwapchainFormat();
         desc.ColorTargets[0].Blend = GetBlendState(BlendMode::Additive);
 
         desc.Primitive = RHI::PrimitiveType::LineList;
         desc.Name = "DebugLines";
-        CreateSceneColorPipeline(_debugLinePipeline, desc);
+        _debugLinePipeline = _device->CreateGraphicsPipeline(desc);
 
         desc.Primitive = RHI::PrimitiveType::TriangleList;
         desc.Name = "DebugTriangles";
-        CreateSceneColorPipeline(_debugTrianglePipeline, desc);
+        _debugTrianglePipeline = _device->CreateGraphicsPipeline(desc);
 
         return (_debugLinePipeline != nullptr && _debugTrianglePipeline != nullptr);
     }
