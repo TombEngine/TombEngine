@@ -13,6 +13,8 @@
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Objects/Generic/Traps/dart_emitter.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
@@ -22,7 +24,11 @@ using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR3
 {
-	constexpr auto TRIBESMAN_DART_DAMAGE = -25; // NOTE: Negative value gives poison.
+	static const auto PropName_DartDamage = GetHash("DartDamage");
+	static const auto PropName_DartVelocity = GetHash("DartVelocity");
+
+	constexpr auto TRIBESMAN_DART_DAMAGE = 25; 
+	constexpr auto TRIBESMAN_DEFAULT_DART_VELOCITY = CLICK(0.25f);
 
 	const auto TribesmanAxeBite	  = CreatureBiteInfo(Vector3(0, 56, 265), 13);
 	const auto TribesmanDartBite1 = CreatureBiteInfo(Vector3(0, 0, -200), 13);
@@ -365,7 +371,7 @@ namespace TEN::Entities::Creatures::TR3
 		int dartItemNumber = CreateItem();
 		if (dartItemNumber == NO_VALUE)
 			return;
-		
+
 		auto* dartItem = &g_Level.Items[dartItemNumber];
 
 		dartItem->ObjectNumber = ID_DARTS;
@@ -379,9 +385,15 @@ namespace TEN::Entities::Creatures::TR3
 
 		InitializeItem(dartItemNumber);
 
+		auto isPoisonous = PropertyHandler::Get(*item, PropName_Poisonous, true);
+		auto dartDamage = PropertyHandler::Get(*item, PropName_DartDamage, TRIBESMAN_DART_DAMAGE);
+		auto dartVelocity = PropertyHandler::Get(*item, PropName_DartVelocity, TRIBESMAN_DEFAULT_DART_VELOCITY);
+
 		dartItem->Pose.Orientation = orient;
-		dartItem->Animation.Velocity.z = CLICK(1);
-		dartItem->TriggerFlags = TRIBESMAN_DART_DAMAGE;
+		dartItem->Animation.Velocity.z = dartVelocity;
+		dartItem->TriggerFlags = isPoisonous ? -dartDamage : dartDamage;
+		dartItem->ItemFlags[0] = dartDamage;
+		dartItem->ItemFlags[1] = isPoisonous ? 1 : 0;
 		dartItem->Model.Color = item->Model.Color;
 
 		AddActiveItem(dartItemNumber);
