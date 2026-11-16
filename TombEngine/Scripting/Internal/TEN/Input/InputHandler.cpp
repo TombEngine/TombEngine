@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Scripting/Internal/TEN/Input/InputHandler.h"
 
+#include "Game/Lara/ModernControls.h"
 #include "Renderer/RendererEnums.h"
 #include "Scripting/Internal/LuaHandler.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
@@ -16,6 +17,8 @@ using namespace TEN::Input;
 namespace TEN::Scripting::Input
 {
 	/// Functions for input management.
+	// In Remastered control mode, @{Input.ActionID.JUMP} is reported as held while swimming underwater,
+	// and @{Input.ActionID.ACTION} while grabbing, so that scripts written for Classic controls keep working.
 	// @tentable Input
 	// @pragma nostrip
 
@@ -42,7 +45,7 @@ namespace TEN::Scripting::Input
 		if (!IsValidAction(actionID))
 			return 0.0f;
 
-		return GetActionValue((ActionID)actionID);
+		return Modern::GetScriptAction((ActionID)actionID).GetValue();
 	}
 
 	/// Get the analog value of an axis.
@@ -84,7 +87,7 @@ namespace TEN::Scripting::Input
 		if (!IsValidAction(actionID))
 			return false;
 
-		return IsClicked((ActionID)actionID);
+		return Modern::GetScriptAction((ActionID)actionID).IsClicked();
 	}
 
 	/// Check if an action key is being held.
@@ -96,7 +99,7 @@ namespace TEN::Scripting::Input
 		if (!IsValidAction(actionID))
 			return false;
 
-		return IsHeld((ActionID)actionID, ValueOr<float>(delaySec, 0.0f));
+		return Modern::GetScriptAction((ActionID)actionID).IsHeld(ValueOr<float>(delaySec, 0.0f));
 	}
 
 	/// Check if an action key is being pulsed.
@@ -110,7 +113,7 @@ namespace TEN::Scripting::Input
 		if (!IsValidAction(actionID))
 			return false;
 
-		return IsPulsed((ActionID)actionID, delaySec, ValueOr<float>(initialDelaySec, 0.0f));
+		return Modern::GetScriptAction((ActionID)actionID).IsPulsed(delaySec, ValueOr<float>(initialDelaySec, 0.0f));
 	}
 
 	/// Check if an action key is being released.
@@ -122,7 +125,7 @@ namespace TEN::Scripting::Input
 		if (!IsValidAction(actionID))
 			return false;
 
-		return IsReleased((ActionID)actionID, ValueOr<float>(maxDelaySec, FLT_MAX));
+		return Modern::GetScriptAction((ActionID)actionID).IsReleased(ValueOr<float>(maxDelaySec, FLT_MAX));
 	}
 
 	/// Simulate an action key push.
@@ -182,7 +185,7 @@ namespace TEN::Scripting::Input
 		if (!IsValidAction(actionID))
 			return false;
 
-		return GetActionTimeActive((ActionID)actionID);
+		return Modern::GetScriptAction((ActionID)actionID).GetTimeActive();
 	}
 
 	void Register(sol::state* state, sol::table& parent)

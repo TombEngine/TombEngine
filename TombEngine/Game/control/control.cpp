@@ -802,6 +802,9 @@ void HandleControls(bool isTitle)
 	// TODO: To allow cutscene skipping later, don't clear Deselect action.
 	UpdateInputActions(false, true);
 
+	// Update the Jump and Action that Lua input functions read under Remastered controls.
+	Modern::UpdateScriptActions(isTitle);
+
 	if (isTitle)
 		ClearAction(In::Look);
 }

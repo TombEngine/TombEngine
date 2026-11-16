@@ -30,6 +30,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
   * Jeep gear shifting with Accelerate and Reverse input actions in I-III Remastered control mode.
   * Faster and Slower vehicle input actions follow Sprint and Walk bindings in I-III Remastered control mode.
   * Key binding names given to scripts follow the gamepad when it was used last, and Sprint and Walk bindings for Faster and Slower input actions, in I-III Remastered control mode.
+  * Input read by scripts follows what the player is doing in I-III Remastered control mode.
   * Separate default key bindings for keyboard and gamepad, usable at the same time, with quick save on right stick click in I-III Remastered control mode.
   * Toggle options for sprint, look, crouch and grab, and smooth sprint steps option in I-III Remastered control mode.
 * Reorganized options menu into Controls, Display, Gameplay and Sound pages.

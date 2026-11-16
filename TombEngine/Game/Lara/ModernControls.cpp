@@ -57,6 +57,13 @@ namespace TEN::Input::Modern
 	// Control mode set by a running script. Kept across levels and in savegames, and cleared with the game variables.
 	static auto RunningScriptControlMode = ScriptControlMode::Default;
 
+	// Jump and Action as Classic controls would report them. Lua input functions read these instead of the action map.
+	static auto ScriptActionMap = std::unordered_map<ActionID, Action>
+	{
+		{ In::Jump, Action(In::Jump) },
+		{ In::Action, Action(In::Action) }
+	};
+
 	// Grab and weapon button: Fire under Remastered controls, Action under Classic controls.
 	// A script clear of Action holds it off, and a script push of Action presses it.
 	bool IsGrabHeld()
@@ -324,6 +331,14 @@ namespace TEN::Input::Modern
 			return false;
 
 		return (g_Configuration.EnableGrabToggle || isGrabHeld);
+	}
+
+	// True if the grip is held in a hanging or climbing state.
+	// A script clear of Fire lets go, unless a script also pushes Action.
+	static bool IsGripHeld(bool isRollHeld)
+	{
+		bool isFireCleared = (IsCleared(In::Fire) && !IsPushed(In::Action));
+		return (!isFireCleared && GetGrip(IsGrabHeld(), isRollHeld));
 	}
 
 	static bool IsOnKnees(const ItemInfo& item)
@@ -1361,6 +1376,13 @@ namespace TEN::Input::Modern
 		return true;
 	}
 
+	// True if the swim stroke is held underwater: the stick pushed, unless a script cleared Forward.
+	// A script push of Jump also counts as the stroke.
+	static bool IsSwimStrokeHeld(bool isPushingStick)
+	{
+		return ((isPushingStick && !IsCleared(In::Forward)) || IsPushed(In::Jump));
+	}
+
 	// Rewrites the movement actions so the stick moves the player relative to the camera.
 	// On the ground the heading solver turns her, so a push becomes Forward, and a push toward the camera a fast 180.
 	static void TransformInput(ItemInfo& item, PlayerInput& input, PlayerInput& heldWithoutClickInput)
@@ -1412,7 +1434,7 @@ namespace TEN::Input::Modern
 			// A script clear of Forward stops the stroke. Jump is written as held, never clicked, so a resurface in the same tick does not dive.
 			if (isUnderwater)
 			{
-				input.Jump = ((isPushingStick && !IsCleared(In::Forward)) || IsPushed(In::Jump));
+				input.Jump = IsSwimStrokeHeld(isPushingStick);
 				heldWithoutClickInput.Jump = true;
 			}
 
@@ -1423,8 +1445,7 @@ namespace TEN::Input::Modern
 		// Roll is consumed so it does not also ask for a turn, except on the rope, where it is the drop.
 		if (DoesInputOwnGrip(item))
 		{
-			bool isFireCleared = (IsCleared(In::Fire) && !IsPushed(In::Action));
-			input.Action = (!isFireCleared && GetGrip(IsGrabHeld(), input.Roll));
+			input.Action = IsGripHeld(input.Roll);
 
 			if (item.Animation.ActiveState != LS_ROPE_UP)
 				input.Roll = false;
@@ -1732,6 +1753,56 @@ namespace TEN::Input::Modern
 			axis.y = 0.0f;
 
 		return axis;
+	}
+
+	// True if Jump or Action is held the way the player's states read it. Jump is the swim stroke underwater.
+	// Action is the grip while hanging or climbing, and either Action or the grab button elsewhere.
+	static bool IsScriptActionHeld(const ItemInfo& item, ActionID actionID)
+	{
+		bool isHeld = IsHeld(actionID);
+
+		// Vehicles skip the input rewrite, so the action map is read as it is.
+		if (GetLaraInfo(item).Context.Vehicle != NO_VALUE)
+			return isHeld;
+
+		if (actionID == In::Jump)
+		{
+			float rate = 0.0f;
+			short stepMax = 0;
+			bool isUnderwater = false;
+			if (GetWaterTurnParams(item, rate, stepMax, isUnderwater) && isUnderwater)
+				return IsSwimStrokeHeld(GetHeldMoveAxis() != Vector2::Zero);
+
+			return isHeld;
+		}
+
+		if (DoesInputOwnGrip(item))
+			return IsGripHeld(IsHeld(In::Roll));
+
+		return (isHeld || IsGrabHeld());
+	}
+
+	// Update the actions that Lua input functions read, once the action map is updated.
+	void UpdateScriptActions(bool isTitle)
+	{
+		if (!g_Configuration.IsUsingRemasteredControls())
+			return;
+
+		for (auto& [actionID, action] : ScriptActionMap)
+			action.Update(isTitle ? IsHeld(actionID) : IsScriptActionHeld(*LaraItem, actionID));
+	}
+
+	// Get the action Lua input functions read: the action map entry, except Jump and Action under Remastered controls.
+	const Action& GetScriptAction(ActionID actionID)
+	{
+		if (g_Configuration.IsUsingRemasteredControls())
+		{
+			auto it = ScriptActionMap.find(actionID);
+			if (it != ScriptActionMap.end())
+				return it->second;
+		}
+
+		return ActionMap[actionID];
 	}
 
 	static bool IsValidScriptControlMode(int controlModeID)

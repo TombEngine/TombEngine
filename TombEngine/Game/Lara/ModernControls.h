@@ -7,6 +7,12 @@ struct CollisionInfo;
 struct ItemInfo;
 struct LaraInfo;
 
+namespace TEN::Input
+{
+	class Action;
+	enum class ActionID;
+}
+
 namespace TEN::Input::Modern
 {
 	constexpr auto SPRINT_LEAN_CLAMP = ANGLE(16.1f);
@@ -30,6 +36,8 @@ namespace TEN::Input::Modern
 	bool  DoesCameraAssistApply(const ItemInfo& item);
 	short GetPlayerHeadingAngleY(const ItemInfo& item);
 	Vector2 GetHeldMoveAxis();
+	void  UpdateScriptActions(bool isTitle);
+	const Action& GetScriptAction(ActionID actionID);
 	bool  HandleDiagonalStep(const ItemInfo& item, CollisionInfo& coll);
 	void  ApplyInput(ItemInfo& item);
 	void  HandleHeading(ItemInfo& item);
