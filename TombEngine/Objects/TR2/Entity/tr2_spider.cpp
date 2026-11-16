@@ -27,12 +27,13 @@ namespace TEN::Entities::Creatures::TR2
 	static const auto PropName_SmallSpiderBiteSound		= GetHash("SSpiderBiteSound");
 	static const auto PropName_SmallSpiderExplodeSound	= GetHash("SSpiderExplodeSound");
 
-	static const auto PropName_BigSpiderAttackDamage	= GetHash("BigSpiderAttackDamage");
+	static const auto PropName_BigSpiderAttackDamage	= GetHash("BSpiderAttackDamage");
 
 	constexpr auto SMALL_SPIDER_ATTACK_DAMAGE = 25;
 	constexpr auto BIG_SPIDER_ATTACK_DAMAGE	  = 100;
 
 	constexpr auto SMALL_SPIDER_POISON_POTENCY = 8;
+	constexpr auto BIG_SPIDER_POISON_POTENCY = 16;
 
 	constexpr auto SMALL_SPIDER_SHORT_JUMP_RANGE = SQUARE(BLOCK(0.2f));
 	constexpr auto SMALL_SPIDER_LONG_JUMP_RANGE	 = SQUARE(BLOCK(0.5f));
@@ -239,6 +240,9 @@ namespace TEN::Entities::Creatures::TR2
 
 		short headingAngle = 0;
 
+		auto BSAttackDamage = PropertyHandler::Get(item, PropName_BigSpiderAttackDamage, BIG_SPIDER_ATTACK_DAMAGE);
+		auto BSPoison = PropertyHandler::Get(item, PropName_Poisonous, false);
+
 		AI_INFO ai;
 		if (item->HitPoints <= 0)
 		{
@@ -265,9 +269,7 @@ namespace TEN::Entities::Creatures::TR2
 				if (creature->Mood == MoodType::Bored)
 				{
 					if (Random::TestProbability(BIG_SPIDER_IDLE_CHANCE))
-						item->Animation.TargetState = SPIDER_STATE_IDLE;
-					else
-						break;
+						item->Animation.TargetState = SPIDER_STATE_WALK_FORWARD;
 				}
 				else if (ai.ahead && ai.distance < BIG_SPIDER_IDLE_RANGE)
 				{
@@ -291,8 +293,6 @@ namespace TEN::Entities::Creatures::TR2
 				{
 					if (Random::TestProbability(BIG_SPIDER_IDLE_CHANCE))
 						item->Animation.TargetState = SPIDER_STATE_IDLE;
-					else
-						break;
 				}
 				else if (creature->Mood == MoodType::Escape || creature->Mood == MoodType::Attack)
 				{
@@ -322,14 +322,16 @@ namespace TEN::Entities::Creatures::TR2
 				if (!creature->Flags && item->TouchBits.TestAny())
 				{
 					DoSpiderBloodEffect(*item);
-					DoDamage(creature->Enemy, BIG_SPIDER_ATTACK_DAMAGE);
+					DoDamage(creature->Enemy, BSAttackDamage);
+
+					if (BSPoison && creature->Enemy && creature->Enemy->IsLara())
+						GetLaraInfo(creature->Enemy)->Status.Poison += BIG_SPIDER_POISON_POTENCY;
+
 					creature->Flags = 1;
 				}
 
 				break;
 			}
 		}
-
 		CreatureAnimation(itemNumber, headingAngle, 0);
-	}
-}
+	}}
