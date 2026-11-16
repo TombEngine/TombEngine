@@ -69,6 +69,8 @@ namespace TEN::Renderer::Backend
         SDL_GetWindowSizeInPixels(window, &width, &height);
         _windowWidth = width;
         _windowHeight = height;
+        _swapchainWidth = width;
+        _swapchainHeight = height;
 
         SetVsyncEnabled(_isVsyncEnabled);
         _uploadRing.Initialize(*_device, UPLOAD_RING_INITIAL_SIZE);
@@ -3092,6 +3094,19 @@ namespace TEN::Renderer::Backend
         }
     }
 
+    // The swapchain follows the window size, which changes with the resolution setting, the window mode and window drags.
+    // Devices that present on the window thread resize on their own at the next acquisition.
+    void SceneRenderer::ResizeSwapchainToWindow(int width, int height)
+    {
+        if (_device->RequiresWindowThreadPresent() || (width == _swapchainWidth && height == _swapchainHeight))
+            return;
+
+        _device->WaitIdle();
+        _device->ResizeSwapchain(width, height);
+        _swapchainWidth = width;
+        _swapchainHeight = height;
+    }
+
     // Composes the presented frame: the last scene frame faded by the UI, then the 2D layer recorded by the frontend.
     // Menu frames that render no scene reuse the last one as their background.
     void SceneRenderer::FinishFrame(const UiFrame& ui)
@@ -3113,6 +3128,8 @@ namespace TEN::Renderer::Backend
         _isGpuTimingRequested = false;
 
         auto lock = std::lock_guard<std::mutex>(_frameMutex);
+        ResizeSwapchainToWindow(width, height);
+
         if (!EnsureRenderTargets(width, height))
             return;
 

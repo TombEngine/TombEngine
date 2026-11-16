@@ -988,6 +988,8 @@ namespace TEN::Renderer::Backend
         std::atomic<bool>              _isFrameReady = false;
         std::atomic<int>               _windowWidth  = 0;
         std::atomic<int>               _windowHeight = 0;
+        int                            _swapchainWidth  = 0; // Size the swapchain was last created or resized to.
+        int                            _swapchainHeight = 0;
         std::string                    _screenshotPath = {};
 
         // Initialization and render targets (SceneRenderer.cpp).
@@ -1341,6 +1343,7 @@ namespace TEN::Renderer::Backend
         void LoadLevel(const LevelGeometry& geometry);
         void RenderFrame(const RenderView& view, const FrameEnvironment& environment);
         void FinishFrame(const UiFrame& ui);
+        void ResizeSwapchainToWindow(int width, int height);
         void PresentOnWindowThread();
         void RequestScreenshot(const std::string& path);
         bool ReadCloudTransmittance(int layer, float& transmittance);
