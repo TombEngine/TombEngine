@@ -68,31 +68,44 @@ namespace TEN::Renderer::Backend
         return (_taaPipeline != nullptr);
     }
 
-    // Motion vectors and the two history targets the resolve alternates between, written by the compute shader. They exist
-    // only while TAA is active and are cleared when created; TAA stays off when they cannot be created. The history has
+    // Motion vectors and the two history targets the resolve alternates between, written by the compute shader. The
+    // motion vectors exist while TAA or ambient occlusion is active, the histories only while TAA is; all are cleared when
+    // created, and TAA stays off when they cannot be created. The history has
     // 8 bits per channel, as the scene, and the resolve rounds it stochastically so slow blends converge.
     void SceneRenderer::EnsureTemporalTargets(ICommandBuffer& commandBuffer)
     {
+        if (!_isVelocityActive)
+            _velocityTarget = nullptr;
+
         if (!_isTaaActive)
         {
-            _velocityTarget = nullptr;
             for (auto& history : _taaHistory)
                 history = nullptr;
-
-            return;
         }
-
-        if (_velocityTarget != nullptr)
-            return;
 
         const auto& sceneDesc = _sceneTarget->GetDesc();
         auto desc = TextureDesc{};
         desc.Width = sceneDesc.Width;
         desc.Height = sceneDesc.Height;
-        desc.Format = PixelFormat::RG16Float;
-        desc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler;
-        desc.Name = "Prepass.Velocity";
-        _velocityTarget = _device->CreateTexture(desc);
+
+        if (_isVelocityActive && _velocityTarget == nullptr)
+        {
+            desc.Format = PixelFormat::RG16Float;
+            desc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler;
+            desc.Name = "Prepass.Velocity";
+            _velocityTarget = _device->CreateTexture(desc);
+            if (_velocityTarget == nullptr)
+            {
+                _isTaaActive = false;
+                _isVelocityActive = false;
+                return;
+            }
+
+            ClearColorTarget(commandBuffer, _velocityTarget.get());
+        }
+
+        if (!_isTaaActive || _taaHistory[0] != nullptr)
+            return;
 
         desc.Format = PixelFormat::RGBA8Unorm;
         desc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler | TextureUsage::ComputeStorageWrite; // Cleared as targets.
@@ -103,15 +116,13 @@ namespace TEN::Renderer::Backend
         }
 
         _isTaaHistoryValid = false;
-        if (_velocityTarget == nullptr || _taaHistory[0] == nullptr || _taaHistory[1] == nullptr)
+        if (_taaHistory[0] == nullptr || _taaHistory[1] == nullptr)
         {
             _isTaaActive = false;
-            _isVelocityActive = false;
-            _velocityTarget = nullptr;
+            _isVelocityActive = _isAmbientOcclusionActive && (_velocityTarget != nullptr);
             return;
         }
 
-        ClearColorTarget(commandBuffer, _velocityTarget.get());
         for (auto& history : _taaHistory)
             ClearColorTarget(commandBuffer, history.get());
     }
@@ -129,9 +140,10 @@ namespace TEN::Renderer::Backend
         if (isCameraCut)
             _isAoHistoryValid = false;
 
-        // Motion vectors cost prepass bandwidth: only TAA needs them per texel.
+        // Motion vectors cost prepass bandwidth: only TAA and the ambient occlusion, which would trail behind moving
+        // objects with the camera reprojection alone, need them per texel.
         _isTaaActive = isTaaActive;
-        _isVelocityActive = _isTaaActive;
+        _isVelocityActive = _isTaaActive || _isAmbientOcclusionActive;
         _prevCameraPosition = view.Camera.WorldPosition;
         _unjitteredViewProjection = view.Camera.View * projection;
         _motionFrame++;
