@@ -5,16 +5,25 @@
 #include "Game/effects/effects.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
 // NOTES:
-// ItemFlags[0]: Delay between darts in frame time.
-// ItemFlags[1]: Timer in frame time.
+// Emitter ItemFlags[0]: Delay between darts in frame time.
+// Emitter ItemFlags[1]: Timer in frame time.
+// Dart ItemFlags[0]: Damage dealt to Lara.
+// Dart ItemFlags[1]: Poison toggle (1 = poisonous, 0 = non-poisonous).
 
 namespace TEN::Entities::Traps
 {
+	static const auto PropName_DartDamage = GetHash("DartDamage");
+	static const auto PropName_DartVelocity = GetHash("DartVelocity");
+	static const auto PropName_DartDelay = GetHash("DartDelay");
+	static const auto PropName_HomingDartDelay = GetHash("HomingDartDelay");
+
 	constexpr auto DART_DEFAULT_HARM_DAMAGE	 = 25;
 	constexpr auto DART_DEFAULT_VELOCITY	 = BLOCK(0.25f);
 	constexpr auto DART_DEFAULT_DELAY		 = 32;
@@ -23,18 +32,14 @@ namespace TEN::Entities::Traps
 	void InitializeDartEmitter(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
-
 		auto& delay = item.ItemFlags[0];
 
-		if (item.ObjectNumber == ID_HOMING_DART_EMITTER)
+		if (delay == 0)
 		{
-			if (delay == 0)
-				delay = DART_DEFAULT_HOMING_DELAY;
-		}
-		else
-		{
-			if (delay == 0)
-				delay = DART_DEFAULT_DELAY;
+			if (item.ObjectNumber == ID_HOMING_DART_EMITTER)
+				delay = (PropertyHandler::Get(item, PropName_HomingDartDelay, DART_DEFAULT_HOMING_DELAY));
+			else
+				delay = (PropertyHandler::Get(item, PropName_DartDelay, DART_DEFAULT_DELAY));
 		}
 	}
 
@@ -44,10 +49,10 @@ namespace TEN::Entities::Traps
 
 		if (item.TouchBits.TestAny())
 		{
-			if (item.TriggerFlags < 0)
+			if (item.ItemFlags[1] != 0)
 				Lara.Status.Poison += 1;
 
-			DoDamage(LaraItem, item.TriggerFlags ? abs(item.TriggerFlags) : DART_DEFAULT_HARM_DAMAGE);
+			DoDamage(LaraItem, item.ItemFlags[0]);
 			DoBloodSplat(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, (GetRandomControl() & 3) + 4, LaraItem->Pose.Orientation.y, LaraItem->RoomNumber);
 			KillItem(itemNumber);
 		}
@@ -114,8 +119,20 @@ namespace TEN::Entities::Traps
 
 			InitializeItem(dartItemNumber);
 
-			dartItem.Animation.Velocity.z = DART_DEFAULT_VELOCITY;
+			bool isPoisonous = (item.TriggerFlags != 0)
+				? (item.TriggerFlags < 0)
+				: PropertyHandler::Get(item, PropName_Poisonous, false);
+
+			int dartDamage = (item.TriggerFlags != 0)
+				? abs(item.TriggerFlags)
+				: PropertyHandler::Get(item, PropName_DartDamage, DART_DEFAULT_HARM_DAMAGE);
+
+			auto dartVelocity = PropertyHandler::Get(item, PropName_DartVelocity, DART_DEFAULT_VELOCITY);
+
+			dartItem.Animation.Velocity.z = dartVelocity;
 			dartItem.TriggerFlags = item.TriggerFlags;
+			dartItem.ItemFlags[0] = static_cast<short>(dartDamage);
+			dartItem.ItemFlags[1] = isPoisonous ? 1 : 0;
 			dartItem.Model.Color = item.Model.Color;
 
 			for (int i = 0; i < 4; i++)

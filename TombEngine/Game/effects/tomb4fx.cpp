@@ -21,6 +21,8 @@
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
@@ -355,12 +357,20 @@ void ThrowFire(int itemNumber, const CreatureBiteInfo& bite, const Vector3i& vel
 void ThrowPoison(const ItemInfo& item, int boneID, const Vector3& offset, const Vector3& vel, const Color& colorStart, const Color& colorEnd, int spriteID)
 {
 	constexpr auto COUNT = 2;
+	auto poison = PropertyHandler::Get(item, PropName_Poisonous, true);
 
 	for (int i = 0; i < COUNT; i++)
 	{
 		auto& part = SetupPoisonParticle(colorStart, colorEnd);
 		AttachAndCreateSpark(&part, &item, boneID, offset, vel, spriteID);
-		part.flags = SP_POISON | SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF;
+		if (poison)
+		{
+			part.flags = SP_POISON | SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_HAZE;
+		}
+		else
+		{
+			part.flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_HAZE;
+		}
 		part.damage = 5;
 	}
 }

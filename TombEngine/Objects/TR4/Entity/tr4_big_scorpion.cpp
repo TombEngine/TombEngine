@@ -14,6 +14,8 @@
 #include "Game/misc.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Specific/level.h"
 
 using namespace TEN::Math;
@@ -82,6 +84,7 @@ namespace TEN::Entities::TR4
 		auto* creature = GetCreatureInfo(item);
 
 		short angle = 0;
+		auto poisonAttack = PropertyHandler::Get(item,PropName_Poisonous,true);
 		
 		if (item->HitPoints <= 0)
 		{
@@ -262,7 +265,7 @@ namespace TEN::Entities::TR4
 
 					if (item->Animation.ActiveState == BSCORPION_STATE_STINGER_ATTACK)
 					{
-						if (creature->Enemy.IsLara())
+						if (creature->Enemy.IsLara() && poisonAttack)
 							GetLaraInfo(creature->Enemy)->Status.Poison += BIG_SCORPION_STINGER_POISON_POTENCY;
 
 						CreatureEffect2(item, BigScorpionBite1, 10, item->Pose.Orientation.y - ANGLE(180.0f), DoBloodSplat);

@@ -17,6 +17,8 @@
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Renderer/RendererEnums.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
@@ -186,6 +188,8 @@ namespace TEN::Entities::TR4
 		short joint0 = 0;
 		short joint1 = 0;
 		short joint2 = 0;
+
+		auto poisonAttack = PropertyHandler::Get(item, PropName_Poisonous, true);
 
 		if (item->HitPoints <= 0)
 		{
@@ -453,7 +457,7 @@ namespace TEN::Entities::TR4
 						item->Animation.FrameNumber > 17)
 					)
 				{
-					if (creature->Enemy.IsLara())
+					if (creature->Enemy.IsLara() && poisonAttack)
 						GetLaraInfo(creature->Enemy)->Status.Poison += HARPY_STINGER_POISON_POTENCY;
 
 					DoDamage(creature->Enemy, HARPY_STINGER_ATTACK_DAMAGE);
