@@ -5,6 +5,9 @@
 
 namespace TEN::Math
 {
+	constexpr float HUE_SECTOR = 60.0f;
+	constexpr float HUE_CIRCLE = 360.0f;
+
 	float FloorToStep(float value, float step)
 	{
 		return (floor(value / step) * step);
@@ -134,6 +137,42 @@ namespace TEN::Math
 
 		float normalizedChroma = (maxVal == 0.0f) ? 0.0f : (chroma / maxVal);
 		return normalizedChroma;
+	}
+
+	float Hue(const Vector3& color)
+	{
+		float r = color.x;
+		float g = color.y;
+		float b = color.z;
+		float maxVal = std::max({ r, g, b });
+		float minVal = std::min({ r, g, b });
+		float delta = maxVal - minVal;
+
+		// Hue is undefined for achromatic colors.
+		if (delta == 0.0f)
+			return 0.0f;
+
+		// Calculate hue based on which component is the maximum.
+		float hue = 0.0f;
+
+		// Note: fmodf can return negative values, so we adjust later.
+		if (maxVal == r)
+		{
+			hue = HUE_SECTOR * fmodf((g - b) / delta, 6.0f);
+		}
+		else if (maxVal == g)
+		{
+			hue = HUE_SECTOR * (((b - r) / delta) + 2.0f);
+		}
+		else // maxVal == b
+		{
+			hue = HUE_SECTOR * (((r - g) / delta) + 4.0f);
+		}
+
+		// Normalize to [0.0, 360.0).
+		if (hue < 0.0f)
+			hue += HUE_CIRCLE;
+		return hue;
 	}
 
 	std::pair<std::array<int, 3>, std::array<int, 3>> GenerateColorShift(Vector3 mainColor, Vector3 additionalColor)
