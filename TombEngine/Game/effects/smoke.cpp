@@ -266,4 +266,27 @@ namespace TEN::Effects::Smoke
 		s.angularVelocity = Random::GenerateFloat(-0.5f, 0.5f);
 		s.angularDrag = Random::GenerateFloat(0.95f, 0.95f);
 	}
+
+	void SpawnElectricArcSmoke(const Vector3& pos, int roomNumber)
+	{
+		auto& smoke = GetFreeSmokeParticle();
+
+		smoke = {};
+		smoke.active = true;
+		smoke.position = pos + Vector3(Random::GenerateFloat(8.0f, 16.0f), Random::GenerateFloat(8.0f, 16.0f), Random::GenerateFloat(8.0f, 16.0f));
+		smoke.velocity = Random::GenerateDirection() * Random::GenerateFloat(1.0f, 3.0f);
+		smoke.gravity = -0.1f;
+		smoke.friction = 0.979f;
+		smoke.terminalVelocity = 0;
+		smoke.sourceColor = Vector4(0.8f, 0.8f, 1.0f, 1.0f);
+		smoke.destinationColor = Vector4::Zero;
+		smoke.sourceSize = Random::GenerateFloat(32.0f, 64.0f);
+		smoke.destinationSize = Random::GenerateFloat(1024, 1152);
+		smoke.life = Random::GenerateFloat(80, 120);
+		smoke.age = 0;
+		smoke.angularVelocity = Random::GenerateFloat(-0.6f, 0.6f);
+		smoke.angularDrag = Random::GenerateFloat(0.87f, 0.99f);
+		smoke.affectedByWind = true;
+		smoke.room = roomNumber;
+	}
 }
