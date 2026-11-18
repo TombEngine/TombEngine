@@ -1,12 +1,14 @@
 #include "framework.h"
 #include "Game/Hud/DrawItems/DisplayItem.h"
 
+#include "Game/Animation/Animation.h"
 #include "Math/Math.h"
 #include "Objects/game_object_ids.h"
 #include "Renderer/Renderer.h"
 #include "Specific/clock.h"
 #include "Specific/Structures/BitField.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Math;
 
 namespace TEN::Hud
@@ -96,6 +98,11 @@ namespace TEN::Hud
 		return (anim.EndFrameNumber);
 	}
 
+	int DisplayItem::GetPrevAnimNumber() const
+	{
+		return _prevAnimNumber;
+	}
+
 	int DisplayItem::GetPrevFrameNumber() const
 	{
 		return _prevFrameNumber;
@@ -138,6 +145,10 @@ namespace TEN::Hud
 	void DisplayItem::SetObjectID(GAME_OBJECT_ID objectID)
 	{
 		_objectID = objectID;
+
+		// Reset animation state for the new object.
+		_animNumber = 0;
+		_frameNumber = 0;
 	}
 
 	void DisplayItem::SetPosition(const Vector3& pos, bool disableInterpolation)
@@ -218,26 +229,25 @@ namespace TEN::Hud
 	{
 		const auto& object = Objects[_objectID];
 		if (animNumber >= 0 && animNumber < object.Animations.size())
-		{
 			_animNumber = animNumber;
-		}
 		else
-		{
 			_animNumber = 0;
-		}
 	}
 
 	void DisplayItem::SetFrame(int frameNumber)
-	{	
-		int endFrameNumber = GetEndFrameNumber();
-		if (frameNumber <= endFrameNumber)
-		{
-			_frameNumber = frameNumber;
-		}
-		else
-		{
-			_frameNumber = endFrameNumber;
-		}
+	{
+		const auto& anim = GetAnimData(_objectID, _animNumber);
+		_frameNumber = std::clamp(frameNumber, 0, anim.EndFrameNumber);
+	}
+
+	void DisplayItem::Enable()
+	{
+		_animationEnabled = true;
+	}
+
+	void DisplayItem::Disable()
+	{
+		_animationEnabled = false;
 	}
 
 	bool DisplayItem::GetVisible() const
@@ -272,7 +282,30 @@ namespace TEN::Hud
 		_prevScale = _scale;
 		_prevColor = _color;
 		_prevMeshOrientations = _meshOrientations;
+		_prevAnimNumber = _animNumber;
 		_prevFrameNumber = _frameNumber;
 		_wasInterpolated = true;
+	}
+
+	void DisplayItem::Animate()
+	{
+		// Animations only advance while enabled.
+		if (!_animationEnabled)
+			return;
+
+		// Objects without animations have nothing to advance.
+		if (Objects[_objectID].Animations.empty())
+			return;
+
+		// Advance frame number.
+		_frameNumber++;
+
+		// Handle end frame link transition.
+		const auto& anim = GetAnimData(_objectID, _animNumber);
+		if (_frameNumber > anim.EndFrameNumber)
+		{
+			_animNumber = anim.NextAnimNumber;
+			_frameNumber = anim.NextFrameNumber;
+		}
 	}
 }
