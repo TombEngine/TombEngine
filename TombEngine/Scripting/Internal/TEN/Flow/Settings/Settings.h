@@ -23,6 +23,7 @@ namespace TEN::Scripting
 		bool CrawlspaceDive = true;	 // Dive into crawlspaces.
 		bool CrawlExtended	= true;	 // Extended crawl moveset.
 		bool CrouchRoll		= true;	 // Crouch roll.
+		bool DrawWeaponDuringDive = false; // Draw weapon during swan dive.
 		bool OverhangClimb	= false; // Overhang functionality.
 		bool BackJumpTurn	= false; // Allow turning while jumping back.
 		bool LedgeJumps		= false; // Jump up or back from a ledge.
