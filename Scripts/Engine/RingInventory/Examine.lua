@@ -35,8 +35,8 @@ local examineScaler = EXAMINE_DEFAULT_SCALE
 local examineTargetScale = EXAMINE_DEFAULT_SCALE
 local examineShowString = false
 local examineStringPresent = false
-local alpha = 0
-local targetAlpha = 0
+local alpha = Constants.ALPHA_MIN
+local targetAlpha = Constants.ALPHA_MIN
 
 Examine.item = nil
 
@@ -168,7 +168,7 @@ function Examine.SetScale(scaleValue)
 end
 
 function Examine.ResetExamine(item)
-    Examine.SetRotation(item:GetRotation())
+    Examine.SetRotation(item:GetRotation() + Rotation(0, 180, 0))
     Examine.SetScale(item:GetScale())
 end
 
@@ -177,7 +177,7 @@ function Examine.Show(item)
 
     Examine.ResetExamine(item)
     Examine.SetupText(item)
-    targetAlpha = 255
+    targetAlpha = Constants.ALPHA_MAX
     Examine.item = TEN.View.DisplayItem(item:GetObjectID(), Utilities.OffsetY(EXAMINE_POSITION, item:GetYOffset()), examineRotation, Vec3(examineScaler), item:GetMeshBits())
 end
 
@@ -196,7 +196,7 @@ function Examine.Hide()
     Text.Hide("EXAMINE_CONTROLS")
     Text.Hide("EXAMINE_TEXT")
     examineShowString = false
-    targetAlpha = 0
+    targetAlpha = Constants.ALPHA_MIN
 end
 
 function Examine.Clear()

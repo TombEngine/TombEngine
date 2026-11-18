@@ -7,6 +7,8 @@ local Constants = require("Engine.RingInventory.Constants")
 local RingLight = require("Engine.RingInventory.RingLight")
 local Settings = require("Engine.RingInventory.Settings")
 local Utilities = require("Engine.RingInventory.Utilities")
+local InventoryData
+-- require("Addons.print_r")
 
 --Pointer to tables
 
@@ -15,39 +17,70 @@ local Ring = {}
 Ring.__index = Ring
 
 -- Class Constants
-local RING_POSITION_OFFSET = 1000
+Ring.RING_POSITION_PRIMARY = Vec3(0, 200, 1024) -- Position on the screen of whatever ring is currently focused
+Ring.RING_POSITION_PRIMARY_OFFSET = Constants.RING_OFFSET
+Ring.RING_POSITION_SECONDARY = Vec3(0, 230, 1024)
 Ring.RING_RADIUS = -Constants.RING_RADIUS
 
 Ring.TYPE =
 {
-	PUZZLE = 1,
-    MAIN = 2,
-	OPTIONS = 3,
-	COMBINE = 4,
-	AMMO = 5
+	PUZZLE = "PUZZLE_RING",
+    MAIN = "MAIN_RING",
+	OPTIONS = "OPTIONS_RING",
+	COMBINE = "COMBINE_RING",
+	AMMO = "AMMO_RING"
 }
+
+--Pointers to specific rings
+Ring.PRIMARY_TYPES = {
+    Ring.TYPE.PUZZLE,
+    Ring.TYPE.MAIN,
+    Ring.TYPE.OPTIONS
+}
+Ring.DEFAULT_TYPE = Ring.TYPE.MAIN
+Ring.COMBINE_TYPE = Ring.TYPE.COMBINE
+Ring.AMMO_TYPE = Ring.TYPE.AMMO
+
+
+--Internal variables for arithmetics, based on the order of the rings defined above
+Ring.PRIMARY_TYPES__TYPE_TO_ORDER = {}
+Ring.PRIMARY_TYPES__ORDER_TO_TYPE = {}
+for order, ringName in pairs(Ring.PRIMARY_TYPES) do
+    Ring.PRIMARY_TYPES__TYPE_TO_ORDER[ringName] = order
+    Ring.PRIMARY_TYPES__ORDER_TO_TYPE[order] = ringName
+end
 
 -- Default center positions for different ring types
-Ring.CENTERS =
-{
-    [Ring.TYPE.PUZZLE] = Vec3(0, -800, 1024),
-    [Ring.TYPE.MAIN] = Vec3(0, 200, 1024),
-    [Ring.TYPE.OPTIONS] = Vec3(0, 1200, 1024),
-    [Ring.TYPE.COMBINE] = Vec3(0, 230, 1024),
-    [Ring.TYPE.AMMO] = Vec3(0, 230, 1024)
-}
+Ring.CENTERS = {}
+-- Center position for main rings
+local ringPosition = Ring.RING_POSITION_PRIMARY
+local base = Ring.PRIMARY_TYPES__TYPE_TO_ORDER[Ring.DEFAULT_TYPE]
+for order, ringName in ipairs(Ring.PRIMARY_TYPES) do
+    local offset = Ring.RING_POSITION_PRIMARY_OFFSET * (order - base)
+    local position = ringPosition + offset
+
+    Ring.CENTERS[ringName] = position
+end
+-- Center position for secondary rings
+-- (ie. every ring that has not had its position defined based on their order, which is done right above for main rings only)
+for _, ringName in pairs(Ring.TYPE) do
+    Ring.CENTERS[ringName] = Ring.CENTERS[ringName] or Ring.RING_POSITION_SECONDARY
+end
+
 
 -- Constructor
-function Ring.Create(ringType, centerPosition)
+function Ring.Create(ringType)
     local self = setmetatable({}, Ring)
     
     -- Instance variables
     self.type = ringType
     self.items = {}
+    self.itemsPositions = {}
+    self.itemsRotations = {}
     self.selectedItemIndex = 1
     self.previousItemIndex = 1
-    self.position = centerPosition or Vec3(0, 0, 0)
-    self.previousPosition = centerPosition or Vec3(0, 0, 0)
+    self.position = Vec3(0, 0, 0)
+    self.previousPosition = Vec3(0, 0, 0)
     self.slice = 0
     self.visible = true
     
@@ -58,6 +91,23 @@ function Ring.Create(ringType, centerPosition)
     Ring.RING_RADIUS = -Constants.RING_RADIUS * Utilities.GetAspectRatioMultiplier()
 
     return self
+end
+
+function Ring.GetCenterByType(name)
+    if Ring.IsPrimaryRingType(name) then
+        return Ring.CENTERS[name]
+    else
+        return Ring.RING_POSITION_SECONDARY
+    end
+end
+
+function Ring.IsPrimaryRingType(ringType)
+    return Utilities.Contains(Ring.PRIMARY_TYPES, ringType)
+end
+
+
+function Ring:IsPrimaryRing()
+    return Ring.IsPrimaryRingType(self.type)
 end
 
 -- Recalculate slice based on item count
@@ -101,10 +151,16 @@ end
 function Ring:Clear()
     self:ClearDisplayItems()
     self.items = {}
+    self.itemsPositions = {}
+    self.itemsRotations = {}
     self.selectedItemIndex = 1
     self.currentAngle = 0
     self.previousAngle = 0
     self.targetAngle = 0
+end
+
+function Ring:GetCenter()
+    return Ring.GetCenterByType(self.type)
 end
 
 -- Get item by object ID
@@ -161,6 +217,14 @@ function Ring:SetSelectedItemByID(objectID)
     return false
 end
 
+function Ring:SetAngleToSelectedItem()
+    local itemIndex = self:GetSelectedItemIndex()
+    local angle = Utilities.GetSelectedRingAngle(itemIndex, self:GetItemCount())
+
+    self:SetCurrentAngle(angle)
+    self:SetTargetAngle(angle)
+end
+
 -- Get selected item index
 function Ring:GetSelectedItemIndex()
     return self.selectedItemIndex
@@ -189,8 +253,7 @@ function Ring:SelectPrevious()
 end
 
 -- Translate items in a circle
-function Ring:Translate(center, radius, rotationOffset, alpha)
-    alpha = alpha or 1.0
+function Ring:Translate(center, radius, rotationOffset)
     center = center or self.position
     radius = radius or Ring.RING_RADIUS
     rotationOffset = rotationOffset or 0
@@ -199,14 +262,27 @@ function Ring:Translate(center, radius, rotationOffset, alpha)
     if itemCount == 0 then return end
 
     for i = 1, itemCount do
-        local currentItem = self.items[i].objectID
-        local currentDisplayItem = self.items[i]:GetDisplayItem()
-        if currentDisplayItem then
-            local angleDeg = (360 / itemCount) * (i - 1) + rotationOffset
-            local position = center:Translate(Rotation(0, angleDeg, 0), radius)
-            currentDisplayItem:SetPosition(Utilities.OffsetY(position, self.items[i].yOffset))
-        end
+        local currentItem = self.items[i]
+
+        local angleDeg = (360 / itemCount) * (i - 1) + rotationOffset
+        local position = center:Translate(TEN.Rotation(0, angleDeg, 0), radius)
+
+        local itemPosition = position
+        local itemRotation = TEN.Rotation(0, angleDeg, 0)
+
+        self.itemsPositions[currentItem.objectID] = itemPosition
+        self.itemsRotations[currentItem.objectID] = itemRotation
+        currentItem:SetWorldPosition(itemPosition)
+        currentItem:SetWorldRotation(itemRotation)
     end
+end
+
+function Ring:GetItemPosition(item)
+    return self.itemsPositions[item.objectID]
+end
+
+function Ring:GetItemRotation(item)
+    return self.itemsRotations[item.objectID]
 end
 
 -- Color items in the ring
@@ -220,9 +296,9 @@ function Ring:SetPosition(position)
     self.position = position
 end
 
-function Ring:OffsetPosition(direction)
+function Ring:OffsetPosition(offsetPosition)
     self.previousPosition = self.position 
-    self.position = Vec3(self.previousPosition.x, self.previousPosition.y - direction * RING_POSITION_OFFSET, self.previousPosition.z)
+    self.position = self.previousPosition - offsetPosition
 end
 
 -- Get ring position
