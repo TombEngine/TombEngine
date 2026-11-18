@@ -1819,6 +1819,12 @@ namespace TEN::Gui
 		if (player.Inventory.HasCrowbar)
 			InsertObjectIntoList(INV_OBJECT_CROWBAR);
 
+		if (player.Inventory.TotalGoldRoses)
+			InsertObjectIntoList(INV_OBJECT_GOLDROSE_ITEM);
+
+		if (player.Inventory.HasHammer)
+			InsertObjectIntoList(INV_OBJECT_HAMMER_ITEM);
+
 		if (player.Inventory.BeetleComponents)
 		{
 			if (player.Inventory.BeetleComponents & BEETLECOMP_FLAG_BEETLE)
@@ -3035,6 +3041,10 @@ namespace TEN::Gui
 
 					case ID_FLARE_INV_ITEM:
 						numItems = player.Inventory.TotalFlares;
+						break;
+
+					case ID_GOLDROSE_ITEM:
+						numItems = player.Inventory.TotalGoldRoses;
 						break;
 
 					default:
