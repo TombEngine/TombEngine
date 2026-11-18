@@ -2,7 +2,7 @@
 #include "Sound/sound.h"
 
 /// Constants for the type of the audio tracks.
-// To be used with sound track functions, such as @{Sound.PlayAudioTrack} and @{Sound.StopAudioTrack}.
+// To be used with @{Sound.AudioChannel}.
 // @enum Sound.SoundTrackType
 // @pragma nostrip
 

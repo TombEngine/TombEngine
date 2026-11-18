@@ -4,6 +4,7 @@
 #include "Scripting/Internal/LuaHandler.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/ScriptUtil.h"
+#include "Scripting/Internal/TEN/Sound/AudioChannel.h"
 #include "Scripting/Internal/TEN/Sound/SoundTrackTypes.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 #include "Sound/sound.h"
@@ -14,46 +15,34 @@
 
 namespace TEN::Scripting::Sound
 {
-	/// Play an audio track. Should be placed in the `Audio` folder. Supported formats are wav, mp3 and ogg.
-	// @function PlayAudioTrack
-	// @tparam string filename Filename of a track (without file extension) to play.
-	// @tparam Sound.SoundTrackType type Type of the audio track to play.
+	// COMPATIBILITY. Do not restore the documentation for this function.
 	static void PlayAudioTrack(const std::string& trackName, TypeOrNil<SoundTrackType> mode)
 	{
 		auto playMode = ValueOr<SoundTrackType>(mode, SoundTrackType::OneShot);
 		PlaySoundTrack(trackName, playMode);
 	}
 
-	/// Set and play an ambient track.
-	// @function SetAmbientTrack
-	// @tparam string name Name of track (without file extension) to play.
-	// @tparam bool fromStart Specifies whether ambient track should play from the start, or crossfade at a random position.
+	// COMPATIBILITY. Do not restore the documentation for this function.
 	static void SetAmbientTrack(const std::string& trackName, TypeOrNil<bool> fromTheBeginning)
 	{
 		auto pos = ValueOr<bool>(fromTheBeginning, false) ? std::optional<QWORD>(0) : std::optional<QWORD>();
 		PlaySoundTrack(trackName, SoundTrackType::BGM, pos, pos.has_value() ? SOUND_XFADETIME_ONESHOT : SOUND_XFADETIME_BGM);
 	}
 
-	/// Stop any audio tracks currently playing.
-	// @function StopAudioTracks
+	// COMPATIBILITY. Do not restore the documentation for this function.
 	static void StopAudioTracks()
 	{
 		StopSoundTracks();
 	}
 
-	/// Stop audio track that is currently playing.
-	// @function StopAudioTrack
-	// @tparam Sound.SoundTrackType type Type of the audio track.
+	// COMPATIBILITY. Do not restore the documentation for this function.
 	static void StopAudioTrack(TypeOrNil<SoundTrackType> mode)
 	{
 		auto playMode = ValueOr<SoundTrackType>(mode, SoundTrackType::OneShot);
 		StopSoundTrack(playMode, SOUND_XFADETIME_ONESHOT);
 	}
 
-	/// Get current loudness level for specified track type.
-	// @function GetAudioTrackLoudness
-	// @tparam Sound.SoundTrackType type Type of the audio track.
-	// @treturn float Current loudness of a specified audio track.
+	// COMPATIBILITY. Do not restore the documentation for this function.
 	static float GetAudioTrackLoudness(TypeOrNil<SoundTrackType> mode)
 	{
 		auto playMode = ValueOr<SoundTrackType>(mode, SoundTrackType::OneShot);
@@ -93,10 +82,7 @@ namespace TEN::Scripting::Sound
 		return (Sound_EffectIsPlaying(effectID, nullptr) != SOUND_NO_CHANNEL);
 	}
 
-	/// Check if the audio track is playing.
-	// @function IsAudioTrackPlaying
-	// @tparam string track Filename to check. Should be without extension and without full directory path.
-	// @tparam[opt] Sound.SoundTrackType type Type of the audio track to check. If omitted, all types will be checked.
+	// COMPATIBILITY. Do not restore the documentation for this function.
 	static bool IsAudioTrackPlaying(const std::string& trackName, sol::optional<SoundTrackType> type)
 	{
 		return Sound_TrackIsPlaying(trackName, type ? std::optional<SoundTrackType>(*type) : std::nullopt);
@@ -139,5 +125,7 @@ namespace TEN::Scripting::Sound
 
 		LuaHandler handler{ state };
 		handler.MakeReadOnlyTable(tableSound, ScriptReserved_SoundTrackType, SOUNDTRACK_TYPE);
+
+		AudioChannel::Register(*state, tableSound);
 	}
 };

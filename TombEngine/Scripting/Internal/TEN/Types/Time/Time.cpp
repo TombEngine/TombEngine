@@ -87,6 +87,12 @@ namespace TEN::Scripting
 		return _frameCount;
 	}
 
+	// Total duration in milliseconds.
+	int Time::GetMilliseconds() const
+	{
+		return (int)(_frameCount * 1000.0f / FPS);
+	}
+
 	/// Get the time in hours, minutes, seconds, and centiseconds as a table.
 	// @function Time:GetTimeUnits
 	// @treturn table A table in the format {HH, MM, SS, CC}.
