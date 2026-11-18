@@ -1,2 +1,0 @@
-[2022-May-08 06:46:19] [error] Folder "Audio\" does not exist. 
-[2022-May-08 06:46:19] [error] An unrecoverable error occurred in WinMain: cannot open Scripts/Gameflow.lua: No such file or directory
