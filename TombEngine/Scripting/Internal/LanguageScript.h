@@ -13,6 +13,7 @@
 #define STRING_EXIT_GAME				"exit_game"
 #define STRING_EXIT_TO_TITLE			"exit_to_title"
 #define STRING_OPTIONS					"options"
+#define STRING_COMPILING_SHADERS		"compiling_shaders"
 #define STRING_UZIS						"uzis"
 #define STRING_PISTOLS					"pistols"
 #define STRING_SHOTGUN					"shotgun"

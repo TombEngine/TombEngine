@@ -1,4 +1,4 @@
-#include "framework.h"
+﻿#include "framework.h"
 #include "Renderer/ShaderManager/ShaderManager.h"
 
 #include "Renderer/RendererUtils.h"
@@ -131,7 +131,28 @@ namespace TEN::Renderer::Utils
 		Load(Shader::GBufferInstancedStatics, "GBuffer", "Objects", ShaderType::Vertex, {});
 	}
 
-	void ShaderManager::LoadShaders(int width, int height, bool recompileAAShaders)
+	void ShaderManager::LoadBootstrapShaders()
+	{
+		// Load only the shaders required to render the pre-compile progress bar.
+		auto compileCounter = _compileCounter;
+
+		constexpr auto HUD_SHADER_CACHE_INDEX = 17;
+		constexpr auto HUD_TEXTURED_SHADER_CACHE_INDEX = 19;
+		constexpr auto HUD_TEXTURED_BAR_SHADER_CACHE_INDEX = 20;
+
+		_compileCounter = HUD_SHADER_CACHE_INDEX;
+		Load(Shader::Hud, "HUD", "", ShaderType::Vertex, {});
+
+		_compileCounter = HUD_TEXTURED_SHADER_CACHE_INDEX;
+		Load(Shader::HudDTexture, "HUD", "TexturedHUD", ShaderType::Pixel, {});
+
+		_compileCounter = HUD_TEXTURED_BAR_SHADER_CACHE_INDEX;
+		Load(Shader::HudBarColor, "HUD", "TexturedHUDBar", ShaderType::Pixel, {});
+
+		_compileCounter = compileCounter;
+	}
+
+	void ShaderManager::LoadShaders(int width, int height, bool recompileAAShaders, std::function<void(float)> progressCallback)
 	{
 		TENLog("Loading shaders...", LogLevel::Info);
 
@@ -140,6 +161,23 @@ namespace TEN::Renderer::Utils
 
 		// Reset compile counter.
 		_compileCounter = 0;
+		auto lastProgressUpdate = std::chrono::steady_clock::now() - std::chrono::milliseconds(100);
+		auto lastProgressPercentage = 0.0f;
+		_progressCallback = [&progressCallback, &lastProgressUpdate, &lastProgressPercentage](float percentage)
+		{
+			if (!progressCallback)
+				return;
+
+			SDL_PumpEvents();
+
+			auto now = std::chrono::steady_clock::now();
+			if (now - lastProgressUpdate < std::chrono::milliseconds(100))
+				return;
+
+			progressCallback(percentage);
+			lastProgressUpdate = now;
+			lastProgressPercentage = percentage;
+		};
 
 		// LoadAAShaders should always be the first in the list, so that when AA settings are changed,
 		// they recompile with the same index as before.
@@ -147,6 +185,11 @@ namespace TEN::Renderer::Utils
 		LoadAAShaders(width, height, recompileAAShaders); 
 		LoadCommonShaders();
 		LoadPostprocessShaders();
+
+		if (progressCallback && lastProgressPercentage < 100.0f)
+			progressCallback(100.0f);
+
+		_progressCallback = nullptr;
 	}
 
 	void ShaderManager::Bind(Shader shader, bool forceNull)
@@ -196,6 +239,14 @@ namespace TEN::Renderer::Utils
 	{
 		Destroy(shader);
 		_shaders[(int)shader] = LoadOrCompile(fileName, funcName, type, defines, forceRecompile);
+
+		if (_progressCallback)
+		{
+			float total = (float)((int)Shader::Count - 1);
+			float percentage = (_compileCounter * 100.0f) / total;
+			percentage = std::clamp(percentage, 0.0f, 100.0f);
+			_progressCallback(percentage);
+		}
 	}
 
 	void ShaderManager::Destroy(Shader shader)
