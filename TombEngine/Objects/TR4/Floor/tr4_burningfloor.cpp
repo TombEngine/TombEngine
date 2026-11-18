@@ -83,9 +83,9 @@ void BurningFloorControl(short itemNumber)
 			// If the torch lies outside any of the floor object's collision spheres, ignite.
 			for (const auto& sphere : spheres)
 			{
-				float dx   = sphere.Center.x - torch->Pose.Position.x;
-				float dy   = sphere.Center.y - torch->Pose.Position.y;
-				float dz   = sphere.Center.z - torch->Pose.Position.z;
+				float dx = sphere.Center.x - torch->Pose.Position.x;
+				float dy = sphere.Center.y - torch->Pose.Position.y;
+				float dz = sphere.Center.z - torch->Pose.Position.z;
 				float rSum = sphere.Radius + 32.0f;
 
 				if ((dx * dx + dy * dy + dz * dz) <= (rSum * rSum))
