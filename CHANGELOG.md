@@ -20,6 +20,12 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Reorganized the debug overlay into groups of pages, navigated with F10 and F11 (Shift to change group), with a performance panel toggled with F8.
 * Added `renderscale`, `ssao`, `antialiasing`, `resolution`, `novsync`, `nogputiming` and `lowpower` command line arguments for benchmarks.
 
+## [Version 2.0.3]
+
+### Bug fixes
+
+* Fixed flyby camera roll persisting after the player dies or leaves the level during a flyby.
+
 ## [Version 2.0.2]
 
 ### New features
