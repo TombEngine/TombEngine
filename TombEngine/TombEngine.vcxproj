@@ -1326,8 +1326,6 @@
     <ClCompile Include="Renderer\Backend\SceneRendererLightClusters.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererPipelines.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererWater.cpp" />
-    <ClCompile Include="Renderer\Backend\SceneRendererTAA.cpp" />
-    <ClCompile Include="Renderer\Backend\SceneRendererDynamicResolution.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererImGui.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererTextures.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererVideo.cpp" />
@@ -1336,7 +1334,7 @@
     <ClCompile Include="Renderer\Backend\SceneRendererShadows.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererSprites.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererStats.cpp" />
-    <ClCompile Include="Renderer\Backend\SceneRendererAmbientOcclusion.cpp" />
+    <ClCompile Include="Renderer\Backend\SceneRendererSSAO.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererUpscale.cpp" />
     <ClCompile Include="Renderer\Backend\TextureLoader.cpp" />
     <ClCompile Include="Renderer\Scene\RendererSprites.cpp" />
@@ -1490,8 +1488,9 @@
     <None Include="Shaders\Rooms.hlsl" />
     <None Include="Shaders\SMAA.hlsli" />
     <None Include="Shaders\SMAACommon.hlsli" />
+    <None Include="Shaders\SMAAMedium.hlsl" />
     <None Include="Shaders\SMAAUltra.hlsl" />
-    <None Include="Shaders\GTAO.hlsl" />
+    <None Include="Shaders\SSAO.hlsl" />
     <None Include="Shaders\ShaderInterop.hlsli" />
     <None Include="Shaders\Shadows.hlsli" />
     <None Include="Shaders\Skinning.hlsli" />
@@ -1501,7 +1500,6 @@
     <None Include="Shaders\VolumetricClouds.hlsl" />
     <None Include="Shaders\VolumetricCloudsCore.hlsli" />
     <None Include="Shaders\Water.hlsl" />
-    <None Include="Shaders\TAA.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

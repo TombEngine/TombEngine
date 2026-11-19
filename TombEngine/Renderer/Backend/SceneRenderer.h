@@ -93,9 +93,8 @@ namespace TEN::Renderer::Backend
         float        ColorSchemeStrength = 1.0f;
         float        ScreenFade          = 1.0f;
         float        CinematicBarsHeight = 0.0f;
-        int          AntialiasingMode    = 0; // Antialiasing setting: 0 none, 3 SMAA, 4 TAA (the stored codes).
-        float        RenderScale         = 1.0f; // Scene resolution relative to the window; below 1, FSR 1 upscales the scene. 0 is dynamic.
-        float        TargetFrameTime     = 0.0f; // Milliseconds per frame the dynamic render scale aims at.
+        int          AntialiasingMode    = 0; // Antialiasing setting: FXAA for low, SMAA for medium and high.
+        float        RenderScale         = 1.0f; // Scene resolution relative to the window; below 1, FSR 1 upscales the scene.
 
         // Background video of the video handler: BGRA8 frame, null when no background video plays.
         const unsigned char*                 VideoFrame  = nullptr;
@@ -153,9 +152,6 @@ namespace TEN::Renderer::Backend
     };
 
     float GetMilliseconds(std::chrono::steady_clock::time_point start, std::chrono::steady_clock::time_point end);
-
-    // Antialiasing setting of the temporal antialiasing (AntialiasingMode::Temporal); SMAA is skipped with it.
-    constexpr auto ANTIALIASING_MODE_TEMPORAL = 4;
 
     // Content of a draw call, as the draw call statistics of the frontend.
     enum class DrawCategory
@@ -409,8 +405,6 @@ namespace TEN::Renderer::Backend
             Inventory,       // Objects of the 2D layer: depth written by every blend mode.
             SkyHorizonMask,  // Horizon silhouette of the god rays.
             SkySprites,      // Stars and meteors, hidden by the moon disc and the clouds.
-            RoomsPrepassVelocity,   // Prepass with motion vectors, while a temporal pass is active.
-            ObjectsPrepassVelocity,
 
             Count
         };
@@ -528,6 +522,9 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::IShader>           _postProcessPixelShader  = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _postProcessPipeline     = nullptr;
         std::unique_ptr<RHI::ITexture>          _sceneTarget             = nullptr;
+        std::unique_ptr<RHI::IShader>           _fxaaPixelShader         = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _fxaaPipeline            = nullptr;
+        std::unique_ptr<RHI::ITexture>          _antialiasingSource      = nullptr; // Post-processed image before FXAA.
         std::unique_ptr<RHI::ITexture>          _sceneDepthCopy          = nullptr; // R32 float copy of the prepass depth.
         std::unique_ptr<RHI::ITexture>          _distortionTarget        = nullptr;
         std::unique_ptr<RHI::ITexture>          _emissiveTarget          = nullptr; // Prepass emissive, source of the glow.
@@ -546,21 +543,9 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::IShader>           _rcasPixelShader = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _easuPipeline    = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _rcasPipeline    = nullptr;
-        bool                                    _isColorTargetSharpened = false; // EASU or TAA output, sharpened by RCAS when the overlay draws it.
-        RHI::ITexture*                          _upscaleSource   = nullptr; // Pooled, from the post-process to the upscale pass.
+        bool                                    _isColorTargetUpscaled = false; // EASU output, sharpened by RCAS when the overlay draws it.
+        std::unique_ptr<RHI::ITexture>          _upscaleSource   = nullptr;
         float                                   _renderScale     = 1.0f;
-
-        // Dynamic resolution (SceneRendererDynamicResolution.cpp).
-        bool                                    _isRenderScaleDynamic = false;
-        float                                   _dynamicScale         = 1.0f;
-        float                                   _dynamicUpDelay       = 2.0f;  // Seconds of headroom before a rise, doubled by failed rises.
-        bool                                    _isDynamicRise        = false; // The last change was a rise.
-        float                                   _dynamicFrameTimeSum  = 0.0f;
-        float                                   _dynamicFenceWaitSum  = 0.0f;
-        int                                     _dynamicFrameCount    = 0;
-        std::chrono::steady_clock::time_point   _dynamicLastFrameTime = {};
-        std::chrono::steady_clock::time_point   _dynamicChangeTime    = {};
-        float                                   _fenceWaitTime        = 0.0f;  // Milliseconds the last scene frame waited for its frame slot.
         float                                   _materialLodBias = 0.0f; // Keeps the texture detail of the window resolution.
         bool                                    _isUpscaleActive = false;
 
@@ -605,36 +590,6 @@ namespace TEN::Renderer::Backend
         float                                   _underwaterSurfaceHeight = 0.0f; // Where the fog of the rays rising out of the water ends.
         Vector3                                 _underwaterAmbient       = Vector3::One;
 
-        // Temporal antialiasing and motion vectors (SceneRendererTAA.cpp).
-        static constexpr auto TAA_HISTORY_COUNT = 2;
-
-        // Interpolated transforms of an item in the frame Frame, the previous transforms of its motion vectors.
-        struct PreviousItemTransforms
-        {
-            Matrix World                  = Matrix::Identity;
-            Matrix Bones[BONE_COUNT_MAX]  = {};
-            int    Frame                  = NO_VALUE;
-        };
-
-        std::unique_ptr<RHI::IShader>           _roomsVelocityVertexShader   = nullptr;
-        std::unique_ptr<RHI::IShader>           _objectsVelocityVertexShader = nullptr;
-        std::unique_ptr<RHI::IShader>           _roomsVelocityPixelShader    = nullptr;
-        std::unique_ptr<RHI::IShader>           _objectsVelocityPixelShader  = nullptr;
-        std::unique_ptr<RHI::IShader>           _taaShader                   = nullptr;
-        std::unique_ptr<RHI::IComputePipeline>  _taaPipeline                 = nullptr;
-        std::unique_ptr<RHI::ITexture>          _velocityTarget              = nullptr; // Prepass motion in UV units, RG16F.
-        std::unique_ptr<RHI::ITexture>          _taaHistory[TAA_HISTORY_COUNT] = {};    // Antialiased scenes, read and written in turn.
-        int                                     _taaHistoryIndex             = 0;       // History written by the last frame.
-        bool                                    _isTaaHistoryValid           = false;
-        bool                                    _isTaaActive                 = false;
-        bool                                    _isVelocityActive            = false;   // The prepass writes motion vectors.
-        int                                     _motionFrame                 = 0;       // Frame counter of the motion data.
-        Matrix                                  _unjitteredViewProjection    = Matrix::Identity;
-        Matrix                                  _prevViewProjection          = Matrix::Identity;
-        bool                                    _hasPrevViewProjection       = false;
-        Vector3                                 _prevCameraPosition          = Vector3::Zero;
-        std::unordered_map<int, PreviousItemTransforms> _previousItemTransforms = {}; // By item number.
-
         // Depth of field (SceneRendererDOF.cpp).
         static constexpr int DOF_PASS_COUNT   = 4;
         static constexpr int DOF_TARGET_COUNT = 2;
@@ -646,6 +601,7 @@ namespace TEN::Renderer::Backend
         bool                                    _isDofActive                       = false;
 
         // SMAA antialiasing (SceneRendererSMAA.cpp).
+        static constexpr int SMAA_PRESET_COUNT = 2; // Medium and ultra.
         static constexpr int SMAA_PASS_COUNT   = 3;
 
         struct SmaaPreset
@@ -655,7 +611,7 @@ namespace TEN::Renderer::Backend
             std::unique_ptr<RHI::IGraphicsPipeline> Pipelines[SMAA_PASS_COUNT]    = {};
         };
 
-        SmaaPreset                              _smaa                           = {}; // Ultra preset.
+        SmaaPreset                              _smaaPresets[SMAA_PRESET_COUNT] = {};
         RHI::PixelFormat                        _smaaStencilFormat              = RHI::PixelFormat::Unknown; // Unknown without stencil support.
         std::unique_ptr<RHI::ITexture>          _smaaAreaTexture                = nullptr;
         std::unique_ptr<RHI::ITexture>          _smaaSearchTexture              = nullptr;
@@ -792,22 +748,22 @@ namespace TEN::Renderer::Backend
         bool                                    _isRenderingShadowMap     = false;
         RHI::ITexture*                          _causticsTexture          = nullptr; // Atlas page of the current caustics frame.
 
-        // Depth and normals prepass and ground truth ambient occlusion (SceneRendererAmbientOcclusion.cpp).
-        static constexpr auto AO_HISTORY_COUNT = 2;
-
+        // Depth and normals prepass and screen space ambient occlusion (SceneRendererSSAO.cpp).
         std::unique_ptr<RHI::IShader>           _roomsPrepassPixelShader    = nullptr;
         std::unique_ptr<RHI::IShader>           _objectsPrepassPixelShader  = nullptr;
-        std::unique_ptr<RHI::IShader>           _aoVertexShader             = nullptr;
-        std::unique_ptr<RHI::IShader>           _gtaoPixelShader            = nullptr;
-        std::unique_ptr<RHI::IShader>           _aoTemporalPixelShader      = nullptr;
-        std::unique_ptr<RHI::IGraphicsPipeline> _gtaoPipeline               = nullptr;
-        std::unique_ptr<RHI::IGraphicsPipeline> _aoTemporalPipeline         = nullptr;
+        std::unique_ptr<RHI::IShader>           _ssaoVertexShader           = nullptr;
+        std::unique_ptr<RHI::IShader>           _ssaoPixelShader            = nullptr;
+        std::unique_ptr<RHI::IShader>           _ssaoBlurHorizontalShader   = nullptr;
+        std::unique_ptr<RHI::IShader>           _ssaoBlurVerticalShader     = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _ssaoPipeline               = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _ssaoBlurHorizontalPipeline = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _ssaoBlurVerticalPipeline   = nullptr;
+        std::unique_ptr<RHI::ITexture>          _ssaoNoiseTexture           = nullptr;
         std::unique_ptr<RHI::ITexture>          _normalTarget               = nullptr;
-        std::unique_ptr<RHI::ITexture>          _aoHistory[AO_HISTORY_COUNT] = {};     // Accumulated occlusion, read and written in turn; the last one is read by the scene pass.
-        int                                     _aoHistoryIndex             = 0;       // History written by the last frame.
-        bool                                    _isAoHistoryValid           = false;
-        int                                     _aoHistoryFrame             = NO_VALUE; // Motion frame of the last accumulation.
+        std::unique_ptr<RHI::ITexture>          _ssaoTarget                 = nullptr;
         std::unique_ptr<RHI::ISampler>          _pointClampSampler          = nullptr;
+        std::unique_ptr<RHI::ISampler>          _pointWrapSampler           = nullptr;
+        Vector4                                 _ssaoKernel[SSAO_KERNEL_SIZE] = {};
         bool                                    _isAmbientOcclusionActive   = false;
 
         // Material sampler and the 1x1 defaults bound in place of missing maps and inactive effect textures.
@@ -1032,7 +988,6 @@ namespace TEN::Renderer::Backend
         // Pipeline precompilation at load (SceneRendererPipelines.cpp).
         int  GetScenePipelineCount() const;
         void PrecompileLevelPipelines(const LevelGeometry& geometry);
-        static SceneShader GetVelocityPrepassShader(SceneShader prepassShader);
         void PrecompilePassPipelines(SceneShader shader, SceneShader prepassShader);
         void PrecompileObjectPipelines(const std::vector<std::optional<Structures::RendererObject>>& objects, const std::vector<TexturePage>& pages);
         void PrecompileBucketPipelines(const Structures::RendererBucket& bucket, const std::vector<TexturePage>& pages, SceneShader shader, SceneShader prepassShader);
@@ -1073,7 +1028,7 @@ namespace TEN::Renderer::Backend
         // Mesh effects, gun shells and swarms (SceneRendererEffects.cpp).
         void GetRoomLightSlice(int roomNumber, float interpolationFactor, int& lightOffset, int& lightCount);
         void QueueMeshInstance(const Structures::RendererMesh& mesh, const Matrix& world, const Vector4& color, const Vector4& ambientLight,
-                               LightMode lightMode, int lightOffset, int lightCount, int roomNumber, bool isReflectable = true, const Matrix* prevWorld = nullptr);
+                               LightMode lightMode, int lightOffset, int lightCount, int roomNumber, bool isReflectable = true);
         void FlushMeshInstances();
         void CollectEffectMeshes(const RenderView& view, float interpolationFactor);
 
@@ -1155,18 +1110,6 @@ namespace TEN::Renderer::Backend
         // Sky reflections (SceneRendererSkyReflections.cpp).
         bool CreateSkyReflectionResources();
 
-        // Temporal antialiasing and motion vectors (SceneRendererTAA.cpp).
-        bool CreateTemporalResources();
-        void EnsureTemporalTargets(RHI::ICommandBuffer& commandBuffer);
-        void PrepareTemporalFrame(const RenderView& view, const FrameEnvironment& environment, Matrix& projection);
-        Matrix GetPrevViewProjection() const;
-        RHI::ITexture* GetResolvedSceneTarget() const;
-        void FinishTemporalFrame();
-        const PreviousItemTransforms* GetPreviousItemTransforms(int itemNumber) const;
-        void StoreItemTransforms(const Structures::RendererItem& item);
-        void SetInstanceMotion(int instance, const Matrix& prevWorld, int prevBoneOffset);
-        void RenderTemporalAntialiasing(RHI::ICommandBuffer& commandBuffer);
-
         // Water surfaces (SceneRendererWater.cpp).
         bool CreateWaterResources();
         bool CreateWaveNormalTexture();
@@ -1238,7 +1181,6 @@ namespace TEN::Renderer::Backend
         static RHI::GraphicsPipelineDesc GetFullscreenPipelineDesc(RHI::IShader* vertexShader, RHI::IShader* pixelShader, RHI::PixelFormat format, const char* name);
         std::unique_ptr<RHI::IGraphicsPipeline> CreateFullscreenPipeline(RHI::IShader* vertexShader, RHI::IShader* pixelShader, RHI::PixelFormat format, const char* name);
         bool CreatePostProcessResources();
-        RHI::TextureDesc GetPostProcessTargetDesc() const;
         void RenderPostProcess(RHI::ICommandBuffer& commandBuffer);
         bool HasDistortionDraws(const RenderView& view) const;
         void RenderDistortion(RHI::ICommandBuffer& commandBuffer);
@@ -1253,13 +1195,13 @@ namespace TEN::Renderer::Backend
         void         PrepareShadows(const FrameEnvironment& environment, float interpolationFactor);
         void         RenderShadowMap(RHI::ICommandBuffer& commandBuffer);
 
-        // Prepass and ambient occlusion (SceneRendererAmbientOcclusion.cpp).
-        bool  CreateAmbientOcclusionResources();
-        bool  EnsureAmbientOcclusionTargets(int width, int height);
+        // Prepass and ambient occlusion (SceneRendererSSAO.cpp).
+        bool  CreateSSAOResources();
+        bool  EnsureSSAOTargets(int width, int height);
 
         // Depth of field (SceneRendererDOF.cpp).
         bool  CreateDOFResources();
-        void  EnsureDOFTargets(RHI::ICommandBuffer& commandBuffer);
+        bool  EnsureDOFTargets(int width, int height);
         static bool IsDOFActive(const FrameEnvironment& environment);
         static int  GetDOFLayers(const FrameEnvironment& environment); // Bit 0 far blur, bit 1 near blur.
         void  RenderDOF(RHI::ICommandBuffer& commandBuffer);
@@ -1277,20 +1219,21 @@ namespace TEN::Renderer::Backend
         RHI::TextureDesc GetGlowTargetDesc(int width, int height) const;
         void  CopyReflectionSource(RHI::ICommandBuffer& commandBuffer);
         void  ClearSampledTargets(bool includeFrameTargets);
-        void  ReleaseFeatureTargets();
         void  DownscaleTexture(RHI::ICommandBuffer& commandBuffer, RHI::ITexture* source, RHI::ITexture* target, const char* name);
 
-        // Prepass, ambient occlusion and fullscreen pass helpers (SceneRendererAmbientOcclusion.cpp).
+        // Prepass, ambient occlusion and fullscreen pass helpers (SceneRendererSSAO.cpp).
         float GetAmbientOcclusionExponent() const;
         void  RenderDepthPrepass(RHI::ICommandBuffer& commandBuffer);
-        void  RenderAmbientOcclusion(RHI::ICommandBuffer& commandBuffer);
+        void  RenderSSAO(RHI::ICommandBuffer& commandBuffer);
+        void  RenderFullscreenPass(RHI::ICommandBuffer& commandBuffer, RHI::IGraphicsPipeline* pipeline, RHI::ITexture* target, RHI::ITexture* source,
+                                   RHI::ISampler* sourceSampler, const char* name);
         void  RenderFullscreenPass(RHI::ICommandBuffer& commandBuffer, RHI::IGraphicsPipeline* pipeline, RHI::ITexture* target,
                                    const RHI::TextureSamplerBinding* bindings, int bindingCount, const char* name, RHI::LoadOp load = RHI::LoadOp::DontCare,
                                    const RHI::DepthTargetInfo* depthTarget = nullptr);
 
-        // SMAA antialiasing (SceneRendererSMAA.cpp).
+        // FXAA and SMAA antialiasing (SceneRendererSMAA.cpp).
         bool  CreateSMAAResources();
-        void  RenderAntialiasing(RHI::ICommandBuffer& commandBuffer, RHI::ITexture* source, RHI::ITexture* target);
+        void  RenderAntialiasing(RHI::ICommandBuffer& commandBuffer, int antialiasingMode, RHI::ITexture* source, RHI::ITexture* target);
         void  GetSMAATargetDescs(const RHI::TextureDesc& targetDesc, RHI::TextureDesc& edgesDesc, RHI::TextureDesc& weightsDesc, RHI::TextureDesc& stencilDesc) const;
         std::unique_ptr<RHI::IGraphicsPipeline> CreateSMAAPipeline(const SmaaPreset& preset, int pass, const char* name);
 
@@ -1300,10 +1243,6 @@ namespace TEN::Renderer::Backend
         bool  CreateMaterialSampler();
         int   GetRenderSize(int windowSize) const;
         void  RenderUpscale(RHI::ICommandBuffer& commandBuffer);
-
-        // Dynamic resolution (SceneRendererDynamicResolution.cpp).
-        float UpdateDynamicResolution(float targetFrameTime);
-        void  ResetDynamicResolution();
         void  AcquireOverlayTargets();
         void  ReleaseOverlayTargets();
 

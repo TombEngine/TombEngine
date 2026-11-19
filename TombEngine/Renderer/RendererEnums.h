@@ -104,28 +104,25 @@ enum class ShadowMode
 	All
 };
 
-// Antialiasing of the scene. The values are the codes stored in the configuration; older versions also stored FXAA (1)
-// and SMAA medium (2), which load as SMAA.
 enum class AntialiasingMode
 {
-	None     = 0,
-	Smaa     = 3,
-	Temporal = 4 // Temporal antialiasing (TAA).
+	None,
+	Low,
+	Medium,
+	High
 };
 
-constexpr AntialiasingMode ANTIALIASING_MODES[] = { AntialiasingMode::None, AntialiasingMode::Smaa, AntialiasingMode::Temporal };
-
-// Resolution of the 3D scene relative to the screen. Below native, AMD FSR 1 upscales the scene, after the TAA resolve
-// when TAA is set. The values are the codes stored in the configuration; older versions also stored fixed scales of 77%
-// (1), 59% (3) and 50% (4), which load as the performance scale.
+// Resolution of the 3D scene relative to the screen; the scene is upscaled with AMD FSR 1. The values are stored in the configuration.
 enum class RenderScaleMode
 {
-	Native      = 0,
-	Performance = 2, // 67%.
-	Automatic   = 5  // Follows the GPU load to hold the frame rate, between 50% and native.
-};
+	Native,
+	UltraQuality,
+	Quality,
+	Balanced,
+	Performance,
 
-constexpr RenderScaleMode RENDER_SCALE_MODES[] = { RenderScaleMode::Native, RenderScaleMode::Automatic, RenderScaleMode::Performance };
+	Count
+};
 
 enum class LightMode
 {

@@ -175,12 +175,16 @@ namespace TEN::Renderer
 			antialiasMode = STRING_ANTIALIASING_NONE;
 			break;
 
-		case AntialiasingMode::Smaa:
-			antialiasMode = STRING_ANTIALIASING_SMAA;
+		case AntialiasingMode::Low:
+			antialiasMode = STRING_ANTIALIASING_LOW;
 			break;
 
-		case AntialiasingMode::Temporal:
-			antialiasMode = STRING_ANTIALIASING_TEMPORAL;
+		case AntialiasingMode::Medium:
+			antialiasMode = STRING_ANTIALIASING_MEDIUM;
+			break;
+
+		case AntialiasingMode::High:
+			antialiasMode = STRING_ANTIALIASING_HIGH;
 			break;
 		}
 
@@ -268,13 +272,16 @@ namespace TEN::Renderer
 			}
 			GetNextLinePosition(&y);
 
-			// Render scale of the 3D scene, upscaled by TAA or FSR 1.
+			// Render scale of the 3D scene, upscaled with FSR 1.
 			{
-				auto renderScale = g_Gui.GetCurrentSettings().Configuration.RenderScale;
-				const char* renderScaleString = (renderScale == RenderScaleMode::Automatic) ? STRING_RENDER_SCALE_AUTOMATIC :
-					((renderScale == RenderScaleMode::Performance) ? STRING_RENDER_SCALE_PERFORMANCE : STRING_RENDER_SCALE_NATIVE);
+				constexpr const char* RENDER_SCALE_STRINGS[(int)RenderScaleMode::Count] =
+				{
+					STRING_RENDER_SCALE_NATIVE, STRING_RENDER_SCALE_ULTRA_QUALITY, STRING_RENDER_SCALE_QUALITY, STRING_RENDER_SCALE_BALANCED, STRING_RENDER_SCALE_PERFORMANCE
+				};
+
+				int renderScale = (int)g_Gui.GetCurrentSettings().Configuration.RenderScale;
 				AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RENDER_SCALE), optionColor, SF(titleOption == 10));
-				AddString(MenuRightSideEntry, y, g_GameFlow->GetString(renderScaleString), plainColor, SF(titleOption == 10));
+				AddString(MenuRightSideEntry, y, g_GameFlow->GetString(RENDER_SCALE_STRINGS[renderScale]), plainColor, SF(titleOption == 10));
 			}
 			GetNextBlockPosition(&y);
 

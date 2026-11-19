@@ -423,7 +423,7 @@ namespace TEN::Renderer::Backend
         {
             auto color = Vector4(ui.BackgroundFade, ui.BackgroundFade, ui.BackgroundFade, 1.0f);
             AddOverlayQuad(_colorTarget.get(), Vector2::Zero, targetSize, Vector2::Zero, Vector2::One, color, BlendMode::Opaque);
-            _overlayDraws.back().IsSharpened = _isColorTargetSharpened;
+            _overlayDraws.back().IsSharpened = _isColorTargetUpscaled;
         }
 
         if (ui.ScreenWidth <= 0 || ui.ScreenHeight <= 0)
@@ -738,7 +738,6 @@ namespace TEN::Renderer::Backend
             return;
 
         commandBuffer.PushDebugGroup("Menu post-process");
-        _overlayTargets.AntialiasingSource = _targetPool.Acquire(_finalTarget->GetDesc());
 
         // Every uniform slot of the fullscreen shaders holds data before their draws, as in RenderFrame.
         auto framePixelUniforms = FramePixelUniforms{};
@@ -764,7 +763,7 @@ namespace TEN::Renderer::Backend
         }
 
         if (ui.AntialiasingMode != 0)
-            RenderAntialiasing(commandBuffer, _overlayTargets.AntialiasingSource, _finalTarget.get());
+            RenderAntialiasing(commandBuffer, ui.AntialiasingMode, _overlayTargets.AntialiasingSource, _finalTarget.get());
         else
             commandBuffer.BlitTexture(_overlayTargets.AntialiasingSource, _finalTarget.get());
 

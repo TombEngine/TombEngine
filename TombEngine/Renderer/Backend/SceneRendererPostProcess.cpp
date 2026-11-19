@@ -2,7 +2,7 @@
 // before the sky pass and accumulates distortion surfaces into the half resolution distortion target. "Post-process"
 // runs after the glow pass: a single fullscreen pass at scene resolution that composes the scene target with
 // distortion, glow, the DOF layers and lens flares and applies color scheme, fade, cinematic bars, tint and gamma.
-// It writes the frame target directly, or through SMAA (SceneRendererSMAA.cpp) and the FSR 1 upscale source.
+// It writes the frame target directly, or through FXAA/SMAA (SceneRendererSMAA.cpp) and the FSR 1 upscale source.
 
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
@@ -63,7 +63,7 @@ namespace TEN::Renderer::Backend
         return _device->CreateGraphicsPipeline(GetFullscreenPipelineDesc(vertexShader, pixelShader, format, name));
     }
 
-    // Post-process pipeline, which writes the swapchain format.
+    // Post-process and FXAA pipelines; both write the swapchain format.
     bool SceneRenderer::CreatePostProcessResources()
     {
         _postProcessVertexShader = LoadShader(*_device, _shaderDirectory, "PostProcess", "VS");
@@ -72,7 +72,13 @@ namespace TEN::Renderer::Backend
             return false;
 
         _postProcessPipeline = CreateFullscreenPipeline(_postProcessVertexShader.get(), _postProcessPixelShader.get(), _device->GetSwapchainFormat(), "PostProcess");
-        return (_postProcessPipeline != nullptr);
+
+        _fxaaPixelShader = LoadShader(*_device, _shaderDirectory, "PostProcess", "PSFXAA");
+        if (_fxaaPixelShader == nullptr)
+            return false;
+
+        _fxaaPipeline = CreateFullscreenPipeline(_postProcessVertexShader.get(), _fxaaPixelShader.get(), _device->GetSwapchainFormat(), "FXAA");
+        return (_postProcessPipeline != nullptr && _fxaaPipeline != nullptr);
     }
 
     // Enables the distortion pass: true when any collected sprite, object bucket or visible room bucket distorts.
@@ -122,22 +128,12 @@ namespace TEN::Renderer::Backend
         commandBuffer.EndRenderPass();
     }
 
-    // Scene sized target in the frame format written by the post-process: the SMAA source and the upscale source, both
-    // pooled.
-    TextureDesc SceneRenderer::GetPostProcessTargetDesc() const
-    {
-        auto desc = _sceneTarget->GetDesc();
-        desc.Format = _device->GetSwapchainFormat();
-        desc.Name = "PostProcess";
-        return desc;
-    }
-
     // Single fullscreen pass from the scene target to the frame target, or to the upscale source below native scale.
-    // With SMAA it writes the antialiasing source, which SMAA then resolves into that output.
+    // With antialiasing it writes the antialiasing source, which FXAA or SMAA then resolve into that output.
     void SceneRenderer::RenderPostProcess(ICommandBuffer& commandBuffer)
     {
         const auto& environment = *_frameEnvironment;
-        _isColorTargetSharpened = false;
+        _isColorTargetUpscaled = false;
 
         auto uniforms = PostProcessUniforms{};
         uniforms.Tint = environment.Tint;
@@ -168,14 +164,11 @@ namespace TEN::Renderer::Backend
         }
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &uniforms, sizeof(uniforms));
 
-        // The temporal antialiasing already resolved the scene after the scene pass.
-        bool isAntialiased = (environment.AntialiasingMode != 0 && environment.AntialiasingMode != ANTIALIASING_MODE_TEMPORAL);
-        _upscaleSource = _isUpscaleActive ? _targetPool.Acquire(GetPostProcessTargetDesc()) : nullptr;
-        auto* outputTarget = _isUpscaleActive ? _upscaleSource : _colorTarget.get();
-        auto* antialiasingSource = isAntialiased ? _targetPool.Acquire(GetPostProcessTargetDesc()) : nullptr;
+        bool isAntialiased = (environment.AntialiasingMode != 0);
+        auto* outputTarget = _isUpscaleActive ? _upscaleSource.get() : _colorTarget.get();
 
         auto colorTarget = ColorTargetInfo{};
-        colorTarget.Texture = isAntialiased ? antialiasingSource : outputTarget;
+        colorTarget.Texture = isAntialiased ? _antialiasingSource.get() : outputTarget;
         colorTarget.Load = LoadOp::DontCare;
 
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
@@ -184,12 +177,12 @@ namespace TEN::Renderer::Backend
         // The depth target is never sampled: occlusion tests of the distortion and lens flares read the prepass copy.
         TextureSamplerBinding bindings[6] =
         {
-            { GetResolvedSceneTarget(), _linearClampSampler.get() },
+            { _sceneTarget.get(), _linearClampSampler.get() },
             { _distortionTarget.get(), _linearClampSampler.get() },
             { _sceneDepthCopy.get(), _pointClampSampler.get() },
             { _glowTarget.get(), _linearClampSampler.get() },
-            { (_dofTargets[0] != nullptr) ? _dofTargets[0].get() : _blackTexture.get(), _linearClampSampler.get() },
-            { (_dofTargets[1] != nullptr) ? _dofTargets[1].get() : _blackTexture.get(), _linearClampSampler.get() }
+            { _dofTargets[0].get(), _linearClampSampler.get() },
+            { _dofTargets[1].get(), _linearClampSampler.get() }
         };
         renderPass->BindPixelSamplers(0, bindings, 6);
 
@@ -198,14 +191,6 @@ namespace TEN::Renderer::Backend
         commandBuffer.EndRenderPass();
 
         if (isAntialiased)
-        {
-            RenderAntialiasing(commandBuffer, antialiasingSource, outputTarget);
-            _targetPool.Release(antialiasingSource);
-        }
-
-        // The temporal antialiasing softens the image; at native scale RCAS sharpens it while the overlay draws it, as
-        // it does for the FSR upscale.
-        if (_isTaaActive && !_isUpscaleActive)
-            _isColorTargetSharpened = true;
+            RenderAntialiasing(commandBuffer, environment.AntialiasingMode, _antialiasingSource.get(), outputTarget);
     }
 }

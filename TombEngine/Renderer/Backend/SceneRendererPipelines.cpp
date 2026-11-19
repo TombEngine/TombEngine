@@ -20,15 +20,8 @@ namespace TEN::Renderer::Backend
         BlendMode::Lighten, BlendMode::AlphaBlend, BlendMode::FastAlphaBlend, BlendMode::PremultipliedAlphaBlend
     };
 
-    // Prepass shader with motion vectors, used while a temporal pass is active.
-    SceneRenderer::SceneShader SceneRenderer::GetVelocityPrepassShader(SceneShader prepassShader)
-    {
-        return (prepassShader == SceneShader::RoomsPrepass) ? SceneShader::RoomsPrepassVelocity : SceneShader::ObjectsPrepassVelocity;
-    }
-
     // Pixel shader variants of the passes that draw a bucket. The prepass variant without normal maps is used while
-    // ambient occlusion is off, and the prepass with motion vectors while a temporal pass is active; the settings can
-    // change both at any time.
+    // ambient occlusion is off, which the settings can change at any time.
     void SceneRenderer::PrecompileBucketPipelines(const RendererBucket& bucket, const std::vector<TexturePage>& pages, SceneShader shader, SceneShader prepassShader)
     {
         int missingMaps = GetMissingMaps(bucket, pages);
@@ -39,12 +32,8 @@ namespace TEN::Renderer::Backend
             for (int isAlphaTested = 0; isAlphaTested < 2; isAlphaTested++)
             {
                 // Bit 0 of the missing maps is the normal map (NO_NORMAL_MAP).
-                for (auto prepass : { prepassShader, GetVelocityPrepassShader(prepassShader) })
-                {
-                    GetScenePipeline(prepass, BlendMode::Opaque, isAlphaTested != 0, missingMaps);
-                    GetScenePipeline(prepass, BlendMode::Opaque, isAlphaTested != 0, missingMaps | 1);
-                }
-
+                GetScenePipeline(prepassShader, BlendMode::Opaque, isAlphaTested != 0, missingMaps);
+                GetScenePipeline(prepassShader, BlendMode::Opaque, isAlphaTested != 0, missingMaps | 1);
                 GetScenePipeline(shader, BlendMode::Opaque, isAlphaTested != 0, missingMaps);
             }
 
@@ -69,7 +58,6 @@ namespace TEN::Renderer::Backend
         for (int isAlphaTested = 0; isAlphaTested < 2; isAlphaTested++)
         {
             GetScenePipeline(prepassShader, BlendMode::Opaque, isAlphaTested != 0);
-            GetScenePipeline(GetVelocityPrepassShader(prepassShader), BlendMode::Opaque, isAlphaTested != 0);
             GetScenePipeline(shader, BlendMode::Opaque, isAlphaTested != 0);
         }
 

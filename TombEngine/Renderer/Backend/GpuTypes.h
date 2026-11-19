@@ -19,6 +19,7 @@ namespace TEN::Renderer::Backend
     // INSTANCE_INDEX_COUNT is the length of the instance index stream, so no draw can reach a higher instance.
     constexpr auto ALPHA_TEST_THRESHOLD       = 0.5f;
     constexpr auto INSTANCE_INDEX_COUNT       = 65536;
+    constexpr auto SSAO_KERNEL_SIZE           = 16; // Matches SSAO.hlsl; the bilateral blur hides the noise of fewer samples.
     constexpr auto LENS_FLARES_MAX            = 8;
     constexpr auto ANIM_TYPE_LEGACY_WATERFALL = 100; // Matches Common.hlsli.
     constexpr auto SHADOWABLE_MASK            = 1u << 16; // Light count flag of instances receiving shadows.
@@ -76,7 +77,7 @@ namespace TEN::Renderer::Backend
 
     static_assert(sizeof(GpuAnimatedFrame) == 32, "GpuAnimatedFrame size.");
     static_assert(sizeof(GpuAnimatedSet) == 32, "GpuAnimatedSet size.");
-    static_assert(sizeof(GpuObjectInstance) == 192, "GpuObjectInstance size.");
+    static_assert(sizeof(GpuObjectInstance) == 112, "GpuObjectInstance size.");
     static_assert(sizeof(GpuLight) == 64, "GpuLight size.");
     static_assert(sizeof(GpuMaterial) == 80, "GpuMaterial size.");
     static_assert(sizeof(GpuDecal) == 32, "GpuDecal size.");
@@ -84,7 +85,7 @@ namespace TEN::Renderer::Backend
     static_assert(sizeof(GpuFogBulb) == 64, "GpuFogBulb size.");
 
     // Uniform blocks are multiples of 16 bytes with no member crossing a 16 byte boundary.
-    static_assert(sizeof(FrameVertexUniforms) == 224, "FrameVertexUniforms size.");
+    static_assert(sizeof(FrameVertexUniforms) == 96, "FrameVertexUniforms size.");
     static_assert(sizeof(DrawVertexUniforms) == 16, "DrawVertexUniforms size.");
     static_assert(sizeof(SkyVertexUniforms) == 160, "SkyVertexUniforms size.");
     static_assert(sizeof(SkyPixelUniforms) == 32, "SkyPixelUniforms size.");

@@ -50,24 +50,11 @@ namespace TEN::Gui
 
 	GuiController g_Gui;
 
-	// Next value of an option in a list of values, in both directions; values missing from the list continue from the first.
-	template <typename T, int N>
-	static T CycleOption(T value, const T (&values)[N], int step)
-	{
-		int index = 0;
-		for (int i = 0; i < N; i++)
-		{
-			if (values[i] == value)
-				index = i;
-		}
-
-		return values[(index + step + N) % N];
-	}
-
 	// Render scale modes cycle in both directions; the scale applies from the next frame.
 	static void CycleRenderScale(GameConfiguration& configuration, int step)
 	{
-		configuration.RenderScale = CycleOption(configuration.RenderScale, RENDER_SCALE_MODES, step);
+		int count = (int)RenderScaleMode::Count;
+		configuration.RenderScale = (RenderScaleMode)(((int)configuration.RenderScale + step + count) % count);
 	}
 
 	std::vector<std::string> OptionStrings =
@@ -608,7 +595,10 @@ namespace TEN::Gui
 			case DisplaySettingsOption::Antialiasing:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 
-				CurrentSettings.Configuration.AntialiasingMode = CycleOption(CurrentSettings.Configuration.AntialiasingMode, ANTIALIASING_MODES, -1);
+				if (CurrentSettings.Configuration.AntialiasingMode == AntialiasingMode::None)
+					CurrentSettings.Configuration.AntialiasingMode = AntialiasingMode::High;
+				else
+					CurrentSettings.Configuration.AntialiasingMode = AntialiasingMode(int(CurrentSettings.Configuration.AntialiasingMode) - 1);
 
 				break;
 
@@ -697,7 +687,10 @@ namespace TEN::Gui
 			case DisplaySettingsOption::Antialiasing:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 
-				CurrentSettings.Configuration.AntialiasingMode = CycleOption(CurrentSettings.Configuration.AntialiasingMode, ANTIALIASING_MODES, 1);
+				if (CurrentSettings.Configuration.AntialiasingMode == AntialiasingMode::High)
+					CurrentSettings.Configuration.AntialiasingMode = AntialiasingMode::None;
+				else
+					CurrentSettings.Configuration.AntialiasingMode = AntialiasingMode(int(CurrentSettings.Configuration.AntialiasingMode) + 1);
 
 				break;
 

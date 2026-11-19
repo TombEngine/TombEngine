@@ -51,17 +51,12 @@ namespace TEN::Renderer::Backend
         return true;
     }
 
-    // Half resolution targets of the scene resolution, which the post-process samples, created the first time DOF is active
-    // at this resolution and cleared. DOF stays off when they cannot be created.
-    void SceneRenderer::EnsureDOFTargets(ICommandBuffer& commandBuffer)
+    // Persistent half resolution targets of the scene resolution; the post-process samples both of them.
+    bool SceneRenderer::EnsureDOFTargets(int width, int height)
     {
-        if (!_isDofActive || _dofTargets[DOF_TARGET_COUNT - 1] != nullptr)
-            return;
-
-        const auto& sceneDesc = _sceneTarget->GetDesc();
         auto desc = TextureDesc{};
-        desc.Width = std::max(sceneDesc.Width / 2, 1);
-        desc.Height = std::max(sceneDesc.Height / 2, 1);
+        desc.Width = std::max(width / 2, 1);
+        desc.Height = std::max(height / 2, 1);
         desc.Format = PixelFormat::RGBA8Unorm;
         desc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler;
 
@@ -70,13 +65,10 @@ namespace TEN::Renderer::Backend
             desc.Name = "DOF[" + std::to_string(i) + "]";
             _dofTargets[i] = _device->CreateTexture(desc);
             if (_dofTargets[i] == nullptr)
-            {
-                _isDofActive = false;
-                return;
-            }
-
-            ClearColorTarget(commandBuffer, _dofTargets[i].get());
+                return false;
         }
+
+        return true;
     }
 
     bool SceneRenderer::IsDOFActive(const FrameEnvironment& environment)
@@ -128,7 +120,7 @@ namespace TEN::Renderer::Backend
         };
 
         int layers = GetDOFLayers(environment);
-        drawPass(0, _dofTargets[0].get(), GetResolvedSceneTarget(), "Downsample");
+        drawPass(0, _dofTargets[0].get(), _sceneTarget.get(), "Downsample");
         if (layers & 1)
             drawPass(1, _dofTargets[1].get(), _dofTargets[0].get(), "Far blur");
 
