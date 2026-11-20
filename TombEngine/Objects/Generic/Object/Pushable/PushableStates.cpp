@@ -32,6 +32,24 @@ namespace TEN::Entities::Generic
 	constexpr auto PUSHABLE_GRAVITY_ACCEL = 0.5f;
 
 	constexpr auto PUSHABLE_WATER_SURFACE_DISTANCE = CLICK(0.5f);
+	constexpr auto PUSHABLE_WATER_SURFACE_REFLOAT_MARGIN = CLICK(1.0f);
+
+	static int GetPushableFloatTargetHeight(const ItemInfo& pushableItem, const PushableCollisionData& pushableColl)
+	{
+		const auto& pushable = GetPushableInfo(pushableItem);
+
+		// Determine target height.
+		if (pushable.WaterSurfaceHeight == NO_HEIGHT)
+		{
+			if (abs(pushableColl.CeilingHeight - pushableColl.FloorHeight) >= (GetPushableHeight(pushableItem) + PUSHABLE_WATER_SURFACE_DISTANCE))
+				return ((pushableColl.CeilingHeight + pushable.Height) + PUSHABLE_WATER_SURFACE_DISTANCE);
+
+			return pushableItem.Pose.Position.y;
+		}
+
+		// No ceiling; rise above water surface.
+		return (pushable.WaterSurfaceHeight - PUSHABLE_WATER_SURFACE_DISTANCE + pushable.Height);
+	}
 
 	static void HandleIdleState(ItemInfo& pushableItem)
 	{
@@ -684,23 +702,7 @@ namespace TEN::Entities::Generic
 
 		case PushableEnvironmentType::Water:
 		case PushableEnvironmentType::WaterFloor:
-			// Determine target height.
-			if (pushable.WaterSurfaceHeight == NO_HEIGHT)
-			{
-				if (abs(pushableColl.CeilingHeight - pushableColl.FloorHeight) >= (GetPushableHeight(pushableItem) + PUSHABLE_WATER_SURFACE_DISTANCE))
-				{
-					targetHeight = (pushableColl.CeilingHeight + pushable.Height) + PUSHABLE_WATER_SURFACE_DISTANCE;
-				}
-				else
-				{
-					targetHeight = pushableItem.Pose.Position.y;
-				}
-			}
-			// No ceiling; rise above water surface.
-			else
-			{
-				targetHeight = pushable.WaterSurfaceHeight - PUSHABLE_WATER_SURFACE_DISTANCE + pushable.Height;
-			}
+			targetHeight = GetPushableFloatTargetHeight(pushableItem, pushableColl);
 
 			// Manage influence of gravity.
 			pushable.Gravity = std::max(pushable.Gravity - PUSHABLE_GRAVITY_ACCEL, -PUSHABLE_GRAVITY_WATER);
@@ -836,6 +838,17 @@ namespace TEN::Entities::Generic
 			break;
 
 		case PushableEnvironmentType::Water:
+			// Float up again if water surface rose.
+			if (pushable.IsBuoyant && pushable.Stack.ItemNumberAbove == NO_VALUE &&
+				GetPushableFloatTargetHeight(pushableItem, pushableColl) < (pushableItem.Pose.Position.y - PUSHABLE_WATER_SURFACE_REFLOAT_MARGIN))
+			{
+				DisablePushableBridge(pushableItem);
+				pushableItem.Animation.Velocity.y = 0.0f;
+				pushable.BehaviorState = PushableBehaviorState::Float;
+				pushable.Gravity = 0.0f;
+				break;
+			}
+
 			pushable.UseRoomCollision ? HandlePushableBridgeOscillation(pushableItem) : HandlePushableOscillation(pushableItem);
 			HandlePushableRippleEffect(pushableItem);
 			break;
