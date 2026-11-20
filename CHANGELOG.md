@@ -8,6 +8,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Bug fixes
 
 * Fixed flyby camera roll persisting after the player dies or leaves the level during a flyby.
+* Fixed buoyant pushables not rising after the room above them is flooded.
 
 ## [Version 2.0.2]
 
