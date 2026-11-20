@@ -58,6 +58,16 @@ namespace TEN::Video
 		return _fileName;
 	}
 
+	const char* VideoHandler::GetFrameData() const
+	{
+		return (_player != nullptr && !_frameBuffer.empty()) ? _frameBuffer.data() : nullptr;
+	}
+
+	Vector2i VideoHandler::GetFrameSize() const
+	{
+		return _size;
+	}
+
 	Color VideoHandler::GetDominantColor() const
 	{
 		if (_player == nullptr || _frameBuffer.size() == 0)
@@ -175,7 +185,7 @@ namespace TEN::Video
 		return true;
 	}
 
-	void VideoHandler::Initialize(const std::string& gameDir, IGraphicsDevice* device)
+	void VideoHandler::Initialize(const std::string& gameDir)
 	{
 		TENLog("Initializing video player...", LogLevel::Info);
 
@@ -210,8 +220,6 @@ namespace TEN::Video
 #endif
 
 		HandleError();
-
-		_device = device;
 
 		_videoDirectory = gameDir + VIDEO_PATH;
 		_size = Vector2i::Zero;
@@ -392,18 +400,9 @@ namespace TEN::Video
 		if (_deInitializing || _player == nullptr)
 			return false;
 
-		// Create GPU texture on main thread if not yet created (deferred from VLC callback).
-		if (_videoTexture == nullptr && _size != Vector2i::Zero)
+		// Render only if the callback has set a frame to be rendered.
+		if (_needRender && !_frameBuffer.empty())
 		{
-			TENLog("Creating video texture: " + std::to_string(_size.x) + "x" + std::to_string(_size.y), LogLevel::Info);
-			_videoTexture = _device->CreateTexture2D(_size.x, _size.y, SurfaceFormat::SF_BGRA8_Unorm, nullptr, true);
-		}
-
-		// Attempt to map and render texture only if callback has set frame to be rendered.
-		if (_needRender && _videoTexture != nullptr)
-		{
-			_device->UpdateTexture2D(_videoTexture.get(), _frameBuffer);
-
 			if (_playbackMode == VideoPlaybackMode::Exclusive)
 			{
 				RenderExclusive();
@@ -469,7 +468,9 @@ namespace TEN::Video
 
 	void VideoHandler::RenderExclusive()
 	{
-		g_Renderer.RenderFullScreenTexture(_videoTexture.get(), (float)_size.x / (float)_size.y);
+		// Registered as in background mode, so the scene renderer receives the decoded frame.
+		g_Renderer.UpdateVideoSprite(_size.x, _size.y);
+		g_Renderer.RenderVideoFrame((float)_size.x / (float)_size.y);
 	}
 
 	void VideoHandler::UpdateBackground()
@@ -495,7 +496,7 @@ namespace TEN::Video
 
 	void VideoHandler::RenderBackground()
 	{
-		g_Renderer.UpdateVideoTexture(_videoTexture.get());
+		g_Renderer.UpdateVideoSprite(_size.x, _size.y);
 	}
 
 	// libVLC 3 keeps a finished input, which play() would only resume, so the player is stopped first. The video size
@@ -530,9 +531,7 @@ namespace TEN::Video
 			return false;
 		}
 
-		// Only allocate CPU buffer here (called from VLC thread).
-		// GPU texture creation is deferred to Update() on the main thread
-		// to avoid D3D11 context calls from non-main threads.
+		// Called from the VLC thread; the renderer uploads the frames on the main thread.
 		_frameBuffer.resize(_size.x * GetFrameLineCount(_size.y) * 4);
 
 		return true;
@@ -540,12 +539,7 @@ namespace TEN::Video
 
 	void VideoHandler::DeinitializeVideoTexture()
 	{
-		// Drop the renderer's raw pointer to the video texture before destroying it,
-		// otherwise _videoSprite.Texture becomes a dangling pointer and the next draw
-		// call dereferences a freed ITexture2D vtable.
-		g_Renderer.ClearVideoTexture();
-
-		_videoTexture.reset();
+		g_Renderer.ClearVideoSprite();
 		_frameBuffer.clear();
 
 		_size = Vector2i::Zero;

@@ -39,9 +39,8 @@ namespace TEN::Animation
 				   bool useObjectWorldRotation = false, const MoveableAnimBlendData* blend = nullptr, const RootMotionData* rootMotion = nullptr,
 				   const ItemInfo* mutatedItem = nullptr);
 
-	// Current pose of an item. Wheels and propellers spin from their previous extra rotations, which the renderer keeps
-	// per item; queries without them get the rotation of the current frame only.
-	void GetItemPose(const ItemInfo& item, SkeletonPose& pose, BoneRotations* extraRotations = nullptr);
+	// Current pose of an item, posed from its animation and the state of its wheels, propellers and joints.
+	void GetItemPose(const ItemInfo& item, SkeletonPose& pose);
 
 	Matrix GetItemWorldMatrix(const ItemInfo& item, Matrix* rotationMatrix = nullptr, Matrix* translationMatrix = nullptr);
 }

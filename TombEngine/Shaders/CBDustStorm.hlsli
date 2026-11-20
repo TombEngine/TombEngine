@@ -1,12 +1,10 @@
-// CBDustStorm.hlsli - Constant buffer for the volumetric dust storm shader.
-// Bound to register b10 (reuses the Hud slot - dust runs between gun flashes
-// and HUD, so there is no overlap).
-// Must match CDustStormBuffer in C++ exactly.
+// CBDustStorm.hlsli - Uniform block of the volumetric dust storm, declared by the including shader through TEN_DUST_STORM_BLOCK
+// (pixel uniform slot 2). Must match CDustStormBuffer in C++ exactly.
 
 #ifndef CB_DUST_STORM_HLSLI
 #define CB_DUST_STORM_HLSLI
 
-cbuffer CBDustStorm : register(b10)
+TEN_DUST_STORM_BLOCK
 {
     // Row 0
     float3 DustColor;

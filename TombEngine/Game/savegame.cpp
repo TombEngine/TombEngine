@@ -3,6 +3,7 @@
 
 #include <filesystem>
 
+#include "Game/Animation/PoseCache.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/floordata.h"
 #include "Game/control/box.h"
@@ -12,6 +13,7 @@
 #include "Game/control/volume.h"
 #include "Objects/Effects/Fireflies.h"
 #include "Game/effects/item_fx.h"
+#include "Game/effects/Decal.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/hair.h"
 #include "Game/effects/weather.h"
@@ -53,6 +55,7 @@
 using namespace flatbuffers;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Control::Volumes;
+using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Effects::Fireflies;
 using namespace TEN::Effects::Hair;
@@ -3106,6 +3109,7 @@ void SaveGame::Parse(const std::vector<unsigned char>& buffer, bool hubMode)
 	}
 
 	JustLoaded = true;
+	ClearPoseCache();
 
 	const Save::SaveGame* s = Save::GetSaveGame(buffer.data());
 

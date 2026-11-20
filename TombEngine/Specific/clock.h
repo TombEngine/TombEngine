@@ -14,6 +14,7 @@ private:
 	double _controlDelay = 0.0;
 	double _frameTime    = 0.0;
 	bool   _locked       = false;
+	unsigned int _stepCount = 0; // Logic ticks since startup.
 
 	unsigned long long _lastCounter    = 0;
 	unsigned long long _currentCounter = 0;
@@ -26,6 +27,7 @@ public:
 	bool Synced();
 	bool Locked();
 	float GetInterpolationFactor();
+	unsigned int GetStepCount() const;
 };
 
 int	 TimeSync();

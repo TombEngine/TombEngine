@@ -1,22 +1,21 @@
 #pragma once
 #include <vector>
 #include "Math/SimpleMath.h"
-#include "Renderer/Graphics/IRenderTarget2D.h"
 #include "Renderer/Structures/RendererBucket.h"
 #include "Renderer/Structures/RendererDecal.h"
 #include "Renderer/Structures/RendererDoor.h"
 #include "Renderer/Structures/RendererEffect.h"
 #include "Renderer/Structures/RendererItem.h"
 #include "Renderer/Structures/RendererLight.h"
-#include "Renderer/Structures/RendererRectangle.h"
 #include "Renderer/Structures/RendererStatic.h"
 
 namespace TEN::Renderer::Structures
 {
 	using namespace TEN::Math::Collision;
 	using namespace TEN::Math::Library;
-	using namespace TEN::Renderer::Graphics;
 
+	// Renderer data of a room: geometry buckets, lights, statics and portals, plus the per-frame draw lists and the
+	// screen rectangle (ViewPort, in normalized device coordinates) of the portals the room is seen through.
 	struct RendererRoom
 	{
 		bool Visited;
@@ -28,12 +27,10 @@ namespace TEN::Renderer::Structures
 		std::vector<RendererStatic> Statics;
 		std::vector<RendererItem*> ItemsToDraw;
 		std::vector<RendererEffect*> EffectsToDraw;
-		std::vector<RendererStatic*> StaticsToDraw;
 		std::vector<RendererLight*> LightsToDraw;
 		std::vector<RendererDecal> Decals;
 		std::vector<RendererDoor> Doors;
 		BoundingBox BoundingBox;
-		RendererRectangle ClipBounds;
 		std::vector<int> Neighbors;
 	};
 }

@@ -596,6 +596,7 @@ namespace TEN::Entities::Vehicles
 		}
 
 		minecart->Velocity = DoVehicleWaterMovement(minecartItem, laraItem, minecart->Velocity, CLICK(1), &minecart->TurnRot, MINECART_WAKE_OFFSET);
+		minecart->WheelRotation += (short)std::clamp(minecart->Velocity, 0, (int)ANGLE(25.0f));
 		minecartItem->Pose.Orientation.x = minecart->Gradient * 32;
 
 		if (minecart->Flags & (MINECART_FLAG_TURNING_LEFT | MINECART_FLAG_TURNING_RIGHT))

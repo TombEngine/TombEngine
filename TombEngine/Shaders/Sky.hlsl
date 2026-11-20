@@ -1,123 +1,136 @@
-#include "./CBCamera.hlsli"
-#include "./Blending.hlsli"
-#include "./VertexInput.hlsli"
-#include "./Math.hlsli"
-#include "./ShaderLight.hlsli"
-#include "./CBSky.hlsli"
-#include "./AnimatedTextures.hlsli"
-#include "./VertexEffects.hlsli"
-#include "./Samplers.hlsli"
+// TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=4
+// TEN_SHADER: Pixel PS samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
+// TEN_SHADER: Pixel PSHorizonMask samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
 
-struct PixelShaderInput
+// Classic sky layers and horizon meshes: texture tinted by the layer color, no lighting or depth. The paraboloid
+// mode draws them into one hemisphere of the dual paraboloid map of skybox reflective materials.
+// PSHorizonMask writes the horizon silhouette for the god rays.
+
+#include "./ShaderInterop.hlsli"
+#include "./Common.hlsli"
+#include "./FrameUniforms.hlsli"
+#include "./FogBulbs.hlsli"
+
+TEN_VS_UNIFORMS(SkyVertexUniforms, 2)
 {
-	float4 Position: SV_POSITION;
-	float3 Normal: NORMAL;
-	float2 UV: TEXCOORD;
-	float4 Color: COLOR;
-	float4 FogBulbs : TEXCOORD3;
-	float WorldY : TEXCOORD1;  // World-space Y — globally consistent across mesh
+    TEN_SKY_VERTEX_UNIFORMS
 };
 
-Texture2D Texture : register(t0);
-
-PixelShaderInput VS(VertexShaderInput input)
+TEN_PS_UNIFORMS(SkyPixelUniforms, 2)
 {
-	PixelShaderInput output;
+    TEN_SKY_PIXEL_UNIFORMS
+};
 
-	float4 worldPosition = mul(float4(input.Position, 1.0f), World);
+TEN_VS_RAW_BUFFER(GpuAnimatedFrame, AnimatedFrames, 0);
+TEN_VS_RAW_BUFFER(GpuAnimatedSet, AnimatedSets, 1);
 
-	output.Position = mul(worldPosition, ViewProjection);
-    output.Normal = input.Normal.xyz;
-	output.Color = input.Color;
-    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
-	output.FogBulbs = ApplyFogBulbs == 1 ? DoFogBulbsForSky(worldPosition) : 0;
-	output.WorldY = worldPosition.y;  // World-space Y for gradient (TEN Y-down)
+TEN_PS_TEXTURE(Texture2DArray, ColorMap, 0); // Sky texture or horizon page; TextureLayer selects the layer.
 
-	return output;
+#define HORIZON_MASK_ALPHA_THRESHOLD 0.5f
+
+struct VertexInput
+{
+    TEN_LOCATION(0) float3 Position      : TEXCOORD0;
+    TEN_LOCATION(1) float2 UV            : TEXCOORD1;
+    TEN_LOCATION(2) float4 Color         : TEXCOORD2;
+    TEN_LOCATION(3) uint   Effects       : TEXCOORD3;
+    TEN_LOCATION(4) uint   AnimationData : TEXCOORD4;
+};
+
+struct PixelInput
+{
+    float4 Position                 : SV_POSITION;
+    float2 UV                       : TEXCOORD0;
+    nointerpolation float3 UVScroll : TEXCOORD1;
+    float4 FogBulbs                 : TEXCOORD2;
+    float  ClipDepth                : TEXCOORD3; // Negative behind the paraboloid hemisphere.
+    float  RelativeY                : TEXCOORD4; // World Y relative to the camera, for the horizon gradients.
+};
+
+PixelInput VS(VertexInput input)
+{
+    float3 worldPosition = mul(float4(input.Position, 1.0f), World).xyz;
+
+    PixelInput output;
+    output.Position = mul(float4(worldPosition, 1.0f), ViewProjection);
+    output.Position.z = output.Position.w; // On the far plane: the depth test of the sky pass skips texels the prepass covered.
+    output.ClipDepth = 1.0f;
+    output.RelativeY = worldPosition.y - CameraPosition.y;
+
+    if (IsParaboloid)
+    {
+        // Paraboloid projection: the normalized direction maps to xy / (1 + z); depth is linear between the
+        // paraboloid near and far distances. Vertices of the other hemisphere get a negative ClipDepth.
+        float4 position = mul(float4(worldPosition, 1.0f), ParaboloidView);
+        position.z *= Hemisphere;
+
+        // Denominators are clamped: infinite or NaN positions, harmless on DX11, can lose the Vulkan device.
+        float distance = max(length(position.xyz), 1e-4f);
+        position.xyz /= distance;
+        output.ClipDepth = position.z;
+        output.Position = float4(position.xy / max(position.z + 1.0f, 1e-4f), (distance - ParaboloidNear) / (ParaboloidFar - ParaboloidNear), 1.0f);
+    }
+
+    output.FogBulbs = IsFogBulbsEnabled ? GetFogBulbs(worldPosition, CameraPosition, true) : float4(0.0f, 0.0f, 0.0f, 0.0f);
+    output.UV = input.UV;
+    output.UVScroll = float3(0.0f, 0.0f, 0.0f);
+
+    if (AnimatedSetIndex >= 0)
+    {
+        GpuAnimatedSet set = TEN_LOAD_RAW(GpuAnimatedSet, AnimatedSets, AnimatedSetIndex);
+        if (set.Type == ANIM_TYPE_UVROTATE)
+        {
+            output.UVScroll = GetUVRotateScroll(TEN_LOAD_RAW(GpuAnimatedFrame, AnimatedFrames, set.FirstFrame), set, InterpolatedFrame);
+        }
+        else
+        {
+            uint frameIndex = GetAnimatedFrameIndex(set, Frame, DecodeAnimationFrameOffset(input.AnimationData));
+            output.UV = GetFrameCorner(TEN_LOAD_RAW(GpuAnimatedFrame, AnimatedFrames, frameIndex), DecodeIndexInPoly(input.Effects));
+        }
+    }
+
+    return output;
 }
 
-float4 PS(PixelShaderInput input) : SV_TARGET
+// Horizon gradient: alpha ramp over the mesh height, t being 0 where the mesh is fully hidden.
+float GetHorizonGradient(float t, float amount)
 {
-    if (Animated && Type == 1)
-        input.UV = CalculateUVRotate(input.UV, 0);
-	
-	float4 output = Texture.Sample(AnisotropicClampSampler, input.UV);
-
-	DoAlphaTest(output);
-
-	float3 light = saturate(Color.xyz - float3(input.FogBulbs.w, input.FogBulbs.w, input.FogBulbs.w) * 1.4f);
-	output.xyz *= light;
-	output.xyz += saturate(input.FogBulbs.xyz);
-	output.w *= Color.w;
-
-	// Top-to-bottom alpha gradient on horizon mesh (Altocumulus-driven).
-	// WorldY (camera-relative) is remapped using the actual mesh Y bounds computed in C++.
-	// MeshWorldYMin stores the TOPMOST camera-relative Y of the mesh.
-	// t = 0 at mesh top (transparent), t = 1 at mesh bottom (opaque).
-	// Slider 0 = no effect (full opaque), Slider 1 = full gradient.
-	if (HorizonGradientFade > 0.0f && MeshWorldYRange > 0.0f)
-	{
-		// In TEN Y-down, larger Y is lower on screen/world.
-		// Since MeshWorldYMin is the TOP of the mesh and MeshWorldYRange is (bottom - top),
-		// relY naturally maps from [top, bottom] -> [0, 1].
-		float relY = input.WorldY - CamPositionWS.y;
-		float t = saturate((relY - MeshWorldYMin) / MeshWorldYRange);
-		// Slider controls how far downward the fade reaches:
-		// small values = only a short top fade, medium/high values = gradient reaches down faster.
-		float fadeExtent = max(HorizonGradientFade * 0.75f, 0.001f);
-		float remappedT = saturate(t / fadeExtent);
-		// Bias the curve so the upper region stays transparent longer and more peaks disappear.
-		float gradientAlpha = smoothstep(0.0f, 1.0f, pow(remappedT, 2.2f));
-		// Make the effect ramp up faster so around 0.5 the upper peaks are already gone.
-		float gradientStrength = saturate(HorizonGradientFade * 2.0f);
-		output.w *= lerp(1.0, gradientAlpha, gradientStrength);
-	}
-
-	// Bottom-to-top alpha gradient on horizon mesh (Altocumulus-driven).
-	// Mirrors the top-to-bottom gradient but fades the mesh from bottom (transparent) upward.
-	// t = 0 at mesh bottom (transparent), t = 1 at mesh top (opaque).
-	if (HorizonGradientRise > 0.0f && MeshWorldYRange > 0.0f)
-	{
-		float relY = input.WorldY - CamPositionWS.y;
-		// Invert t so bottom of mesh = 0 (transparent), top = 1 (opaque).
-		float t = saturate(1.0f - (relY - MeshWorldYMin) / MeshWorldYRange);
-		float fadeExtent = max(HorizonGradientRise * 0.75f, 0.001f);
-		float remappedT = saturate(t / fadeExtent);
-		float gradientAlpha = smoothstep(0.0f, 1.0f, pow(remappedT, 2.2f));
-		float gradientStrength = saturate(HorizonGradientRise * 2.0f);
-		output.w *= lerp(1.0, gradientAlpha, gradientStrength);
-	}
-
-	return output;
+    float fadeExtent = max(amount * 0.75f, 0.001f);
+    float gradientAlpha = smoothstep(0.0f, 1.0f, pow(saturate(t / fadeExtent), 2.2f));
+    return lerp(1.0f, gradientAlpha, saturate(amount * 2.0f));
 }
 
-// Depth-only entry: writes the horizon mesh's NDC depth into a single color RT
-// (R32F). Used to make the horizon mesh occlude post-process lens flares.
-// Alpha-tested texels are discarded so transparent texture regions do not write
-// horizon depth and falsely block the sun there.
-float PSDepth(PixelShaderInput input) : SV_TARGET
+// Fade hides the horizon mesh from its top down, rise from its bottom up (TEN Y points down).
+float GetHorizonGradientAlpha(float relativeY)
 {
-    if (Animated && Type == 1)
-        input.UV = CalculateUVRotate(input.UV, 0);
+    if (MeshWorldYRange <= 0.0f)
+        return 1.0f;
 
-    float4 color = Texture.Sample(AnisotropicClampSampler, input.UV);
-    DoAlphaTest(color);
+    float t = saturate((relativeY - MeshWorldYMin) / MeshWorldYRange);
+    float alpha = 1.0f;
+    if (HorizonGradientFade > 0.0f)
+        alpha *= GetHorizonGradient(t, HorizonGradientFade);
 
-    // SV_POSITION.z in PS is the rasterized NDC depth (matches GBuffer.Depth).
-    return input.Position.z;
+    if (HorizonGradientRise > 0.0f)
+        alpha *= GetHorizonGradient(1.0f - t, HorizonGradientRise);
+
+    return alpha;
 }
 
-// Horizon mask entry: outputs a white (1,1,1,1) solid for opaque texels.
-// Used as a binary occlusion mask in the god ray radial blur pass so that
-// rays marching through opaque horizon mesh pixels are blocked, while rays
-// through alpha cutout regions or clear sky above pass through unaffected.
-float4 PSHorizonMask(PixelShaderInput input) : SV_TARGET
+// Fog bulbs darken the layer color and add their own color.
+float4 PS(PixelInput input) : SV_TARGET
 {
-    if (Animated && Type == 1)
-        input.UV = CalculateUVRotate(input.UV, 0);
+    clip(input.ClipDepth);
 
-    float4 color = Texture.Sample(AnisotropicClampSampler, input.UV);
-    DoAlphaTest(color);
+    float4 color = ColorMap.Sample(ColorMapSampler, float3(ApplyUVScroll(input.UV, input.UVScroll), TextureLayer));
+    float3 light = saturate(SkyColor.rgb - input.FogBulbs.w * 1.4f);
+    return float4(color.rgb * light + saturate(input.FogBulbs.rgb), color.a * SkyColor.a * GetHorizonGradientAlpha(input.RelativeY));
+}
 
+// Horizon silhouette for the god rays: white where the texel passes the alpha test.
+float4 PSHorizonMask(PixelInput input) : SV_TARGET
+{
+    float4 color = ColorMap.Sample(ColorMapSampler, float3(ApplyUVScroll(input.UV, input.UVScroll), TextureLayer));
+    clip(color.a - HORIZON_MASK_ALPHA_THRESHOLD);
     return float4(1.0f, 1.0f, 1.0f, 1.0f);
 }

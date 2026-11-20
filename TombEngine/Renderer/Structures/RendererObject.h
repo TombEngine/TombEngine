@@ -9,6 +9,7 @@ namespace TEN::Renderer::Structures
 {
 	using namespace TEN::Math::Library;
 
+	// Moveable (Type 0) or static (Type 1) object: meshes, skeleton, animation and bind pose transforms.
 	struct RendererObject
 	{
 		int Id;

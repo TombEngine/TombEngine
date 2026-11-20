@@ -8,6 +8,7 @@
 #include "Game/collision/sphere.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/debris.h"
+#include "Game/effects/Decal.h"
 #include "Game/items.h"
 #include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_one_gun.h"
@@ -27,6 +28,7 @@ using namespace TEN::Animation;
 using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Sphere;
+using namespace TEN::Effects::Decal;
 using namespace TEN::Math;
 using namespace TEN::Utils;
 using TEN::Renderer::g_Renderer;

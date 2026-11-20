@@ -1,149 +1,99 @@
-#include "./Blending.hlsli"
-#include "./Math.hlsli"
-#include "./ShaderLight.hlsli"
-#include "./Samplers.hlsli"
+#ifndef TEN_SHADOWS
+#define TEN_SHADOWS
 
-#define SHADOW_INTENSITY (0.6f)
-#define SHADOW_BLUR      (2.0f)
+// Shadows of the room and object shaders: a cube shadow map for the shadow casting light, stored as
+// six R32 float layers (SDL GPU has no depth array targets), compared in the shader with 5x5 PCF, and blob shadows
+// from up to 16 spheres around the player and creatures.
 
-struct Sphere
+#include "./ShaderInterop.hlsli"
+#include "./Common.hlsli"
+#include "./Lighting.hlsli"
+
+#define SHADOW_INTENSITY 0.6f
+#define SHADOW_BLUR      2.0f
+
+// Instances receiving shadows have this bit in their light count.
+#define SHADOWABLE_MASK (1 << 16)
+
+TEN_PS_UNIFORMS(ShadowUniforms, 2)
 {
-    float3 position;
-    float radius;
+    TEN_SHADOW_UNIFORMS
 };
 
-cbuffer ShadowLightBuffer : register(b4)
-{
-    ShaderLight Light;
-    float4x4 LightViewProjections[6];
-    int CastShadows;
-    int NumSpheres;
-    int ShadowMapSize;
-    int padding;
-    Sphere Spheres[16];
-};
+TEN_PS_TEXTURE(Texture2DArray, ShadowMap, 5);
 
-Texture2DArray ShadowMap : register(t3);
-
-float2 TexOffset(int u, int v) 
-{
-    return float2(u * 1.0f / ShadowMapSize, v * 1.0f / ShadowMapSize);
-}
-
-//https://gist.github.com/JuanDiegoMontoya/d8788148dcb9780848ce8bf50f89b7bb
-int GetCubeFaceIndex(float3 dir)
-{
-    float x = abs(dir.x);
-    float y = abs(dir.y);
-    float z = abs(dir.z);
-    if (x > y && x > z)
-        return 0 + (dir.x > 0 ? 0 : 1);
-    else if (y > z)
-        return 2 + (dir.y > 0 ? 0 : 1);
-    return 4 + (dir.z > 0 ? 0 : 1);
-}
-
-float2 GetCubeUVFromDir(int faceIndex, float3 dir)
-{
-    float2 uv;
-    switch (faceIndex)
-    {
-    case 0:
-        uv = float2(-dir.z, dir.y);
-        break; // +X
-    case 1:
-        uv = float2(dir.z, dir.y);
-        break; // -X
-    case 2:
-        uv = float2(dir.x, dir.z);
-        break; // +Y
-    case 3:
-        uv = float2(dir.x, -dir.z);
-        break; // -Y
-    case 4:
-        uv = float2(dir.x, dir.y);
-        break; // +Z
-    default:
-        uv = float2(-dir.x, dir.y);
-        break; // -Z
-    }
-    return uv * .5 + .5;
-}
-
-float3 DoBlobShadows(float3 worldPos, float3 lighting)
+// Each sphere darkens linearly toward its center; overlapping spheres combine multiplicatively.
+float3 DoBlobShadows(float3 position, float3 lighting)
 {
     float shadowFactor = 1.0f;
 
-    for (int i = 0; i < NumSpheres; i++)
+    for (int i = 0; i < min(SphereCount, SHADOW_SPHERES_MAX); i++)
     {
-        Sphere s = Spheres[i];
-        float dist = distance(worldPos, s.position);
-        float insideSphere = saturate(1.0f - step(s.radius, dist));
-        float radiusFactor = dist / s.radius;
-        float factor = (1.0f - saturate(radiusFactor)) * insideSphere;
+        float distanceToCenter = distance(position, Spheres[i].xyz);
+        float inside = 1.0f - step(Spheres[i].w, distanceToCenter);
+        float factor = (1.0f - saturate(distanceToCenter / Spheres[i].w)) * inside;
         shadowFactor -= factor * shadowFactor;
     }
 
-    shadowFactor = saturate(shadowFactor);
-    return lighting * saturate(1.0f - (1.0f - shadowFactor) * (SHADOW_INTENSITY * 0.5f));
+    return lighting * saturate(1.0f - (1.0f - saturate(shadowFactor)) * (SHADOW_INTENSITY * 0.5f));
 }
 
-float3 DoShadow(float3 worldPos, float3 normal, float3 lighting, float bias)
+// Projects the position into each of the six cube faces and filters the face that contains it. Surfaces facing
+// away from the light fade out of the shadow by the bias, and the darkening scales with the light's own contribution.
+float3 DoShadow(float3 position, float3 normal, float3 lighting, float bias, uint blendMode)
 {
     if (!CastShadows)
         return lighting;
 
-    if (BlendMode != BLENDMODE_OPAQUE && BlendMode != BLENDMODE_ALPHATEST && BlendMode != BLENDMODE_ALPHABLEND)	
+    if (blendMode != BLENDMODE_OPAQUE && blendMode != BLENDMODE_ALPHATEST && blendMode != BLENDMODE_ALPHABLEND)
         return lighting;
 
     float shadowFactor = 1.0f;
 
-    float3 dir = normalize(Light.Position - worldPos);
-    float ndot = dot(normal, dir);
-    float facingFactor = saturate((ndot - bias) / (1.0f - bias + EPSILON));
+    float3 lightDirection = normalize(ShadowLight.Position - position);
+    float facingFactor = saturate((dot(normal, lightDirection) - bias) / (1.0f - bias + 0.001f));
+    float texel = 1.0f / ShadowMapSize;
 
     [unroll]
-    for (int i = 0; i < 6; i++)
+    for (int face = 0; face < 6; face++)
     {
-        float4 lightClipSpace = mul(float4(worldPos, 1.0f), LightViewProjections[i]);
-        lightClipSpace.xyz /= lightClipSpace.w;
+        float4 lightClip = mul(float4(position, 1.0f), LightViewProjections[face]);
+        lightClip.xyz /= lightClip.w;
 
-        float insideLightBounds =
-            step(-1.0f, lightClipSpace.x) * step(lightClipSpace.x, 1.0f) *
-            step(-1.0f, lightClipSpace.y) * step(lightClipSpace.y, 1.0f) *
-            step( 0.0f, lightClipSpace.z) * step(lightClipSpace.z, 1.0f);
+        float inside =
+            step(-1.0f, lightClip.x) * step(lightClip.x, 1.0f) *
+            step(-1.0f, lightClip.y) * step(lightClip.y, 1.0f) *
+            step(0.0f, lightClip.z) * step(lightClip.z, 1.0f);
 
-        if (insideLightBounds > 0.0f)
+        if (inside > 0.0f)
         {
-            lightClipSpace.x = lightClipSpace.x / 2 + 0.5;
-            lightClipSpace.y = lightClipSpace.y / -2 + 0.5;
+            float2 uv = float2(lightClip.x * 0.5f + 0.5f, lightClip.y * -0.5f + 0.5f);
 
-            float sum = 0;
-            float samples = 0;
-
-            // Perform basic PCF filtering
-            for (float y = -SHADOW_BLUR; y <= SHADOW_BLUR; y += 1.0)
+            float sum = 0.0f;
+            float sampleCount = 0.0f;
+            for (float y = -SHADOW_BLUR; y <= SHADOW_BLUR; y += 1.0f)
             {
-                for (float x = -SHADOW_BLUR; x <= SHADOW_BLUR; x += 1.0)
+                for (float x = -SHADOW_BLUR; x <= SHADOW_BLUR; x += 1.0f)
                 {
-                    sum += ShadowMap.SampleCmpLevelZero(ShadowMapSampler, float3(lightClipSpace.xy + TexOffset(x, y), i), lightClipSpace.z);
-                    samples += 1.0;
+                    float storedDepth = ShadowMap.SampleLevel(ShadowMapSampler, float3(uv + float2(x, y) * texel, face), 0.0f).x;
+                    sum += (lightClip.z <= storedDepth) ? 1.0f : 0.0f;
+                    sampleCount += 1.0f;
                 }
             }
 
-            shadowFactor = lerp(shadowFactor, sum / samples, facingFactor * insideLightBounds);
+            shadowFactor = lerp(shadowFactor, sum / sampleCount, facingFactor * inside);
         }
     }
 
-    float isPoint = step(0.5f, Light.Type == LT_POINT); // 1.0 if LT_POINT, 0.0 otherwise
-    float isSpot  = step(0.5f, Light.Type == LT_SPOT);  // 1.0 if LT_SPOT,  0.0 otherwise
-    float isOther = 1.0 - (isPoint + isSpot); // 1.0 if neither LT_POINT nor LT_SPOT
+    float lightFactor = 0.0f;
+    if (ShadowLight.Type == LT_POINT)
+        lightFactor = saturate(ShadowLight.Intensity * GetPointLightFalloff(position, normal, ShadowLight));
+    else if (ShadowLight.Type == LT_SPOT)
+        lightFactor = saturate(ShadowLight.Intensity * GetSpotLightFalloff(position, normal, ShadowLight));
+    else
+        return lighting;
 
-    float pointFactor = Luma(DoPointLight(worldPos, normal, Light, true));
-    float spotFactor  = Luma(DoSpotLight(worldPos, normal, Light, true));
-
-    float3 pointShadow = lighting * saturate(1.0f - (1.0f - shadowFactor) * SHADOW_INTENSITY * pointFactor);
-    float3 spotShadow  = lighting * saturate(1.0f - (1.0f - shadowFactor) * SHADOW_INTENSITY * spotFactor );
-
-    return pointShadow * isPoint + spotShadow * isSpot + lighting * isOther;
+    return lighting * saturate(1.0f - (1.0f - shadowFactor) * SHADOW_INTENSITY * lightFactor);
 }
+
+#endif // TEN_SHADOWS

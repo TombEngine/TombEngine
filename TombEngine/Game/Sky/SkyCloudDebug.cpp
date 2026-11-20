@@ -31,11 +31,11 @@
 #include "Game/Effects/LensFlareDebug.h"
 #include "Game/effects/weather.h"
 #include "Renderer/Renderer.h"
-#include "Renderer/Aurora/AuroraSettings.h"
-#include "Renderer/GodRay/GodRaySettings.h"
+#include "Renderer/Sky/AuroraSettings.h"
+#include "Renderer/Sky/GodRaySettings.h"
 #include "Specific/configuration.h"
-#include "Renderer/Moon/MoonSettings.h"
-#include "Renderer/UnderwaterSky/UnderwaterSkySettings.h"
+#include "Renderer/Sky/MoonSettings.h"
+#include "Renderer/Sky/UnderwaterSkySettings.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 #include "Specific/level.h"
@@ -2510,15 +2510,8 @@ namespace TEN::Sky
 
 	// ====================================================================
 
-	void DrawSkyDebugWindow()
+	void DrawSkyDebugContents()
 	{
-		ImGui::SetNextWindowSize(ImVec2(520, 760), ImGuiCond_FirstUseEver);
-		if (!ImGui::Begin("Sky Debug", nullptr, ImGuiWindowFlags_NoCollapse))
-		{
-			ImGui::End();
-			return;
-		}
-
 		if (ImGui::BeginTabBar("##SkyDebugTabs"))
 		{
 			if (ImGui::BeginTabItem("Clouds"))
@@ -2581,7 +2574,18 @@ namespace TEN::Sky
 
 			ImGui::EndTabBar();
 		}
+	}
 
+	void DrawSkyDebugWindow()
+	{
+		ImGui::SetNextWindowSize(ImVec2(520, 760), ImGuiCond_FirstUseEver);
+		if (!ImGui::Begin("Sky Debug", nullptr, ImGuiWindowFlags_NoCollapse))
+		{
+			ImGui::End();
+			return;
+		}
+
+		DrawSkyDebugContents();
 		ImGui::End();
 	}
 

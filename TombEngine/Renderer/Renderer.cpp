@@ -1,16 +1,19 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
-#include "Renderer/ImGuiIntegration.h"
+#include "Renderer/UI/ImGuiIntegration.h"
+#include "Renderer/Backend/SceneRenderer.h"
 #include "Game/camera.h"
 #include "Game/effects/tomb4fx.h"
 #include "Math/Math.h"
-#include "Renderer/Structures/RendererRectangle.h"
-#include "Renderer/RenderView.h"
+#include "Renderer/Scene/RenderView.h"
 #include "Renderer/RendererUtils.h"
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/clock.h"
 #include "Specific/trutils.h"
+
+// Global renderer instance and its lifetime: construction, release of level data, video sprite state, frame
+// synchronization and small state accessors. GPU resources are owned by Backend::g_SceneRenderer.
 
 namespace TEN::Renderer
 {
@@ -32,6 +35,7 @@ namespace TEN::Renderer
 		FreeRendererData();
 	}
 
+	// Releases the renderer data of the current level, including the meshes allocated by PrepareDataForTheRenderer.
 	void Renderer::FreeRendererData()
 	{
 		_items.resize(0);
@@ -39,11 +43,6 @@ namespace TEN::Renderer
 		_staticObjects.clear();
 		_sprites.resize(0);
 		_rooms.resize(0);
-		_roomTextures.resize(0);
-		_moveablesTextures.resize(0);
-		_staticTextures.resize(0);
-		_spritesTextures.resize(0);
-		_animatedTextures.resize(0);
 		_animatedTextureSets.resize(0);
 
 		_shadowLight = nullptr;
@@ -56,59 +55,44 @@ namespace TEN::Renderer
 			delete mesh;
 		_meshes.resize(0);
 
-		SAFE_DELETE(_roomsVertexBuffer);
-		SAFE_DELETE(_roomsIndexBuffer);
-		SAFE_DELETE(_moveablesVertexBuffer);
-		SAFE_DELETE(_moveablesIndexBuffer);
-		SAFE_DELETE(_staticsVertexBuffer);
-		SAFE_DELETE(_staticsIndexBuffer);
-
-		_roomTextures.clear();
-		_moveablesTextures.clear();
-		_staticTextures.clear();
-		_spritesTextures.clear();
-		_animatedTextures.clear();
-
 		_videoSprite = {};
 	}
 
+	// Blocks further debug primitives, debug messages and dynamic lights until the next PrepareScene.
 	void Renderer::Lock()
 	{
 		_isLocked = true;
 	}
 
-	void Renderer::UpdateVideoTexture(ITexture2D* texture)
+	// Video frames fill the whole sprite; the scene renderer uploads the frame of the video handler.
+	void Renderer::UpdateVideoSprite(int width, int height)
 	{
-		_videoSprite.X = _videoSprite.Y = 0;
-		_videoSprite.Width = texture->GetWidth();
-		_videoSprite.Height = texture->GetHeight();
-		_videoSprite.UV[0] = Vector2(0,0);
-		_videoSprite.UV[1] = Vector2(1,0);
-		_videoSprite.UV[2] = Vector2(1,1);
-		_videoSprite.UV[3] = Vector2(0,1);
-		_videoSprite.Texture = texture;
+		_videoSprite.Width = width;
+		_videoSprite.Height = height;
+		_videoSprite.UV[0] = Vector2(0.0f, 0.0f);
+		_videoSprite.UV[1] = Vector2(1.0f, 0.0f);
+		_videoSprite.UV[2] = Vector2(1.0f, 1.0f);
+		_videoSprite.UV[3] = Vector2(0.0f, 1.0f);
 	}
 
-	void Renderer::ClearVideoTexture()
+	void Renderer::ClearVideoSprite()
 	{
 		_videoSprite = {};
 	}
 
-	void Renderer::ReloadShaders(bool recompileAAShaders)
+	bool Renderer::IsVideoSpriteActive() const
 	{
-		try
-		{
-			_shaders.LoadShaders(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(), recompileAAShaders);
-		}
-		catch (const std::exception& e)
-		{
-			TENLog("An exception occured during shader reload: " + std::string(e.what()), LogLevel::Error);
-		}
+		return (_videoSprite.Width > 0);
 	}
 
+	void Renderer::ReloadShaders()
+	{
+		Backend::g_SceneRenderer.ReloadShaders();
+	}
+
+	// Waits until at least two game ticks have elapsed and returns the number of elapsed ticks.
 	int Renderer::Synchronize()
 	{
-		// Sync the renderer
 		int nf = TimeSync();
 		if (nf < 2)
 		{
@@ -130,6 +114,7 @@ namespace TEN::Renderer
 		RenderLoadingScreen(value);
 	}
 
+	// Frame rate averaged over 10 rendered frames.
 	float Renderer::CalculateFrameRate()
 	{
 		static int last_time = clock();
@@ -151,247 +136,6 @@ namespace TEN::Renderer
 		_fps = fps;
 
 		return fps;
-	}
-
-	void Renderer::BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType)
-	{
-		// Sampler states sit in fixed slots bound once per frame by BindSamplers and shaders
-		// pick them by register, so samplerType takes no part in the bind.
-		_graphicsDevice->BindTexture(registerType, texture);
-	}
-
-	void Renderer::BindRenderTargetAsTexture(TextureRegister registerType, IRenderTarget2D* target, SamplerStateRegister samplerType)
-	{
-		_graphicsDevice->BindTexture(registerType, target);
-	}
-
-	int Renderer::BindLight(RendererLight& light, ShaderLight* lights, int index)
-	{
-		memcpy(&lights[index], &light, sizeof(ShaderLight));
-
-		// Precalculate ranges so that it's not recalculated in shader for every pixel.
-		if (light.Type == LightType::Spot)
-		{
-			lights[index].InRange  = cos(light.InRange * (PI / 180.0f));
-			lights[index].OutRange = cos(light.OutRange * (PI / 180.0f));
-		}
-
-		// If light has hash, interpolate its position with previous position.
-		if (light.Hash != 0)
-		{
-			lights[index].Position  = Vector3::Lerp(light.PrevPosition, light.Position, GetInterpolationFactor());
-			lights[index].Direction = Vector3::Lerp(light.PrevDirection, light.Direction, GetInterpolationFactor());
-		}
-
-		ReflectVectorOptionally(lights[index].Position);
-		ReflectVectorOptionally(lights[index].Direction);
-
-		lights[index].Direction.Normalize();
-
-		// Bitmask light type to filter it in the shader later.
-		return (1 << (31 - (int)light.Type));
-	}
-
-	void Renderer::BindRoomLights(std::vector<RendererLight*>& lights)
-	{
-		int lightTypeMask = 0;
-
-		for (int i = 0; i < lights.size(); i++)
-			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stRoom.RoomLights, i);
-		
-		_stRoom.NumRoomLights = (int)lights.size() | lightTypeMask;
-	}
-
-	void Renderer::BindInstancedStaticLights(std::vector<RendererLight*>& lights, int instanceID)
-	{
-		int lightTypeMask = 0;
-
-		for (int i = 0; i < lights.size(); i++)
-			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stObjects.Objects[instanceID].Lights, i);
-
-		_stObjects.Objects[instanceID].NumLights = (int)lights.size() | lightTypeMask;
-	}
-
-	void Renderer::BindMoveableLights(std::vector<RendererLight*>& lights, int roomNumber, int prevRoomNumber, float fade, bool shadow)
-	{
-		constexpr int SHADOWABLE_MASK = (1 << 16);
-
-		int lightTypeMask = 0;
-		int numLights = 0;
-
-		for (int i = 0; i < lights.size(); i++)
-		{
-			float fadedCoeff = 1.0f;
-
-			// Interpolate lights which don't affect neighbor rooms
-			if (!lights[i]->AffectNeighbourRooms && roomNumber != NO_VALUE && lights[i]->RoomNumber != NO_VALUE)
-			{
-				if (lights[i]->RoomNumber == roomNumber)
-					fadedCoeff = fade;
-				else if (lights[i]->RoomNumber == prevRoomNumber)
-					fadedCoeff = 1.0f - fade;
-				else
-					continue;
-			}
-
-			if (fadedCoeff == 0.0f)
-				continue;
-
-			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stObjects.Objects[0].Lights, numLights);
-			_stObjects.Objects[0].Lights[numLights].Intensity *= fadedCoeff;
-			numLights++;
-		}
-
-		_stObjects.Objects[0].NumLights = numLights | lightTypeMask | (shadow ? SHADOWABLE_MASK : 0);
-	}
-
-	void Renderer::BindRoomDecals(const std::vector<RendererDecal>& decals)
-	{
-		memset(_stRoom.RoomDecals, 0, Decal::COUNT_MAX * sizeof(ShaderDecal));
-
-		if (!g_Configuration.EnableDecals)
-		{
-			_stRoom.NumRoomDecals = 0;
-			return;
-		}
-
-		for (int i = 0; i < decals.size(); i++)
-		{
-			if (i >= Decal::COUNT_MAX)
-				break;
-
-			_stRoom.RoomDecals[i].Position = decals[i].Position;
-			_stRoom.RoomDecals[i].Radius = decals[i].Radius;
-			_stRoom.RoomDecals[i].Opacity = decals[i].Opacity;
-			_stRoom.RoomDecals[i].Pattern = decals[i].Pattern;
-		}
-
-		_stRoom.NumRoomDecals = (int)decals.size();
-	}
-
-	void Renderer::BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer)
-	{
-		_graphicsDevice->BindConstantBuffer(shaderStage, constantBufferType, buffer);
-	}
-
-	void Renderer::BindMaterial(int materialIndex, bool force)
-	{
-		_numRequestedMaterialsUpdates++;
-
-		auto type = g_Level.Materials[materialIndex].Type;
-
-		int materialTypeAndFlags = (int)type;
-		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasHeightMap) << 8;
-		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasAmbientOcclusionMap) << 9;
-		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasEmissiveMap) << 10;
-		auto& materialProperties = g_Level.Materials[materialIndex].GetInterpolatedProperties(GetInterpolationFactor());
-
-		if (materialTypeAndFlags == _stPerDraw.MaterialTypeAndFlags && materialProperties == _stPerDraw.MaterialProperties && !force)
-		{
-			return;
-		}
-
-		// TODO: in the future output from TE directly an optimized list
-		//if (materialIndex != _lastMaterialIndex || force)
-		{
-			_stPerDraw.MaterialTypeAndFlags = materialTypeAndFlags;
-			_stPerDraw.MaterialProperties   = materialProperties;
-
-            InvalidatePerDrawBuffer();
-
-			_lastMaterialIndex = materialIndex;
-
-			_numExecutedMaterialsUpdates++;
-		}
-
-		if (type == TextureMaterialType::Reflective)
-			BindRenderTargetAsTexture(TextureRegister::LegacyEnvironmentReflections, _legacyReflectionsRenderTarget->GetRenderTarget(), SamplerStateRegister::AnisotropicClamp);
-		else if (type == TextureMaterialType::SkyboxReflective)
-			BindTexture(TextureRegister::SkyboxEnvironmentReflections, _skyboxRenderTarget->GetRenderTarget(), SamplerStateRegister::AnisotropicClamp);
-	}
-
-	void Renderer::SetBlendMode(BlendMode blendMode, bool force)
-	{	
-		if (blendMode != _lastBlendMode || force)
-		{
-			_graphicsDevice->SetBlendMode(blendMode);
-
-			_stPerDraw.BlendMode = (unsigned int)blendMode;
-            InvalidatePerDrawBuffer();
-			
-			_lastBlendMode = blendMode;
-		}
-		
-		switch (blendMode)
-		{
-		case BlendMode::Opaque:
-		case BlendMode::AlphaTest:
-			SetDepthState(DepthState::Write);
-			break;
-
-		default:
-			SetDepthState(DepthState::Read);
-			break;
-		}
-	}
-
-	void Renderer::SetDepthState(DepthState depthState, bool force)
-	{
-		if (depthState != _lastDepthState || force)
-		{
-			_graphicsDevice->SetDepthState(depthState);
-			_lastDepthState = depthState;
-		}
-	}
-
-	void Renderer::SetCullMode(CullMode cullMode, bool force)
-	{ 
-		if (_debugPage == RendererDebugPage::WireframeMode)
-		{
-			if (!_doingFullscreenPass)
-			{
-				_graphicsDevice->SetCullMode(CullMode::Wireframe);
-				return;
-			}
-			else
-			{
-				force = true;
-			}
-		}
-
-		if (cullMode != _lastCullMode || force)
-		{
-			_graphicsDevice->SetCullMode(cullMode);
-			_lastCullMode = cullMode;
-		}
-	}
-
-	void Renderer::SetAlphaTest(AlphaTestMode mode, float threshold, bool force)
-	{
-		if (_stPerDraw.AlphaTest != (int)mode ||
-			_stPerDraw.AlphaThreshold != threshold ||
-			force)
-		{
-			_stPerDraw.AlphaTest = (int)mode;
-			_stPerDraw.AlphaThreshold = threshold;
-            InvalidatePerDrawBuffer();
-		}
-	}
-
-	void Renderer::SetScissor(RendererRectangle s)
-	{
-		_graphicsDevice->SetScissor(s);
-	}
-
-	void Renderer::ResetScissor()
-	{
-		RendererRectangle s;
-		s.Left = 0;
-		s.Right = _graphicsDevice->GetScreenWidth();
-		s.Top = 0;
-		s.Bottom = _graphicsDevice->GetScreenHeight();
-
-		_graphicsDevice->SetScissor(s);
 	}
 
 	void Renderer::SetGraphicsSettingsChanged()

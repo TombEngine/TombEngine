@@ -28,7 +28,7 @@
 
 #include "Math/SimpleMath.h"
 
-#include "Renderer/VolumetricCloud/VolumetricCloud.h"
+#include "Renderer/Sky/VolumetricCloud.h"
 #include "Scripting/Internal/TEN/Flow/SkyLayer/SkyLayer.h"
 
 namespace TEN::Scripting

@@ -50,6 +50,13 @@ namespace TEN::Gui
 
 	GuiController g_Gui;
 
+	// Render scale modes cycle in both directions; the scale applies from the next frame.
+	static void CycleRenderScale(GameConfiguration& configuration, int step)
+	{
+		int count = (int)RenderScaleMode::Count;
+		configuration.RenderScale = (RenderScaleMode)(((int)configuration.RenderScale + step + count) % count);
+	}
+
 	std::vector<std::string> OptionStrings =
 	{
 		STRING_USE,
@@ -530,6 +537,7 @@ namespace TEN::Gui
 			HighFramerate,
 			Gamma,
 			SkyQuality,
+			RenderScale,
 			Save,
 			Cancel,
 
@@ -633,6 +641,11 @@ namespace TEN::Gui
 				}
 				break;
 
+			case DisplaySettingsOption::RenderScale:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CycleRenderScale(CurrentSettings.Configuration, -1);
+				break;
+
 			}
 		}
 
@@ -719,6 +732,11 @@ namespace TEN::Gui
 					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				}
 				break;
+
+			case DisplaySettingsOption::RenderScale:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CycleRenderScale(CurrentSettings.Configuration, 1);
+				break;
 			}
 		}
 
@@ -738,10 +756,6 @@ namespace TEN::Gui
 				CurrentSettings.Configuration.ScreenWidth = screenResolution.x;
 				CurrentSettings.Configuration.ScreenHeight = screenResolution.y;
 
-				// Determine whether we should update AA shaders.
-				bool shouldRecompileAAShaders = CurrentSettings.Configuration.AntialiasingMode != AntialiasingMode::Low &&
-					(screenResolutionChanged || g_Configuration.AntialiasingMode != CurrentSettings.Configuration.AntialiasingMode);
-
 				g_Configuration = CurrentSettings.Configuration;
 				SaveConfiguration();
 
@@ -753,7 +767,6 @@ namespace TEN::Gui
 					RebuildDisplayResolutions();
 				}
 
-				g_Renderer.ReloadShaders(shouldRecompileAAShaders);
 				g_Renderer.SetGraphicsSettingsChanged();
 
 				MenuToDisplay = Menu::Options;

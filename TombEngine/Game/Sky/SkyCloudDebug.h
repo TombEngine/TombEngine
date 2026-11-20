@@ -37,6 +37,7 @@ namespace TEN::Sky
 
 	/// Draw the unified sky debug window with "Clouds", "Sun/Moon/Horizon/Stars", "Atmospheric Sky", and "God Rays" tabs.
 	/// Call once per frame when the debug overlay is visible.
+	void DrawSkyDebugContents();
 	void DrawSkyDebugWindow();
 
 	/// Plain-text summary (for legacy debug page compatibility).
