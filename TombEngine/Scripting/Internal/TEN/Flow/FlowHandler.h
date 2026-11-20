@@ -58,6 +58,8 @@ public:
 	GameStatus	GetGameStatus();
 	FreezeMode	GetFreezeMode();
 	void		SetFreezeMode(FreezeMode mode);
+	ScriptControlMode GetControlMode();
+	void		SetControlMode(ScriptControlMode controlMode);
 	void		FlipMap(int group);
 	bool		GetFlipMapStatus(std::optional<int> group);
 	void		SaveGame(int slot);

@@ -117,6 +117,15 @@ struct ConfigurationT : public flatbuffers::NativeTable {
   int32_t menu_option_looping_mode = 0;
   int32_t last_gamepad_type = 0;
   std::vector<std::unique_ptr<TEN::Serialization::Config::BindingT>> bindings{};
+  int32_t control_mode = 0;
+  std::vector<std::unique_ptr<TEN::Serialization::Config::BindingT>> remastered_bindings{};
+  std::vector<std::unique_ptr<TEN::Serialization::Config::BindingT>> remastered_gamepad_bindings{};
+  bool invert_camera_y_axis = false;
+  bool enable_sprint_toggle = false;
+  bool enable_crouch_toggle = true;
+  bool enable_smooth_sprint_steps = true;
+  bool enable_grab_toggle = true;
+  bool enable_look_toggle = false;
 };
 
 struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -151,7 +160,16 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_MOUSE_SENSITIVITY = 52,
     VT_MENU_OPTION_LOOPING_MODE = 54,
     VT_LAST_GAMEPAD_TYPE = 56,
-    VT_BINDINGS = 58
+    VT_BINDINGS = 58,
+    VT_CONTROL_MODE = 60,
+    VT_REMASTERED_BINDINGS = 62,
+    VT_REMASTERED_GAMEPAD_BINDINGS = 64,
+    VT_INVERT_CAMERA_Y_AXIS = 66,
+    VT_ENABLE_SPRINT_TOGGLE = 68,
+    VT_ENABLE_CROUCH_TOGGLE = 70,
+    VT_ENABLE_SMOOTH_SPRINT_STEPS = 72,
+    VT_ENABLE_GRAB_TOGGLE = 74,
+    VT_ENABLE_LOOK_TOGGLE = 76
   };
   int32_t screen_width() const {
     return GetField<int32_t>(VT_SCREEN_WIDTH, 0);
@@ -237,6 +255,33 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *bindings() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *>(VT_BINDINGS);
   }
+  int32_t control_mode() const {
+    return GetField<int32_t>(VT_CONTROL_MODE, 0);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *remastered_bindings() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *>(VT_REMASTERED_BINDINGS);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *remastered_gamepad_bindings() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *>(VT_REMASTERED_GAMEPAD_BINDINGS);
+  }
+  bool invert_camera_y_axis() const {
+    return GetField<uint8_t>(VT_INVERT_CAMERA_Y_AXIS, 0) != 0;
+  }
+  bool enable_sprint_toggle() const {
+    return GetField<uint8_t>(VT_ENABLE_SPRINT_TOGGLE, 0) != 0;
+  }
+  bool enable_crouch_toggle() const {
+    return GetField<uint8_t>(VT_ENABLE_CROUCH_TOGGLE, 1) != 0;
+  }
+  bool enable_smooth_sprint_steps() const {
+    return GetField<uint8_t>(VT_ENABLE_SMOOTH_SPRINT_STEPS, 1) != 0;
+  }
+  bool enable_grab_toggle() const {
+    return GetField<uint8_t>(VT_ENABLE_GRAB_TOGGLE, 1) != 0;
+  }
+  bool enable_look_toggle() const {
+    return GetField<uint8_t>(VT_ENABLE_LOOK_TOGGLE, 0) != 0;
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_SCREEN_WIDTH) &&
@@ -270,6 +315,19 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_BINDINGS) &&
            verifier.VerifyVector(bindings()) &&
            verifier.VerifyVectorOfTables(bindings()) &&
+           VerifyField<int32_t>(verifier, VT_CONTROL_MODE) &&
+           VerifyOffset(verifier, VT_REMASTERED_BINDINGS) &&
+           verifier.VerifyVector(remastered_bindings()) &&
+           verifier.VerifyVectorOfTables(remastered_bindings()) &&
+           VerifyOffset(verifier, VT_REMASTERED_GAMEPAD_BINDINGS) &&
+           verifier.VerifyVector(remastered_gamepad_bindings()) &&
+           verifier.VerifyVectorOfTables(remastered_gamepad_bindings()) &&
+           VerifyField<uint8_t>(verifier, VT_INVERT_CAMERA_Y_AXIS) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_SPRINT_TOGGLE) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_CROUCH_TOGGLE) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_SMOOTH_SPRINT_STEPS) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_GRAB_TOGGLE) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_LOOK_TOGGLE) &&
            verifier.EndTable();
   }
   ConfigurationT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -365,6 +423,33 @@ struct ConfigurationBuilder {
   void add_bindings(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> bindings) {
     fbb_.AddOffset(Configuration::VT_BINDINGS, bindings);
   }
+  void add_control_mode(int32_t control_mode) {
+    fbb_.AddElement<int32_t>(Configuration::VT_CONTROL_MODE, control_mode, 0);
+  }
+  void add_remastered_bindings(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> remastered_bindings) {
+    fbb_.AddOffset(Configuration::VT_REMASTERED_BINDINGS, remastered_bindings);
+  }
+  void add_remastered_gamepad_bindings(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> remastered_gamepad_bindings) {
+    fbb_.AddOffset(Configuration::VT_REMASTERED_GAMEPAD_BINDINGS, remastered_gamepad_bindings);
+  }
+  void add_invert_camera_y_axis(bool invert_camera_y_axis) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_INVERT_CAMERA_Y_AXIS, static_cast<uint8_t>(invert_camera_y_axis), 0);
+  }
+  void add_enable_sprint_toggle(bool enable_sprint_toggle) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_SPRINT_TOGGLE, static_cast<uint8_t>(enable_sprint_toggle), 0);
+  }
+  void add_enable_crouch_toggle(bool enable_crouch_toggle) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_CROUCH_TOGGLE, static_cast<uint8_t>(enable_crouch_toggle), 1);
+  }
+  void add_enable_smooth_sprint_steps(bool enable_smooth_sprint_steps) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_SMOOTH_SPRINT_STEPS, static_cast<uint8_t>(enable_smooth_sprint_steps), 1);
+  }
+  void add_enable_grab_toggle(bool enable_grab_toggle) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_GRAB_TOGGLE, static_cast<uint8_t>(enable_grab_toggle), 1);
+  }
+  void add_enable_look_toggle(bool enable_look_toggle) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_LOOK_TOGGLE, static_cast<uint8_t>(enable_look_toggle), 0);
+  }
   explicit ConfigurationBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -405,8 +490,20 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(
     int32_t mouse_sensitivity = 0,
     int32_t menu_option_looping_mode = 0,
     int32_t last_gamepad_type = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> bindings = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> bindings = 0,
+    int32_t control_mode = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> remastered_bindings = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> remastered_gamepad_bindings = 0,
+    bool invert_camera_y_axis = false,
+    bool enable_sprint_toggle = false,
+    bool enable_crouch_toggle = true,
+    bool enable_smooth_sprint_steps = true,
+    bool enable_grab_toggle = true,
+    bool enable_look_toggle = false) {
   ConfigurationBuilder builder_(_fbb);
+  builder_.add_remastered_gamepad_bindings(remastered_gamepad_bindings);
+  builder_.add_remastered_bindings(remastered_bindings);
+  builder_.add_control_mode(control_mode);
   builder_.add_bindings(bindings);
   builder_.add_last_gamepad_type(last_gamepad_type);
   builder_.add_menu_option_looping_mode(menu_option_looping_mode);
@@ -422,6 +519,12 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(
   builder_.add_gamma(gamma);
   builder_.add_screen_height(screen_height);
   builder_.add_screen_width(screen_width);
+  builder_.add_enable_look_toggle(enable_look_toggle);
+  builder_.add_enable_grab_toggle(enable_grab_toggle);
+  builder_.add_enable_smooth_sprint_steps(enable_smooth_sprint_steps);
+  builder_.add_enable_crouch_toggle(enable_crouch_toggle);
+  builder_.add_enable_sprint_toggle(enable_sprint_toggle);
+  builder_.add_invert_camera_y_axis(invert_camera_y_axis);
   builder_.add_enable_thumbstick_camera(enable_thumbstick_camera);
   builder_.add_enable_rumble(enable_rumble);
   builder_.add_enable_interaction_highlighter(enable_interaction_highlighter);
@@ -472,9 +575,20 @@ inline flatbuffers::Offset<Configuration> CreateConfigurationDirect(
     int32_t mouse_sensitivity = 0,
     int32_t menu_option_looping_mode = 0,
     int32_t last_gamepad_type = 0,
-    const std::vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *bindings = nullptr) {
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *bindings = nullptr,
+    int32_t control_mode = 0,
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *remastered_bindings = nullptr,
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *remastered_gamepad_bindings = nullptr,
+    bool invert_camera_y_axis = false,
+    bool enable_sprint_toggle = false,
+    bool enable_crouch_toggle = true,
+    bool enable_smooth_sprint_steps = true,
+    bool enable_grab_toggle = true,
+    bool enable_look_toggle = false) {
   auto adapter_name__ = adapter_name ? _fbb.CreateString(adapter_name) : 0;
   auto bindings__ = bindings ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>(*bindings) : 0;
+  auto remastered_bindings__ = remastered_bindings ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>(*remastered_bindings) : 0;
+  auto remastered_gamepad_bindings__ = remastered_gamepad_bindings ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>(*remastered_gamepad_bindings) : 0;
   return TEN::Serialization::Config::CreateConfiguration(
       _fbb,
       screen_width,
@@ -504,7 +618,16 @@ inline flatbuffers::Offset<Configuration> CreateConfigurationDirect(
       mouse_sensitivity,
       menu_option_looping_mode,
       last_gamepad_type,
-      bindings__);
+      bindings__,
+      control_mode,
+      remastered_bindings__,
+      remastered_gamepad_bindings__,
+      invert_camera_y_axis,
+      enable_sprint_toggle,
+      enable_crouch_toggle,
+      enable_smooth_sprint_steps,
+      enable_grab_toggle,
+      enable_look_toggle);
 }
 
 flatbuffers::Offset<Configuration> CreateConfiguration(flatbuffers::FlatBufferBuilder &_fbb, const ConfigurationT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -575,6 +698,15 @@ inline void Configuration::UnPackTo(ConfigurationT *_o, const flatbuffers::resol
   { auto _e = menu_option_looping_mode(); _o->menu_option_looping_mode = _e; }
   { auto _e = last_gamepad_type(); _o->last_gamepad_type = _e; }
   { auto _e = bindings(); if (_e) { _o->bindings.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->bindings[_i] = std::unique_ptr<TEN::Serialization::Config::BindingT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = control_mode(); _o->control_mode = _e; }
+  { auto _e = remastered_bindings(); if (_e) { _o->remastered_bindings.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->remastered_bindings[_i] = std::unique_ptr<TEN::Serialization::Config::BindingT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = remastered_gamepad_bindings(); if (_e) { _o->remastered_gamepad_bindings.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->remastered_gamepad_bindings[_i] = std::unique_ptr<TEN::Serialization::Config::BindingT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = invert_camera_y_axis(); _o->invert_camera_y_axis = _e; }
+  { auto _e = enable_sprint_toggle(); _o->enable_sprint_toggle = _e; }
+  { auto _e = enable_crouch_toggle(); _o->enable_crouch_toggle = _e; }
+  { auto _e = enable_smooth_sprint_steps(); _o->enable_smooth_sprint_steps = _e; }
+  { auto _e = enable_grab_toggle(); _o->enable_grab_toggle = _e; }
+  { auto _e = enable_look_toggle(); _o->enable_look_toggle = _e; }
 }
 
 inline flatbuffers::Offset<Configuration> Configuration::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ConfigurationT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -613,6 +745,15 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(flatbuffers::FlatB
   auto _menu_option_looping_mode = _o->menu_option_looping_mode;
   auto _last_gamepad_type = _o->last_gamepad_type;
   auto _bindings = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> (_o->bindings.size(), [](size_t i, _VectorArgs *__va) { return CreateBinding(*__va->__fbb, __va->__o->bindings[i].get(), __va->__rehasher); }, &_va );
+  auto _control_mode = _o->control_mode;
+  auto _remastered_bindings = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> (_o->remastered_bindings.size(), [](size_t i, _VectorArgs *__va) { return CreateBinding(*__va->__fbb, __va->__o->remastered_bindings[i].get(), __va->__rehasher); }, &_va );
+  auto _remastered_gamepad_bindings = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> (_o->remastered_gamepad_bindings.size(), [](size_t i, _VectorArgs *__va) { return CreateBinding(*__va->__fbb, __va->__o->remastered_gamepad_bindings[i].get(), __va->__rehasher); }, &_va );
+  auto _invert_camera_y_axis = _o->invert_camera_y_axis;
+  auto _enable_sprint_toggle = _o->enable_sprint_toggle;
+  auto _enable_crouch_toggle = _o->enable_crouch_toggle;
+  auto _enable_smooth_sprint_steps = _o->enable_smooth_sprint_steps;
+  auto _enable_grab_toggle = _o->enable_grab_toggle;
+  auto _enable_look_toggle = _o->enable_look_toggle;
   return TEN::Serialization::Config::CreateConfiguration(
       _fbb,
       _screen_width,
@@ -642,7 +783,16 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(flatbuffers::FlatB
       _mouse_sensitivity,
       _menu_option_looping_mode,
       _last_gamepad_type,
-      _bindings);
+      _bindings,
+      _control_mode,
+      _remastered_bindings,
+      _remastered_gamepad_bindings,
+      _invert_camera_y_axis,
+      _enable_sprint_toggle,
+      _enable_crouch_toggle,
+      _enable_smooth_sprint_steps,
+      _enable_grab_toggle,
+      _enable_look_toggle);
 }
 
 inline const TEN::Serialization::Config::Configuration *GetConfiguration(const void *buf) {

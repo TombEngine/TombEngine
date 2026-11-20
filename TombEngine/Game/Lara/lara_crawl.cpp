@@ -7,6 +7,7 @@
 #include "Game/control/control.h"
 #include "Game/control/los.h"
 #include "Game/items.h"
+#include "Game/Lara/ModernControls.h"
 #include "Game/Lara/PlayerContext.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_tests.h"
@@ -14,6 +15,7 @@
 #include "Game/Lara/lara_flare.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
@@ -410,6 +412,10 @@ void lara_as_crawl_idle(ItemInfo* item, CollisionInfo* coll)
 	if (player.Control.Look.IsUsingBinoculars)
 		return;
 
+	// Remastered controls: after the crawl grab's turn, the player hangs from the edge she now faces. -- divezzi, 11.10.26
+	if (g_Configuration.IsUsingRemasteredControls() && Modern::HandleCrawlSafetyGrabHang(*item, *coll))
+		return;
+
 	if (IsHeld(In::Left) || IsHeld(In::Right))
 		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_CRAWL_TURN_RATE_MAX);
 
@@ -420,6 +426,10 @@ void lara_as_crawl_idle(ItemInfo* item, CollisionInfo* coll)
 			item->Animation.TargetState = LS_CRAWL_TURN_180;
 			return;
 		}
+
+		// Remastered controls: a crouch press on knees rises to the crouch without drawing a weapon. -- divezzi, 10.10.26
+		if (g_Configuration.IsUsingRemasteredControls() && Modern::HandleCrouchStageUp(*item))
+			return;
 
 		if ((IsHeld(In::Sprint) && CanCrouchRoll(*item, *coll)) ||
 			((IsHeld(In::Draw) || (IsHeld(In::Flare) && player.Inventory.TotalFlares != 0)) &&
@@ -440,7 +450,7 @@ void lara_as_crawl_idle(ItemInfo* item, CollisionInfo* coll)
 		{
 			auto crawlVaultContext = TestLaraCrawlVault(item, coll);
 
-			if ((IsHeld(In::Action) || IsHeld(In::Jump)) && crawlVaultContext.Success)
+			if ((Modern::IsGrabHeld() || IsHeld(In::Jump)) && crawlVaultContext.Success)
 			{
 				item->Animation.TargetState = crawlVaultContext.TargetState;
 				ResetPlayerTurnRateY(*item);
@@ -453,10 +463,14 @@ void lara_as_crawl_idle(ItemInfo* item, CollisionInfo* coll)
 				item->Animation.TargetState = LS_CRAWL_FORWARD;
 				return;
 			}
+
+			// Remastered controls: at a crawlspace edge with nothing to vault, the grab button turns the player around to hang from it. -- divezzi, 11.10.26
+			if (g_Configuration.IsUsingRemasteredControls() && Modern::HandleCrawlSafetyGrabTurn(*item, *coll))
+				return;
 		}
 		else if (IsHeld(In::Back))
 		{
-			if (IsHeld(In::Action) && TestLaraCrawlToHang(item, coll))
+			if (Modern::IsGrabHeld() && TestLaraCrawlToHang(item, coll))
 			{
 				item->Animation.TargetState = LS_CRAWL_TO_HANG;
 				DoLaraCrawlToHangSnap(item, coll);

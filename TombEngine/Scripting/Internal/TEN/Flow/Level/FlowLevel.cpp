@@ -2,6 +2,7 @@
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 
 #include "Scripting/Internal/ScriptAssert.h"
+#include "Specific/configuration.h"
 
 using namespace TEN::Scripting;
 
@@ -105,6 +106,13 @@ This setting does not affect ability to use weapons or flares.
  @mem laraType*/
 		"laraType", &Level::Type,
 
+/// (@{Flow.ControlMode}) Control mode for this level only.
+// If set to a mode, the level is played in it and the Control Mode menu entry is locked. If not set, or set to
+// `Flow.ControlMode.DEFAULT`, the level follows the `controlMode` field of @{Flow.Settings}.
+// A mode set by @{Flow.SetControlMode} still takes priority.
+//@mem controlMode
+		"controlMode", &Level::ForcedControlMode,
+
 /// (bool) Enable occasional screen shake effect.
 // As seen in TRC's Sinking Submarine.
 //@mem rumble
@@ -174,6 +182,11 @@ LaraType Level::GetLaraType() const
 bool Level::GetResetHubEnabled() const
 {
 	return ResetHub;
+}
+
+ScriptControlMode Level::GetScriptControlMode() const
+{
+	return ForcedControlMode.value_or(ScriptControlMode::Default);
 }
 
 bool Level::GetStormEnabled() const

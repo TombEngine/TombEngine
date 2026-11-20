@@ -16,6 +16,8 @@ enum class LaraType
 	Divesuit = 3
 };
 
+enum class ScriptControlMode;
+
 class ScriptInterfaceLevel
 {
 public:
@@ -42,6 +44,7 @@ public:
 	virtual int GetSecrets() const = 0;
 	virtual std::string GetAmbientTrack() const = 0;
 	virtual bool GetResetHubEnabled() const = 0;
+	virtual ScriptControlMode GetScriptControlMode() const = 0;
 
 	// Horizon getters
 	virtual bool		   GetHorizonEnabled(int index) const = 0;

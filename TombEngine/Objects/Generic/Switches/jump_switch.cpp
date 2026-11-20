@@ -7,6 +7,7 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Lara/ModernControls.h"
 #include "Objects/Generic/Switches/generic_switch.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
@@ -37,7 +38,8 @@ namespace TEN::Entities::Switches
 
 		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem, InteractionMode::Activation);
 
-		if (IsHeld(In::Action) &&
+		// Remastered controls: the grab button (Fire) also pulls the jump switch, besides Action. -- divezzi, 18.11.26
+		if ((IsHeld(In::Action) || Modern::IsGrabHeld()) &&
 			(laraItem->Animation.ActiveState == LS_REACH || laraItem->Animation.ActiveState == LS_JUMP_UP) &&
 			(laraItem->Status || laraItem->Animation.IsAirborne) &&
 			laraItem->Animation.Velocity.y > 0 &&

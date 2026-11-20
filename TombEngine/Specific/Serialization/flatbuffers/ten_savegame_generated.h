@@ -10198,6 +10198,7 @@ struct SaveGameT : public flatbuffers::NativeTable {
   std::vector<std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>> moveable_type_properties{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>> static_type_properties{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::SwarmObjectInfoT>> tr3_bats{};
+  int32_t script_control_mode = 0;
 };
 
 struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -10263,7 +10264,8 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_FREE_ITEM_SLOTS = 114,
     VT_MOVEABLE_TYPE_PROPERTIES = 116,
     VT_STATIC_TYPE_PROPERTIES = 118,
-    VT_TR3_BATS = 120
+    VT_TR3_BATS = 120,
+    VT_SCRIPT_CONTROL_MODE = 122
   };
   const TEN::Serialization::Save::SaveGameHeader *header() const {
     return GetPointer<const TEN::Serialization::Save::SaveGameHeader *>(VT_HEADER);
@@ -10442,6 +10444,9 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> *tr3_bats() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> *>(VT_TR3_BATS);
   }
+  int32_t script_control_mode() const {
+    return GetField<int32_t>(VT_SCRIPT_CONTROL_MODE, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_HEADER) &&
@@ -10569,6 +10574,7 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_TR3_BATS) &&
            verifier.VerifyVector(tr3_bats()) &&
            verifier.VerifyVectorOfTables(tr3_bats()) &&
+           VerifyField<int32_t>(verifier, VT_SCRIPT_CONTROL_MODE) &&
            verifier.EndTable();
   }
   SaveGameT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -10757,6 +10763,9 @@ struct SaveGameBuilder {
   void add_tr3_bats(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>>> tr3_bats) {
     fbb_.AddOffset(SaveGame::VT_TR3_BATS, tr3_bats);
   }
+  void add_script_control_mode(int32_t script_control_mode) {
+    fbb_.AddElement<int32_t>(SaveGame::VT_SCRIPT_CONTROL_MODE, script_control_mode, 0);
+  }
   explicit SaveGameBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -10828,8 +10837,10 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> free_item_slots = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>> moveable_type_properties = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>> static_type_properties = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>>> tr3_bats = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>>> tr3_bats = 0,
+    int32_t script_control_mode = 0) {
   SaveGameBuilder builder_(_fbb);
+  builder_.add_script_control_mode(script_control_mode);
   builder_.add_tr3_bats(tr3_bats);
   builder_.add_static_type_properties(static_type_properties);
   builder_.add_moveable_type_properties(moveable_type_properties);
@@ -10957,7 +10968,8 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     const std::vector<int32_t> *free_item_slots = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *moveable_type_properties = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *static_type_properties = nullptr,
-    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> *tr3_bats = nullptr) {
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> *tr3_bats = nullptr,
+    int32_t script_control_mode = 0) {
   auto rooms__ = rooms ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::Room>>(*rooms) : 0;
   auto box_flags__ = box_flags ? _fbb.CreateVector<int32_t>(*box_flags) : 0;
   auto items__ = items ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::Item>>(*items) : 0;
@@ -11049,7 +11061,8 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       free_item_slots__,
       moveable_type_properties__,
       static_type_properties__,
-      tr3_bats__);
+      tr3_bats__,
+      script_control_mode);
 }
 
 flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuilder &_fbb, const SaveGameT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -14121,6 +14134,7 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = moveable_type_properties(); if (_e) { _o->moveable_type_properties.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->moveable_type_properties[_i] = std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = static_type_properties(); if (_e) { _o->static_type_properties.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->static_type_properties[_i] = std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = tr3_bats(); if (_e) { _o->tr3_bats.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->tr3_bats[_i] = std::unique_ptr<TEN::Serialization::Save::SwarmObjectInfoT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = script_control_mode(); _o->script_control_mode = _e; }
 }
 
 inline flatbuffers::Offset<SaveGame> SaveGame::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SaveGameT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -14190,6 +14204,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _moveable_type_properties = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> (_o->moveable_type_properties.size(), [](size_t i, _VectorArgs *__va) { return CreateTypePropertyMap(*__va->__fbb, __va->__o->moveable_type_properties[i].get(), __va->__rehasher); }, &_va );
   auto _static_type_properties = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> (_o->static_type_properties.size(), [](size_t i, _VectorArgs *__va) { return CreateTypePropertyMap(*__va->__fbb, __va->__o->static_type_properties[i].get(), __va->__rehasher); }, &_va );
   auto _tr3_bats = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> (_o->tr3_bats.size(), [](size_t i, _VectorArgs *__va) { return CreateSwarmObjectInfo(*__va->__fbb, __va->__o->tr3_bats[i].get(), __va->__rehasher); }, &_va );
+  auto _script_control_mode = _o->script_control_mode;
   return TEN::Serialization::Save::CreateSaveGame(
       _fbb,
       _header,
@@ -14250,7 +14265,8 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _free_item_slots,
       _moveable_type_properties,
       _static_type_properties,
-      _tr3_bats);
+      _tr3_bats,
+      _script_control_mode);
 }
 
 inline bool VerifyPropertyValueUnion(flatbuffers::Verifier &verifier, const void *obj, PropertyValueUnion type) {

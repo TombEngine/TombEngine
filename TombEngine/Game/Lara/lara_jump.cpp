@@ -3,6 +3,7 @@
 
 #include "Game/camera.h"
 #include "Game/control/control.h"
+#include "Game/Lara/ModernControls.h"
 #include "Game/Lara/PlayerContext.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_collide.h"
@@ -84,7 +85,7 @@ void lara_as_jump_forward(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Action) &&
+	if (Modern::IsGrabHeld() &&
 		player.Control.HandStatus == HandStatus::Free)
 	{
 		item->Animation.TargetState = LS_REACH;
@@ -686,7 +687,7 @@ void lara_as_fall_back(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Action) &&
+	if (Modern::IsGrabHeld() &&
 		player.Control.HandStatus == HandStatus::Free)
 	{
 		item->Animation.TargetState = LS_REACH;

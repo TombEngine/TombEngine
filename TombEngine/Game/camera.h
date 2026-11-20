@@ -130,3 +130,10 @@ void UpdateFadeScreenAndCinematicBars();
 void UpdateMikePos(const ItemInfo& item);
 
 float GetParticleDistanceFade(const Vector3i& pos);
+
+namespace TEN::Input::Modern
+{
+	void ResetCameraOrient(const ItemInfo& item);
+	void UpdatePlayerRefCameraOrient(ItemInfo& item);
+	bool GetViewFrameTurn(Vector2i& turn);
+}
