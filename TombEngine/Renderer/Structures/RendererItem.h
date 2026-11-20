@@ -18,9 +18,6 @@ namespace TEN::Renderer::Structures
 		Matrix	World		= Matrix::Identity;
 		Matrix	AnimationTransforms[BONE_COUNT_MAX] = {};
 
-		Quaternion BoneOrientations[BONE_COUNT_MAX] = {};
-		std::array<Quaternion, BONE_COUNT_MAX> ExtraRotations = {}; // Previous extra rotations, from which wheels keep spinning.
-
 		Vector4 Color        = NEUTRAL_COLOR;
 		Vector4 AmbientLight = NEUTRAL_COLOR;
 
@@ -30,7 +27,7 @@ namespace TEN::Renderer::Structures
 		std::vector<RendererLight*> LightsToDraw = {};
 		float						LightFade	 = 0.0f;
 
-		bool DoneAnimations		  = false;
+		bool IsCollected		  = false;
 		bool DisableInterpolation = true;
 
 		Vector3 InterpolatedPosition                       = Vector3::Zero;

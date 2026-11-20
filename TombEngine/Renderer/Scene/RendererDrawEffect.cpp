@@ -598,7 +598,7 @@ namespace TEN::Renderer
 							// Transform offset by interpolated bone matrices so attached particles
 							// stay aligned with the drawn mesh during movement and rotation.
 							const auto& rendererItem = _items[item->Index];
-							if (rendererItem.DoneAnimations)
+							if (rendererItem.IsCollected)
 							{
 								auto world = rendererItem.InterpolatedAnimationTransforms[meshIndex] * rendererItem.InterpolatedWorld;
 								nodePos = Vector3i(Vector3::Transform(nodePos.ToVector3(), world));

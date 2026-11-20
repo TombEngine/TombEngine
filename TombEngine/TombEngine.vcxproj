@@ -284,6 +284,7 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Game\Animation\PoseCache.h" />
     <ClInclude Include="Game\Animation\Skeleton.h" />
     <ClInclude Include="Objects\TR3\Emitter\tr3_bats_emitter.h" />
     <ClInclude Include="Specific\Discord.h" />
@@ -906,6 +907,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Game\Animation\PoseCache.cpp" />
     <ClCompile Include="Game\Animation\Skeleton.cpp" />
     <ClCompile Include="Objects\TR3\Emitter\tr3_bats_emitter.cpp" />
     <ClCompile Include="Specific\Discord.cpp" />

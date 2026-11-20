@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 #include "Game/Animation/Animation.h"
+#include "Game/Animation/PoseCache.h"
 #include "Game/camera.h"
 #include "Game/collision/sphere.h"
 #include "Game/effects/Decal.h"
@@ -434,6 +435,39 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Takes the bone transforms of an item from the pose cache of the game: those of the current game tick and, when the
+	// item was posed on the tick before, the previous ones to interpolate from.
+	void Renderer::FetchItemPose(const ItemInfo& item, RendererItem& rendererItem)
+	{
+		const auto& pose = GetItemPoseCache(item);
+		bool hasPrevious = pose.HasPrevious();
+
+		for (int i = 0; i < BONE_COUNT_MAX; i++)
+		{
+			rendererItem.AnimationTransforms[i] = pose.Current.Transforms[i];
+			rendererItem.PrevAnimationTransforms[i] = hasPrevious ? pose.Previous[i] : pose.Current.Transforms[i];
+		}
+
+		rendererItem.MeshIndex = item.Model.MeshIndex;
+		rendererItem.SkinIndex = item.Model.GetSkinGlobalIndex();
+		rendererItem.IsCollected = true;
+	}
+
+	// Checks if the frustum of the camera intersects any mesh sphere of an item.
+	bool Renderer::IsItemInFrustum(int itemNumber, RenderView& renderView)
+	{
+		BoundingSphere spheres[BONE_COUNT_MAX];
+		int sphereCount = GetSpheres(itemNumber, spheres, BONE_COUNT_MAX);
+
+		for (int i = 0; i < sphereCount; i++)
+		{
+			if (renderView.Camera.Frustum.SphereInFrustum(spheres[i].Center, spheres[i].Radius * 1.5f))
+				return true;
+		}
+
+		return false;
+	}
+
 	// Collects the moveables of a room: updates their world and interpolated transforms, then adds those in the
 	// frustum (or casting shadows, or in a reflected room) to the room draw list with their lights.
 	void Renderer::CollectItems(short roomNumber, RenderView& renderView)
@@ -477,28 +511,6 @@ namespace TEN::Renderer
 			if (rendererObject.Hidden)
 				continue;
 
-			// Clip object by frustum only if it doesn't cast shadows and is not in mirror room,
-			// otherwise disappearing shadows or reflections may be seen if object gets out of frustum.
-			bool inFrustum = true;
-
-			if (!isRoomReflected && rendererObject.ShadowType == ShadowMode::None)
-			{
-				inFrustum = false;
-
-				// Get all spheres and check if frustum intersects any of them.
-				BoundingSphere spheres[BONE_COUNT_MAX];
-				int sphereCount = GetSpheres(itemNumber, spheres, BONE_COUNT_MAX);
-
-				for (int i = 0; !inFrustum && i < sphereCount; i++)
-				{
-					if (renderView.Camera.Frustum.SphereInFrustum(spheres[i].Center, spheres[i].Radius * 1.5f))
-						inFrustum = true;
-				}
-
-				// NOTE: removed continue loop here if not in frustum,
-				// for updating first positions and animations data
-			}
-
 			auto worldMatrix = GetWorldMatrixForMoveable(item);
 
 			auto& newItem = _items[itemNumber];
@@ -508,6 +520,7 @@ namespace TEN::Renderer
 			newItem.Color = item.Model.Color;
 			newItem.Position = item.Pose.Position.ToVector3();
 			newItem.World = worldMatrix;
+			FetchItemPose(item, newItem);
 
 			// Disable interpolation either when renderer slot or item slot has flag. 
 			// Renderer slot has no interpolation flag set in case it is fetched for the first time (e.g. item first time in frustum).
@@ -539,6 +552,10 @@ namespace TEN::Renderer
 			
 			for (int j = 0; j < BONE_COUNT_MAX; j++)
 				newItem.InterpolatedAnimationTransforms[j] = Matrix::Lerp(newItem.PrevAnimationTransforms[j], newItem.AnimationTransforms[j], GetInterpolationFactor(forceValue));
+
+			// Clip object by frustum only if it does not cast shadows and is not in mirror room, otherwise disappearing
+			// shadows or reflections may be seen if object gets out of frustum.
+			bool inFrustum = (isRoomReflected || rendererObject.ShadowType != ShadowMode::None || IsItemInFrustum(itemNumber, renderView));
 
 			// NOTE: now at least positions and animations are updated,
 			// because even off-screen the correct position is required 
@@ -983,7 +1000,7 @@ namespace TEN::Renderer
 	void Renderer::ResetItems()
 	{
 		for (auto& item : _items)
-			item.DoneAnimations = false;
+			item.IsCollected = false;
 	}
 
 	// Stores the current transforms of items, effects and statics as the previous state for interpolation.
@@ -993,9 +1010,6 @@ namespace TEN::Renderer
 		{
 			item.PrevPosition = item.Position;
 			item.PrevWorld = item.World;
-
-			for (int j = 0; j < BONE_COUNT_MAX; j++)
-				item.PrevAnimationTransforms[j] = item.AnimationTransforms[j];
 		}
 
 		for (auto& effect : _effects)

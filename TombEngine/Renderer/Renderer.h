@@ -191,8 +191,6 @@ namespace TEN::Renderer
 		std::array<Backend::HorizonLayerDraw, 2> _horizonLayers = {};
 		Backend::DustStormDraw                   _dustStormDraw = {};
 
-		Matrix _playerWorldMatrix;
-
 		// Preallocated pools of objects for avoiding new/delete.
 		// Items and effects are safe (can't be more than 1024 items in TR), 
 		// lights should be oversized.
@@ -310,12 +308,14 @@ namespace TEN::Renderer
 		// Frame collection, lights and 2D layer helpers (RendererFrame.cpp, RendererHelper.cpp, RendererDraw.cpp, UI/).
 		void BuildHierarchy(RendererObject* obj);
 		void BuildHierarchyRecursive(RendererObject* obj, RendererBone* node, RendererBone* parentNode);
-		void UpdateAnimation(RendererItem* rendererItem, RendererObject& rendererObject, const FrameData& frame, int mask, bool useObjectWorldRotation = false, const MoveableAnimBlendData* blend = nullptr, const RootMotionData* rootMotionOffset = nullptr);
+		void UpdateAnimation(RendererObject& rendererObject, const FrameData& frame, int mask, bool useObjectWorldRotation = false, const MoveableAnimBlendData* blend = nullptr, const RootMotionData* rootMotionOffset = nullptr);
 		bool CheckPortal(short parentRoomNumber, RendererDoor* door, Vector4 viewPort, Vector4* clipPort, RenderView& renderView);
 		void GetVisibleRooms(short from, short to, Vector4 viewPort, bool water, int count, bool onlyRooms, RenderView& renderView);
 		void CollectMirrors(RenderView& renderView);
 		void CollectRooms(RenderView& renderView, bool onlyRooms);
 		void CollectItems(short roomNumber, RenderView& renderView);
+		void FetchItemPose(const ItemInfo& item, RendererItem& rendererItem);
+		bool IsItemInFrustum(int itemNumber, RenderView& renderView);
 		void CollectStatics(short roomNumber, RenderView& renderView);
 		void CollectLights(const Vector3& pos, float radius, int roomNumber, int prevRoomNumber, bool prioritizeShadowLight, bool useCachedRoomLights, std::vector<RendererLightNode>* roomsLights, std::vector<RendererLight*>* outputLights, bool isDynamicIncluded = true);
 		void CollectLightsForItem(RendererItem* item);
@@ -324,7 +324,6 @@ namespace TEN::Renderer
 		void CollectLightsForCamera();
 		void CalculateLightFades(RendererItem* item);
 		void CollectDecalsForRoom(short roomNumber, RenderView& renderView);
-		void UpdateItemAnimations(RenderView& view);
 		void InitializeScreen(int w, int h, bool resyncWindow = true);
 		void InitializeCommonTextures();
 		void InitializeGameBars();
@@ -670,11 +669,8 @@ namespace TEN::Renderer
 		// Screen, animation, bone and display item queries.
 		void ChangeScreenResolution(int width, int height, bool windowed, bool resyncWindow = true);
 		void FlipRooms(short roomNumber1, short roomNumber2);
-		void UpdateLaraAnimations(bool force);
-		void UpdateItemAnimations(int itemNumber, bool force);
 		std::vector<BoundingSphere> GetSpheres(int itemNumber);
 		int GetSpheres(int itemNumber, BoundingSphere* spheres, int maxCount);
-		void GetBoneMatrix(short itemNumber, int jointIndex, Matrix* outMatrix);
 		SkinningMode GetSkinningMode(const RendererObject& obj, int skinIndex);
 		void DrawObjectIn2DSpace(int objectNumber, Vector2 pos2D, EulerAngles orient, float scale1, float opacity = 1.0f, int meshBits = NO_JOINT_BITS);
 		void DrawObjectIn3DSpace(const DisplayItem& item);
@@ -691,8 +687,6 @@ namespace TEN::Renderer
 		std::optional<Vector2>		Get2DPosition(const Vector3& pos) const;
 		std::pair<Vector3, Vector3> GetRay(const Vector2& pos) const;
 		std::optional<std::pair<Vector2, Vector2>> GetDisplayItemBounds(const DisplayItem& item) const;
-		Vector3	   GetMoveableBonePosition(int itemNumber, int boneID, const Vector3& relOffset = Vector3::Zero);
-		Quaternion GetMoveableBoneOrientation(int itemNumber, int boneID);
 
 		void AddDisplaySprite(const RendererSprite& sprite, const Vector2& pos2D, short orient, const Vector2& size, const Vector4& color,
 			int priority, BlendMode blendMode, const Vector2& aspectCorrection, RenderView& renderView);

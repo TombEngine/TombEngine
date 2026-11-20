@@ -979,7 +979,7 @@ namespace TEN::Renderer
 		ResetItems();
 	}
 
-	// CPU frontend of the frame: culls the view, updates animations, lights, sprites, sky effects and sorted faces,
+	// CPU frontend of the frame: culls the view, collects lights, sprites, sky effects and sorted faces,
 	// records the HUD and 2D layer, and passes everything to the scene renderer.
 	void Renderer::RenderScene(RenderView& view, SceneRenderMode renderMode)
 	{
@@ -996,9 +996,7 @@ namespace TEN::Renderer
 		_timeRoomsCollector = (std::chrono::duration_cast<ns>(time - time1)).count() / 1000000;
 		time1 = time;
 
-		// Animations, shadow light, blob shadows and sprites.
-		UpdateLaraAnimations(false);
-		UpdateItemAnimations(view);
+		// Shadow light, blob shadows and sprites.
 		CollectLightsForCamera();
 		RenderBlobShadows(view);
 		PrepareSceneSprites(view);

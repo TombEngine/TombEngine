@@ -3,6 +3,7 @@
 
 #include <filesystem>
 
+#include "Game/Animation/PoseCache.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/floordata.h"
 #include "Game/control/box.h"
@@ -3108,6 +3109,7 @@ void SaveGame::Parse(const std::vector<unsigned char>& buffer, bool hubMode)
 	}
 
 	JustLoaded = true;
+	ClearPoseCache();
 
 	const Save::SaveGame* s = Save::GetSaveGame(buffer.data());
 

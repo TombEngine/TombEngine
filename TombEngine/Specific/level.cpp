@@ -4,6 +4,7 @@
 #include <lz4.h>
 
 #include "Game/Animation/Animation.h"
+#include "Game/Animation/PoseCache.h"
 #include "Game/Animation/Skeleton.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
@@ -556,6 +557,7 @@ void LoadObjects()
 
 	InitializeObjects();
 	InitializeSkeletons();
+	ClearPoseCache();
 
 	int staticCount = ReadCount();
 	TENLog("Static count: " + std::to_string(staticCount), LogLevel::Info);

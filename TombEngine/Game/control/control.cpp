@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Game/control/control.h"
 
+#include "Game/Animation/PoseCache.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/flipeffect.h"
@@ -161,6 +162,7 @@ GameStatus GamePhase(bool insideMenu)
 
 	g_Renderer.PrepareScene();
 	g_Renderer.SaveOldState();
+	BeginPoseTick();
 
 	ClearFires();
 	ClearLensFlares();
@@ -297,6 +299,8 @@ GameStatus GamePhase(bool insideMenu)
 	auto time2 = std::chrono::high_resolution_clock::now();
 	ControlPhaseTime = (std::chrono::duration_cast<std::chrono::nanoseconds>(time2 - time1)).count() / 1000000;
 
+	FinalizePoses();
+
 	return gameStatus;
 }
 
@@ -317,6 +321,7 @@ GameStatus FreezePhase()
 
 	g_Renderer.PrepareScene();
 	g_Renderer.SaveOldState();
+	BeginPoseTick();
 
 	ClearLensFlares();
 	ClearAllDisplaySprites();
@@ -365,6 +370,8 @@ GameStatus FreezePhase()
 
 	// Update last freeze mode again, as it may have been changed in a script.
 	g_GameFlow->LastFreezeMode = g_GameFlow->CurrentFreezeMode;
+
+	FinalizePoses();
 
 	return GameStatus::Normal;
 }

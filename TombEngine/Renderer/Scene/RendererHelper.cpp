@@ -10,18 +10,6 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Setup.h"
-#include "Objects/TR3/Vehicles/big_gun.h"
-#include "Objects/TR3/Vehicles/big_gun_info.h"
-#include "Objects/TR3/Vehicles/quad_bike.h"
-#include "Objects/TR3/Vehicles/quad_bike_info.h"
-#include "Objects/TR3/Vehicles/rubber_boat.h"
-#include "Objects/TR3/Vehicles/rubber_boat_info.h"
-#include "Objects/TR3/Vehicles/upv.h"
-#include "Objects/TR3/Vehicles/upv_info.h"
-#include "Objects/TR4/Vehicles/jeep.h"
-#include "Objects/TR4/Vehicles/jeep_info.h"
-#include "Objects/TR4/Vehicles/motorbike.h"
-#include "Objects/TR4/Vehicles/motorbike_info.h"
 #include "Math/Math.h"
 #include "Renderer/Backend/SceneRenderer.h"
 #include "Renderer/Scene/RenderView.h"
@@ -38,28 +26,24 @@ using namespace TEN::Math;
 extern GameConfiguration g_Configuration;
 extern ScriptInterfaceFlowHandler *g_GameFlow;
 
-// Animation and query helpers: bone matrices of items (with vehicle and creature extra rotations), skeleton bind
-// poses, camera matrices, room flips, mesh spheres and bone queries for the game code, frame rate and pacing,
-// screen projection and display item bounds.
+// Animation and query helpers: bone matrices of menu objects, skeleton bind poses, camera matrices, room flips, mesh
+// spheres, frame rate and pacing, screen projection and display item bounds.
 
 namespace TEN::Renderer
 {
 
-	// Walks the bone tree and computes the transforms of the bones selected by mask from an animation frame,
-	// optionally blended with the previous animation, then applies the item mesh mutators.
-	void Renderer::UpdateAnimation(RendererItem* rendererItem, RendererObject& rendererObject, const FrameData& frame, int mask, bool useObjectWorldRotation,
+	// Walks the bone tree and computes the transforms of the bones of a renderer object selected by mask from an animation
+	// frame, optionally blended with the previous animation. Used for objects of the menus; items are posed by the game.
+	void Renderer::UpdateAnimation(RendererObject& rendererObject, const FrameData& frame, int mask, bool useObjectWorldRotation,
 								   const MoveableAnimBlendData* blend, const RootMotionData* rootMotionOffset)
 	{
-		static auto boneIndices = std::vector<int>{};
-		boneIndices.clear();
-
 		auto bones = std::array<RendererBone*, BONE_COUNT_MAX>{};
 		int nextBoneID = 0;
 
 		// Push skeleton.
 		bones[nextBoneID++] = rendererObject.Skeleton;
 
-		auto* transforms = (rendererItem == nullptr) ? rendererObject.AnimationTransforms.data() : &rendererItem->AnimationTransforms[0];
+		auto* transforms = rendererObject.AnimationTransforms.data();
 
 		// Compute blend alpha.
 		float blendAlpha = 0.0f;
@@ -108,10 +92,6 @@ namespace TEN::Renderer
 					rotMatrix = Matrix::CreateFromQuaternion(quat);
 				}
 
-				// Store bone orientation on current frame.
-				if (rendererItem != nullptr)
-					rendererItem->BoneOrientations[bone->Index] = Quaternion::CreateFromRotationMatrix(rotMatrix);
-
 				auto translationMatrix = (bone == rendererObject.Skeleton) ? Matrix::CreateTranslation(rootPos) : Matrix::Identity;
 				auto extraRotMatrix = Matrix::CreateFromQuaternion(bone->ExtraRotation);
 				
@@ -134,228 +114,9 @@ namespace TEN::Renderer
 					transforms[bone->Index] *= transforms[bone->Parent->Index];
 			}
 
-			boneIndices.push_back(bone->Index);
-
 			// Push.
 			for (auto*& child : bone->Children)
 				bones[nextBoneID++] = child;
-		}
-
-		// Apply mutators.
-		if (rendererItem != nullptr) 
-		{
-			const auto& nativeItem = g_Level.Items[rendererItem->ItemNumber];
-
-			if (nativeItem.Model.Mutators.size() == boneIndices.size())
-			{
-				for (int i : boneIndices)
-				{
-					const auto& mutator = nativeItem.Model.Mutators[i];
-					if (mutator.IsEmpty())
-						continue;
-
-					auto rotMatrix = mutator.Rotation.ToRotationMatrix();
-					auto scaleMatrix = Matrix::CreateScale(mutator.Scale);
-					auto translationMatrix = Matrix::CreateTranslation(mutator.Offset);
-					transforms[i] = ((rotMatrix * scaleMatrix) * translationMatrix) * transforms[i];
-				}
-			}
-		}
-	}
-
-	// Computes the bone transforms of a non-player item once per frame (or when forced), including the extra
-	// rotations of vehicle parts and creature joints.
-	void Renderer::UpdateItemAnimations(int itemNumber, bool force)
-	{
-		auto* itemToDraw = &_items[itemNumber];
-		auto* nativeItem = &g_Level.Items[itemNumber];
-
-		// TODO: Hack for fixing a bug, check again if needed.
-		itemToDraw->ItemNumber = itemNumber;
-
-		// Lara has her own routine.
-		if (nativeItem->ObjectNumber == ID_LARA)
-			return;
-
-		// Has been already done?
-		if (!force && itemToDraw->DoneAnimations)
-			return;
-
-		itemToDraw->DoneAnimations = true;
-
-		auto* obj = &Objects[nativeItem->ObjectNumber];
-
-		if (!obj->loaded)
-		{
-			TENLog("Attempted to animate nonexistent object " + GetObjectName((GAME_OBJECT_ID)nativeItem->ObjectNumber), LogLevel::Error);
-			return;
-		}
-
-		auto& moveableObj = *_moveableObjects[nativeItem->ObjectNumber];
-
-		// Copy mesh swaps and skin index.
-		itemToDraw->MeshIndex = nativeItem->Model.MeshIndex;
-		itemToDraw->SkinIndex = nativeItem->Model.GetSkinGlobalIndex();
-
-		if (obj->Animations.empty())
-		{
-			// Objects without animations (e.g. virtual ID_BODY_PART borrowing a single mesh) never get
-			// bone transforms computed. Default them to identity, otherwise meshes are drawn with a zero
-			// matrix and collapse to the origin (a tiny garbage mesh) instead of the item's world pose.
-			for (int i = 0; i < BONE_COUNT_MAX; i++)
-				itemToDraw->AnimationTransforms[i] = Matrix::Identity;
-
-			return;
-		}
-
-		// Apply extra rotations.
-		int lastJoint = 0;
-		for (int j = 0; j < moveableObj.LinearizedBones.size(); j++)
-		{
-			auto* currentBone = moveableObj.LinearizedBones[j];
-
-			auto prevRotation = currentBone->ExtraRotation;
-			currentBone->ExtraRotation = Quaternion::Identity;
-
-			nativeItem->Data.apply(
-				[&j, &currentBone](QuadBikeInfo& quadBike)
-				{
-					if (j == 3 || j == 4)
-					{
-						currentBone->ExtraRotation = EulerAngles(quadBike.RearRot, 0, 0).ToQuaternion();
-					}
-					else if (j == 6 || j == 7)
-					{
-						currentBone->ExtraRotation = EulerAngles(quadBike.FrontRot, quadBike.TurnRate * 2, 0).ToQuaternion();
-					}
-				},
-				[&j, &currentBone](JeepInfo& jeep)
-				{
-					switch(j)
-					{
-					case 9:
-						currentBone->ExtraRotation = EulerAngles(jeep.FrontRightWheelRotation, jeep.TurnRate * 4, 0).ToQuaternion();
-						break;
-
-					case 10:
-						currentBone->ExtraRotation = EulerAngles(jeep.FrontLeftWheelRotation, jeep.TurnRate * 4, 0).ToQuaternion();
-						break;
-
-					case 12:
-						currentBone->ExtraRotation = EulerAngles(jeep.BackRightWheelRotation, 0, 0).ToQuaternion();
-						break;
-
-					case 13:
-						currentBone->ExtraRotation = EulerAngles(jeep.BackLeftWheelRotation, 0, 0).ToQuaternion();
-						break;
-					}
-				},
-				[&j, &currentBone](MotorbikeInfo& bike)
-				{
-					switch (j)
-					{
-					case 2:
-						currentBone->ExtraRotation = EulerAngles(bike.RightWheelsRotation, bike.TurnRate * 8, 0).ToQuaternion();
-						break;
-
-					case 4:
-						currentBone->ExtraRotation = EulerAngles(bike.RightWheelsRotation, 0, 0).ToQuaternion();
-						break;
-
-					case 8:
-						currentBone->ExtraRotation = EulerAngles(bike.LeftWheelRotation, 0, 0).ToQuaternion();
-						break;
-					}
-				},
-				[&j, &currentBone, &prevRotation](MinecartInfo& cart)
-				{
-					switch (j)
-					{
-					case 1:
-					case 2:
-					case 3:
-					case 4:
-						short zRot = (short)std::clamp(cart.Velocity, 0, (int)ANGLE(25.0f)) + EulerAngles(prevRotation).z;
-						currentBone->ExtraRotation = EulerAngles(0, 0, zRot).ToQuaternion();
-						break;
-					}
-				},
-				[&j, &currentBone](RubberBoatInfo& boat)
-				{
-					if (j == 2)
-					currentBone->ExtraRotation = EulerAngles(0, 0, boat.PropellerRotation).ToQuaternion();
-				},
-				[&j, &currentBone](UPVInfo& upv)
-				{
-					switch (j)
-					{
-					case 1:
-						currentBone->ExtraRotation = EulerAngles(upv.LeftRudderRotation, 0, 0).ToQuaternion();
-						break;
-
-					case 2:
-						currentBone->ExtraRotation = EulerAngles(upv.RightRudderRotation, 0, 0).ToQuaternion();
-						break;
-
-					case 3:
-						currentBone->ExtraRotation = EulerAngles(0, 0, upv.TurbineRotation).ToQuaternion();
-						break;
-					}
-				},
-				[&j, &currentBone](BigGunInfo& bigGun)
-				{
-					if (j == 2)
-						currentBone->ExtraRotation = EulerAngles(0, 0, FROM_RAD(bigGun.BarrelRotation)).ToQuaternion();
-				},
-				[&j, &currentBone, &lastJoint](CreatureInfo& creature)
-				{
-					auto xRot = Quaternion::Identity;
-					auto yRot = Quaternion::Identity;
-					auto zRot = Quaternion::Identity;
-
-					if (currentBone->ExtraRotationFlags & ROT_Y)
-					{
-						yRot = EulerAngles(0, creature.JointRotation[lastJoint], 0).ToQuaternion();
-						lastJoint++;
-					}
-
-					if (currentBone->ExtraRotationFlags & ROT_X)
-					{
-						xRot = EulerAngles(creature.JointRotation[lastJoint], 0, 0).ToQuaternion();
-						lastJoint++;
-					}
-
-					if (currentBone->ExtraRotationFlags & ROT_Z)
-					{
-						zRot = EulerAngles(0, 0, creature.JointRotation[lastJoint]).ToQuaternion();
-						lastJoint++;
-					}
-
-					currentBone->ExtraRotation = xRot * yRot * zRot;
-				});
-		}
-
-		const auto& anim = GetAnimData(*nativeItem);
-		auto rootMotionCounteract = anim.GetRootMotionCounteraction(nativeItem->Animation.FrameNumber);
-
-		const auto& frame = GetFrame(*nativeItem);
-		UpdateAnimation(itemToDraw, moveableObj, frame, UINT_MAX, false, nativeItem->Animation.Blend.IsEnabled() ? &nativeItem->Animation.Blend : nullptr, &rootMotionCounteract);
-	}
-
-	void Renderer::UpdateItemAnimations(RenderView& view)
-	{
-		for (const auto* room : view.RoomsToDraw)
-		{
-			for (const auto* itemToDraw : room->ItemsToDraw)
-			{
-				const auto& nativeItem = g_Level.Items[itemToDraw->ItemNumber];
-
-				// Player has its own routine.
-				if (nativeItem.ObjectNumber == ID_LARA)
-					continue;
-
-				UpdateItemAnimations(itemToDraw->ItemNumber, false);
-			}
 		}
 	}
 
@@ -476,18 +237,6 @@ namespace TEN::Renderer
 		if (nativeItem == nullptr)
 			return 0;
 
-		if (!itemToDraw.DoneAnimations)
-		{
-			if (itemNumber == LaraItem->Index)
-			{
-				UpdateLaraAnimations(false);
-			}
-			else
-			{
-				UpdateItemAnimations(itemNumber, false);
-			}
-		}
-
 		const auto& moveable = GetRendererObject(nativeItem->ObjectNumber);
 		auto worldMatrix = GetWorldMatrixForMoveable(*nativeItem);
 
@@ -505,25 +254,6 @@ namespace TEN::Renderer
 		}
 
 		return meshCount;
-	}
-
-	// World matrix of an item joint, animating the item first if needed.
-	void Renderer::GetBoneMatrix(short itemNumber, int jointIndex, Matrix* outMatrix)
-	{
-		if (jointIndex >= BONE_COUNT_MAX)
-			jointIndex = 0;
-
-		auto* rendererItem = &_items[itemNumber];
-		auto* nativeItem = &g_Level.Items[itemNumber];
-		auto& object = *_moveableObjects[nativeItem->ObjectNumber];
-
-		if (!rendererItem->DoneAnimations)
-			(itemNumber == LaraItem->Index) ? UpdateLaraAnimations(true) : UpdateItemAnimations(itemNumber, true);
-
-		if (itemNumber == LaraItem->Index)
-			*outMatrix = object.AnimationTransforms[jointIndex] * _playerWorldMatrix;
-		else
-			*outMatrix = object.AnimationTransforms[jointIndex] * rendererItem->World;
 	}
 
 	// Full skinning when enabled and a skin mesh exists; otherwise classic skinning for the player and rigid meshes
@@ -659,41 +389,6 @@ namespace TEN::Renderer
 		auto farPoint = viewport.Unproject(Vector3(pos.x, pos.y, 1.0f), _gameCamera.Camera.Projection, _gameCamera.Camera.View, Matrix::Identity);
 
 		return std::pair<Vector3, Vector3>(nearPoint, farPoint);
-	}
-
-	Vector3 Renderer::GetMoveableBonePosition(int itemNumber, int boneID, const Vector3& relOffset)
-	{
-		auto* rendererItem = &_items[itemNumber];
-		rendererItem->ItemNumber = itemNumber;
-
-		if (rendererItem == nullptr)
-			return Vector3::Zero;
-
-		if (!rendererItem->DoneAnimations)
-			(itemNumber == LaraItem->Index) ? UpdateLaraAnimations(false) : UpdateItemAnimations(itemNumber, false);
-
-		if (boneID >= BONE_COUNT_MAX)
-			boneID = 0;
-
-		auto world = rendererItem->AnimationTransforms[boneID] * rendererItem->World;
-
-		return Vector3::Transform(relOffset, world);
-	}
-
-	Quaternion Renderer::GetMoveableBoneOrientation(int itemNumber, int boneID)
-	{
-		const auto* rendererItem = &_items[itemNumber];
-
-		if (rendererItem == nullptr)
-			return Quaternion::Identity;
-
-		if (!rendererItem->DoneAnimations)
-			(itemNumber == LaraItem->Index) ? UpdateLaraAnimations(false) : UpdateItemAnimations(itemNumber, false);
-
-		if (boneID >= BONE_COUNT_MAX)
-			boneID = 0;
-
-		return rendererItem->BoneOrientations[boneID];
 	}
 
 	// A room is reflected when it holds a mirror of the view and the camera or the player is in it.
