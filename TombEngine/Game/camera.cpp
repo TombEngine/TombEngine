@@ -319,6 +319,7 @@ void InitializeCamera()
 	Camera.DisableInterpolation = true;
 
 	AlterFOV(ANGLE(DEFAULT_FOV));
+	AlterRoll(0);
 
 	UseForcedFixedCamera = false;
 	CalculateCamera(LaraCollision);
