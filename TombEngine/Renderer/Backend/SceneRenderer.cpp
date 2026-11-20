@@ -1837,7 +1837,7 @@ namespace TEN::Renderer::Backend
 
         const auto& laraObject = (*_levelGeometry.MoveableObjects)[ID_LARA];
         const auto* item = _levelGeometry.Items != nullptr ? &(*_levelGeometry.Items)[LaraItem->Index] : nullptr;
-        if (!laraObject.has_value() || item == nullptr)
+        if (!laraObject.has_value() || item == nullptr || item->MeshIndex.empty())
             return;
 
         int lightOffset = 0;
