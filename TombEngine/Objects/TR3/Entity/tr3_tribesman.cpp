@@ -28,7 +28,7 @@ namespace TEN::Entities::Creatures::TR3
 	static const auto PropName_DartVelocity = GetHash("DartVelocity");
 
 	constexpr auto TRIBESMAN_DART_DAMAGE = 25; 
-	constexpr auto TRIBESMAN_DEFAULT_DART_VELOCITY = CLICK(0.25f);
+	constexpr auto TRIBESMAN_DEFAULT_DART_VELOCITY = CLICK(1.0f);
 
 	const auto TribesmanAxeBite	  = CreatureBiteInfo(Vector3(0, 56, 265), 13);
 	const auto TribesmanDartBite1 = CreatureBiteInfo(Vector3(0, 0, -200), 13);

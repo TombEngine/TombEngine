@@ -102,8 +102,8 @@ namespace TEN::Entities::Creatures::TR2
 		short headingAngle = 0;
 
 		auto SSAttackDamage		= PropertyHandler::Get(item, PropName_SmallSpiderAttackDamage, SMALL_SPIDER_ATTACK_DAMAGE);
-		auto SSBiteSound		= PropertyHandler::Get(item, PropName_SmallSpiderBiteSound, (int)SFX_TR2_SPIDER_BITE,true);
-		auto SSExplodeSound		= PropertyHandler::Get(item, PropName_SmallSpiderExplodeSound, (int)SFX_TR2_SPIDER_EXPLODE, true);
+		auto SSBiteSound		= PropertyHandler::Get(item, PropName_SmallSpiderBiteSound, (int)SFX_TR2_SPIDER_BITE);
+		auto SSExplodeSound		= PropertyHandler::Get(item, PropName_SmallSpiderExplodeSound, (int)SFX_TR2_SPIDER_EXPLODE);
 		auto SSExplodeDeath		= PropertyHandler::Get(item, PropName_SmallSpiderExplodeDeath, true);
 		auto SSPoison			= PropertyHandler::Get(item, PropName_Poisonous, false);
 

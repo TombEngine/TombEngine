@@ -3,6 +3,9 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): <https://github.com/TombEngine/TombEditorReleases>
 
+## [Version 2.0.3]
+* Added properties for DART_EMITTER and HOMING_DART_EMITTER to control the effect, damage, delay and velocity.
+
 ## [Version 2.0.2]
 
 ### New features
