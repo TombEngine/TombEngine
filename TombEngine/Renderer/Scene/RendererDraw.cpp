@@ -1454,7 +1454,7 @@ namespace TEN::Renderer
 			Backend::g_SceneRenderer.RequestScreenshot(g_GameFlow->GetGameDir() + "Logs/" + TEN::Benchmark::GetBenchmarkScreenshotName());
 
 		// Screenshots show the game frame itself: the interpolation between game frames depends on the frame pacing of the run.
-		if (captureScreenshots)
+		if (captureScreenshots || g_IsFixedStep)
 			interpFactor = 1.0f;
 
 		InterpolateCamera(interpFactor);

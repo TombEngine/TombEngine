@@ -11,6 +11,7 @@ double LdFreq = 0.0;
 double LdSync = 0.0;
 
 HighFramerateSynchronizer g_Synchronizer;
+bool g_IsFixedStep = false;
 
 void HighFramerateSynchronizer::Init()
 {
@@ -42,6 +43,10 @@ void HighFramerateSynchronizer::Sync()
 		_lastCounter = _currentCounter;
 
 		_frameTime = (double)diff * 1000.0 / (double)_frequency;
+
+		if (g_IsFixedStep)
+			_frameTime = CONTROL_FRAME_TIME;
+
 		_controlDelay += _frameTime;
 	}
 

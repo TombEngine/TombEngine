@@ -40,3 +40,6 @@ unsigned int SecToGameFrames(float sec);
 float		 GameFramesToSec(unsigned int gameFrames);
 
 extern HighFramerateSynchronizer g_Synchronizer;
+
+// Benchmark pixel comparison: one logic tick per rendered frame and no interpolation between ticks.
+extern bool g_IsFixedStep;

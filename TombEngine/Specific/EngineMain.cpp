@@ -295,6 +295,7 @@ int main(int argc, char* argv[])
 	auto rhiTestBackend = std::string();
 	bool isOnLowPowerGpu = false;
 	bool isVsyncDisabled = false;
+	bool isFixedStep = false;
 	bool isGpuTimingDisabled = false;
 	int renderScaleOverride = -1;
 	int ambientOcclusionOverride = -1;
@@ -339,6 +340,11 @@ int main(int argc, char* argv[])
 		{
 			// Presents without waiting for vertical sync, for benchmarks.
 			isVsyncDisabled = true;
+		}
+		else if (ArgEquals(arg.c_str(), "fixedstep"))
+		{
+			// One logic tick per rendered frame without interpolation, so benchmark runs show identical game states.
+			isFixedStep = true;
 		}
 		else if (ArgEquals(arg.c_str(), "renderscale") && i + 1 < argc)
 		{
@@ -539,6 +545,8 @@ int main(int argc, char* argv[])
 		// The scene renderer draws the main window from the frames the renderer frontend prepares.
 		if (!StartSceneRenderer(sdlWindow, isOnLowPowerGpu))
 			throw std::runtime_error("The DirectX 11 renderer could not be started.");
+
+		g_IsFixedStep = isFixedStep;
 
 		if (isVsyncDisabled)
 			TEN::Renderer::Backend::g_SceneRenderer.SetVsyncEnabled(false);
