@@ -5,6 +5,7 @@ namespace TEN::Renderer::Structures
 {
 	using namespace TEN::Math::Library;
 
+	// Debug line in world space.
 	struct RendererLine3D
 	{
 		Vector3 Origin = Vector3::Zero;

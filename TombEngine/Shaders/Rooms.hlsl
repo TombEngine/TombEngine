@@ -17,6 +17,8 @@
 #include "./FogBulbs.hlsli"
 #include "./Decals.hlsli"
 
+// Vertex storage buffers 0 and 1 hold the animated texture data. Pixel storage buffers: 9 frame lights, 12 light cluster
+// // masks (two words per cluster), 10 materials (Materials.hlsli) and 11 decals (Decals.hlsli).
 TEN_VS_RAW_BUFFER(GpuAnimatedFrame, AnimatedFrames, 0);
 TEN_VS_RAW_BUFFER(GpuAnimatedSet, AnimatedSets, 1);
 
@@ -25,6 +27,8 @@ TEN_PS_RAW_BUFFER(uint2, LightClusters, 12);
 
 #include "./LightClusters.hlsli"
 
+// Room vertex layout: baked vertex color, packed effects and animation data (decoded in Common.hlsli), smooth normal,
+// // tangent and flat face normal.
 struct VertexInput
 {
     TEN_LOCATION(0) float3 Position      : TEXCOORD0;
@@ -43,6 +47,7 @@ struct PixelInput
     float2 UV                       : TEXCOORD0;
     float4 Color                    : TEXCOORD1;
     float  Fog                      : TEXCOORD2;
+    // UVScroll is constant over the draw. FogBulbs holds the accumulated bulb color in xyz and density in w.
     nointerpolation float3 UVScroll : TEXCOORD3;
     float3 WorldPosition            : TEXCOORD4;
     float3 Normal                   : TEXCOORD5;
@@ -52,6 +57,7 @@ struct PixelInput
     float4 FogBulbs                 : TEXCOORD9;
 };
 
+// Applies vertex effects, the refraction wobble of water rooms and animated textures; fog is evaluated per vertex.
 PixelInput VS(VertexInput input)
 {
     // The weight bit keeps portal vertices still and enables refraction.
@@ -101,11 +107,13 @@ PixelInput VS(VertexInput input)
 // Triplanar projection of the animated caustics texture, brighter on upward facing surfaces.
 float3 GetCaustics(float3 position, float3 normal)
 {
+    // World Y points down, so (0, -1, 0) is up.
     float attenuation = saturate(dot(float3(0.0f, -1.0f, 0.0f), normal));
 
     float3 blending = normalize(max(abs(normal), 0.00001f));
     blending /= blending.x + blending.y + blending.z;
 
+    // The caustics pattern tiles every 2048 world units.
     float3 p = frac(position / 2048.0f);
     float3 xAxis = CausticsMap.SampleLevel(CausticsMapSampler, CausticsStartUV + p.zy * CausticsSize, 0.0f).rgb;
     float3 yAxis = CausticsMap.SampleLevel(CausticsMapSampler, CausticsStartUV + p.zx * CausticsSize, 0.0f).rgb;
@@ -162,6 +170,7 @@ float3 GetRoomLighting(float3 vertexColor, float3 position, Surface surface, flo
     lighting = DoShadow(position, surface.Normal, lighting, -2.5f, BlendMode);
     lighting = DoBlobShadows(position, lighting);
 
+    // The light type mask in the high bits tells whether the room has only point lights, which skips the type checks.
     uint count = min(LightCount & LT_MASK, LIGHTS_PER_DRAW_MAX);
     bool onlyPointLights = (LightCount & ~LT_MASK) == LT_MASK_POINT;
 
@@ -187,16 +196,19 @@ float3 GetRoomLighting(float3 vertexColor, float3 position, Surface surface, flo
     return lighting + surface.Emissive;
 }
 
+// Material surface, reflections, lighting, ambient occlusion, fog bulbs and finally distance fog.
 float4 PS(PixelInput input) : SV_TARGET
 {
     GpuMaterial material = TEN_LOAD_RAW(GpuMaterial, Materials, MaterialIndex);
     Surface surface = SampleSurface(material, ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition, PixelCameraPosition,
                                     input.Normal, input.Tangent, input.Binormal, input.FaceNormal);
+    // Reflections use mostly the flat face normal, so that normal maps do not break up the reflected image.
     surface.Color.rgb = ApplyReflections(material, surface.Color.rgb, input.WorldPosition, PixelCameraPosition,
                                          normalize(lerp(input.FaceNormal, surface.Normal, 0.1f)), surface.Specular, View,
                                          InverseViewportSize.y / InverseViewportSize.x);
 
     float occlusion = surface.Occlusion * GetAmbientOcclusion(material, input.Position.xy * InverseViewportSize, AmbientOcclusionExponent, BlendMode, surface.Color.a);
+    // Fog bulb density darkens the lighting before the bulb color is added.
     float3 lighting = GetRoomLighting(input.Color.rgb, input.WorldPosition, surface, input.Tangent, input.Binormal) - input.FogBulbs.w;
     float4 color = float4(saturate(surface.Color.rgb * lighting * occlusion), surface.Color.a);
     color = ApplyFogBulbs(color, input.FogBulbs.rgb, BlendMode);
@@ -207,6 +219,7 @@ float4 PS(PixelInput input) : SV_TARGET
     return result;
 }
 
+// Prepass variant: samples the same parallax and alpha test as PS, so that both agree on the cut-out texels.
 PrepassOutput PSDepthNormal(PixelInput input)
 {
     float3 emissive;

@@ -4,8 +4,12 @@
 // Procedural noise functions shared by the decals, sprite effects and post-process: 3D simplex noise,
 // gradient and value noise, and fractal sums.
 
+// Octave count of FractalNoise.
 #define OCTAVES 6
 
+// Helpers of the simplex noise below: Mod289 wraps lattice coordinates to keep the hash precise in
+// float math, Permute is a cheap polynomial permutation, TaylorInvSqrt approximates 1 / sqrt(r)
+// near r = 0.7 for gradient normalization.
 float3 Mod289(float3 x)
 {
     return (x - floor(x * (1 / 289.0f)) * 289.0f);
@@ -154,6 +158,8 @@ float NebularNoise(float2 uv, float frequency, float amplitude, float persistenc
     return noiseValue;
 }
 
+// Hash of a 2D point to a pseudo-random value in [0, 1). Quality depends on sin() precision, so it
+// can differ between GPUs for large inputs.
 float Noise(float2 p)
 {
     return frac(sin(dot(p, float2(12.9898f, 78.233f))) * 43758.5453f);
@@ -175,6 +181,8 @@ float PerlinNoise(float2 p)
     return lerp(lerp(a, b, u.x), lerp(c, d, u.x), u.y);
 }
 
+// Procedural nebula color: two-tone gradient perturbed by value noise scrolled by time. Alpha is zero,
+// so the result is meant for additive blending.
 float4 AnimatedNebula(float2 uv, float time)
 {
     // Scale UV coordinates.
@@ -200,11 +208,13 @@ float4 AnimatedNebula(float2 uv, float time)
     return interpolatedColor;
 }
 
+// Same sin-hash as Noise(), used by Noise2D. Returns [0, 1).
 float RandomValue(float2 input)
 {
     return frac(sin(dot(input, float2(12.9898, 78.233))) * 43758.5453123);
 }
 
+// Value noise in [0, 1] with smooth (cubic Hermite) interpolation, written as a single lerp expression.
 float Noise2D(float2 input)
 {
     float2 i = floor(input);

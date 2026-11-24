@@ -17,6 +17,7 @@ TEN_PS_TEXTURE(Texture2D, CloudTextureB, 1);
 TEN_PS_TEXTURE(Texture2D, HorizonMaskTexture, 2);
 TEN_PS_TEXTURE(Texture2D, SceneTexture, 3);
 
+// Each texture has its own sampler object, named after the texture.
 #define GOD_RAY_SAMPLER(texture) texture##Sampler
 
 struct VSOutput

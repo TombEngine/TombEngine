@@ -11,6 +11,7 @@
 #include "./FrameUniforms.hlsli"
 #include "./FogBulbs.hlsli"
 
+// Sky vertex and pixel uniforms both sit in slot 2 of their stage (GpuShared.hlsli).
 TEN_VS_UNIFORMS(SkyVertexUniforms, 2)
 {
     TEN_SKY_VERTEX_UNIFORMS
@@ -62,6 +63,7 @@ PixelInput VS(VertexInput input)
         // Paraboloid projection: the normalized direction maps to xy / (1 + z); depth is linear between the
         // paraboloid near and far distances. Vertices of the other hemisphere get a negative ClipDepth.
         float4 position = mul(float4(worldPosition, 1.0f), ParaboloidView);
+        // Hemisphere selects the hemisphere drawn: -1 front, 1 back.
         position.z *= Hemisphere;
 
         // Denominators are clamped: infinite or NaN positions, harmless on DX11, can lose the Vulkan device.
@@ -120,6 +122,7 @@ float GetHorizonGradientAlpha(float relativeY)
 // Fog bulbs darken the layer color and add their own color.
 float4 PS(PixelInput input) : SV_TARGET
 {
+    // Discards the pixels behind the hemisphere in the paraboloid pass.
     clip(input.ClipDepth);
 
     float4 color = ColorMap.Sample(ColorMapSampler, float3(ApplyUVScroll(input.UV, input.UVScroll), TextureLayer));

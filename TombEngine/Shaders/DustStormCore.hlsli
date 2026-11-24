@@ -7,6 +7,7 @@
 // Triangle noise (port of triNoise3d / tri / tri3 from the reference).
 // ---------------------------------------------------------------------------
 
+// Triangle wave in [0, 0.5], the cheap building block of the noise below.
 float DustTri(float x)
 {
     return abs(frac(x) - 0.5f);
@@ -20,6 +21,8 @@ float3 DustTri3(float3 p)
         DustTri(p.y + DustTri(p.x)));
 }
 
+// Three-octave 3D noise built from triangle waves, each octave domain-warped by the previous one. Cheap
+// enough to evaluate per raymarch step. Output is in [0, 0.75], weights fall off with the octave.
 float TriNoise3D(float3 p)
 {
     float  z  = 1.4f;
@@ -92,9 +95,12 @@ float DustFogMap(float3 worldPos, float distFromCam)
 
 // ---------------------------------------------------------------------------
 // fog() - accumulate dust along the ray (port of the reference fog()).
-// Returns RGBA: rgb is premultiplied dust color, a is opacity over the scene.
+// Returns RGBA: rgb is the non-premultiplied dust color, a is opacity over the scene.
 // ---------------------------------------------------------------------------
 
+// Raymarches from ro along the unit direction rd up to distance mt (the scene depth). The step starts
+// at DustBaseStepDist and grows geometrically, so near dust is sampled finely and far dust coarsely. The
+// loop bound is a constant 12 for the compiler, the runtime step count only exits early.
 float4 DustFog(float3 ro, float3 rd, float mt)
 {
     float3 col   = float3(0.0f, 0.0f, 0.0f);
@@ -127,6 +133,7 @@ float4 DustFog(float3 ro, float3 rd, float mt)
         float shadow   = lerp(0.4f, 1.0f, 1.0f - heightT);
 
         // Light response: simple wrap diffuse against the sun direction.
+                // The result is constant along the ray: it only depends on the light direction, not on the sample.
         float ndotl    = saturate(dot(-DustLightDirection, float3(0.0f, -1.0f, 0.0f)) * 0.5f + 0.5f);
         float3 lit     = DustColor * (DustLightColor * ndotl + DustAmbientStrength);
 
@@ -156,6 +163,7 @@ float4 DustFog(float3 ro, float3 rd, float mt)
 // Reconstruct a world-space ray from the pixel UV.
 // ---------------------------------------------------------------------------
 
+// Unprojects the far plane point under the pixel and returns the unit direction from the camera to it.
 float3 ReconstructWorldDir(float2 uv)
 {
     // NDC at the far plane.
@@ -166,6 +174,9 @@ float3 ReconstructWorldDir(float2 uv)
     return normalize(farWorld.xyz - DustCameraPos);
 }
 
+// Strength [0, 1] of the dust blown through outdoor-to-indoor portals at a world position. The position
+// is taken into each bleed volume local space (see CBDustStorm.hlsli), where the depth limit grows from
+// the top to the bottom and every face fades out smoothly. Overlapping volumes combine with max().
 float DustPortalBleed(float3 worldPos)
 {
     float bleed = 0.0f;
@@ -201,6 +212,7 @@ float DustPortalBleed(float3 worldPos)
     return saturate(bleed);
 }
 
+// Highest bleed strength found at 12 evenly spaced (midpoint) samples along the ray.
 float DustPortalBleedAlongRay(float3 rayOrigin, float3 rayDir, float maxDist)
 {
     if (maxDist <= 1.0f)
@@ -222,7 +234,7 @@ float DustPortalBleedAlongRay(float3 rayOrigin, float3 rayDir, float maxDist)
 
 // ---------------------------------------------------------------------------
 // PSDustStorm - main pass. Runs over the full main render target with
-// SrcAlpha / InvSrcAlpha blending; rgb is premultiplied so we output (rgb, a).
+// SrcAlpha / InvSrcAlpha blending; rgb is non-premultiplied (see DustFog) so we output (rgb, a).
 // ---------------------------------------------------------------------------
 
 float4 PSDustStorm(VSOutput input) : SV_TARGET

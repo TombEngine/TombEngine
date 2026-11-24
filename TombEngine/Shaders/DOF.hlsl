@@ -11,6 +11,7 @@
 #include "./ShaderInterop.hlsli"
 #include "./Fullscreen.hlsli"
 
+// Modes: 2 blurs only the near side, 3 only the far side. Any other nonzero value blurs both sides.
 #define DOF_MODE_NONE          0
 #define DOF_MODE_FRONT         2
 #define DOF_MODE_BACK          3
@@ -20,6 +21,8 @@
 #define DOF_DEPTH_REJECT_SCALE 3.0f
 #define DOF_MAX_BOKEH_RADIUS   8.0f
 
+// FocusDistance and FocusRange are in world units of view depth: the circle of confusion reaches 1 at FocusRange
+// // beyond the focus. Strength scales the blur radius, up to DOF_MAX_BOKEH_RADIUS texels of the half resolution targets.
 TEN_PS_UNIFORMS(DofUniforms, 2)
 {
     float  FocusDistance;
@@ -34,9 +37,12 @@ TEN_PS_UNIFORMS(DofUniforms, 2)
     float  DofPadding1;
 };
 
+// SourceMap is the scene for the downsample and the color with the packed circle of confusion in the other passes.
+// // DepthMap is read by the downsample only.
 TEN_PS_TEXTURE(Texture2D, SourceMap, 0);
 TEN_PS_TEXTURE(Texture2D, DepthMap, 1);
 
+// Sample offsets of a disc of unit radius; the near dilation reuses the first 8.
 static const float2 DOF_DISC_OFFSETS[DOF_DISC_SAMPLES] =
 {
     float2(-0.3262f, -0.4058f),
@@ -70,6 +76,7 @@ float GetSignedCoC(float viewDepth)
         return 0.0f;
 
     float signedCoC = clamp((viewDepth - FocusDistance) / max(FocusRange, 1.0f), -1.0f, 1.0f);
+    // The exponent makes the blur ramp up slowly around the focus plane.
     signedCoC = sign(signedCoC) * pow(abs(signedCoC), 1.3f);
 
     if (Mode == DOF_MODE_FRONT)
@@ -80,6 +87,7 @@ float GetSignedCoC(float viewDepth)
     return signedCoC;
 }
 
+// Inverse of the packing of PSDownsample.
 float UnpackSignedCoC(float packedCoC)
 {
     return (packedCoC - 0.5f) * 2.0f;
@@ -119,6 +127,7 @@ float4 BlurDisc(float2 uv, float side)
     float4 center = SampleSource(uv);
     float centerCoC = max(0.0f, UnpackSignedCoC(center.a) * side);
     float radius = GetBokehRadius(centerCoC);
+    // Less than half a texel of blur: alpha 0 leaves the sharp scene in the composite.
     if (radius < 0.5f)
         return float4(center.rgb, 0.0f);
 

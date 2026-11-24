@@ -71,6 +71,7 @@ namespace TEN::Renderer::Backend
         return true;
     }
 
+    // DOF runs only with a mode set and a non negligible strength.
     bool SceneRenderer::IsDOFActive(const FrameEnvironment& environment)
     {
         return (environment.DofMode != 0 && environment.DofStrength > EPSILON);
@@ -119,6 +120,8 @@ namespace TEN::Renderer::Backend
             RenderFullscreenPass(commandBuffer, _dofPipelines[pass].get(), target, bindings, (pass == 0) ? 2 : 1, name);
         };
 
+        // The downsample lands in _dofTargets[0]; the far blur reads it before the near blur reuses that target.
+        // The near layer is dilated first (into a pooled temporary) so that the near blur bleeds over sharp pixels.
         int layers = GetDOFLayers(environment);
         drawPass(0, _dofTargets[0].get(), _sceneTarget.get(), "Downsample");
         if (layers & 1)

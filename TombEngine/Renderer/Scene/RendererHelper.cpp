@@ -43,6 +43,7 @@ namespace TEN::Renderer
 		// Push skeleton.
 		bones[nextBoneID++] = rendererObject.Skeleton;
 
+		// Bones are pushed after their parent on the stack, so a parent transform is always computed before its children.
 		auto* transforms = rendererObject.AnimationTransforms.data();
 
 		// Compute blend alpha.
@@ -74,6 +75,7 @@ namespace TEN::Renderer
 			}
 
 			// Animate bone.
+			// Bones outside the mask keep their previous transform, but their children are still visited.
 			bool animateBone = (mask >> bone->Index) & 1;
 			if (animateBone)
 			{
@@ -132,6 +134,7 @@ namespace TEN::Renderer
 			BuildHierarchyRecursive(obj, childNode, node);
 	}
 
+	// Entry point of the bind pose computation: seeds the skeleton root and walks its children.
 	void Renderer::BuildHierarchy(RendererObject *obj)
 	{
 		obj->Skeleton->GlobalTransform = obj->Skeleton->Transform;
@@ -215,11 +218,13 @@ namespace TEN::Renderer
 		return Matrix::CreateScale(item.Pose.Scale) * rotMatrix * transMatrix;
 	}
 
+	// Mesh by index in the global level mesh array.
 	RendererMesh* Renderer::GetMesh(int meshIndex)
 	{
 		return _meshes[meshIndex];
 	}
 
+	// Allocating convenience overload of the sphere query below.
 	std::vector<BoundingSphere> Renderer::GetSpheres(int itemNumber)
 	{
 		BoundingSphere spheres[BONE_COUNT_MAX];
@@ -233,6 +238,7 @@ namespace TEN::Renderer
 		auto& itemToDraw = _items[itemNumber];
 		itemToDraw.ItemNumber = itemNumber;
 
+		// Uses the transforms already stored in the renderer item slot, which is refreshed by FetchItemPose.
 		const auto* nativeItem = &g_Level.Items[itemNumber];
 		if (nativeItem == nullptr)
 			return 0;
@@ -292,6 +298,7 @@ namespace TEN::Renderer
 		constexpr auto INTERVAL_MIN	= 1.0f / 1000.0f;
 		constexpr auto INTERVAL_MAX	= 0.25f;
 
+		// Intervals are clamped so a stall or a duplicate present does not skew the average.
 		auto now = std::chrono::steady_clock::now();
 		if (_lastFrameTime.time_since_epoch().count() != 0)
 		{

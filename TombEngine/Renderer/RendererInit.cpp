@@ -26,10 +26,12 @@ namespace TEN::Renderer
 
 		_isWindowed = windowed;
 
+		// Only the frontend state is created here; the scene renderer creates the device and the window resources.
 		InitializeScreen(w, h);
 		InitializeCommonTextures();
 
 		// Preallocate lists.
+		// Debug primitives and dynamic lights live in preallocated vectors so that no allocation happens per frame.
 		_lines3DToDraw = createVector<RendererLine3D>(MAX_LINES_3D);
 		_triangles3DToDraw = createVector<RendererTriangle3D>(MAX_TRIANGLES_3D);
 
@@ -45,6 +47,7 @@ namespace TEN::Renderer
 		ImGuiInit(g_Platform->GetSDL3Window());
 	}
 
+	// Stores the new screen size and rebuilds the size dependent matrices of the cached views.
 	void Renderer::InitializeScreen(int w, int h, bool resyncWindow)
 	{
 		_screenWidth = w;
@@ -82,6 +85,7 @@ namespace TEN::Renderer
 		_whiteSprite = RendererSprite{ 1, 1, { Vector2(0.0f, 0.0f), Vector2(1.0f, 0.0f), Vector2(1.0f, 1.0f), Vector2(0.0f, 1.0f) } };
 	}
 
+	// Toggles the window mode; force always switches to full screen.
 	void Renderer::ToggleFullScreen(bool force)
 	{
 		_isWindowed = force ? false : !_isWindowed;

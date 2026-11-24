@@ -6,6 +6,7 @@ namespace TEN::Renderer::Structures
 {
 	using namespace TEN::Math::Library;
 
+	// Debug triangle in world space.
 	struct RendererTriangle3D
 	{
 	private:

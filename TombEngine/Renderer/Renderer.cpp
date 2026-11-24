@@ -22,6 +22,7 @@ namespace TEN::Renderer
 
 	Renderer g_Renderer;
 
+	// Placeholder cameras so the views are valid before the first frame; they are replaced by UpdateCameraMatrices.
 	Renderer::Renderer() :
 		_gameCamera({0, 0, 0}, {0, 0, 1}, {0, 1, 0}, 1, 1, 0, 1, 10, 90),
 		_oldGameCamera({ 0, 0, 0 }, { 0, 0, 1 }, { 0, 1, 0 }, 1, 1, 0, 1, 10, 90),
@@ -38,6 +39,7 @@ namespace TEN::Renderer
 	// Releases the renderer data of the current level, including the meshes allocated by PrepareDataForTheRenderer.
 	void Renderer::FreeRendererData()
 	{
+		// Per-level renderer data: GPU resources are not released here, they belong to the scene renderer.
 		_items.resize(0);
 		_moveableObjects.resize(0);
 		_staticObjects.clear();
@@ -93,6 +95,7 @@ namespace TEN::Renderer
 	// Waits until at least two game ticks have elapsed and returns the number of elapsed ticks.
 	int Renderer::Synchronize()
 	{
+		// Busy waits for ticks of the game clock, so that the game never advances less than two ticks per call.
 		int nf = TimeSync();
 		if (nf < 2)
 		{

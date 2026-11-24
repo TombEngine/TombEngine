@@ -65,6 +65,8 @@ struct BoneTransform
     float4x4 Transform;
 };
 
+// Blended bone matrix of a vertex. boneOffset is the start of the palette of the instance in the bone buffer, and
+// // mode is one of the SKINNING_* values.
 float4x4 BlendBones(TEN_RAW_BUFFER_TYPE(BoneTransform) bones, uint boneOffset, uint4 boneIndices, float4 boneWeights, uint mode)
 {
     if (mode == SKINNING_RIGID)
@@ -91,6 +93,7 @@ float4x4 BlendBones(TEN_RAW_BUFFER_TYPE(BoneTransform) bones, uint boneOffset, u
             float4(TEN_LOAD_RAW(BoneTransform, bones, boneOffset + boneIndices.x).Transform[3].xyz, 1.0f));
     }
 
+    // Full skinning: the weights are renormalized, with a fallback to the first bone for unweighted vertices.
     float totalWeight = boneWeights.x + boneWeights.y + boneWeights.z + boneWeights.w;
     if (totalWeight < 0.0001f)
         return TEN_LOAD_RAW(BoneTransform, bones, boneOffset + boneIndices.x).Transform;
@@ -101,6 +104,7 @@ float4x4 BlendBones(TEN_RAW_BUFFER_TYPE(BoneTransform) bones, uint boneOffset, u
     for (int i = 0; i < BONE_WEIGHTS_MAX; i++)
         result += TEN_LOAD_RAW(BoneTransform, bones, boneOffset + boneIndices[i]).Transform * (boneWeights[i] / totalWeight);
 
+    // Keeps the blended matrix affine.
     result[0].w = 0.0f;
     result[1].w = 0.0f;
     result[2].w = 0.0f;

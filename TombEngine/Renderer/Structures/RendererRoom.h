@@ -18,6 +18,7 @@ namespace TEN::Renderer::Structures
 	// screen rectangle (ViewPort, in normalized device coordinates) of the portals the room is seen through.
 	struct RendererRoom
 	{
+		// Visited, ViewPort and the draw lists are per-frame state reset by CollectRooms; the other fields are built on level load.
 		bool Visited;
 		short RoomNumber;
 		Vector4 AmbientLight;
@@ -30,7 +31,9 @@ namespace TEN::Renderer::Structures
 		std::vector<RendererLight*> LightsToDraw;
 		std::vector<RendererDecal> Decals;
 		std::vector<RendererDoor> Doors;
+		// World space bounds of the room interior, used to find the dynamic lights reaching it.
 		BoundingBox BoundingBox;
+		// Active neighbour rooms, used when gathering lights.
 		std::vector<int> Neighbors;
 	};
 }

@@ -12,6 +12,8 @@ namespace TEN::Renderer::Structures
 	{
 		SpriteType Type;
 		RendererSprite* Sprite;
+		// Billboards use pos with Width and Height (in world units, already multiplied by Scale) and Rotation (2D);
+		// three-dimensional quads use vtx1-vtx4 and the per-corner colors c1-c4, with pos as the center of the corners.
 		float Scale;
 		Vector3 pos;
 		Vector3 vtx1;
@@ -27,6 +29,7 @@ namespace TEN::Renderer::Structures
 		float Width;
 		float Height;
 		BlendMode BlendMode;
+		// ConstrainAxis and LookAtAxis are used by the constrained billboard types only.
 		Vector3 ConstrainAxis;
 		Vector3 LookAtAxis;
 		bool SoftParticle;

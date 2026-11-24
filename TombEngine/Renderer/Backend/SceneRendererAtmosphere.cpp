@@ -96,6 +96,7 @@ namespace TEN::Renderer::Backend
         commandBuffer.PopDebugGroup();
     }
 
+    // True when the discs or aurora pass has anything to draw this frame.
     bool SceneRenderer::HasSkyDiscsOrAurora() const
     {
         const auto& effects = _frameEnvironment->SkyEffects;
@@ -120,12 +121,14 @@ namespace TEN::Renderer::Backend
         PushSkyUniforms(commandBuffer);
 
         auto coverageBinding = TextureSamplerBinding{ skyCopy, _linearWrapSampler.get() };
+        // The half resolution aurora is rendered first, as it needs its own render pass before the scene target is reopened.
         ITexture* auroraTarget = nullptr;
         if (effects.IsAuroraDrawn && effects.IsAuroraHalfResolution)
             auroraTarget = DrawHalfResolutionAurora(commandBuffer, coverageBinding);
 
         auto colorTarget = ColorTargetInfo{};
         colorTarget.Texture = _sceneTarget.get();
+        // Load keeps the sky and clouds already drawn; the additive pipelines blend on top of them.
         colorTarget.Load = LoadOp::Load;
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
 
@@ -166,6 +169,7 @@ namespace TEN::Renderer::Backend
 
         auto colorTarget = ColorTargetInfo{};
         colorTarget.Texture = target;
+        // Cleared so the additive upscale of untouched texels adds nothing.
         colorTarget.Load = LoadOp::Clear;
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
         DrawFullscreen(*renderPass, _auroraHalfPipeline.get(), coverageBinding);

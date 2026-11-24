@@ -9,6 +9,7 @@
 
 namespace TEN::Renderer::RHI
 {
+    // Returns 0 for Unknown so callers can detect unsupported formats.
     int GetFormatBlockSize(PixelFormat format)
     {
         switch (format)
@@ -79,6 +80,7 @@ namespace TEN::Renderer::RHI
         return (format == PixelFormat::D24UnormS8Uint || format == PixelFormat::D32FloatS8Uint);
     }
 
+    // Dimensions are rounded up to whole blocks, so partial BC blocks at the edges are counted.
     int GetTextureDataSize(PixelFormat format, int width, int height, int depth)
     {
         int blockDimension = GetFormatBlockDimension(format);
@@ -122,6 +124,7 @@ namespace TEN::Renderer::RHI
                 break;
             }
 
+            // A backend that fails to initialize returns nullptr and the next one is tried.
             if (device != nullptr)
                 return device;
         }

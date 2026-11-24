@@ -9,6 +9,8 @@
 #ifdef __cplusplus
 #define TEN_DEFAULT(value) = value
 
+// Array and loop bounds shared by shaders and C++. The light cluster grid is 16x9 screen tiles by 24 exponential
+// // depth slices, and each cluster holds a mask of up to 64 lights (two 32-bit words, see LightClusters.hlsli).
 constexpr auto FOG_BULBS_MAX      = 32;
 constexpr auto SHADOW_SPHERES_MAX = 16;
 
@@ -87,6 +89,8 @@ struct GpuLight
 };
 
 // Material properties, interpolated every frame. Scalars pad the end: a uint3 at offset 68 breaks the Vulkan buffer layout rules.
+// Meaning of Properties and TypeAndFlags (material type in the low byte, flags above it) depends on the type and is
+// // decoded in Materials.hlsli.
 struct GpuMaterial
 {
     float4 Properties[4];
@@ -96,6 +100,8 @@ struct GpuMaterial
     uint   Padding2     TEN_DEFAULT(0);
 };
 
+// Room decal (blood stain), filled from the room decals of the frame. Pattern 0 adds a solid core and higher
+// // values scale the noise pattern, see GetDecalMask in Decals.hlsli.
 struct GpuDecal
 {
     float3 Position TEN_DEFAULT(Vector3::Zero);
@@ -121,6 +127,8 @@ struct GpuSprite
     float4          UVY TEN_DEFAULT(Vector4::Zero);
 };
 
+// Fog sphere. The camera relative fields are computed on the CPU each frame (SceneRenderer.cpp) so that
+// // FogBulbs.hlsli can intersect the camera ray with the sphere without extra per vertex math. 64 bytes with padding.
 struct GpuFogBulb
 {
     float3 Position                       TEN_DEFAULT(Vector3::Zero);
@@ -135,6 +143,8 @@ struct GpuFogBulb
 // Uniform blocks. Field names are unique across blocks: HLSL cbuffer members are globals.
 
 // Vertex slot 0, pushed once per frame.
+// Fog distances are in sectors. Frame is the 30 Hz game frame and InterpolatedFrame its fractional version for smooth
+// // animation at the render rate. CameraUnderwater is compared with IsWaterRoom of the draw to refract water rooms.
 #define TEN_FRAME_VERTEX_UNIFORMS \
     float4x4 ViewProjection    TEN_DEFAULT(Matrix::Identity); \
     float3   CameraPosition    TEN_DEFAULT(Vector3::Zero); \
@@ -221,6 +231,8 @@ struct GpuFogBulb
     uint  DrawPixelPadding2 TEN_DEFAULT(0);
 
 // Pixel slot 2 of the scene shaders. Spheres: xyz center, w radius.
+// ShadowLight is the single shadow casting light, and LightViewProjections hold the six cube faces in the order of the
+// // ShadowMap array layers (Shadows.hlsli).
 #define TEN_SHADOW_UNIFORMS \
     GpuLight ShadowLight; \
     float4x4 LightViewProjections[6]; \

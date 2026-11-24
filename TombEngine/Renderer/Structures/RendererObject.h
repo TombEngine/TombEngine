@@ -15,10 +15,13 @@ namespace TEN::Renderer::Structures
 		int Id;
 		int Type;
 		std::vector<RendererMesh*> ObjectMeshes;
+		// Skeleton is the root of the bone tree, LinearizedBones owns all bones by index. AnimationTransforms is the pose
+		// used for menu objects; BindPoseTransforms holds the inverse global bind pose of each bone, used for skinning.
 		RendererBone* Skeleton;
 		std::vector<Matrix> AnimationTransforms;
 		std::vector<Matrix> BindPoseTransforms;
 		std::vector<RendererBone*> LinearizedBones;
+		// Hidden objects are skipped when items are collected.
 		bool Hidden;
 		ShadowMode ShadowType;
 

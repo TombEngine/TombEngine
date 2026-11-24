@@ -5,9 +5,12 @@
 
 #include "./GpuShared.hlsli"
 
+// Colors are authored with 0.5 as neutral and multiplied by COLOR_MODULATION_SCALE when lit.
 #define PI                     3.14159265f
 #define COLOR_MODULATION_SCALE 2.0f
 
+// Blend modes mirror the BlendMode enum of RendererEnums.h. The values 4, 6, 12 and 13 have no special
+// // handling in the shaders.
 #define BLENDMODE_OPAQUE     0
 #define BLENDMODE_ALPHATEST  1
 #define BLENDMODE_ADDITIVE   2
@@ -18,11 +21,13 @@
 #define BLENDMODE_LIGHTEN    10
 #define BLENDMODE_ALPHABLEND 11
 
+// Animated texture set types: the first three mirror AnimatedTextureType in RendererAnimatedTextureSet.h.
 #define ANIM_TYPE_FRAMES   0
 #define ANIM_TYPE_UVROTATE 1
 #define ANIM_TYPE_VIDEO    2
 #define ANIM_TYPE_LEGACY_WATERFALL 100 // Waterfall objects, see SceneRenderer::AddWaterfallSets.
 
+// Light mode of an object instance: dynamic lights, or the baked vertex light only.
 #define LIGHT_MODE_DYNAMIC 0
 #define LIGHT_MODE_STATIC  1
 
@@ -44,6 +49,7 @@ float3 GetSkyReflectionCoordinates(float3 reflection)
     return float3(uv, (direction.z <= 0.0f) ? 0.0f : 1.0f);
 }
 
+// Luma with the Rec. 709 weights, on the color as is.
 float Luma(float3 color)
 {
     return (color.x * 0.2126f) + (color.y * 0.7152f) + (color.z * 0.0722f);
@@ -99,6 +105,7 @@ float Wibble(uint effects, uint hash, float interpolatedFrame)
     return sin(phase * 6.28318530718f) * enabled;
 }
 
+// Brightens the vertex color by the glow amount, pulsing with the wibble between -0.25 and 0.5 times the glow.
 float3 Glow(float3 color, uint effects, float wibble)
 {
     float intensity = DecodeGlow(effects) * lerp(-0.5f, 1.0f, wibble * 0.5f + 0.5f) * 0.5f;
@@ -119,6 +126,7 @@ uint GetAnimatedFrameIndex(GpuAnimatedSet set, uint frame, uint frameOffset)
     return set.FirstFrame + ((int)(frame * speed + frameOffset) % max(set.NumFrames, 1));
 }
 
+// Each vertex takes the UV of its own corner of the frame, picked by its index in the polygon.
 float2 GetFrameCorner(GpuAnimatedFrame frame, uint indexInPoly)
 {
     switch (indexInPoly)
@@ -155,6 +163,7 @@ float3 GetUVRotateScroll(GpuAnimatedFrame frame, GpuAnimatedSet set, float inter
     return float3(-direction * relativePosition * uvSize, 1.0f);
 }
 
+// scroll.z is the enabled flag set by GetUVRotateScroll.
 float2 ApplyUVScroll(float2 uv, float3 scroll)
 {
     const float EPSILON = 0.001f;

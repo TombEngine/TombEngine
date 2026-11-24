@@ -37,6 +37,7 @@ namespace TEN::Renderer
 		// Safety clamps to avoid NaNs in view direction calculation.
 		auto rawDirection = target - WorldPosition;
 
+		// Camera exactly on its target: nudge the target so the view direction is defined.
 		if (rawDirection == Vector3::Zero)
 			target.y -= 10;
 
@@ -46,6 +47,7 @@ namespace TEN::Renderer
 		WorldDirection = target - WorldPosition;
 		WorldDirection.Normalize();
 		
+		// TEN uses Y down, so the up vector of the camera is -Y, rotated around the view direction by the roll.
 		Vector3 up = -Vector3::UnitY;
 		Matrix upRotation = Matrix::CreateFromAxisAngle(WorldDirection, roll);
 		up = Vector3::Transform(up, upRotation);
@@ -67,6 +69,7 @@ namespace TEN::Renderer
 		RoomNumber = room;
 		WorldPosition = pos;
 		WorldDirection = dir;
+		// Target is an arbitrary point along the direction; only the direction matters.
 		View = Matrix::CreateLookAt(pos, pos + dir * 10240, up);
 		float aspect = (float)width / (float)height;
 		Projection = Matrix::CreatePerspectiveFieldOfView(fov, aspect, n, f);

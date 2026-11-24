@@ -22,6 +22,7 @@ namespace TEN::Renderer::Backend
         if (normal.Length() > EPSILON)
             normal.Normalize();
 
+        // Unit normals are converted to signed bytes, three used out of four.
         auto toSignedByte = [](float value) { return (unsigned int)(unsigned char)(char)std::lround(std::clamp(value, -1.0f, 1.0f) * CHAR_MAX); };
         return toSignedByte(normal.x) | (toSignedByte(normal.y) << 8) | (toSignedByte(normal.z) << 16);
     }
@@ -57,8 +58,10 @@ namespace TEN::Renderer::Backend
             // Like the frontend, debris is lit by the room ambient only.
             const auto& room = (*_levelGeometry.Rooms)[fragment->roomNumber];
             auto world = Matrix::Lerp(fragment->PrevTransform, fragment->Transform, interpolationFactor);
+            // Fragment transforms are interpolated here, as debris is simulated at the game tick rate.
             unsigned int instance = (unsigned int)AddInstance(world, fragment->color, room.AmbientLight, fragment->lightMode, 0, 0, 0, SKINNING_NONE);
 
+            // The instance index is repeated per vertex in a second vertex stream, as the draws are not instanced.
             int firstVertex = (int)(_debrisVertexData.size() / sizeof(Vertex));
             for (int i = 0; i < 3; i++)
             {
@@ -111,6 +114,7 @@ namespace TEN::Renderer::Backend
             }
 
             auto* pipeline = GetScenePipeline(SceneShader::ObjectsDebris, draw.BlendMode);
+            // Rebinding the pipeline resets the bucket state, as the cached texture bindings may no longer apply.
             if (pipeline != lastPipeline)
             {
                 renderPass.BindPipeline(pipeline);

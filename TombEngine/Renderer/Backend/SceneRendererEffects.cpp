@@ -50,6 +50,7 @@ namespace TEN::Renderer::Backend
         auto& slice = _roomLightSlices[roomNumber];
         if (slice.first == NO_VALUE)
         {
+            // AddLights returns the count and writes the offset into the slice; the room is remembered to be invalidated next frame.
             slice.second = AddLights((*_levelGeometry.Rooms)[roomNumber].LightsToDraw, interpolationFactor, NO_VALUE, NO_VALUE, 1.0f, slice.first);
             _roomLightSliceList.push_back(roomNumber);
         }
@@ -80,6 +81,7 @@ namespace TEN::Renderer::Backend
     void SceneRenderer::FlushMeshInstances()
     {
         std::sort(_queuedMeshInstances.begin(), _queuedMeshInstances.end(),
+            // Only the grouping of equal meshes matters, not the order between different meshes.
             [](const QueuedMeshInstance& first, const QueuedMeshInstance& second) { return first.Mesh < second.Mesh; });
 
         int index = 0;
@@ -153,6 +155,7 @@ namespace TEN::Renderer::Backend
                     hasPlayerLights = true;
                 }
 
+                // Shell transforms are interpolated between the previous and the current pose.
                 auto world = shell.pos.Orientation.ToRotationMatrix() * Matrix::CreateTranslation(shell.pos.Position.ToVector3());
                 auto prevWorld = shell.PrevPose.Orientation.ToRotationMatrix() * Matrix::CreateTranslation(shell.PrevPose.Position.ToVector3());
                 const auto& mesh = *(*_levelGeometry.MoveableObjects)[shell.objectNumber]->ObjectMeshes[0];
@@ -168,6 +171,7 @@ namespace TEN::Renderer::Backend
             QueueMeshInstance(mesh, world, NEUTRAL_COLOR, rooms[roomNumber].AmbientLight, lightMode, lightOffset, lightCount, roomNumber);
         };
 
+        // Swarm creatures animate by cycling through their meshes, picked from frame counters.
         if (Objects[ID_RATS_EMITTER].loaded)
         {
             auto lightMode = meshes[Objects[ID_RATS_EMITTER].meshIndex]->LightMode;
@@ -261,6 +265,7 @@ namespace TEN::Renderer::Backend
         if (!Objects[flashObjectID].loaded || !flashObject.has_value() || flashObject->ObjectMeshes.empty())
             return;
 
+        // Flashes are lit by the ambient color only; opaque buckets of the flash mesh are not drawn.
         int instance = AddInstance(world, color, ambientLight, LightMode::Static, 0, 0, 0, SKINNING_NONE);
         for (const auto& bucket : flashObject->ObjectMeshes[0]->Buckets)
         {
@@ -298,6 +303,7 @@ namespace TEN::Renderer::Backend
                 auto offset = settings.MuzzleOffset + Vector3(rootOffset.x, rootOffset.z, rootOffset.y); // Bone orientation swaps axes.
                 offset.x = isLeft ? -offset.x : offset.x;
 
+                // Random roll derived from the frame counter, so the flash flickers; the second flash mesh is not rolled.
                 float zRotation = (flashObjectID == ID_GUN_FLASH2) ? 0.0f : TO_RAD((short)std::hash<int>()(GlobalCounter));
                 auto xRotation = Matrix::CreateRotationX(TO_RAD(arm.GunFlashType == LaraWeaponType::Pistol ? ANGLE(268) : ANGLE(280)));
                 auto world = player.InterpolatedAnimationTransforms[isLeft ? LM_LHAND : LM_RHAND] * player.InterpolatedWorld;
@@ -326,6 +332,7 @@ namespace TEN::Renderer::Backend
                         continue;
 
                     auto flashObjectID = (flash.SwitchToMuzzle2 && (*_levelGeometry.MoveableObjects)[ID_GUN_FLASH2].has_value()) ? ID_GUN_FLASH2 : ID_GUN_FLASH;
+                    // Same random roll as the player flashes.
                     float zRotation = flash.SwitchToMuzzle2 ? 0.0f : TO_RAD((short)std::hash<int>()(GlobalCounter));
 
                     auto world = Matrix::CreateTranslation(flash.Bite.Position) * item->InterpolatedAnimationTransforms[flash.Bite.BoneID] * item->InterpolatedWorld;

@@ -28,6 +28,7 @@ namespace TEN::Renderer::Backend
         desc.VertexShader = _debugVertexShader.get();
         desc.PixelShader = _debugPixelShader.get();
         desc.Layout.NumBuffers = 1;
+        // Single vertex stream: position and an RGBA8 color that the shader reads as normalized.
         desc.Layout.Buffers[0] = VertexBufferLayout{ 0, (int)sizeof(DebugVertex), VertexInputRate::Vertex };
         desc.Layout.Attributes[0] = VertexAttribute{ 0, 0, VertexElementFormat::Float3, (int)offsetof(DebugVertex, Position) };
         desc.Layout.Attributes[1] = VertexAttribute{ 1, 0, VertexElementFormat::UByte4Norm, (int)offsetof(DebugVertex, Color) };
@@ -63,6 +64,7 @@ namespace TEN::Renderer::Backend
         _debugVertexData.resize((_debugLineVertexCount + _debugTriangleVertexCount) * sizeof(DebugVertex));
         auto* vertex = (DebugVertex*)_debugVertexData.data();
 
+        // Vertices are written in the same order the draw uses: all line vertices, then all triangle vertices.
         for (int i = 0; i < lineCount; i++)
         {
             const auto& line = (*environment.DebugLines)[i];
@@ -87,6 +89,7 @@ namespace TEN::Renderer::Backend
             return;
 
         commandBuffer.PushDebugGroup("Debug primitives");
+        // Same frame block as the scene passes, so debug positions (world space) are transformed like the scene geometry.
         commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 0, &_frameVertexUniforms, sizeof(_frameVertexUniforms));
 
         auto vertexBinding = BufferBinding{ _debugVertexBuffer.Buffer.get(), 0 };
@@ -94,6 +97,7 @@ namespace TEN::Renderer::Backend
         {
             renderPass.BindPipeline(_debugLinePipeline.get());
             renderPass.BindVertexBuffers(0, &vertexBinding, 1);
+            // Lines have no triangles to count.
             CountDraw(DrawCategory::Debug, 0);
             renderPass.Draw(_debugLineVertexCount, 1, 0, 0);
         }

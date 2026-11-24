@@ -43,6 +43,7 @@ struct PixelInput
     float4 Color    : TEXCOORD1;
 };
 
+// Each instance spins by Time plus a phase per index, and is placed by the instance offset.
 PixelInput VS(VertexInput input)
 {
     float angle = Time + (float)input.Index * 0.4f;

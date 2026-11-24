@@ -106,6 +106,8 @@ namespace TEN::Renderer
 		for (auto& dynamicLightList : _dynamicLights)
 			dynamicLightList.clear();
 
+		// Pools are indexed by item number and sized for the items spawned at runtime too, so they never reallocate during play
+		// (pointers to their elements are kept in room draw lists).
 		int allocatedItemSize = (int)g_Level.Items.size() + MAX_SPAWNED_ITEM_COUNT;
 
 		auto item = RendererItem();
@@ -243,6 +245,7 @@ namespace TEN::Renderer
 					rendererStatic.RoomNumber = nativeStatic.RoomNumber;
 					rendererStatic.Color = nativeStatic.Color;
 					rendererStatic.AmbientLight = rendererRoom.AmbientLight;
+					// Previous pose starts equal to the current one, so a static does not interpolate on its first frame.
 					rendererStatic.Pose =
 					rendererStatic.PrevPose = nativeStatic.Pose;
 					rendererStatic.OriginalSphere = Statics[rendererStatic.ObjectNumber].visibilityBox.ToLocalBoundingSphere();
@@ -306,6 +309,7 @@ namespace TEN::Renderer
 							vertex->Tangent = PackVector3(poly.tangents[k]);
 							vertex->FaceNormal = PackVector3(poly.normal);
 
+							// Per vertex hash from the position, packed with the animation frame offset and the original vertex index.
 							const unsigned long long primes[]{ 73856093ULL, 19349663ULL, 83492791ULL };
 							unsigned int hash = (unsigned int)std::hash<float>{}
 							((vertex->Position.x) * primes[0]) ^
@@ -318,6 +322,7 @@ namespace TEN::Renderer
 							lastVertex++;
 						}
 
+						// Quads (shape 0) become two triangles, (0, 1, 3) and (2, 3, 1); triangles keep their three vertices.
 						if (poly.shape == 0)
 						{
 							newPoly.BaseIndex = lastIndex;
@@ -423,6 +428,8 @@ namespace TEN::Renderer
 			}
 		}
 
+		// Each room is independent, so the buckets are sorted in parallel. Sorting only affects the draw order of the buckets,
+		// the vertex and index ranges stay valid.
 		// Sort room buckets by blend mode, then texture.
 		std::for_each(std::execution::par_unseq,
 			_rooms.begin(),
@@ -455,6 +462,7 @@ namespace TEN::Renderer
 			int objNum = MoveablesIds[i];
 			ObjectInfo* obj = &Objects[objNum];
 
+			// The skin mesh, if any, is stored after the regular meshes of the object.
 			int meshCount = (obj->skinIndex == NO_VALUE) ? obj->nmeshes : obj->nmeshes + 1;
 			for (int j = 0; j < meshCount; j++)
 			{
@@ -503,6 +511,7 @@ namespace TEN::Renderer
 
 				if (obj->skinIndex != NO_VALUE)
 				{
+					// The skin mesh is not part of ObjectMeshes: it is reached through the skin index of the object.
 					auto* mesh = GetRendererMeshFromTrMesh(&moveable, &g_Level.Meshes[obj->skinIndex], 0, false, false, &lastVertex, &lastIndex);
 					_meshes.push_back(mesh);
 				}
@@ -595,6 +604,7 @@ namespace TEN::Renderer
 						moveable.LinearizedBones[n]->Translation.z);
 				}
 
+				// The root is always bone 0; BuildHierarchy then fills the global transforms and the bind pose.
 				moveable.Skeleton = moveable.LinearizedBones[0];
 				BuildHierarchy(&moveable);
 
@@ -659,6 +669,7 @@ namespace TEN::Renderer
 		for (const auto& staticObj : Statics)
 		{
 			auto newStaticObj = RendererObject();
+			// Type 1 makes GetRendererMeshFromTrMesh write the mesh to the statics vertex and index arrays.
 			newStaticObj.Type = 1;
 			newStaticObj.Id = staticObj.ObjectNumber;
 
@@ -867,6 +878,8 @@ namespace TEN::Renderer
 				for (int v1 = 0; v1 < jointBucket->NumVertices; v1++)
 				{
 					auto* jointVertex = &_moveablesVertices[jointBucket->StartVertex + v1];
+					// A joint vertex is welded to the first skin vertex found within 1 unit, in world space of the bind pose, on its bone or
+					// on the parent bone.
 					bool isDone = false;
 
 					for (int k = 0; k < 2; k++)

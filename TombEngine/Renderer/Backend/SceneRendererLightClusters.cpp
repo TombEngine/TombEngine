@@ -16,6 +16,7 @@ namespace TEN::Renderer::Backend
     constexpr auto LIGHT_CLUSTER_COUNT      = LIGHT_CLUSTER_TILES_X * LIGHT_CLUSTER_TILES_Y * LIGHT_CLUSTER_SLICES;
     constexpr auto LIGHT_CLUSTER_MASK_WORDS = LIGHT_CLUSTER_LIGHTS_MAX / 32;
 
+    // Slices per octave of depth: the slice count spread over log2(far / near).
     static float GetClusterSliceScale()
     {
         return LIGHT_CLUSTER_SLICES / std::log2(LIGHT_CLUSTER_FAR_DEPTH / LIGHT_CLUSTER_NEAR_DEPTH);
@@ -39,6 +40,7 @@ namespace TEN::Renderer::Backend
         return LIGHT_CLUSTER_NEAR_DEPTH * std::exp2(slice / GetClusterSliceScale());
     }
 
+    // The last slice is open ended, so lights beyond the far depth still land in it.
     static float GetClusterSliceEnd(int slice)
     {
         if (slice == (LIGHT_CLUSTER_SLICES - 1))
@@ -69,6 +71,7 @@ namespace TEN::Renderer::Backend
     // shaders then loop over every room light. Needs _view and _projection of the frame.
     void SceneRenderer::BuildLightClusters(int lightOffset, int lightCount)
     {
+        // Layout: one group of LIGHT_CLUSTER_MASK_WORDS words per cluster, slice major, then tile row, then tile column.
         _lightClusterData.assign(LIGHT_CLUSTER_COUNT * LIGHT_CLUSTER_MASK_WORDS * sizeof(unsigned int), 0);
         if (lightCount <= 0 || lightCount > LIGHT_CLUSTER_LIGHTS_MAX)
             return;
@@ -82,6 +85,7 @@ namespace TEN::Renderer::Backend
             return;
         }
 
+        // Orthographic projection: depth slices are meaningless, so every light is set in every cluster.
         auto* masks = (unsigned int*)_lightClusterData.data();
         for (int i = 0; i < lightCount; i++)
         {
@@ -94,8 +98,11 @@ namespace TEN::Renderer::Backend
     // corners give the covered tiles. Clip w is the view depth: z * _34 + _44 for a perspective projection.
     void SceneRenderer::AddClusterLight(const GpuLight& light, int lightIndex)
     {
+        // Only lights with a range sphere are clustered; other types are not assigned to any cluster.
         if (light.Type != (unsigned int)LightType::Point && light.Type != (unsigned int)LightType::Spot)
             return;
+
+        // The light sphere is treated as a view space axis aligned box of half extent Out, a conservative bound.
 
         auto center = Vector4::Transform(Vector4(light.Position.x, light.Position.y, light.Position.z, 1.0f), _view);
         float radius = light.Out;
@@ -121,6 +128,7 @@ namespace TEN::Renderer::Backend
             auto rectMax = Vector2(-FLT_MAX);
             for (int corner = 0; corner < 8; corner++)
             {
+                // Corners of the box clipped to the slice, with the depth converted back to view space z to project them.
                 float viewZ = (depths[(corner >> 2) & 1] - _projection._44) / _projection._34;
                 auto point = Vector4(center.x + ((corner & 1) ? radius : -radius), center.y + ((corner & 2) ? radius : -radius), viewZ, 1.0f);
                 auto clip = Vector4::Transform(point, _projection);
@@ -129,6 +137,7 @@ namespace TEN::Renderer::Backend
                 rectMax = Vector2::Max(rectMax, ndc);
             }
 
+            // Slice rectangle fully outside the screen.
             if (rectMax.x < -1.0f || rectMin.x > 1.0f || rectMax.y < -1.0f || rectMin.y > 1.0f)
                 continue;
 

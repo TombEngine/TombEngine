@@ -4,6 +4,9 @@
 #ifndef CB_ATMOSPHERIC_SKY_HLSLI
 #define CB_ATMOSPHERIC_SKY_HLSLI
 
+// Parameters of the sky dome, sun and moon discs, aurora and underwater sky, filled once per frame by
+// RendererAtmosphericSky.cpp. Colors are linear RGB. Booleans are passed as 0.0 or 1.0 floats so that
+// every row stays four floats wide.
 TEN_ATMOSPHERIC_SKY_BLOCK
 {
     // Row 0 - Sun direction and elevation
@@ -109,6 +112,8 @@ TEN_ATMOSPHERIC_SKY_BLOCK
     float  AtmoUnderwaterIntensity;      // Overall brightness multiplier.
     //--
     // Row 19 - Underwater wave/color
+    // Wave size is the spatial scale of the caustic waves, sharpness the contrast of their ridges. The tint
+    // color is split into scalar channels for packing.
     float  AtmoUnderwaterWaveSize;
     float  AtmoUnderwaterWaveSpeed;
     float  AtmoUnderwaterWaveSharpness;
@@ -117,16 +122,22 @@ TEN_ATMOSPHERIC_SKY_BLOCK
     // Row 20 - Underwater color continued + geometry
     float  AtmoUnderwaterColorG;
     float  AtmoUnderwaterColorB;
+    // Layer height is the [0, 1] hemisphere fraction where the water line sits, and the horizon softness is
+    // the fade width around it.
     float  AtmoUnderwaterLayerHeight;
     float  AtmoUnderwaterHorizonSoftness;
     //--
     // Row 21 - Underwater depth/shafts
+    // Depth fade darkens the view when looking down, caustic and shaft strengths scale the brightness of the
+    // caustic peaks and of the sun shafts. Shaft sharpness tightens the cone around the sun direction.
     float  AtmoUnderwaterDepthFadeStr;
     float  AtmoUnderwaterCausticStrength;
     float  AtmoUnderwaterShaftStrength;
     float  AtmoUnderwaterShaftSharpness;
     //--
     // Row 22 - Underwater distortion + wind advection
+    // Distortion amount is the frequency of the distortion detail, strength its amplitude. The wind
+    // direction (normalized, XY) advects the underwater pattern.
     float  AtmoUnderwaterDistortionAmount;
     float  AtmoUnderwaterDistortionStrength;
     float  AtmoUnderwaterWindDirX;

@@ -28,6 +28,7 @@ TEN_PS_UNIFORMS(FramePixelUniforms, 0)
     TEN_FRAME_PIXEL_UNIFORMS
 };
 
+// Pixel slots: 0 frame, 1 water surface, 2 underwater fog (PSUnderwaterFog only).
 TEN_PS_UNIFORMS(WaterPixelUniforms, 1)
 {
     TEN_WATER_PIXEL_UNIFORMS
@@ -38,6 +39,8 @@ TEN_PS_UNIFORMS(UnderwaterFogUniforms, 2)
     TEN_UNDERWATER_FOG_UNIFORMS
 };
 
+// SceneColor and SceneDepth are the copies of the opaque scene taken before the surfaces are drawn. ReflectionTrace is
+// // the half resolution output of PSReflection.
 TEN_PS_TEXTURE(Texture2D, SceneColor, 0);
 TEN_PS_TEXTURE(Texture2D, SceneDepth, 1);
 TEN_PS_TEXTURE(Texture2D, WaveNormals, 2);
@@ -155,6 +158,7 @@ float GetSceneViewDepth(float2 uv)
     return GetViewDepth(SceneDepth.SampleLevel(SceneDepthSampler, uv, 0.0f).r);
 }
 
+// Clip position to screen UV, with y pointing down.
 float2 GetClipUV(float4 clip)
 {
     float2 ndc = clip.xy / clip.w;
@@ -174,6 +178,7 @@ float GetJitter(float2 pixel)
     return frac(52.9829189f * frac(dot(pixel, float2(0.06711056f, 0.00583715f))));
 }
 
+// Color of the water scattering when the view ray never leaves the water.
 float3 GetDeepWaterColor()
 {
     return WaterColor * WaterAmbient * COLOR_MODULATION_SCALE;
@@ -186,6 +191,7 @@ float3 ApplyWaterAbsorption(float3 color, float pathLength, float density)
     return color * transmittance + GetDeepWaterColor() * (1.0f - transmittance);
 }
 
+// Slope of one layer of the wave normal map, from its red and green channels.
 float2 SampleWaveSlope(float2 uv)
 {
     return WaveNormals.Sample(WaveNormalsSampler, uv).rg * 2.0f - 1.0f;
@@ -235,6 +241,7 @@ float3 GetEnvironmentReflection(float3 direction, bool isCameraBelow)
     return lerp(environment, SceneColor.SampleLevel(SceneColorSampler, uv, 0.0f).rgb, GetEdgeFade(uv));
 }
 
+// Inverse depth is linear in screen space, so interpolating it gives a perspective correct view depth.
 float GetRayViewDepth(float startInverseDepth, float endInverseDepth, float t)
 {
     return 1.0f / lerp(startInverseDepth, endInverseDepth, t);
@@ -276,6 +283,8 @@ float4 TraceScreenReflection(float3 position, float3 direction, float jitter, ou
     endUV = startUV + delta * screenT;
     endInverseDepth = lerp(startInverseDepth, endInverseDepth, screenT);
 
+    // The steps follow t = step * step, which packs the samples near the surface, and the jitter offsets the first sample per
+    // // pixel to hide the banding.
     float previousT = 0.0f;
     bool wasInFront = true;
 
@@ -353,6 +362,7 @@ float GetFresnel(float3 normal, float3 viewVector, bool isCameraBelow)
     return isCameraBelow ? GetUnderwaterFresnel(cosine) : GetSchlickFresnel(cosine);
 }
 
+// Blinn-Phong highlight with a very sharp exponent from sun, point and spot lights; other light types add nothing.
 float3 GetLightSpecular(GpuLight light, float3 position, float3 normal, float3 viewVector)
 {
     float3 lightDirection;
@@ -381,6 +391,7 @@ float3 GetLightSpecular(GpuLight light, float3 position, float3 normal, float3 v
     return light.Color * light.Intensity * attenuation * pow(saturate(dot(normal, halfVector)), WATER_SHININESS);
 }
 
+// Lights of one cluster mask word, lowest bit first.
 float3 GetMaskedSpecular(uint bits, uint firstLight, float3 position, float3 normal, float3 viewVector)
 {
     float3 specular = float3(0.0f, 0.0f, 0.0f);
@@ -516,6 +527,7 @@ float4 PS(PixelInput input) : SV_TARGET
 // rise through the surface above the camera leave the water at its height.
 float4 PSUnderwaterFog(FullscreenPixelInput input) : SV_TARGET
 {
+    // World position of the scene texel from its depth.
     float depth = SceneDepth.SampleLevel(SceneDepthSampler, input.UV, 0.0f).r;
     float4 world = mul(float4(input.UV.x * 2.0f - 1.0f, 1.0f - input.UV.y * 2.0f, depth, 1.0f), UnderwaterInverseViewProjection);
     float3 toScene = world.xyz / world.w - PixelCameraPosition;

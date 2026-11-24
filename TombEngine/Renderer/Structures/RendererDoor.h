@@ -8,12 +8,14 @@ namespace TEN::Renderer::Structures
 	// Portal to a neighbour room, with world space vertices and the per-frame culling state.
 	struct RendererDoor
 	{
+		// Visited and InvisibleFromCamera are reset every frame by CollectRooms; DotProduct is FLT_MAX until computed.
 		bool Visited;
 		bool InvisibleFromCamera;
 		float DotProduct;
 		short RoomNumber;
 		Vector3 Normal;
 		Vector3 CameraToDoor;
+		// World space portal corners, and the same corners in clip space once transformed this frame.
 		Vector4 AbsoluteVertices[4];
 		Vector4 TransformedVertices[4];
 	};

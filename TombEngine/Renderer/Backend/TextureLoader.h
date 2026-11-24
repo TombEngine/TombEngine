@@ -8,6 +8,7 @@
 namespace TEN::Renderer::Backend
 {
     // Pixels of a decoded image, ready for a texture upload.
+    // MipLevels is 1 for PNG and JPEG; the GPU generates the rest (see GetMipLevelCount).
     struct DecodedImage
     {
         int                        Width  = 0;

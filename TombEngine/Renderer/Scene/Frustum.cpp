@@ -8,6 +8,7 @@ namespace TEN::Renderer
 	// Extracts the six normalized frustum planes from the combined view-projection matrix.
 	void Frustum::Update(const Matrix& view, const Matrix& projection)
 	{
+		// Combined view-projection matrix, written in row-major order by hand to avoid a matrix temporary.
 		std::array<float, 16> clip;
 		clip[0] = view._11 * projection._11 + view._12 * projection._21 + view._13 * projection._31 + view._14 * projection._41;
 		clip[1] = view._11 * projection._12 + view._12 * projection._22 + view._13 * projection._32 + view._14 * projection._42;
@@ -72,6 +73,7 @@ namespace TEN::Renderer
 		NormalizePlane(5);
 	}
 
+	// Conservative sphere test: the sphere is rejected only when it is fully behind one plane.
 	bool Frustum::SphereInFrustum(const Vector3& position, float radius) const
 	{
 		for (unsigned int i = 0; i < 6; i++)

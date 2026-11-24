@@ -18,6 +18,8 @@ TEN_PS_UNIFORMS(GlowUniforms, 2)
     float2 Direction;
 };
 
+// SourceMap is the emissive target of the prepass for the downscale, then the downscaled and blurred glow. GlowMap is the
+// // glow added by PSCombine.
 TEN_PS_TEXTURE(Texture2D, SourceMap, 0);
 TEN_PS_TEXTURE(Texture2D, GlowMap, 1);
 

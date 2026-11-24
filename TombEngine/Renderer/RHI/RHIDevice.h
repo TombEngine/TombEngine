@@ -20,6 +20,7 @@ namespace TEN::Renderer::RHI
         virtual ~IResource() = default;
     };
 
+    // GPU buffer; not CPU visible, filled through a transfer buffer and a copy pass.
     class IBuffer : public IResource
     {
     public:
@@ -27,6 +28,7 @@ namespace TEN::Renderer::RHI
         virtual unsigned int GetUsage() const = 0; // BufferUsage flags.
     };
 
+    // The description is kept as created, so callers can query size, format and usage without tracking them.
     class ITexture : public IResource
     {
     public:
@@ -35,6 +37,7 @@ namespace TEN::Renderer::RHI
 
     class ISampler : public IResource {};
 
+    // One shader stage created from the bytecode (or GLSL source) matching IDevice::GetShaderFormat.
     class IShader : public IResource
     {
     public:
@@ -248,7 +251,7 @@ namespace TEN::Renderer::RHI
         virtual std::vector<GpuTiming> ConsumeGpuTimings() { return {}; }
     };
 
-    // Tries the preferred backend, then Vulkan, Direct3D 12, DX11 and OpenGL; GetBackend tells which one was created.
+    // Factory defined in RHIDevice.cpp. Tries the preferred backend, then Vulkan, Direct3D 12, DX11 and OpenGL; GetBackend tells which one was created.
     // debugMode enables the validation layers of the API where they are installed.
     // With preferLowPower, hybrid graphics systems use the integrated GPU instead of the discrete one.
     std::unique_ptr<IDevice> CreateDevice(GraphicsApi preferredBackend, SDL_Window* window, bool debugMode, bool preferLowPower = false);

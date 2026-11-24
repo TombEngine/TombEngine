@@ -41,6 +41,7 @@ namespace TEN::Renderer::Backend
     // own light slice instead, after its static lights.
     int SceneRenderer::AddMirroredInstance(int instanceIndex, const RendererMirror& mirror)
     {
+        // Instance and light data are raw byte arrays; the copy is appended, so existing indices stay valid.
         auto instance = ((const GpuObjectInstance*)_instanceData.data())[instanceIndex];
         instance.World = instance.World * mirror.ReflectionMatrix;
 
@@ -52,6 +53,7 @@ namespace TEN::Renderer::Backend
             int lightOffset = (int)(_lightData.size() / sizeof(GpuLight));
             for (int i = 0; i < (lightCount + dynamicLightCount); i++)
             {
+                // Static lights come first from the instance slice, then the dynamic lights from the start of the light data.
                 int sourceIndex = (i < lightCount) ? ((int)instance.LightOffset + i) : (i - lightCount);
                 auto light = ((const GpuLight*)_lightData.data())[sourceIndex];
                 if (mirror.ReflectLights)
@@ -66,15 +68,18 @@ namespace TEN::Renderer::Backend
 
             instance.LightOffset = (unsigned int)lightOffset;
             instance.LightCount = (instance.LightCount & ~(unsigned int)LIGHT_COUNT_MASK) | (unsigned int)(lightCount + dynamicLightCount);
+            // The bits above the count mask of the room light count are carried over with the dynamic lights.
             if (dynamicLightCount > 0)
                 instance.LightCount |= ((unsigned int)_roomLightCount & ~(unsigned int)LIGHT_COUNT_MASK);
         }
 
+        // The copy carries explicit lights, so it must not be matched against the light clusters again.
         instance.LightMode &= ~(unsigned int)INSTANCE_CLUSTER_LIGHTS_FLAG;
 
         int index = (int)(_instanceData.size() / sizeof(GpuObjectInstance));
         const auto* bytes = (const unsigned char*)&instance;
         _instanceData.insert(_instanceData.end(), bytes, bytes + sizeof(instance));
+        // Keeps _instanceOrigins parallel to the instance data; a default origin is never reflected again.
         _instanceOrigins.push_back(InstanceOrigin{});
         return index;
     }
@@ -151,6 +156,7 @@ namespace TEN::Renderer::Backend
     {
         _mirrorDraws.clear();
 
+        // Only the draws collected so far are iterated; mirror draws are kept in their own list.
         int drawCount = (int)_objectDraws.size();
         for (const auto& mirror : view.Mirrors)
         {

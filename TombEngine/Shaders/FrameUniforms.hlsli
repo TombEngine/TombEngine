@@ -7,6 +7,8 @@
 #include "./GpuShared.hlsli"
 #include "./ShaderInterop.hlsli"
 
+// Each block expands a field list of GpuShared.hlsli, which GpuTypes.h also uses to define the C++ struct that is
+// // pushed to the same slot.
 TEN_VS_UNIFORMS(FrameVertexUniforms, 0)
 {
     TEN_FRAME_VERTEX_UNIFORMS

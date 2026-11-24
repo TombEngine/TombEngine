@@ -9,6 +9,8 @@
 #include "./Common.hlsli"
 #include "./Lighting.hlsli"
 
+// SHADOW_INTENSITY is the darkening of a fully shadowed surface. SHADOW_BLUR is the half extent of the PCF kernel in
+// // texels, so 2 gives 5x5 taps.
 #define SHADOW_INTENSITY 0.6f
 #define SHADOW_BLUR      2.0f
 
@@ -20,6 +22,8 @@ TEN_PS_UNIFORMS(ShadowUniforms, 2)
     TEN_SHADOW_UNIFORMS
 };
 
+// Cube faces as array layers, in the order of LightViewProjections. Holds the light clip depth written by PSShadow in
+// // Objects.hlsl. The layers are plain float textures, so the depth comparison is done manually in DoShadow.
 TEN_PS_TEXTURE(Texture2DArray, ShadowMap, 5);
 
 // Each sphere darkens linearly toward its center; overlapping spheres combine multiplicatively.
@@ -40,6 +44,7 @@ float3 DoBlobShadows(float3 position, float3 lighting)
 
 // Projects the position into each of the six cube faces and filters the face that contains it. Surfaces facing
 // away from the light fade out of the shadow by the bias, and the darkening scales with the light's own contribution.
+// bias is the facing term below which the surface fades out of the shadow: rooms pass -2.5 and objects -0.5.
 float3 DoShadow(float3 position, float3 normal, float3 lighting, float bias, uint blendMode)
 {
     if (!CastShadows)
@@ -85,6 +90,7 @@ float3 DoShadow(float3 position, float3 normal, float3 lighting, float bias, uin
         }
     }
 
+    // Only point and spot lights cast shadows; the darkening follows the contribution of the light at the position.
     float lightFactor = 0.0f;
     if (ShadowLight.Type == LT_POINT)
         lightFactor = saturate(ShadowLight.Intensity * GetPointLightFalloff(position, normal, ShadowLight));

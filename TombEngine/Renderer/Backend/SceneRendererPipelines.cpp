@@ -27,6 +27,7 @@ namespace TEN::Renderer::Backend
         int missingMaps = GetMissingMaps(bucket, pages);
         switch (bucket.BlendMode)
         {
+        // Opaque and alpha tested buckets need the prepass and the opaque pass variants, with and without the alpha test.
         case BlendMode::Opaque:
         case BlendMode::AlphaTest:
             for (int isAlphaTested = 0; isAlphaTested < 2; isAlphaTested++)
@@ -38,10 +39,12 @@ namespace TEN::Renderer::Backend
             }
 
             if (bucket.BlendMode == BlendMode::AlphaTest)
+                // Alpha tested buckets also get the alpha blended edge pipeline (the last argument of GetScenePipeline).
                 GetScenePipeline(shader, BlendMode::AlphaBlend, true, missingMaps, true);
 
             break;
 
+        // Additive and distortion buckets only need the full pixel shader variant.
         case BlendMode::Additive:
         case BlendMode::Distortion:
             GetScenePipeline(shader, bucket.BlendMode, false, missingMaps);

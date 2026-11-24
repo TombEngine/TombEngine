@@ -2,6 +2,8 @@
 
 namespace TEN::Renderer
 {
+	// Six plane view frustum for CPU culling, rebuilt each frame from the view and projection matrices of a RenderView.
+	// Plane order: left, right, bottom, top, back, front (see Update).
 	class Frustum
 	{
 	public:
@@ -15,6 +17,7 @@ namespace TEN::Renderer
 	private:
 
 		void NormalizePlane(int side);
+		// Plane equations (a, b, c, d) with unit normals pointing inside the frustum.
 		std::array<std::array<float, 4>, 6> frustum = {};
 	};
 }

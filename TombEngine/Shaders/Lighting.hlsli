@@ -7,6 +7,7 @@
 
 #include "./Common.hlsli"
 
+// Values of GpuLight.Type, written by SceneRenderer::ToGpuLight.
 #define LT_SUN    0
 #define LT_POINT  1
 #define LT_SPOT   2
@@ -20,9 +21,11 @@
 #define LT_MASK_SPOT   (1 << (31 - LT_SPOT))
 #define LT_MASK_SHADOW (1 << (31 - LT_SHADOW))
 
+// ROOM_LIGHT_COEFF scales the room light contribution. SPEC_FACTOR is the base specular exponent.
 #define ROOM_LIGHT_COEFF 0.7f
 #define SPEC_FACTOR      64.0f
 
+// Linear attenuation, full at In and zero at Out, times the Lambert term.
 float GetPointLightFalloff(float3 position, float3 normal, GpuLight light)
 {
     float3 lightVector = light.Position - position;
@@ -76,6 +79,7 @@ float3 DoSpotLight(float3 position, float3 normal, GpuLight light)
     return saturate(light.Color * light.Intensity * GetSpotLightFalloff(position, normal, light));
 }
 
+// Direction points from the light toward the scene.
 float3 DoDirectionalLight(float3 normal, GpuLight light)
 {
     float d = saturate(dot(-light.Direction, normal));
@@ -92,6 +96,8 @@ float RoughnessToExponentMultiplier(float roughness)
     return lerp(0.04f, 4.0f, gloss * gloss);
 }
 
+// m is 1 when a positive strength (vertex sheen) is given: the exponent is then strength times SPEC_FACTOR instead of
+// // the one derived from the roughness.
 float GetSpecularTerm(float3 lightDirection, float3 normal, float3 cameraDirection, float strength, float roughness)
 {
     float m = saturate(sign(strength));
@@ -100,11 +106,13 @@ float GetSpecularTerm(float3 lightDirection, float3 normal, float3 cameraDirecti
     return pow(saturate(dot(cameraDirection, reflect(lightDirection, normal))), exponent);
 }
 
+// A vertex sheen forces full intensity, otherwise the material specular scales the light intensity.
 float GetSpecularIntensity(GpuLight light, float strength, float specular)
 {
     return lerp(saturate(specular), 1.0f, saturate(sign(strength))) * light.Intensity;
 }
 
+// Specular attenuation is linear from the light position to Out, without the inner range of the diffuse term.
 float3 DoSpecularPoint(float3 position, float3 normal, float3 cameraDirection, GpuLight light, float strength, float specular, float roughness)
 {
     float attenuation = saturate((light.Out - distance(light.Position, position)) / max(light.Out, 0.001f));

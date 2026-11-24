@@ -21,6 +21,8 @@
 #include "./Decals.hlsli"
 #include "./Skinning.hlsli"
 
+// Vertex storage buffers: animated texture data, per-instance data selected by the instance index stream, and the bone
+// // palette of skinned instances. Pixel storage buffers match Rooms.hlsl.
 TEN_VS_RAW_BUFFER(GpuAnimatedFrame, AnimatedFrames, 0);
 TEN_VS_RAW_BUFFER(GpuAnimatedSet, AnimatedSets, 1);
 TEN_VS_RAW_BUFFER(GpuObjectInstance, Instances, 2);
@@ -53,6 +55,7 @@ struct PixelInput
     float4 Color                        : TEXCOORD1;
     float  Fog                          : TEXCOORD2;
     nointerpolation float3 UVScroll     : TEXCOORD3;
+    // AmbientLight, LightMode and LightSlice (offset and count) are copied from the instance and constant over the draw.
     nointerpolation float3 AmbientLight : TEXCOORD4;
     nointerpolation uint   LightMode    : TEXCOORD5;
     nointerpolation uint2  LightSlice   : TEXCOORD6;
@@ -140,6 +143,7 @@ float3 CombineLights(float3 ambient, float3 vertexLight, float3 position, Surfac
     return saturate((combined - fogDensity) * vertexLight);
 }
 
+// Applies skinning, vertex effects and animated textures, and passes the world space tangent frame to the pixel stage.
 PixelInput VS(VertexInput input)
 {
     GpuObjectInstance instance = TEN_LOAD_RAW(GpuObjectInstance, Instances, input.InstanceIndex);
@@ -190,6 +194,7 @@ PixelInput VS(VertexInput input)
     output.Normal = normalize(mul(input.Normal.xyz, (float3x3)world));
     output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3)world));
     output.Binormal = mul(cross(input.Normal.xyz, input.Tangent.xyz), (float3x3)world);
+    // The guard avoids a NaN binormal for a degenerate tangent frame.
     output.Binormal *= rsqrt(max(dot(output.Binormal, output.Binormal), 1e-8f));
     output.FaceNormal = normalize(mul(input.FaceNormal.xyz, (float3x3)world));
     output.Sheen = DecodeSheen(input.Effects);
@@ -198,6 +203,7 @@ PixelInput VS(VertexInput input)
     return output;
 }
 
+// Material surface, reflections, dynamic or static lighting, shadows, ambient occlusion, then fog bulbs and distance fog.
 float4 PS(PixelInput input) : SV_TARGET
 {
     GpuMaterial material = TEN_LOAD_RAW(GpuMaterial, Materials, MaterialIndex);
@@ -222,6 +228,7 @@ float4 PS(PixelInput input) : SV_TARGET
     float occlusion = surface.Occlusion * GetAmbientOcclusion(material, input.Position.xy * InverseViewportSize, AmbientOcclusionExponent, BlendMode, surface.Color.a);
     float4 result = ApplyFogBulbs(float4(saturate(color * occlusion), surface.Color.a), input.FogBulbs.rgb, BlendMode);
     result = ApplyDistanceFog(result, FogColor, input.Fog, BlendMode);
+    // The vertex and instance alpha apply after the fog.
     result.a *= input.Color.a;
     if (BlendMode == BLENDMODE_DISTORTION)
         return EncodeDistortionPayload(result, dot(input.WorldPosition - PixelCameraPosition, CameraDirection), 1.0f);
@@ -253,6 +260,7 @@ struct InventoryOutput
     float4 Emissive : SV_Target1; // Source of the menu glow.
 };
 
+// Gamma is applied here: the 2D layer does not go through the post-process.
 InventoryOutput PSInventory(PixelInput input)
 {
     float2 uv = ApplyUVScroll(input.UV, input.UVScroll);

@@ -55,6 +55,7 @@ struct OverlayPixelInput
     TEN_LOCATION(1) float4 Color : TEXCOORD1;
 };
 
+// The color of the quad modulates the sharpened result, so the overlay can tint or fade it.
 float4 PSRcas(OverlayPixelInput input) : SV_TARGET
 {
     AH1 red;

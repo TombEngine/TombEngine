@@ -3,6 +3,7 @@
 
 namespace TEN::Renderer::Structures
 {
+	// Depth of field settings; SetDOF clamps Range to zero or more and Strength to [0, 1].
 	struct DOFState
 	{
 		DOFMode Mode     = DOFMode::None;

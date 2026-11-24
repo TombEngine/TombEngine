@@ -18,12 +18,14 @@ namespace TEN::Renderer::Backend
     constexpr auto DDS_HEADER_SIZE = 124;
     constexpr auto DDS_DX10_SIZE   = 20;
 
+    // Packs four characters into a little endian FourCC, as stored in the DDS pixel format block.
     constexpr unsigned int MakeFourCC(char a, char b, char c, char d)
     {
         return (unsigned int)(unsigned char)a | ((unsigned int)(unsigned char)b << 8) |
                ((unsigned int)(unsigned char)c << 16) | ((unsigned int)(unsigned char)d << 24);
     }
 
+    // Reads a little endian value at any byte offset through memcpy, so unaligned header fields are safe.
     static unsigned int ReadUInt(const unsigned char* data, int offset)
     {
         unsigned int value = 0;
@@ -138,6 +140,7 @@ namespace TEN::Renderer::Backend
         return dataOffset;
     }
 
+    // Copies the whole stored mip chain unchanged. Files shorter than the header implies are rejected, not truncated.
     static bool DecodeDDS(const std::vector<unsigned char>& encodedData, DecodedImage& image)
     {
         auto info = ImageInfo{};
@@ -187,6 +190,7 @@ namespace TEN::Renderer::Backend
         return true;
     }
 
+    // Format detection is by signature only. Anything that is neither DDS nor JPEG is treated as PNG.
     static bool IsDDS(const std::vector<unsigned char>& encodedData)
     {
         return (encodedData.size() >= DDS_MAGIC_SIZE && memcmp(encodedData.data(), "DDS ", DDS_MAGIC_SIZE) == 0);
@@ -198,6 +202,7 @@ namespace TEN::Renderer::Backend
         return (encodedData.size() >= 3 && encodedData[0] == 0xFF && encodedData[1] == 0xD8 && encodedData[2] == 0xFF);
     }
 
+    // Always requests 4 channels, so the result is RGBA8 with opaque alpha for images without an alpha channel.
     static bool DecodeJPEG(const std::vector<unsigned char>& encodedData, DecodedImage& image)
     {
         int width = 0;
@@ -254,6 +259,7 @@ namespace TEN::Renderer::Backend
         return (info.Width > 0 && info.Height > 0);
     }
 
+    // Dispatches on the file signature; PNG is the fallback, so its decode failure is the one logged for unknown data.
     bool DecodeImage(const std::vector<unsigned char>& encodedData, DecodedImage& image)
     {
         if (IsDDS(encodedData))

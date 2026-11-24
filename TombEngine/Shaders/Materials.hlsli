@@ -11,6 +11,7 @@
 #include "./Common.hlsli"
 #include "./FrameUniforms.hlsli"
 
+// Material type, in the low byte of GpuMaterial.TypeAndFlags, with flags above it.
 #define MATERIAL_DEFAULT           0
 #define MATERIAL_REFLECTIVE        1
 #define MATERIAL_SKYBOX_REFLECTIVE 2
@@ -20,6 +21,8 @@
 #define MATERIAL_FLAG_OCCLUSION (1 << 9)
 #define MATERIAL_FLAG_EMISSIVE  (1 << 10)
 
+// Parallax occlusion mapping: range of step counts, distance fade in world units, minimum cosine of the view angle
+// // and UV scale of the full height range.
 #define POM_MIN_STEPS      1
 #define POM_MAX_STEPS      16
 #define POM_FADE_START     5000.0f
@@ -49,6 +52,7 @@ float4 SampleColorMap(float2 uv)
 float4 SampleNormalMap(float2 uv)
 {
 #ifdef NO_NORMAL_MAP
+    // Flat tangent space normal.
     return float4(0.5f, 0.5f, 1.0f, 1.0f);
 #else
     return NormalMap.Sample(NormalMapSampler, float3(uv, TextureLayer));
@@ -58,6 +62,7 @@ float4 SampleNormalMap(float2 uv)
 float4 SampleORSHMap(float2 uv)
 {
 #ifdef NO_ORSH_MAP
+    // Occlusion 1, roughness 1, no specular and a flat height.
     return float4(1.0f, 1.0f, 0.0f, 1.0f);
 #else
     return ORSHMap.Sample(ORSHMapSampler, float3(uv, TextureLayer));
@@ -73,6 +78,8 @@ float4 SampleEmissiveMap(float2 uv)
 #endif
 }
 
+// Occlusion, Roughness and Specular come from the red, green and blue channels of the ORSH map; Emissive is already
+// // scaled by the material.
 struct Surface
 {
     float4 Color;
@@ -117,6 +124,7 @@ float GetEmissiveIntensity(GpuMaterial material)
     return ((material.TypeAndFlags & MATERIAL_TYPE_MASK) == MATERIAL_DEFAULT) ? material.Properties[0].x : 1.0f;
 }
 
+// Depth of the height field below the surface: the ORSH alpha is the height, so 1 - height is the depth.
 float SampleHeight(float2 uv)
 {
     return 1.0f - SampleORSHMap(frac(uv)).w;

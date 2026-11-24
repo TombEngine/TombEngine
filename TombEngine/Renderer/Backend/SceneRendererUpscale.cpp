@@ -57,6 +57,7 @@ namespace TEN::Renderer::Backend
         constants[3][0] = GetFloatBits(0.0f);
         constants[3][1] = GetFloatBits(4.0f * texelHeight);
 
+        // RCAS sharpness is a linear attenuation, 2^-stops.
         // The full precision RCAS reads the sharpness as a float, the half precision one as a pair of halves.
         float sharpness = std::exp2(-RCAS_SHARPNESS);
         uniforms.RcasConstants[0] = GetFloatBits(sharpness);
@@ -64,6 +65,7 @@ namespace TEN::Renderer::Backend
         return uniforms;
     }
 
+    // Constants for the sizes of the upscale source and the window sized target.
     static FsrUniforms GetFsrUniforms(const ITexture& source, const ITexture& target)
     {
         const auto& sourceDesc = source.GetDesc();
@@ -80,6 +82,7 @@ namespace TEN::Renderer::Backend
             return false;
 
         // The RCAS pipeline is an overlay pipeline, created with the overlay resources.
+        // EASU writes the swapchain format color target, like the post-process pass it replaces as the final writer.
         _easuPipeline = CreateFullscreenPipeline(_postProcessVertexShader.get(), _easuPixelShader.get(), _device->GetSwapchainFormat(), "FSR.EASU");
         return (_easuPipeline != nullptr);
     }
@@ -100,6 +103,7 @@ namespace TEN::Renderer::Backend
         // EASU gathers the source with bilinear coordinates. RCAS runs when the overlay draws the result.
         auto easuBinding = TextureSamplerBinding{ _upscaleSource.get(), _linearClampSampler.get() };
         RenderFullscreenPass(commandBuffer, _easuPipeline.get(), _colorTarget.get(), &easuBinding, 1, "EASU");
+        // Tells the overlay composition that the color target needs the RCAS sharpening.
         _isColorTargetUpscaled = true;
     }
 

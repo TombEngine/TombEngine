@@ -29,8 +29,10 @@ namespace TEN::Renderer::Backend
             auto videoSet = GpuAnimatedSet{};
             videoSet.FirstFrame = (unsigned int)frames.size();
             videoSet.NumFrames = 1;
+            // A single frame, so the rate has no effect.
             videoSet.Fps = 1;
 
+            // Maps the frontend animated texture set index to its GPU set index, looked up by GetVideoSet.
             _videoSets[setIndex] = (int)sets.size();
             sets.push_back(videoSet);
 
@@ -43,6 +45,7 @@ namespace TEN::Renderer::Backend
     // texture so frames still in flight keep the previous one.
     void SceneRenderer::UploadVideoFrame(const unsigned char* frame, int width, int height)
     {
+        // Cleared on every call, so the video path stays off unless this frame uploads successfully.
         _isVideoActive = false;
         if (frame == nullptr || width <= 0 || height <= 0)
             return;

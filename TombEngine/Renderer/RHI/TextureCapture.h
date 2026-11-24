@@ -28,12 +28,18 @@ namespace TEN::Renderer::RHI
         std::vector<Request> _requests = {};
 
     public:
+        // True when downloads were recorded that no submitted command buffer carries yet.
         bool HasUnsubmittedRequests() const;
 
+        // Record must be called inside an open copy pass, and the texture must be left unchanged until the command
+        // buffer is submitted. Only mip 0 of layer 0 is read. The callback data is valid only during the call.
         void Record(IDevice& device, ICopyPass& copyPass, ITexture* texture, const std::string& path);
         void Record(IDevice& device, ICopyPass& copyPass, ITexture* texture, ReadCallback callback);
+
+        // Replaces the plain Submit of the frame so pending downloads are tied to a fence.
         void Submit(ICommandBuffer& commandBuffer);
         std::shared_ptr<IFence> SubmitWithFence(ICommandBuffer& commandBuffer); // Always fenced, for frame pacing.
+        // Call once per frame; completed requests are removed, pending ones stay for a later call.
         void Poll(IDevice& device, bool wait);
         void Clear(); // Releases the requests left, before the device is destroyed.
     };

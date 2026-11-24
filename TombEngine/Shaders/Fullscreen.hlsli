@@ -3,6 +3,7 @@
 
 // Fullscreen triangle without vertex buffers, for post-process and screen space passes.
 
+// Entry points pass SV_VertexID of a non-indexed draw of 3 vertices.
 struct FullscreenPixelInput
 {
     float4 Position : SV_POSITION;

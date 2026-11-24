@@ -11,6 +11,8 @@ using namespace TEN::Renderer::Structures;
 
 namespace TEN::Renderer
 {
+	// Camera facing billboard. A scale of zero or less means no scaling; size is multiplied by the scale and the color is
+	// used for all four corners. The sprite is only queued in the view and drawn later by the scene renderer.
 	// Camera facing billboard.
 	void Renderer::AddSpriteBillboard(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D, float scale,
 									  Vector2 size, BlendMode blendMode, bool isSoftParticle, RenderView& view, SpriteRenderType renderType)
@@ -96,6 +98,7 @@ namespace TEN::Renderer
 		view.SpritesToDraw.push_back(spr);
 	}
 
+	// Single color quad: forwards to the per-corner color version with the default render type.
 	void Renderer::AddQuad(RendererSprite* sprite, const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Vector3& vertex3,
 		const Vector4 color, float orient2D, float scale, Vector2 size, BlendMode blendMode, bool softParticles,
 		RenderView& view)
@@ -149,6 +152,7 @@ namespace TEN::Renderer
 		AddQuad(sprite, pos - right + up, pos + right + up,	pos + right - up, pos - right - up, color, orient2D, scale,	Vector2(size, size), blendMode, true, view);
 	}
 
+	// Untextured quad with one color; forwards to the per-corner color version.
 	void Renderer::AddColoredQuad(const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Vector3& vertex3,
 		const Vector4& color, BlendMode blendMode, RenderView& view)
 	{
@@ -180,6 +184,8 @@ namespace TEN::Renderer
 		view.SpritesToDraw.push_back(sprite);
 	}
 
+	// Sorting only groups sprites sharing the sprite pointer and blend mode into runs; it is not a depth sort. Depth sorting
+	// of blended sprites is done later together with the other transparent faces.
 	// Sorts the view sprites for batching and adds those with sorted blend modes to the sorted faces.
 	void Renderer::SortAndPrepareSprites(RenderView& view)
 	{
@@ -217,6 +223,7 @@ namespace TEN::Renderer
 				rDrawSprite.BlendMode != BlendMode::Distortion &&
 				rDrawSprite.BlendMode != BlendMode::AlphaTest)
 			{
+				// Distance to the camera is the key of the sprite in the transparent sort; for quads pos is the corner average.
 				int distance = (rDrawSprite.pos - view.Camera.WorldPosition).Length();
 
 				auto object = RendererSortableObject{};

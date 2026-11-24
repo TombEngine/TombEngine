@@ -14,6 +14,7 @@ using namespace TEN::Renderer::RHI;
 
 namespace TEN::Renderer::Backend
 {
+    // Tuning in world units: hemisphere sample radius and depth bias against self occlusion; the exponent sharpens the result.
     constexpr auto SSAO_RADIUS   = 64.0f;
     constexpr auto SSAO_BIAS     = 4.0f;
     constexpr auto SSAO_EXPONENT = 2.0f;
@@ -59,7 +60,8 @@ namespace TEN::Renderer::Backend
         if (_ssaoPipeline == nullptr || _ssaoBlurHorizontalPipeline == nullptr || _ssaoBlurVerticalPipeline == nullptr)
             return false;
 
-        // Hemisphere kernel, with samples concentrated near the origin.
+        // Hemisphere kernel, with samples concentrated near the origin. The default engine has a fixed seed, so the
+        // kernel and noise are identical on every run.
         auto generator = std::default_random_engine{};
         auto randomFloats = std::uniform_real_distribution<float>(0.0f, 1.0f);
         for (int i = 0; i < SSAO_KERNEL_SIZE; i++)
@@ -74,7 +76,7 @@ namespace TEN::Renderer::Backend
             _ssaoKernel[i] = sample;
         }
 
-        // 4x4 tiled rotation noise.
+        // 4x4 tiled rotation noise, used by the shader to rotate the kernel per pixel; the blur removes the pattern.
         Vector4 noise[16];
         for (auto& rotation : noise)
             rotation = Vector4(randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator) * 2.0f - 1.0f, 0.0f, 1.0f);
@@ -135,6 +137,7 @@ namespace TEN::Renderer::Backend
     {
         const auto& view = *_frameView;
 
+        // Target order: normals, emissive, then the linear depth copy sampled by SSAO and the post-process.
         ColorTargetInfo colorTargets[3] = {};
         colorTargets[0].Texture = _normalTarget.get();
         colorTargets[1].Texture = _emissiveTarget.get();

@@ -66,6 +66,7 @@ namespace TEN::Renderer::Backend
 
         case SpriteType::LookAtBillboard:
         {
+            // Not camera facing: the quad is oriented along the fixed look at axis.
             auto rotation = Matrix::CreateRotationZ(sprite.Rotation) * Matrix::CreateLookAt(Vector3::Zero, sprite.LookAtAxis, Vector3::UnitZ);
             return scaleMatrix * rotation * Matrix::CreateTranslation(position);
         }
@@ -121,8 +122,6 @@ namespace TEN::Renderer::Backend
         return _spriteTextures[page].ColorMap.get();
     }
 
-    // As in the frontend, a mirror reflects the corners of 3D sprites, and the position of billboards,
-    // which still face the camera. Returns false when the frame sprite capacity is exhausted.
     // Sprites that blend over the scene without adding or subtracting light (opaque, alpha test and alpha blended ones,
     // such as smoke) are lit by the dynamic lights of the view; laser effects keep their own colors.
     static bool IsLitSprite(const RendererSpriteToDraw& sprite)
@@ -167,6 +166,8 @@ namespace TEN::Renderer::Backend
         return lighting;
     }
 
+    // As in the frontend, a mirror reflects the corners of 3D sprites, and the position of billboards,
+    // which still face the camera. Returns false when the frame sprite capacity is exhausted.
     bool SceneRenderer::AddSprite(const RendererSpriteToDraw& sprite, const RenderView& view, const RendererMirror* mirror)
     {
         if ((int)(_spriteData.size() / sizeof(GpuSprite)) >= INSTANCE_INDEX_COUNT)
@@ -189,12 +190,14 @@ namespace TEN::Renderer::Backend
         {
             auto position = (mirror != nullptr) ? Vector3::Transform(sprite.pos, mirror->ReflectionMatrix) : sprite.pos;
             auto world = GetSpriteWorldMatrix(sprite, position, view);
+            // Corners of the unit quad, in the order of SPRITE_CORNER_INDICES.
             corners[0] = Vector3::Transform(Vector3(-0.5f, 0.5f, 0.0f), world);
             corners[1] = Vector3::Transform(Vector3(0.5f, 0.5f, 0.0f), world);
             corners[2] = Vector3::Transform(Vector3(0.5f, -0.5f, 0.0f), world);
             corners[3] = Vector3::Transform(Vector3(-0.5f, -0.5f, 0.0f), world);
         }
 
+        // Colors and UVs are per corner, in the same order as the corners.
         Vector4 colors[4] = { sprite.c1, sprite.c2, sprite.c3, sprite.c4 };
         const auto* uv = sprite.Sprite->UV;
 
@@ -222,6 +225,7 @@ namespace TEN::Renderer::Backend
 
         const auto* bytes = (const unsigned char*)&gpuSprite;
         _spriteData.insert(_spriteData.end(), bytes, bytes + sizeof(gpuSprite));
+        // Mirror rendering re-adds sprites from their sources, reflected.
         _spriteSources.push_back(&sprite);
         return true;
     }
@@ -236,6 +240,7 @@ namespace TEN::Renderer::Backend
 
         for (const auto& sprite : view.SpritesToDraw)
         {
+            // Alpha blended sprites are not drawn here: they are sorted with the faces.
             if (sprite.BlendMode != BlendMode::Opaque && sprite.BlendMode != BlendMode::AlphaTest &&
                 sprite.BlendMode != BlendMode::Additive && sprite.BlendMode != BlendMode::Distortion)
             {
@@ -330,6 +335,7 @@ namespace TEN::Renderer::Backend
             renderPass.BindVertexBuffers(0, vertexBindings, 2);
 
             lastPipeline = pipeline;
+            // A new pipeline also rebinds the textures of the run.
             lastTexture = nullptr;
         }
 
@@ -362,6 +368,7 @@ namespace TEN::Renderer::Backend
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 3, &spriteUniforms, sizeof(spriteUniforms));
 
         CountDraw(category, draw.SpriteCount * 2);
+        // Six corner indices per instance; the first instance is the index of the first sprite of the run.
         renderPass.Draw(6, draw.SpriteCount, 0, draw.FirstSprite);
     }
 

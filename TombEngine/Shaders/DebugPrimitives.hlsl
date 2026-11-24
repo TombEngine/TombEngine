@@ -24,6 +24,7 @@ struct PixelInput
     float4 Color    : TEXCOORD0;
 };
 
+// Vertices are already in world space.
 PixelInput VS(VertexInput input)
 {
     PixelInput output;

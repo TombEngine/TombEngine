@@ -17,6 +17,7 @@ namespace TEN::Renderer::Backend
     constexpr auto GEOMETRY_REGION_ALIGNMENT = 256;
 
     // Atlas coordinates lie in the unit square; values outside it are clamped and counted.
+    // Quantizes to unorm16 over the unit square.
     static unsigned short PackUV(float value, int& clampCount)
     {
         if (value < 0.0f || value > 1.0f)
@@ -42,6 +43,7 @@ namespace TEN::Renderer::Backend
         return packed;
     }
 
+    // Object vertices extend the room layout with the skinning data (bone indices and weights).
     static GpuObjectVertex PackObjectVertex(const Vertex& vertex, int& clampCount)
     {
         auto packed = PackVertex<GpuObjectVertex>(vertex, clampCount);
@@ -50,6 +52,7 @@ namespace TEN::Renderer::Backend
         return packed;
     }
 
+    // Also used by UpdateMoveableVertices, so a rewrite of the moveable vertices packs exactly like the initial upload.
     static std::vector<GpuObjectVertex> PackObjectVertices(const std::vector<Vertex>& vertices, int& clampCount)
     {
         auto packed = std::vector<GpuObjectVertex>{};
@@ -61,12 +64,15 @@ namespace TEN::Renderer::Backend
     }
 
     template <typename TVertex>
+    // Raw byte copy: GpuRoomVertex and GpuObjectVertex are plain structs whose size is checked in GpuTypes.h.
     static void AppendVertexBytes(std::vector<unsigned char>& data, const std::vector<TVertex>& vertices)
     {
         const auto* bytes = (const unsigned char*)vertices.data();
         data.insert(data.end(), bytes, bytes + (vertices.size() * sizeof(TVertex)));
     }
 
+        // Records where a mesh source lives in the level buffers. The index list is kept by pointer and read again by
+    // CreateLevelGeometry, so the caller must keep it alive until then.
     void SceneRenderer::SetGeometrySection(MeshSource source, int regionOffset, int baseVertex, int vertexCount, const std::vector<int>& indices)
     {
         auto& section = _geometrySections[(int)source];
@@ -93,6 +99,7 @@ namespace TEN::Renderer::Backend
         AppendVertexBytes(data, roomVertices);
         SetGeometrySection(MeshSource::Rooms, 0, 0, (int)roomVertices.size(), *geometry.RoomIndices);
 
+                // The object region starts on an aligned byte offset; BaseVertex is passed to DrawIndexed as the vertex offset.
         // Statics and moveables share the object region; moveable indices are relative to the first moveable vertex.
         int objectRegionOffset = ((int)data.size() + GEOMETRY_REGION_ALIGNMENT - 1) & ~(GEOMETRY_REGION_ALIGNMENT - 1);
         data.resize(objectRegionOffset);
@@ -114,6 +121,7 @@ namespace TEN::Renderer::Backend
             indices.insert(indices.end(), section.Indices->begin(), section.Indices->end());
         }
 
+        // Releases the buffers of a previous level before the new ones are created.
         _geometry = {};
         int indexDataSize = (int)(indices.size() * sizeof(int));
         if (data.empty() || indexDataSize == 0)
@@ -130,6 +138,8 @@ namespace TEN::Renderer::Backend
     }
 
     // Called when the frontend rewrites the moveable vertices of player skin joints and hair.
+    // Only an in-place rewrite is supported: a different vertex count than the loaded level is ignored. The frame mutex
+    // keeps the upload from overlapping the recording of a scene frame.
     void SceneRenderer::UpdateMoveableVertices(const std::vector<Vertex>& vertices)
     {
         if (_device == nullptr || _geometry.Vertices == nullptr)
@@ -150,12 +160,14 @@ namespace TEN::Renderer::Backend
     // Binds the vertex region of a mesh source; object shaders also read the instance index stream.
     void SceneRenderer::BindLevelGeometry(IRenderPass& renderPass, MeshSource source, bool hasInstanceStream)
     {
+        // Slot 0 is the level vertex region, slot 1 the per-instance index stream (see INSTANCE_INDEX_COUNT).
         BufferBinding vertexBindings[2] = { { _geometry.Vertices.get(), _geometrySections[(int)source].RegionOffset }, { _instanceIndexBuffer.get(), 0 } };
         renderPass.BindVertexBuffers(0, vertexBindings, hasInstanceStream ? 2 : 1);
         renderPass.BindIndexBuffer(BufferBinding{ _geometry.Indices.get(), 0 }, IndexSize::Bits32);
     }
 
     // Room buckets outside the view are skipped. Vertex effects move room vertices up to 128 units, hence the margin.
+    // Conservative test: the bucket box is only grown, never shrunk, so no visible geometry is culled.
     bool SceneRenderer::IsRoomBucketVisible(const RendererBucket& bucket) const
     {
         constexpr auto VERTEX_EFFECT_MARGIN = 128.0f;
@@ -175,6 +187,8 @@ namespace TEN::Renderer::Backend
 
         auto rectMin = Vector2(FLT_MAX);
         auto rectMax = Vector2(-FLT_MAX);
+        // The 8 box corners are selected by the bits of i (x, y, z). A corner behind the camera makes the projection invalid,
+        // so the bucket is kept.
         for (int i = 0; i < 8; i++)
         {
             auto corner = Vector4((i & 1) ? boundsMax.x : boundsMin.x, (i & 2) ? boundsMax.y : boundsMin.y, (i & 4) ? boundsMax.z : boundsMin.z, 1.0f);
@@ -199,6 +213,7 @@ namespace TEN::Renderer::Backend
         float top = (1.0f - room.ViewPort.w) * 0.5f * targetHeight;
         float bottom = (1.0f - room.ViewPort.y) * 0.5f * targetHeight;
 
+        // Rounds outwards (floor and ceil) so the scissor never cuts into the portal rectangle.
         int x = std::clamp((int)std::floor(left), 0, targetWidth);
         int y = std::clamp((int)std::floor(top), 0, targetHeight);
         int width = std::clamp((int)std::ceil(right), 0, targetWidth) - x;
@@ -211,6 +226,7 @@ namespace TEN::Renderer::Backend
     {
         const auto& section = _geometrySections[(int)source];
 
+        // Shadow map draws are counted under one category regardless of the mesh source.
         auto category = _isRenderingShadowMap ? DrawCategory::Shadows :
             ((source == MeshSource::Rooms) ? DrawCategory::Rooms : ((source == MeshSource::Statics) ? DrawCategory::Statics : DrawCategory::Moveables));
         CountDraw(category, bucket.NumIndices / 3 * instanceCount);

@@ -6,6 +6,8 @@
 
 // Mask of the room lights reaching the light cluster of a position; false outside the cluster grid.
 // The mask has one bit per light (up to LIGHT_CLUSTER_LIGHTS_MAX) in two 32-bit words.
+// Bit i of the mask selects light i of the light slice of the draw. Callers fall back to evaluating the whole slice
+// // when this returns false.
 bool GetClusterLightMask(float3 position, out uint2 mask)
 {
     mask = uint2(0, 0);
@@ -23,6 +25,7 @@ bool GetClusterLightMask(float3 position, out uint2 mask)
     // Screen tiles in x and y; depth slices grow exponentially from ClusterNearDepth (log2 of the view depth).
     uint2 tile = min((uint2)((ndc * 0.5f + 0.5f) * float2(LIGHT_CLUSTER_TILES_X, LIGHT_CLUSTER_TILES_Y)), uint2(LIGHT_CLUSTER_TILES_X - 1, LIGHT_CLUSTER_TILES_Y - 1));
     uint slice = (uint)clamp(floor(log2(max(clip.w / ClusterNearDepth, 1.0f)) * ClusterSliceScale), 0.0f, LIGHT_CLUSTER_SLICES - 1.0f);
+    // Cluster index is slice major, then tile row, then tile column.
     uint cluster = ((slice * LIGHT_CLUSTER_TILES_Y) + tile.y) * LIGHT_CLUSTER_TILES_X + tile.x;
     mask = TEN_LOAD_RAW(uint2, LightClusters, cluster);
     return true;

@@ -1,5 +1,11 @@
 // Volumetric cloud functions and pixel shaders, included by VolumetricClouds.hlsl.
 // The including file declares the camera and cloud uniforms, the textures and the samplers.
+//
+// Overview: a single flat horizontal slab of clouds above the camera is raymarched into a reduced
+// resolution target (PS, RaymarchClouds), optionally reusing the reprojected previous frame. Then
+// PSCloudComposite upsamples it with a bilateral filter and blends it over the sky, and
+// PSCloudOcclusion estimates how much the sun is hidden. All positions are in world units, Y-down:
+// clouds above the camera have a lower Y.
 
 // ===========================================================================
 // Noise functions purely procedural, no texture lookups
@@ -183,7 +189,7 @@ float TexWorley2D_B(float2 p)
     return CloudWorley2D.SampleLevel(NoiseSamp2D, p * WorleyUVScale, 0).g;
 }
 
-// Low-frequency FBM (3 octaves) " cloud shape.
+// Low-frequency FBM (3 octaves) - cloud shape.
 // Persistence reduced to 0.38 so higher octaves barely affect the silhouette;
 // only the first (dominant) octave drives large stable cloud masses.
 //
@@ -340,8 +346,8 @@ float FBMAlto3(float3 p, float3 advect, float lacunarity, float gain, float bill
 //   Detail noise runs at a much finer scale than shape noise, so it aliases
 //   even at shorter distances. The second (finest) octave is suppressed by
 //   lod=0.5; the first detail octave fades fully by lod=1.
-//   At medium viewing distances (lod???0.4) both octaves are already partially
-//   muted, removing the high-contrast detail bands that produce Moir??.
+//   At medium viewing distances (lod about 0.4) both octaves are already partially
+//   muted, removing the high-contrast detail bands that produce moire.
 float FBMDetail(float3 p, float lod)
 {
     float v  = 0.0f;
@@ -415,6 +421,8 @@ float DissolveMask(float3 skyPos)
 // Shared by Alto (morph & non-morph) and standard cloud paths.
 // ===========================================================================
 
+// Used by the transform presets: each noise cluster starts dissolving at its own delay (up to maxDelay
+// of the phase), and within a cluster the thinnest density disappears first, edge to core.
 // Cluster-staggered edge-first dissolve. Returns modified density.
 float ApplyDissolve(float density, float3 skyPos, float phase)
 {
@@ -499,6 +507,8 @@ float DriftOutFactor(float2 skyPosXZ)
 // Only the density-shaping params vary; wind/time/fade are shared globals.
 // ===========================================================================
 
+// Density shaping parameters of one cloud preset. Mirrors the Alto* uniforms and the EvolutionSpeed, so
+// that two presets can be evaluated at once while morphing from one to the other.
 struct AltoDensityParams
 {
     float CloudSize;     // AltoCloudSize      - feature scale multiplier
@@ -513,6 +523,10 @@ struct AltoDensityParams
     float EvolutionSpd;  // EvolutionSpeed     - formation cycling rate
 };
 
+// skyPos is the sample position relative to the camera, heightFrac [0, 1] the position inside the slab
+// and skyH [0, 1] the flat-disk sky metric from RaymarchClouds (1 overhead, 0 at the far visible edge).
+// distLOD [0, 1] grows with the horizontal distance and distLOD2 is its square; they drop fine detail
+// and noise lookups with range to avoid moire and save cost.
 // Returns raw Alto density BEFORE dissolve/formation/zenith-cap/drift-out.
 float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
                           float distLOD, float distLOD2, AltoDensityParams ap)
@@ -1007,6 +1021,9 @@ float EvalAltoDensityCoreLite(float3 skyPos, float heightFrac, float skyH,
 // Cloud density sampling
 // ===========================================================================
 
+// Final cloud density at a sample: the Altocumulus density, with the dissolve, formation, zenith cap and
+// drift-out transforms applied, evaluated for both presets while a morph is active. Returns >= 0, zero
+// meaning empty air. useDetail is currently unused.
 float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, float skyH)
 {
     // --- Sky-space coordinates for stable cloud anchoring ---
@@ -1019,10 +1036,10 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
 
     // --- Distance LOD (computed early needed for distance-based softening) ---
     // Metric: horizontal (XZ-plane) distance from camera to sample.
-    //   At CloudBottomHeight * 1.0 (???45?deg elevation) ??? lod = 0, full quality.
-    //   At CloudBottomHeight * 6.0 (??? 9?deg elevation)  ??? lod = 1, fine octaves silent.
+    //   At CloudBottomHeight * 1.0 (about 45 deg elevation): lod = 0, full quality.
+    //   At CloudBottomHeight * 6.0 (about 9 deg elevation): lod = 1, fine octaves silent.
     // lodNear lowered from 1.5 to 1.0 so distance softening kicks in earlier:
-    //   At 20?deg elevation distLOD ??? 0.35 (was 0.28) ??? medium-distance clouds
+    //   At 20 deg elevation distLOD = 0.35 (was 0.28), so medium-distance clouds
     //   already receive meaningful detail reduction and edge softening.
     float horizDist = length(skyPos.xz);
     float lodNear   = max(CloudBottomHeight * 1.0f, 1.0f);
@@ -1151,6 +1168,7 @@ float2 IntersectCloudVolumeEx(float3 rayOrigin, float3 rayDir, float thickness)
     return float2(max(tNear, 0.0f), tFar);
 }
 
+// Intersection with the slab of the layer thickness (CloudThickness).
 float2 IntersectCloudVolume(float3 rayOrigin, float3 rayDir)
 {
     return IntersectCloudVolumeEx(rayOrigin, rayDir, CloudThickness);
@@ -1160,12 +1178,14 @@ float2 IntersectCloudVolume(float3 rayOrigin, float3 rayDir)
 // Henyey-Greenstein phase function (dual-lobe)
 // ===========================================================================
 
+// Henyey-Greenstein phase function, normalized over the sphere. g > 0 scatters forward, g < 0 backward.
 float HenyeyGreenstein(float cosTheta, float g)
 {
     float g2 = g * g;
     return (1.0f - g2) / (4.0f * PI * pow(1.0f + g2 - 2.0f * g * cosTheta, 1.5f));
 }
 
+// Mix of a forward lobe (PhaseForward, 70%) and a backward lobe (PhaseBackward, 30%).
 float DualLobePhase(float cosTheta)
 {
     // AltocumulusMid water droplets: balanced dual-lobe scattering.
@@ -1219,9 +1239,9 @@ float LightTransmittance(float3 pos, float heightFrac)
     // Bright edge when looking toward light through thin cloud.
     //
     // The powder term darkens thin regions: 1 - exp(-d*A*2) is near-zero when
-    // accumDensity is tiny.  multiplying transmittance (???1) by a near-zero
+    // accumDensity is tiny.  multiplying transmittance (about 1) by a near-zero
     // powder makes the boundary near-black.  As noise makes density wobble
-    // frame-to-frame, that black flickers bright??"dark.
+    // frame-to-frame, that black flickers bright to dark.
     //
     // Edge-color preservation for low Absorption:
     // At low absorption, thin regions should become more translucent but should
@@ -1245,6 +1265,8 @@ float LightTransmittance(float3 pos, float heightFrac)
 // Simple blue-noise-like jitter anchored to the cloud field
 // ===========================================================================
 
+// Returns the start offset in [0, 1) of the first sample inside the first step interval. It is a hash of
+// the cloud space position, damped where it would show as shimmer, and not of the screen position.
 float ScreenJitter(float2 cloudPos, float jitterScale)
 {
     // 2D hash (no directional correlation) in cloud space.
@@ -1354,6 +1376,9 @@ float BoltFBM(float p)
 // Main cloud raymarch
 // ===========================================================================
 
+// Raymarches the cloud slab along a view ray. Returns the in-scattered light, already weighted by the
+// transmittance of the ray so far (premultiplied), in rgb and the total opacity (1 - transmittance) in a.
+// screenPos (pixel coordinates) is only used for a jitter fallback on Low quality.
 float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
 {
     // AltocumulusMid uses its own thickness and absorption.
@@ -1565,7 +1590,7 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
         // rawJitter2 provides per-pixel phase; step * 0.618 (golden ratio) gives
         // maximally equidistant offsets across all steps, guaranteeing that
         // adjacent steps never accidentally re-align into coherent horizontal slabs.
-        // Amplitude ??0.35 * stepSize keeps samples within each step's sub-domain.
+        // Amplitude +/-0.35 * stepSize keeps samples within each step's sub-domain.
         float subJitterMin = lerp(0.22f, 0.55f, thickBandGuard);
         // Use AltoJitterAbsCap directly as a virtual absorption for jitter amplitude
         // - completely decoupled from actual AltoAbsorption so the user can suppress
@@ -1771,7 +1796,7 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                             float2 flashWeatherUV = flashSkyXZ * WeatherScale + WindDirection * WindSpeed * 0.3f;
                             float  flashCoverage = saturate(Remap(TexValue3D(float3(flashWeatherUV, 0.0f)),
                                 1.0f - Coverage, 1.0f, 0.0f, 1.0f));
-                            // GLSL flicker: size = sin(45*frac(t)) + 5 ??? radius [4,6] * 1% effThickness.
+                            // GLSL flicker: size = sin(45*frac(t)) + 5 gives radius [4,6] * 1% effThickness.
                             float flickerSize = sin(45.0f * frac(CloudTime)) + 5.0f;
                             float flashRadius = effThickness * (flickerSize * 0.01f);
                             float flashDist = length(samplePos - flashSource);
@@ -1846,6 +1871,9 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
 // Debug visualization helpers
 // ===========================================================================
 
+// Replaces the cloud output with a diagnostic image, selected by CloudDebugView (the CloudDebugView enum
+// in C++): 1 coverage mask, 2 density (opacity), 3 step count heatmap, 4 transmittance. Other modes
+// return the unmodified result.
 float4 DebugVisualization(float3 rayOrigin, float3 rayDir, float2 screenPos, float4 cloudResult, int stepsTaken)
 {
     if (CloudDebugView == 1) // CoverageMask
@@ -1888,20 +1916,20 @@ float4 DebugVisualization(float3 rayOrigin, float3 rayDir, float2 screenPos, flo
 // Returns a [0, 1] opacity multiplier that softly attenuates cloud opacity for
 // rays that graze the horizon or see very distant cloud regions.
 //
-// In TEN's Y-down space: sky is -Y, horizon is Y ??? 0.
+// In TEN's Y-down space: sky is -Y, horizon is Y near 0.
 //   elevation = -rayDir.y   (0 at horizon, 1 straight up)
 //
 // Distance and elevation are geometrically equivalent for a flat cloud slab:
-//   tEntry ??? CloudBottomHeight / elevation
+//   tEntry is about CloudBottomHeight / elevation
 // So a single elevation-based curve captures both the distance-fade and the
 // horizon-haze fade simultaneously.
 //
 // Curve design:
-//   elevation 0.00  (0?deg)   ??? 0%   (totally transparent   merges with horizon)
-//   elevation 0.06  (~3?deg)  ??? 20%  (strongly faded   very distant fringe)
-//   elevation 0.12  (~7?deg)  ??? 50%  (half strength   hazy transition region)
-//   elevation 0.22  (~13?deg) ??? 85%  (nearly full   close-ish cloud masses)
-//   elevation 0.30  (~17?deg) ??? 100% (fully opaque   nearby/overhead clouds)
+//   elevation 0.00  (0 deg)   = 0%   (totally transparent   merges with horizon)
+//   elevation 0.06  (~3 deg)  = 20%  (strongly faded   very distant fringe)
+//   elevation 0.12  (~7 deg)  = 50%  (half strength   hazy transition region)
+//   elevation 0.22  (~13 deg) = 85%  (nearly full   close-ish cloud masses)
+//   elevation 0.30  (~17 deg) = 100% (fully opaque   nearby/overhead clouds)
 //
 // The sqrt push on the smoothstep result gives an exponential-feeling rolloff:
 // opacity recovers quickly once a cloud is even a few degrees above the horizon,
@@ -1927,6 +1955,7 @@ float HorizonAtmosphericFade(float3 rayDir)
 // Reconstruct view-space ray direction from UV
 // ===========================================================================
 
+// Unprojects the far plane point under the pixel and returns the unit world-space view direction.
 float3 GetViewRayDir(float2 uv)
 {
     float2 ndc = uv * 2.0f - 1.0f;
@@ -1946,6 +1975,9 @@ float3 GetViewRayDir(float2 uv)
 // PS   Main cloud rendering pixel shader
 // ===========================================================================
 
+// Cloud raymarch pass, writes one cloud layer into its (reduced resolution) target as rgb (premultiplied
+// light) and a (opacity). Order of work: optional temporal reuse of the reprojected history, raymarch,
+// EMA blend with the history, lightning bolts drawn on top, then the alpha cleanups and fades.
 float4 PS(VSOutput input) : SV_TARGET
 {
     // --- Full temporal reprojection ---
@@ -1967,6 +1999,7 @@ float4 PS(VSOutput input) : SV_TARGET
     {
         // Reproject current pixel's sky direction through previous frame's VP.
         float3 worldDir = GetViewRayDir(input.UV);
+                // A point at a huge distance stands in for the sky dome: only the camera rotation moves it on screen.
         float3 skyPoint = CamPositionWS.xyz + worldDir * 1000000.0f;
         float4 prevClip = mul(float4(skyPoint, 1.0f), PrevViewProjection);
 
@@ -2102,7 +2135,7 @@ float4 PS(VSOutput input) : SV_TARGET
 
                 // ----------------------------------------------------------------
                 // Build main bolt polyline.
-                // Per-cycle: 40% ? complex (9 segs + 2 forks), 60% ? simple (6 segs + 1 fork).
+                // Per-cycle: 40% complex (2 forks), 60% simple (1 fork).
                 // BoltSegDist is used for all glow distances - it projects onto the
                 // view plane, giving uniform brightness along segments regardless of angle.
                 // ----------------------------------------------------------------
@@ -2370,6 +2403,9 @@ float4 PS(VSOutput input) : SV_TARGET
 // and bilateral alpha weighting produces a continuous, dither-free boundary.
 // ===========================================================================
 
+// Slot 0 (SceneColorTexture) is the cloud target from PS and slot 1 (SceneBackgroundTex) is a copy of
+// the sky taken before the clouds, whose alpha holds the coverage of the previous cloud layer. The
+// output alpha is the accumulated coverage, read later by the sun, moon and aurora passes.
 float4 PSCloudComposite(VSOutput input) : SV_TARGET
 {
     float2 texelSize = InvCloudRenderSize;
@@ -2380,7 +2416,7 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     float  refAlpha = cCenter.a;
 
     // Cross-bilateral upsampling filter: radius 2 (5x5, 25 taps) for Medium/High;
-    // radius 1 (3x3, 9 taps) for Low quality. Low quality has no temporal to
+    // radius 1 (3x3, 9 taps) for Low quality without temporal (radius 4 with it, see below). Low quality has no temporal to
     // smooth residual aliasing, so the tighter kernel is a worthwhile fps trade.
     // spatialSigma2 is tuned for 5x5; the same value works for 3x3 since
     // the outer taps it would suppress don't exist in the smaller kernel.
@@ -2398,8 +2434,8 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     // 3x3 is only used for non-temporal Low quality where the stable jitter already
     // suppresses shimmer and the tighter kernel is a worthwhile cost trade.
     // On Low with temporal, the per-frame jitter randomisation produces residual stochastic
-    // grain that the EMA cannot fully resolve at PrimaryStepCount=4; a 7x7 kernel
-    // (filterRadius=3) wipes the remaining noise spatially.
+    // grain that the EMA cannot fully resolve at PrimaryStepCount=4; a 9x9 kernel
+    // (filterRadius=4) wipes the remaining noise spatially.
     int filterRadius;
     if (QualityLevel < 0.5f)
         filterRadius = (TemporalEnabled == 0) ? 1 : 4;
@@ -2687,6 +2723,8 @@ float MarchSunTransmittance(float3 rayOrigin, float3 rayDir)
     return transm;
 }
 
+// Slot 0 (SceneColorTexture) holds the cloud target here. The output is the sun visibility in red:
+// the minimum of the volumetric estimate and the screen-space estimate around the projected sun.
 float4 PSCloudOcclusion(VSOutput input) : SV_TARGET
 {
     // Angular half-radius of the sun disk used for the volumetric ray-march offsets.

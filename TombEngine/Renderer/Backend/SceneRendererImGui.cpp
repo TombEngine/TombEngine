@@ -21,6 +21,7 @@ namespace TEN::Renderer::Backend
         if (_imGuiFontTexture != nullptr && _imGuiFontGeneration == ImGuiGetFontGeneration())
             return true;
 
+        // The generation is stored before the upload, so a failed build is not retried every frame until the atlas changes.
         _imGuiFontGeneration = ImGuiGetFontGeneration();
 
         unsigned char* pixels = nullptr;
@@ -44,6 +45,7 @@ namespace TEN::Renderer::Backend
     }
 
     // Draw lists are concatenated into one vertex and one index buffer.
+    // Cleared first so DrawImGui sees an empty list (and draws nothing) when the overlay is hidden or has no geometry.
     void SceneRenderer::UploadImGuiData(const UiFrame& ui)
     {
         _imGuiVertexData.clear();
@@ -80,6 +82,7 @@ namespace TEN::Renderer::Backend
         auto uniforms = OverlayUniforms{ Vector2(1.0f / drawData->DisplaySize.x, 1.0f / drawData->DisplaySize.y) };
         commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 0, &uniforms, sizeof(uniforms));
 
+        // LoadOp::Load keeps the 2D layer already rendered into the final target, ImGui is drawn on top of it.
         auto colorTarget = ColorTargetInfo{};
         colorTarget.Texture = _finalTarget.get();
         colorTarget.Load = LoadOp::Load;
@@ -104,6 +107,7 @@ namespace TEN::Renderer::Backend
             const auto* list = drawData->CmdLists[i];
             for (const auto& command : list->CmdBuffer)
             {
+                // User callbacks are not supported by this renderer and are skipped.
                 if (command.UserCallback != nullptr || command.ElemCount == 0)
                     continue;
 

@@ -34,12 +34,14 @@ void Renderer::CollectSortedPlayerFaces(RenderView& view)
 	if (Lara.Control.Look.OpticRange != 0)
 		return;
 
+	// The renderer item must already be collected this frame (the player room is forced into the view by CollectRooms).
 	auto* item = &_items[LaraItem->Index];
 	auto* nativeItem = &g_Level.Items[item->ItemNumber];
 
 	if (nativeItem->Flags & IFLAG_INVISIBLE)
 		return;
 
+	// Full skinning draws the single skin mesh plus the non-hidden meshes; classic mode draws the segmented meshes plus joint meshes.
 	auto& laraObj = *_moveableObjects[ID_LARA];
 	auto skinMode = GetSkinningMode(laraObj, item->SkinIndex);
 
@@ -81,6 +83,7 @@ void Renderer::CollectSortedPlayerHairFaces(RendererItem* itemToDraw, RendererRo
 		if (!object.loaded)
 			continue;
 
+		// Hair units are separate objects posed by the hair simulation: the segment transforms are interpolated here, not taken from the pose cache.
 		bool skinned = object.skinIndex != NO_VALUE && g_GameFlow->GetSettings()->Graphics.Skinning;
 		bool flipped = skinned || GetJointOffset(unit.ObjectID, 1, false).z < 0.0f;
 		auto objectType = i ? RendererObjectType::HairSecondary : RendererObjectType::HairPrimary;
@@ -91,6 +94,7 @@ void Renderer::CollectSortedPlayerHairFaces(RendererItem* itemToDraw, RendererRo
 		{
 			auto& segment = unit.Segments[j];
 
+			// A large jump (teleport) disables interpolation for the segment.
 			if ((segment.Position - segment.PrevPosition).Length() > CLICK(2))
 				segment.StoreInterpolationData();
 
@@ -121,6 +125,7 @@ void Renderer::CollectSortedPlayerHairFaces(RendererItem* itemToDraw, RendererRo
 	}
 }
 
+// Classic skinning only: the joint meshes (index 1 and up) fill the seams between the segment meshes of the player.
 void Renderer::CollectSortedPlayerJointFaces(RendererItem* itemToDraw, RendererRoom* room, RenderView& view)
 {
 	if (!_moveableObjects[Lara.Skin.SkinJoints].has_value())

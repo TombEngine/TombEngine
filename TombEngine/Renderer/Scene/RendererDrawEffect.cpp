@@ -108,6 +108,8 @@ namespace TEN::Renderer
 
 			for (int i = 0; i < LaserBeamEffect::SUBDIVISION_COUNT; i++)
 			{
+				// Vertices hold two rings back to back: the first SUBDIVISION_COUNT are one end, the rest the other end.
+				// The last quad wraps around to the first vertex of each ring.
 				bool isLastSubdivision = (i == (LaserBeamEffect::SUBDIVISION_COUNT - 1));
 				auto& v1 = beam.Vertices[i];
 				auto& v2 = beam.Vertices[isLastSubdivision ? 0 : (i + 1)];
@@ -160,6 +162,7 @@ namespace TEN::Renderer
 					for (int i = 0; i < streamer.GetSegments().size(); i++)
 					{
 						const auto& segment = streamer.GetSegments()[i];
+						// The first segment is joined to itself, producing a degenerate quad.
 						const auto& prevSegment = streamer.GetSegments()[std::max(i - 1, 0)];
 
 						if (segment.Life <= 0.0f)
@@ -243,6 +246,7 @@ namespace TEN::Renderer
 
 			auto laserTarget = Vector3::Lerp(laser.PrevTarget, laser.Target, GetInterpolationFactor());
 
+			// Knots are made relative to the laser target, so the range check below and the spline stay near the origin.
 			ElectricityKnots[0] = laserTarget;
 			ElectricityKnots[1] = Vector3::Lerp(laser.PrevOrigin, laser.Origin, GetInterpolationFactor());
 			
@@ -292,12 +296,14 @@ namespace TEN::Renderer
 				continue;
 
 			ElectricityKnots[0] = Vector3::Lerp(arc.PrevPos1, arc.pos1, GetInterpolationFactor());
+			// Knots 0 and 1, and 4 and 5, duplicate the arc end points.
 			ElectricityKnots[1] = Vector3::Lerp(arc.PrevPos1, arc.pos1, GetInterpolationFactor());
 			ElectricityKnots[2] = Vector3::Lerp(arc.PrevPos2, arc.pos2, GetInterpolationFactor());
 			ElectricityKnots[3] = Vector3::Lerp(arc.PrevPos3, arc.pos3, GetInterpolationFactor());
 			ElectricityKnots[4] = Vector3::Lerp(arc.PrevPos4, arc.pos4, GetInterpolationFactor());
 			ElectricityKnots[5] = Vector3::Lerp(arc.PrevPos4, arc.pos4, GetInterpolationFactor());
 
+			// Knots are relative to the player position, matching the offset added back when building segments.
 			for (int j = 0; j < ElectricityKnots.size(); j++)
 				ElectricityKnots[j] -= LaraItem->Pose.Position.ToVector3();
 
@@ -382,6 +388,7 @@ namespace TEN::Renderer
 			if (!CheckIfSlotExists(ID_FIREFLY_SPRITES, "Firefly rendering"))
 				continue;
 
+			// Note: scalar and size are overwritten here on every draw, so game-side values are ignored.
 			firefly.scalar = 3;
 			firefly.size = 3;
 
@@ -509,6 +516,7 @@ namespace TEN::Renderer
 			if (!particle.on)
 				continue;
 
+			// Particles flagged to skip interpolation get their previous state reset to the current one, so they do not stretch from stale data.
 			if (particle.DisableInterpolation)
 			{
 				particle.DisableInterpolation = false;
@@ -708,6 +716,7 @@ namespace TEN::Renderer
 
 			if (!splash.isRipple) 
 			{
+				// Non-ripple splashes dim while their height shrinks below 1024 units.
 				if (splash.HeightSpeed < 0 && splash.height < 1024) 
 				{
 					float multiplier = splash.height / 1024.0f;
@@ -908,6 +917,7 @@ namespace TEN::Renderer
 
 			unsigned char color = shockwave->life * 8;
 
+			// Note: shockwave state (rotation and fade-in colors) is advanced here, per rendered frame rather than per game tick.
 			shockwave->yRot += shockwave->yRot / FPS;
 
 			auto rotMatrix =
@@ -990,6 +1000,7 @@ namespace TEN::Renderer
 				b = shockwave->b * shockwave->life / 255.0f;
 			}
 
+			// Each iteration builds one quad between the previous edge (p1, p4) and the new edge (p2, p3), then reuses it as the next previous edge.
 			for (int j = 0; j <= 16; j++)
 			{
 				c = cos(angle);

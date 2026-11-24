@@ -15,6 +15,7 @@ namespace TEN::Renderer::RHI
     static std::array<std::atomic<unsigned long long>, (int)MemoryCategory::Count> TrackedBytes  = {};
     static std::array<std::atomic<int>, (int)MemoryCategory::Count>                TrackedCounts = {};
 
+    // Sums the tracked categories only; the adapter figures are not part of the total.
     unsigned long long MemoryStats::GetTotal() const
     {
         unsigned long long total = 0;
@@ -75,6 +76,7 @@ namespace TEN::Renderer::RHI
         return (bytes * std::max(desc.SampleCount, 1));
     }
 
+    // Render targets are reported separately from sampled textures as they are usually the largest allocations.
     MemoryCategory GetTextureMemoryCategory(const TextureDesc& desc)
     {
         bool isTarget = (desc.Usage & (TextureUsage::ColorTarget | TextureUsage::DepthStencilTarget)) != 0;
@@ -105,6 +107,7 @@ namespace TEN::Renderer::RHI
         return usage;
     }
 
+    // Returns zeroed figures when the adapter is not found. QueryVideoMemoryInfo needs IDXGIAdapter3.
     // DXGI describes the adapters of both backends; the adapter is found by the name the device reports.
     static AdapterMemory GetAdapterMemory(const std::string& deviceName)
     {
@@ -146,6 +149,7 @@ namespace TEN::Renderer::RHI
         return memory;
     }
 #else
+    // Adapter memory is only queried through DXGI on Windows.
     static AdapterMemory GetAdapterMemory(const std::string& deviceName)
     {
         return AdapterMemory{};

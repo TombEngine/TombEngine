@@ -39,6 +39,7 @@ PixelInput VS(uint vertexId : SV_VertexID)
     return FullscreenVS(vertexId);
 }
 
+// View space position of a depth texel, from the depth and the inverse projection.
 float3 ReconstructViewPosition(float2 uv)
 {
     float depth = SourceMap.SampleLevel(SourceMapSampler, uv, 0.0f).x;
@@ -75,10 +76,12 @@ float PS(PixelInput input) : SV_Target
     float3 encodedNormal = NormalMap.SampleLevel(NormalMapSampler, uv, 0.0f).xyz;
 
     // Sky and far geometry have no occlusion.
+    // Beyond 40 sectors, or where the prepass wrote no normal.
     if (length(position) >= 40960.0f || length(encodedNormal) <= 0.0001f)
         return 1.0f;
 
     float3 normal = encodedNormal * 2.0f - 1.0f;
+    // The noise texture is 4x4 and tiles over the target.
     float3 randomVector = NoiseMap.SampleLevel(NoiseMapSampler, input.UV * TargetSize / 4.0f, 0.0f).xyz;
 
     // Hemisphere kernel oriented around the normal, rotated by the tiled noise vector (Gram-Schmidt).
@@ -120,6 +123,7 @@ float Blur(float2 uv, float2 direction)
     const int halfSize = (BLUR_SIZE - 1) / 2;
 
     float baseValue = SourceMap.SampleLevel(SourceMapSampler, uv, 0.0f).x;
+    // Normalizes the range weight to 1 for equal values.
     float normalization = 1.0f / GetGaussian(0.0f, BLUR_BSIGMA);
 
     float result = 0.0f;

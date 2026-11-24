@@ -18,6 +18,7 @@
 
 #define LENS_FLARES_MAX 8
 
+// Filled by SceneRendererPostProcess.cpp. The Padding fields keep the 16 byte alignment of the arrays that follow.
 TEN_PS_UNIFORMS(PostProcessUniforms, 2)
 {
     float3 Tint;
@@ -42,6 +43,8 @@ TEN_PS_UNIFORMS(PostProcessUniforms, 2)
     float4 LensFlareColors[LENS_FLARES_MAX];
 };
 
+// DistortionMap holds the payload accumulated by EncodeDistortionPayload (Common.hlsli), DepthMap the depth copy of the
+// // prepass.
 TEN_PS_TEXTURE(Texture2D, SceneMap, 0);
 TEN_PS_TEXTURE(Texture2D, DistortionMap, 1);
 TEN_PS_TEXTURE(Texture2D, DepthMap, 2);
@@ -125,6 +128,7 @@ FullscreenPixelInput VS(uint vertexId : SV_VertexID)
     return FullscreenVS(vertexId);
 }
 
+// The negative scheme is the luma of the inverted color, so it is monochrome as well.
 float3 ApplyColorScheme(float3 color)
 {
     float3 schemeColor = color;
@@ -139,6 +143,8 @@ float3 ApplyColorScheme(float3 color)
 }
 
 // Lens flare in normalized device coordinates.
+// Procedural flare for a light at position: starburst, glow, ghosts and an anamorphic glare. Both coordinates are in
+// // normalized device space with y up.
 float3 GetLensFlare(float2 uv, float2 position)
 {
     float2 main = uv - position;
@@ -237,6 +243,7 @@ float3 ApplyLensFlares(float3 color, float2 uv)
 // tint and gamma.
 float4 PS(FullscreenPixelInput input) : SV_Target
 {
+    // Cinematic bars take the given fraction of the viewport height at the top and at the bottom.
     float y = input.Position.y / ViewportHeight;
     if (y > 1.0f - CinematicBarsHeight || y < CinematicBarsHeight)
         return float4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -244,6 +251,7 @@ float4 PS(FullscreenPixelInput input) : SV_Target
     float2 uv = IsDistortionActive ? GetDistortedUV(input.UV) : input.UV;
     float3 color = SceneMap.SampleLevel(SceneMapSampler, uv, 0.0f).rgb;
 
+    // Depth of field and glow use the undistorted UV.
     // Depth of field: far blur, then near blur on top.
     if (IsDofActive & 1)
     {
@@ -275,6 +283,7 @@ float4 PS(FullscreenPixelInput input) : SV_Target
 }
 
 // FXAA for the low antialiasing mode, sampling the post-processed image with a linear sampler.
+// FXAA constants: maximum search span in texels, and the factors reducing the direction normalization.
 #define FXAA_SPAN_MAX   8.0f
 #define FXAA_REDUCE_MUL (1.0f / 4.0f)
 #define FXAA_REDUCE_MIN (1.0f / 64.0f)

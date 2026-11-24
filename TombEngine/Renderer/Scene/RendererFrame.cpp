@@ -72,6 +72,7 @@ namespace TEN::Renderer
 
 		_invalidateCache = false;
 
+		// Make sure the player room is drawn, since the player is also needed as the shadow source and by reflections.
 		bool laraFound = false;
 
 		for (auto* roomPtr : renderView.RoomsToDraw)
@@ -399,12 +400,14 @@ namespace TEN::Renderer
 				_numDotProducts++;
 			}
 
+			// Portal faces away from the camera: it stays hidden for the whole frame.
 			if (door->DotProduct < 0)
 			{
 				door->InvisibleFromCamera = true;
 				continue;
 			}
 
+			// Never go straight back to the room we came from.
 			if (from != door->RoomNumber && CheckPortal(to, door, viewPort, &clipPort, renderView))
 				GetVisibleRooms(to, door->RoomNumber, clipPort, water, count + 1, onlyRooms, renderView);
 		}
@@ -412,6 +415,8 @@ namespace TEN::Renderer
 		_visitedRoomsStack.pop_back();
 	}
 
+	// Collects the enabled mirrors of the camera room and of the player room, copying the reflection settings.
+	// Must run before the moveables are collected, as they test the mirror state of rooms.
 	void Renderer::CollectMirrors(RenderView& renderView)
 	{
 		// Collect mirrors first because they are needed while collecting moveables.
@@ -453,6 +458,7 @@ namespace TEN::Renderer
 		rendererItem.IsCollected = true;
 	}
 
+	// Spheres come from the renderer item transforms, so FetchItemPose must have run for the item this frame.
 	// Checks if the frustum of the camera intersects any mesh sphere of an item.
 	bool Renderer::IsItemInFrustum(int itemNumber, RenderView& renderView)
 	{
@@ -478,6 +484,7 @@ namespace TEN::Renderer
 		auto& rendererRoom = _rooms[roomNumber];
 		const auto& nativeRoom = g_Level.Rooms[rendererRoom.RoomNumber];
 
+		// Items of reflected rooms are never frustum-culled, as a mirror can show them from outside the view.
 		bool isRoomReflected = IsRoomReflected(renderView, roomNumber);
 
 		for (int itemNumber : nativeRoom.itemNumbers)
@@ -545,6 +552,7 @@ namespace TEN::Renderer
 
 			// Force interpolation only for player in player freeze mode.
 			bool forceValue = g_GameFlow->CurrentFreezeMode == FreezeMode::Player && item.ObjectNumber == ID_LARA;
+			// Fraction of the current game tick elapsed at render time; forceValue is true when the player is frozen but must keep interpolating.
 			float interpFactor = GetInterpolationFactor(forceValue);
 
 			newItem.InterpolatedPosition = Vector3::Lerp(newItem.PrevPosition, newItem.Position, interpFactor);
@@ -570,6 +578,7 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Effect slots are indexed by item number, so the Prev* state survives across frames until SaveOldState.
 	// Collects an item carrying FX data as a single-mesh effect of the room.
 	void Renderer::CollectEffect(int itemNumber, RendererRoom& room)
 	{
@@ -861,6 +870,8 @@ namespace TEN::Renderer
 		}
 	}	
 	
+	// Collects the room lights around an effect or an item into its own light list. Dynamic lights are excluded because
+	// they reach these objects through the light clusters of the scene renderer.
 	void Renderer::CollectLightsForEffect(short roomNumber, RendererEffect* effect)
 	{
 		CollectLights(effect->Position, ITEM_LIGHT_COLLECTION_RADIUS, roomNumber, NO_VALUE, false, false, nullptr, &effect->LightsToDraw, false);
@@ -997,12 +1008,14 @@ namespace TEN::Renderer
 		}
 	}
 
+	// Clears the collected flag of all items at the start of a frame; FetchItemPose sets it again for the visible ones.
 	void Renderer::ResetItems()
 	{
 		for (auto& item : _items)
 			item.IsCollected = false;
 	}
 
+	// Bone transforms are not saved here: previous bones come from the pose cache in FetchItemPose.
 	// Stores the current transforms of items, effects and statics as the previous state for interpolation.
 	void Renderer::SaveOldState()
 	{

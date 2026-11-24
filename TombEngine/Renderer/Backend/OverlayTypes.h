@@ -25,6 +25,7 @@ namespace TEN::Renderer::Backend
     };
 
     // Status bar of the HUD, in the 800x600 display space with its vertical layout position.
+    // Positions and sizes are in the 800x600 display space; Border and Inner are sprites unless the paths are set.
     struct OverlayBar
     {
         Vector2                           Position         = Vector2::Zero;
@@ -64,6 +65,7 @@ namespace TEN::Renderer::Backend
     };
 
     // Moveable mesh of an overlay object; skin meshes use bind pose corrected bones from UiFrame::ObjectBones.
+    // Bones are the range [FirstBone, FirstBone + BoneCount) of UiFrame::ObjectBones.
     struct OverlayObjectMesh
     {
         const Structures::RendererMesh* Mesh      = nullptr;
@@ -73,6 +75,7 @@ namespace TEN::Renderer::Backend
     };
 
     // Moveable drawn by the 2D layer with the Inventory shader: inventory, examine, pickups and display items.
+    // The meshes are the range [FirstMesh, FirstMesh + MeshCount) of UiFrame::ObjectMeshes.
     struct OverlayObject
     {
         Matrix       ViewProjection    = Matrix::Identity;

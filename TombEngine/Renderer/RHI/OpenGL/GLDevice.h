@@ -4,6 +4,7 @@
 
 namespace TEN::Renderer::RHI::OpenGL
 {
+    // Must be called before SDL creates the window (see GetWindowFlags in RHIDevice.h).
     // Sets the OpenGL 4.5 core context attributes and returns the window flag OpenGL needs at window creation.
     unsigned int PrepareGLWindow();
 

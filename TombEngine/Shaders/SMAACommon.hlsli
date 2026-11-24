@@ -9,11 +9,14 @@
 #include "./ShaderInterop.hlsli"
 #include "./Fullscreen.hlsli"
 
+// Render target metrics, pushed by RenderAntialiasing for the output target size.
 TEN_PS_UNIFORMS(SmaaUniforms, 2)
 {
     float4 SmaaMetrics; // 1 / width, 1 / height, width, height.
 };
 
+// SMAA_CUSTOM_SL selects the porting macros below instead of the library ones for HLSL 3 / 4 or GLSL.
+// Texture and sampler are separate objects here, so a texture argument expands to both.
 #define SMAA_RT_METRICS SmaaMetrics
 #define SMAA_CUSTOM_SL
 
@@ -38,11 +41,14 @@ TEN_PS_TEXTURE(Texture2D, Map0, 0);
 TEN_PS_TEXTURE(Texture2D, Map1, 1);
 TEN_PS_TEXTURE(Texture2D, Map2, 2);
 
+// The vertex stage is the shared fullscreen triangle. The SMAA vertex offsets are recomputed per pixel.
 FullscreenPixelInput VS(uint vertexId : SV_VertexID)
 {
     return FullscreenVS(vertexId);
 }
 
+// Pass 1: color based edge detection into a two channel target (left and top edges). Texels without an
+// edge are discarded by the library, so a cleared target and the edge stencil mark where pass 2 runs.
 float4 PSEdgeDetection(FullscreenPixelInput input) : SV_Target
 {
     float4 offset[3];
@@ -50,6 +56,8 @@ float4 PSEdgeDetection(FullscreenPixelInput input) : SV_Target
     return float4(SMAAColorEdgeDetectionPS(input.UV, offset, SMAATexturePass2D(Map0)), 0.0f, 0.0f);
 }
 
+// Pass 2: computes the blending weights of each edge pixel from the edges, the precomputed area texture
+// and the search texture. The last argument is the subsample indices, zero for plain SMAA 1x.
 float4 PSBlendingWeight(FullscreenPixelInput input) : SV_Target
 {
     float2 pixelCoord;
@@ -58,6 +66,7 @@ float4 PSBlendingWeight(FullscreenPixelInput input) : SV_Target
     return SMAABlendingWeightCalculationPS(input.UV, pixelCoord, offset, SMAATexturePass2D(Map0), SMAATexturePass2D(Map1), SMAATexturePass2D(Map2), 0.0f);
 }
 
+// Pass 3: blends each pixel with its neighbors by the weights of pass 2 and writes the antialiased image.
 float4 PSNeighborhoodBlending(FullscreenPixelInput input) : SV_Target
 {
     float4 offset;

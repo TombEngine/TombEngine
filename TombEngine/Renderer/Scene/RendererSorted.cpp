@@ -75,6 +75,7 @@ namespace TEN::Renderer
 		Vector4 ScreenBounds = Vector4(FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX);
 	};
 
+	// Sprites carry their own blend mode in the sprite record, other objects store it on the sortable object.
 	static BlendMode GetSortedBlendMode(const RendererSortableObject& object)
 	{
 		return ((object.ObjectType == RendererObjectType::Sprite) ? object.Sprite->BlendMode : object.BlendMode);
@@ -384,6 +385,7 @@ namespace TEN::Renderer
 			int clusterRank = clusterRanks[groups[objects[polygon.ObjectIndex].GroupIndex].Cluster];
 
 			auto invertedDistance = (unsigned int)(INT_MAX - std::max(polygon.Distance, 0));
+			// High bits hold the cluster rank, low bits the inverted distance, so farther polygons get smaller keys and draw first.
 			view.TransparentSortKeys[i].Key = ((unsigned long long)clusterRank << 32) | invertedDistance;
 			view.TransparentSortKeys[i].Index = i;
 		}
@@ -574,6 +576,7 @@ namespace TEN::Renderer
 		if (hasBox)
 			ExpandScreenBoundsWithBox(screenBounds, viewProjection, matrix, object.Bucket->BoundsMin, object.Bucket->BoundsMax);
 
+		// Distances and bounds are known only after the loop, so they are written to the copy stored earlier.
 		auto& storedObject = view.TransparentObjectsToDraw[objectIndex];
 		storedObject.MinDistance = minDistance;
 		storedObject.MaxDistance = maxDistance;

@@ -7,12 +7,15 @@
 // Constants
 // ---------------------------------------------------------------------------
 
+// Pi and its inverse for the sky math.
 static const float PI_SKY = 3.14159265359f;
 static const float INV_PI_SKY = 1.0f / PI_SKY;
 // ---------------------------------------------------------------------------
 // Reconstruct world-space view direction from screen UV
 // ---------------------------------------------------------------------------
 
+// Unprojects the far plane point under the pixel with the camera inverses (SkyCameraUniforms) and returns
+// the normalized world-space view direction. The dome is therefore independent of camera position.
 float3 GetViewDirection(float2 uv)
 {
     // Convert UV [0,1] to NDC [-1,1]
@@ -82,6 +85,10 @@ float GetSunGlow(float3 viewDir, float3 sunDir)
 // Complete atmospheric scattering calculation
 // ---------------------------------------------------------------------------
 
+// Sky dome color for a view direction, as an analytic single-scattering approximation (no ray marching):
+// absorption of the sky tint by a density that grows towards the horizon, plus Rayleigh and Mie
+// brightening around the sun. Output is linear, before exposure and tone mapping. Sun disc and halo are
+// excluded, see ComputeSunDiskAndCorona.
 float3 ComputeAtmosphericScattering(float3 viewDir, float3 sunDir)
 {
     // Effective sky color with anisotropic brightening.
@@ -162,6 +169,8 @@ float3 ComputeAtmosphericScattering(float3 viewDir, float3 sunDir)
     return totalSky;
 }
 
+// Sun disc, with a soft edge, plus a halo (inner and outer exponential falloff) around it, in linear color
+// before tone mapping. Added in the separate PSSunMoonDisc pass so that clouds can mask it.
 float3 ComputeSunDiskAndCorona(float3 viewDir, float3 sunDir)
 {
     float sunY        = -sunDir.y;
@@ -223,6 +232,7 @@ float3 ComputeSunDiskAndCorona(float3 viewDir, float3 sunDir)
 // Day/night transition
 // ---------------------------------------------------------------------------
 
+// Flat night background: a dark blue gradient, slightly brighter towards the zenith.
 float3 ComputeNightSky(float3 viewDir)
 {
     // Simple dark blue gradient for night sky background.
@@ -244,6 +254,7 @@ float3 ComputeNightSky(float3 viewDir)
 // to suppress sun/moon discs that are seen "through" the underwater volume.
 // ---------------------------------------------------------------------------
 
+// Cheap 2D hash returning [0, 1), used by the underwater value noise.
 float UnderwaterHash(float2 p)
 {
     p = frac(p * float2(123.34f, 456.21f));
@@ -251,6 +262,7 @@ float UnderwaterHash(float2 p)
     return frac(p.x * p.y);
 }
 
+// Smoothly interpolated value noise in [0, 1].
 float UnderwaterValueNoise(float2 p)
 {
     float2 i = floor(p);
@@ -383,11 +395,13 @@ float4 ComputeUnderwaterSky(float3 viewDir, float3 sunDir)
 // Moon surface noise - adapted from IQ's Shadertoy planet shader
 // ---------------------------------------------------------------------------
 
+// Hash returning [-1, 1], used as random gradient components by MoonSimplex3D.
 float MoonNoise3D(float3 p)
 {
     return frac(sin(dot(p, float3(12.9898f, 78.233f, 128.852f))) * 43758.5453f) * 2.0f - 1.0f;
 }
 
+// 3D simplex noise with sin-hashed random gradients, about [-1, 1].
 float MoonSimplex3D(float3 p)
 {
     const float F3 = 1.0f / 3.0f;
@@ -440,6 +454,8 @@ float MoonSimplex3D(float3 p)
     return 96.0f * (n0+n1+n2+n3);
 }
 
+// Six-octave fractal sum of MoonSimplex3D, each octave at about twice the frequency and half the amplitude.
+// The slightly different frequency factors (2.01 to 2.05) avoid octaves aligning on the lattice.
 float MoonFBM(float3 p)
 {
     float f = 0.0f;
@@ -583,6 +599,8 @@ float2x2 AuroraRotMat(float a)
 static const float2x2 AuroraM2 = float2x2(0.95534, -0.29552, 0.29552, 0.95534);
 
 // --- Triangle wave: cheap periodic function with flat tops/bottoms ---
+// Clamped away from 0 and 0.5 so that the noise below never reaches a zero, which would blow up the
+// 1 / pow(rz, 1.3) mapping.
 float AuroraTri(float x)
 {
     return clamp(abs(frac(x) - 0.5), 0.01, 0.49);
@@ -600,6 +618,7 @@ float2 AuroraTri2(float2 p)
 // --- 2D triangle noise with rotational warping ---
 // Produces the characteristic aurora curtain texture.
 // animTime: pre-computed animation time (AuroraTime * speed).
+// Five-octave variant. The result is a curtain intensity in [0, 0.55].
 float AuroraTriNoise2D(float2 p, float animTime)
 {
     float z = 1.8;
@@ -675,6 +694,8 @@ float3 GetAuroraColor(float heightFrac, float preset)
     int presetA = (int)floor(preset) % 6;
     int presetB = (presetA + 1) % 6;
 
+    // The two tables below (preset A and its successor B) must stay identical, they are blended by the
+    // fractional part of the preset index.
     // Each preset defines three color stops: bottom, mid (50 %), top.
     // For presets 0-4 the mid is exactly lerp(bot, top, 0.5), so the final
     // output is identical to the old two-stop formula.  Preset 5 uses a
@@ -824,6 +845,8 @@ float3 ComputeAurora(float3 viewDir, float2 screenPos)
 // Tone mapping
 // ---------------------------------------------------------------------------
 
+// Hybrid of per-channel and luminance based Reinhard (by Jodie), which keeps saturated colors from
+// washing out to white as quickly as a plain per-channel curve.
 float3 JodieReinhardTonemap(float3 c)
 {
     float l = dot(c, float3(0.2126f, 0.7152f, 0.0722f));
@@ -835,6 +858,8 @@ float3 JodieReinhardTonemap(float3 c)
 // Pixel shader - atmospheric sky dome
 // ---------------------------------------------------------------------------
 
+// Draws the sky dome: day scattering (tone mapped), night gradient with moon glow, horizon ground color
+// and the optional underwater overlay. Alpha carries the underwater coverage, which later passes read.
 float4 PSAtmosphericSky(SKY_PIXEL_INPUT input) : SV_TARGET
 {
     // Reconstruct world-space view direction from screen UV.
@@ -911,6 +936,8 @@ float4 PSAtmosphericSky(SKY_PIXEL_INPUT input) : SV_TARGET
     return float4(finalColor, coverageAlpha);
 }
 
+// Renders the aurora into its own (half resolution) target, attenuated by cloud coverage from slot 0.
+// The result is upscaled into the scene by PSCopy.
 float4 PSAurora(SKY_PIXEL_INPUT input) : SV_TARGET
 {
     float3 viewDir = GetViewDirection(input.UV);

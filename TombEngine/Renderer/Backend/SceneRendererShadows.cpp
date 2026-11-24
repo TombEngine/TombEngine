@@ -20,6 +20,7 @@ using namespace TEN::Renderer::Structures;
 
 namespace TEN::Renderer::Backend
 {
+    // Near plane of the cube face projections, in world units.
     constexpr auto SHADOW_NEAR_PLANE = 16.0f;
 
     // Shadow pixel shader of objects, the dummy shadow map and the shadow map of the default size.
@@ -77,6 +78,7 @@ namespace TEN::Renderer::Backend
         if (!_isShadowMapActive)
             return false;
 
+        // Moveable slots without an object, or flagged as no shadow, never cast.
         const auto& object = (*_levelGeometry.MoveableObjects)[objectID];
         if (!object.has_value() || object->ShadowType == ShadowMode::None)
             return false;
@@ -104,6 +106,7 @@ namespace TEN::Renderer::Backend
     // Sphere enclosing the meshes of an item at its interpolated pose, for the culling of the shadow map faces.
     Vector4 SceneRenderer::GetItemBounds(const RendererItem& item, float margin) const
     {
+        // The largest axis length of the world matrix approximates its uniform scale, so mesh radii stay conservative.
         const auto& world = item.InterpolatedWorld;
         float scale = std::max({ world.Right().Length(), world.Up().Length(), world.Backward().Length() });
 
@@ -123,6 +126,7 @@ namespace TEN::Renderer::Backend
     // Runs after the object collection, which fills the shadow draws, and before the frame passes.
     void SceneRenderer::PrepareShadows(const FrameEnvironment& environment, float interpolationFactor)
     {
+        // Look and up directions per cube face, in layer order of the shadow map array (-X, +X, -Y, +Y, +Z, -Z).
         static constexpr Vector3 FORWARD_VECTORS[6] =
         {
             Vector3(-1.0f, 0.0f, 0.0f), Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, -1.0f, 0.0f),
@@ -134,6 +138,7 @@ namespace TEN::Renderer::Backend
             Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector3(0.0f, -1.0f, 0.0f)
         };
 
+        // Shadow spheres are filled before the early exit below, so they are present even without a shadow map.
         _shadowUniforms = GpuShadowUniforms{};
         _shadowUniforms.SphereCount = std::min(environment.ShadowSphereCount, SHADOW_SPHERES_MAX);
         memcpy(_shadowUniforms.Spheres, environment.ShadowSpheres, sizeof(Vector4) * _shadowUniforms.SphereCount);
@@ -149,6 +154,7 @@ namespace TEN::Renderer::Backend
         _shadowUniforms.CastShadows = 1;
         _shadowUniforms.ShadowMapSize = _shadowMap->GetDesc().Width;
 
+        // A 90 degree square frustum per face tiles the full cube; the far plane is the light range.
         auto position = _shadowUniforms.ShadowLight.Position;
         auto projection = Matrix::CreatePerspectiveFieldOfView(PI / 2.0f, 1.0f, SHADOW_NEAR_PLANE, light->Out);
         for (int face = 0; face < 6; face++)
@@ -166,6 +172,7 @@ namespace TEN::Renderer::Backend
         if (!_shadowUniforms.CastShadows)
             return;
 
+        // The camera vertex uniforms are copied per face with only the view projection replaced.
         const auto& cameraUniforms = _frameVertexUniforms;
         _isRenderingShadowMap = true;
 
@@ -181,6 +188,7 @@ namespace TEN::Renderer::Backend
             auto colorTarget = ColorTargetInfo{};
             colorTarget.Texture = _shadowMap.get();
             colorTarget.Layer = face;
+            // Cleared to 1.0, the far value, for texels no caster covers.
             colorTarget.ClearColor[0] = 1.0f;
 
             auto depthTarget = DepthTargetInfo{};

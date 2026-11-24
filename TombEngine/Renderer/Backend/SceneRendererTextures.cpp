@@ -155,6 +155,7 @@ namespace TEN::Renderer::Backend
         auto used = std::max(adapter.ProcessUsage, stats.GetTotal()) + std::max(RESERVED_MEMORY, limit / 10);
         auto available = (limit > used) ? (limit - used) : 0ull;
 
+        // Total size of all arrays with the currently chosen skipped mips.
         auto getTotalSize = [&]()
         {
             auto total = 0ull;
@@ -170,6 +171,7 @@ namespace TEN::Renderer::Backend
             return total;
         };
 
+        // Skip one more top mip, one map type at a time in MAP_ORDER, and stop as soon as everything fits.
         auto originalSize = getTotalSize();
         auto size = originalSize;
         for (int skip = 1; skip <= SKIPPED_MIPS_MAX && size > available; skip++)
@@ -218,6 +220,7 @@ namespace TEN::Renderer::Backend
         if (transferBuffer == nullptr)
             return;
 
+        // Mips are stored largest first, so dropping the top ones means skipping the head of the data.
         memcpy(_device->MapTransferBuffer(transferBuffer.get(), false), image.Data.data() + skippedSize, size);
         _device->UnmapTransferBuffer(transferBuffer.get());
 
@@ -269,6 +272,7 @@ namespace TEN::Renderer::Backend
         {
             int count = std::min(TEXTURE_CHUNK_SIZE, (int)requests.size() - first);
 
+            // Decoded images and transfer buffers stay alive until the device is idle at the end of the chunk.
             DecodedImage images[TEXTURE_CHUNK_SIZE] = {};
             bool isDecoded[TEXTURE_CHUNK_SIZE] = {};
             g_Parallel.AddTasks(count, [&](int start, int end)
@@ -286,6 +290,7 @@ namespace TEN::Renderer::Backend
                     *requests[first + i].Target = RecordTextureUpload(*copyPass, images[i], requests[first + i].Name, allowMips, transferBuffers);
             }
 
+            // Mips are generated after the copy pass, in the same command buffer, so they read the uploaded top level.
             commandBuffer->EndCopyPass();
 
             for (int i = 0; i < count; i++)
@@ -376,6 +381,7 @@ namespace TEN::Renderer::Backend
             }
 
             pageGroups[i] = group;
+            // Layers follow the page order inside their group.
             pages[i].Target->Layer = layerCounts[group]++;
         }
 
@@ -435,6 +441,7 @@ namespace TEN::Renderer::Backend
                 const auto& page = pages[upload.Page];
                 auto* texture = page.Target->Group->Maps[upload.Map].get();
                 const auto& key = pageKeys[upload.Page].Maps[upload.Map];
+                // A page that no longer matches the header it was grouped by cannot be stored in the array; its layer stays unwritten.
                 if (!isDecoded[i] || images[i].Width != key.Width || images[i].Height != key.Height || images[i].Format != key.Format)
                 {
                     TENLog("Scene renderer: texture page " + std::to_string(upload.Page) + " does not match its header.", LogLevel::Warning);

@@ -1,6 +1,10 @@
 // CBVolumetricCloud.hlsli - Uniform block of the volumetric clouds, declared by the including shader through TEN_VOLUMETRIC_CLOUD_UNIFORMS
 // (pixel uniform slot 2). Must match CVolumetricCloudBuffer in C++ exactly.
 
+// Parameters of one cloud layer, filled per layer and frame by RendererVolumetricClouds.cpp. Heights are
+// world units (Y-down, relative to the camera, see CloudBottomHeight). Only the Altocumulus path is
+// shaded by VolumetricCloudsCore.hlsli: Row 1, AmbientContrib, ShapeScale, EarthRadius, PlanetCenterY
+// and CloudType are not read by the current shader, they are kept so the layout matches C++.
 TEN_VOLUMETRIC_CLOUD_UNIFORMS
 {
     // Row 0
@@ -21,12 +25,17 @@ TEN_VOLUMETRIC_CLOUD_UNIFORMS
     float AmbientContrib;
     float SilverliningStr;
     //--
+    // Henyey-Greenstein anisotropy of the forward and backward scattering lobes. WindSpeed carries the
+    // pre-integrated wind offset, not a speed, so changing the wind never moves the clouds backwards.
+    // EvolutionSpeed is the rate at which the cloud pattern evolves.
     // Row 3
     float PhaseForward;
     float PhaseBackward;
     float WindSpeed;
     float EvolutionSpeed;
     //--
+    // Wind direction (XZ, normalized), accumulated cloud time in seconds and the amplitude of the per-pixel
+    // start jitter of the raymarch.
     // Row 4
     float2 WindDirection;
     float  CloudTime;
@@ -40,16 +49,20 @@ TEN_VOLUMETRIC_CLOUD_UNIFORMS
     float3 CloudLightColor;
     float  CloudPadding1;
     //--
+    // Raymarch step counts, the debug view mode (see DebugVisualization) and the detail noise switch.
     // Row 7
     int PrimaryStepCount;
     int ShadowStepCount;
     int DetailNoiseEnabled;
     int CloudDebugView;
     //--
+    // Size of the cloud render target the raymarch writes into (scaled by the quality render resolution).
     // Row 8
     float2 CloudRenderSize;
     float2 InvCloudRenderSize;
     //--
+    // TemporalEnabled: 0 = off, 1 = on but warming up (no history skip yet), 2 = on and active (history
+    // reprojection plus checkerboard skip). FrameIndex is the frame counter wrapped to 256.
     // Row 9
     int   TemporalEnabled;
     float FrameIndex;
@@ -62,7 +75,7 @@ TEN_VOLUMETRIC_CLOUD_UNIFORMS
     int   CloudType;	  // 0=None, 1=AltocumulusMid, 2=Aurora
     float CloudCompositeScale; // Composite alpha multiplier: 1.0 = normal, <1.0 = bleed-through pass.
     //--
-    // Row 11 - Altocumulus-specific appearance parameters (only used when CloudType == 2)
+    // Row 11 - Altocumulus-specific appearance parameters (only used when CloudType == 1)
     float AltoBillowStrength;  // [0,1]	  blend toward billow (abs-value) FBM noise
     float AltoCovSoftWidth;	// [0,0.25]   self-referential coverage soft-threshold width
     float AltoAbsorption;	  // [0.1,5.0]  absorption coefficient for Altocumulus
@@ -95,6 +108,8 @@ TEN_VOLUMETRIC_CLOUD_UNIFORMS
     float CloudNightAmbient;      // [0,0.5] minimum ambient when sun is below horizon.
     float CloudTwilightAmbient;   // [0,1] ambient contribution during twilight.
     //--
+    // Strike and internal frequencies are probabilities per lightning cycle, see the hash tests in PS and
+    // RaymarchClouds.
     // Row 17 - Lightning enable + frequencies
     int   LightningEnabled;	  // 0 or 1
     float LightningStrikeFreq;   // [0,1]
@@ -129,6 +144,8 @@ TEN_VOLUMETRIC_CLOUD_UNIFORMS
     float CloudIsBleedPass;             // 0 = normal composite, 1 = bleed-through-mountains pass (un-fades horizon).
     float DriftOutProgress;             // [0,1] wind-directional dissolution progress (0 = normal, 1 = fully dissolved).
     //--
+    // Used by PSCloudComposite to choose between screen blend (bright or very dark cloud colors) and alpha
+    // blend (mid luminance, dense clouds).
     // Row 23 - Compositor hybrid-blend thresholds
     float BlendThresholdHigh;           // [0,1]     luminance above which screen blend starts (bright side).
     float BlendThresholdHighWidth;      // [0.005,0.4] half-width of bright->alpha smoothstep.

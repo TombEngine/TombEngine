@@ -5,10 +5,13 @@
 
 #include "./Noise.hlsli"
 
+// ZERO and EIGHT_FIVE are the edges of the final smoothstep of the effects. BLENDING weights the corner fades.
 #define ZERO       float3(0.0f, 0.0f, 0.0f)
 #define EIGHT_FIVE float3( 0.85f, 0.85f, 0.85f)
 #define BLENDING   0.707f
 
+// Laser barrier: animated noise modulates the alpha and the color of the sprite texel (output), and the borders fade out
+// // by faceFactor. input is the pixel position used as the noise seed.
 float4 DoLaserBarrierEffect(float3 input, float4 output, float2 uv, float faceFactor, float timeUniform)
 {
     float2 noiseTexture = input.xy / uv;
@@ -104,6 +107,8 @@ float4 DoLaserBarrierEffect(float3 input, float4 output, float2 uv, float faceFa
     return float4(color.rgb + (output.rgb * 1.5f * fadeMask), color.a);
 }
 
+// Laser beam: same noise as the barrier, with the horizontal UV stretched into a long thin beam that fades at its
+// // top and bottom only.
 float4 DoLaserBeamEffect(float3 input, float4 output, float2 uv, float faceFactor, float timeUniform)
 {
     float2 noiseTexture = input.xy / uv;

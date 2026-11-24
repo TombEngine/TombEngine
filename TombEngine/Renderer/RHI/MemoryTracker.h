@@ -7,6 +7,7 @@
 
 namespace TEN::Renderer::RHI
 {
+    // Buckets of the debug statistics. Count is the number of categories, not a category.
     enum class MemoryCategory
     {
         Texture,
@@ -27,6 +28,7 @@ namespace TEN::Renderer::RHI
         unsigned long long AdapterUsage         = 0; // Dedicated video memory used by every process.
     };
 
+    // Snapshot of the tracked totals, indexed by MemoryCategory.
     struct MemoryStats
     {
         std::array<unsigned long long, (int)MemoryCategory::Count> Bytes  = {};
@@ -37,6 +39,7 @@ namespace TEN::Renderer::RHI
     };
 
     // Size of the resource, owned by the backend resource object: the size is counted while the object lives.
+    // Move-only RAII: the bytes are added to the global totals on construction and removed on destruction.
     class MemoryAllocation
     {
     private:

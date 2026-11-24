@@ -21,6 +21,8 @@ namespace TEN::Renderer
 		return 1.0f;
 	}
 
+	// Final color of a lens flare: zero when the effect is disabled, scaled by the cloud cover and the sun elevation for
+	// the global (sun) flare.
 	Vector3 Renderer::GetLensFlareColor(const RendererLensFlare& lensFlare, float cloudOcclusion) const
 	{
 		// Suppress procedural starburst spike and ghost lens artifacts when the scripted lens flare disabled them
@@ -44,6 +46,7 @@ namespace TEN::Renderer
 		return flareColor * cloudOcclusion * sunBelowFade;
 	}
 
+	// Plain accessors for the post-process state; the scene renderer reads it when building the frame environment.
 	PostProcessMode Renderer::GetPostProcessMode()
 	{
 		return _postProcessMode;
@@ -74,6 +77,7 @@ namespace TEN::Renderer
 		_postProcessTint = tint;
 	}
 
+	// Returns the saved state, not the temporary one in use by the frame.
 	DOFState Renderer::GetDOF() const 
 	{
 		return _lastDOF;

@@ -17,8 +17,10 @@
 namespace TEN::Renderer::RHI::SDLGPU
 {
     constexpr auto COMMAND_BUFFER_POOL_SIZE   = 8; // Command buffers recorded at the same time, across threads.
+    // Frames the CPU may run ahead of the GPU; applied to the device in CreateSDLGPUDevice.
     constexpr auto SWAPCHAIN_FRAMES_IN_FLIGHT = 3;
 
+    // Conversion helpers from RHI enums to SDL GPU enums. Unknown values map to a safe default or INVALID.
     static SDL_GPUTextureFormat ToSDL(PixelFormat format)
     {
         switch (format)
@@ -210,6 +212,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         }
     }
 
+    // RHI usage flags are bit masks, so they are translated bit by bit into SDL usage flags.
     static unsigned int ToSDLBufferUsage(unsigned int usage)
     {
         unsigned int result = 0;
@@ -244,6 +247,8 @@ namespace TEN::Renderer::RHI::SDLGPU
         return result;
     }
 
+    // RHI resource wrappers. Each one owns its SDL handle and releases it on destruction; SDL defers the actual
+    // destruction until the GPU has finished using the resource, so it is safe to release right after submission.
     class SDLGPUBuffer : public IBuffer
     {
     public:
@@ -345,6 +350,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         ~SDLGPUFence() override { SDL_ReleaseGPUFence(Device, Handle); }
     };
 
+    // Downcasts RHI objects to the SDL handle. Null is allowed and yields a null handle (unbound slot).
     static SDL_GPUBuffer* GetHandle(IBuffer* buffer)
     {
         return (buffer != nullptr) ? ((SDLGPUBuffer*)buffer)->Handle : nullptr;
@@ -405,6 +411,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         return result;
     }
 
+    // Equality overloads used by BindingCache to detect redundant binds.
     static bool IsSameBinding(const BufferBinding& first, const BufferBinding& second)
     {
         return first.Buffer == second.Buffer && first.Offset == second.Offset;
@@ -442,6 +449,8 @@ namespace TEN::Renderer::RHI::SDLGPU
         }
     };
 
+    // Render pass wrapper. State that SDL GPU resets per pass (pipeline, bindings, index buffer, scissor) is cached
+    // here so repeated binds with identical arguments never reach SDL.
     class SDLGPURenderPass : public IRenderPass
     {
     private:
@@ -590,6 +599,8 @@ namespace TEN::Renderer::RHI::SDLGPU
         }
     };
 
+    // Copy pass wrapper. The cycle flag lets SDL hand out a fresh internal buffer or texture when the GPU still uses
+    // the old contents, which avoids stalls when overwriting a resource every frame.
     class SDLGPUCopyPass : public ICopyPass
     {
     public:
@@ -613,6 +624,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             Counters->Uploads++;
         }
 
+        // Cycling is disabled so the destination keeps the contents outside the copied region.
         void CopyTexture(const TextureRegion& source, const TextureRegion& destination) override
         {
             auto sdlSource = SDL_GPUTextureLocation{ GetHandle(source.Texture), (Uint32)source.MipLevel, (Uint32)source.Layer, (Uint32)source.X, (Uint32)source.Y, (Uint32)source.Z };
@@ -628,6 +640,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         }
     };
 
+    // Compute pass wrapper. Read-write resources were already declared when the pass began (BeginComputePass).
     class SDLGPUComputePass : public IComputePass
     {
     public:
@@ -939,6 +952,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         SDLGPUComputePass     ComputePass      = {};
 
         // Waits for a free swapchain image; must run on the window thread. The wrapper is valid until submission.
+        // Null is returned when the window is minimized or no image is available; callers must skip rendering then.
         ITexture* AcquireSwapchainTexture() override
         {
             SDL_GPUTexture* texture = nullptr;
@@ -1143,6 +1157,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             EndRecording();
         }
 
+        // Submission invalidates the SDL command buffer; the returned fence can be polled or waited on by the caller.
         std::unique_ptr<IFence> SubmitWithFence() override
         {
             auto* handle = SDL_SubmitGPUCommandBufferAndAcquireFence(Handle);
@@ -1178,6 +1193,7 @@ namespace TEN::Renderer::RHI::SDLGPU
     }
 
     // Owns the SDL GPU device, the claim on the window, the command buffer pool and the timing thread.
+    // The RHI device. Resource creation is thread safe in SDL GPU; command buffer acquisition is guarded by a mutex.
     class SDLGPUDevice : public IDevice
     {
     private:
@@ -1354,6 +1370,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         }
 
         // Translates the description field by field: vertex input, color targets, rasterizer, then depth and stencil.
+        // Stencil test is enabled only if the depth format has a stencil aspect, so a stencil state is never combined with a depth-only format.
         std::unique_ptr<IGraphicsPipeline> CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) override
         {
             SDL_GPUVertexBufferDescription buffers[MAX_VERTEX_BUFFERS] = {};
@@ -1575,11 +1592,13 @@ namespace TEN::Renderer::RHI::SDLGPU
             _presentMode = mode;
         }
 
+        // Intentionally empty: nothing to do on the SDL side.
         void ResizeSwapchain(int width, int height) override
         {
             // SDL GPU recreates the swapchain on the next acquisition after a window resize.
         }
 
+        // Blocks until all submitted work has finished; used before destroying resources or the device.
         void WaitIdle() override
         {
             SDL_WaitForGPUIdle(_device);

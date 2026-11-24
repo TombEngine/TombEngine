@@ -22,6 +22,7 @@ namespace TEN::Renderer::Structures
 		Vector3 InterpolatedPosition	= Vector3::Zero;
 		Matrix	InterpolatedWorld		= Matrix::Identity;
 
+		// Transform of the previous game tick, saved by SaveOldState; interpolation blends from it to the current one.
 		Vector3 PrevPosition	= Vector3::Zero;
 		Matrix	PrevWorld		= Matrix::Identity;
 	};

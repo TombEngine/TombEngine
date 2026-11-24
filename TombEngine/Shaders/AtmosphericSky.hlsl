@@ -12,6 +12,7 @@
 #include "./Fullscreen.hlsli"
 #include "./AtmosphericSkyUniforms.hlsli"
 
+// Inverse camera matrices used to turn a pixel into a world-space view direction (see GetViewDirection).
 TEN_PS_UNIFORMS(SkyCameraUniforms, 3)
 {
     float4x4 InverseProjection;
@@ -21,6 +22,7 @@ TEN_PS_UNIFORMS(SkyCameraUniforms, 3)
 // Copy of the scene with the cloud coverage in its alpha channel.
 TEN_PS_TEXTURE(Texture2D, SceneAfterClouds, 0);
 
+// Names expected by AtmosphericSkyCore.hlsli.
 #define SunMoonLinearSamp SceneAfterCloudsSampler
 #define SKY_PIXEL_INPUT   FullscreenPixelInput
 

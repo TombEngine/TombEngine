@@ -97,6 +97,7 @@ namespace TEN::Renderer::Backend
         };
 
         // Random wave set from a fixed seed; the lowest frequencies are skipped.
+        // Default constructed engine: the wave set is identical on every run of a given build.
         auto generator = std::default_random_engine{};
         auto frequencies = std::uniform_int_distribution<int>(-WAVE_FREQUENCY_MAX, WAVE_FREQUENCY_MAX);
         auto phases = std::uniform_real_distribution<float>(0.0f, PI_MUL_2);
@@ -214,6 +215,7 @@ namespace TEN::Renderer::Backend
         }
 
         UploadBuffer(_waterVertexBuffer.get(), vertices.data(), size);
+        // Covered buckets are stored by address, so the room bucket arrays must not be reallocated afterwards.
         HideWaterSurfaceBuckets(geometry);
         TENLog(fmt::format("Scene renderer: {} water surfaces generated, {} water face buckets hidden.", _waterSurfaces.size(), _waterCoveredBuckets.size()), LogLevel::Info);
     }
@@ -322,6 +324,7 @@ namespace TEN::Renderer::Backend
             Vector2(x, surface.BoundsMax.z + EDGE_PROBE)
         };
 
+        // The closest unsupported edge wins; the weight is then eased with a smoothstep.
         float weight = 1.0f;
         for (int i = 0; i < 4; i++)
         {
@@ -385,6 +388,7 @@ namespace TEN::Renderer::Backend
                 if (!g_Level.Rooms[surface.WaterRoom].Active() || !g_Level.Rooms[surface.DryRoom].Active())
                     continue;
 
+                // Swells raise the surface, so the bounds are grown vertically before the frustum test.
                 auto swellBounds = Vector3(0.0f, SWELL_HEIGHT_MAX, 0.0f);
                 if (_frustum.AABBInFrustum(surface.BoundsMin - swellBounds, surface.BoundsMax + swellBounds))
                     _waterDraws.push_back(index);
@@ -458,6 +462,7 @@ namespace TEN::Renderer::Backend
             { reflectionTrace, _linearClampSampler.get() }
         };
 
+        // The same uniforms serve both passes; only the ambient light changes per surface.
         auto uniforms = GetWaterUniforms();
 
         // Reflection trace into the half resolution target; it reads only the first four bindings.
@@ -470,6 +475,7 @@ namespace TEN::Renderer::Backend
         commandBuffer.EndRenderPass();
 
         // Shading, back in the scene pass, with the trace result and the clustered lights.
+        // The trace target is sampled only from here on, once it is no longer a render target.
         renderPass = BeginScenePass(commandBuffer, true);
         renderPass->BindPipeline(_waterPipeline.get());
         renderPass->BindPixelSamplers(0, bindings, 5);

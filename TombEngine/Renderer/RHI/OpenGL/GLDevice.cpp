@@ -29,10 +29,15 @@ namespace TEN::Renderer::RHI::OpenGL
     constexpr auto COMPUTE_RW_STORAGE_BASE   = MAX_SAMPLER_SLOTS + MAX_STORAGE_SLOTS;
     constexpr auto STORAGE_BINDINGS_REQUIRED = PIXEL_STORAGE_BASE * 2;
 
+    // The uniform ring holds SEGMENT_COUNT segments of SEGMENT_SIZE bytes (see GLUniformRing).
     constexpr auto UNIFORM_RING_SEGMENT_SIZE  = 4 * 1024 * 1024;
     constexpr auto UNIFORM_RING_SEGMENT_COUNT = 4;
+
+    // Fence waits are repeated after each timeout, so the value only sets how often a stall is logged.
     constexpr auto FENCE_WAIT_TIMEOUT         = 1000000000ULL; // Nanoseconds.
 
+// X-macro list of every GL entry point used by this backend. It generates the g_GL function pointer table and its
+// loader, so a new GL call only needs its name added here.
 #define TEN_GL_FUNCTIONS(X) \
     X(BindBufferBase) X(BindBufferRange) X(BindFramebuffer) X(BindImageTexture) X(BindProgramPipeline) X(BindSampler) \
     X(BindTextureUnit) X(BindVertexArray) X(BlendEquationSeparatei) X(BlendFuncSeparatei) X(BlitNamedFramebuffer) \
@@ -95,6 +100,7 @@ namespace TEN::Renderer::RHI::OpenGL
         bool   IsCompressed = false;
     };
 
+    // An Internal value of zero means the format is not supported by this backend.
     static GLFormat ToGL(PixelFormat format)
     {
         switch (format)
@@ -127,6 +133,7 @@ namespace TEN::Renderer::RHI::OpenGL
         }
     }
 
+    // Only 2D textures can be multisampled.
     static GLenum ToGLTarget(TextureType type, int sampleCount)
     {
         switch (type)
@@ -138,6 +145,7 @@ namespace TEN::Renderer::RHI::OpenGL
         }
     }
 
+    // Integer formats must use the I variant of the attribute format call, or the shader reads converted floats.
     struct GLVertexFormat
     {
         int    Size         = 0;
@@ -281,6 +289,7 @@ namespace TEN::Renderer::RHI::OpenGL
         }
     }
 
+    // Labels objects for graphics debuggers; unnamed objects are left alone.
     static void SetDebugName(GLenum identifier, GLuint name, const std::string& label)
     {
         if (name != 0 && !label.empty())
@@ -319,6 +328,7 @@ namespace TEN::Renderer::RHI::OpenGL
         }
     };
 
+    // Cheap multiplicative hash; collisions only cost a slower lookup, as equality compares every value.
     struct FramebufferKeyHash
     {
         size_t operator()(const FramebufferKey& key) const
@@ -375,6 +385,8 @@ namespace TEN::Renderer::RHI::OpenGL
         }
     };
 
+    // Resource wrappers below hold the shared context so that destructors run safely even after the device is gone;
+    // each destructor takes the context to the calling thread before deleting its GL object.
     class GLBuffer : public IBuffer
     {
     public:
@@ -445,6 +457,7 @@ namespace TEN::Renderer::RHI::OpenGL
         const ShaderDesc& GetDesc() const override { return Desc; }
     };
 
+    // Blend state of one draw buffer, already translated to GL enums.
     struct GLBlendTarget
     {
         bool         IsEnabled = false;
@@ -505,6 +518,7 @@ namespace TEN::Renderer::RHI::OpenGL
         }
     };
 
+    // A program pipeline holding only the compute stage.
     class GLComputePipeline : public IComputePipeline
     {
     public:
@@ -530,6 +544,7 @@ namespace TEN::Renderer::RHI::OpenGL
         int GetSize() const override { return (int)Data.size(); }
     };
 
+    // Wraps a GL sync object created at submission.
     class GLFence : public IFence
     {
     public:
@@ -543,6 +558,7 @@ namespace TEN::Renderer::RHI::OpenGL
         }
     };
 
+    // Null-safe id getters; a null or window texture gives zero, which GL treats as unbound.
     static GLuint GetId(ITexture* texture)
     {
         return (texture != nullptr) ? ((GLTexture*)texture)->Id : 0;
@@ -626,6 +642,8 @@ namespace TEN::Renderer::RHI::OpenGL
         }
 
         // Returns the offset of the data, which has room for the size rounded up to the alignment.
+        // When the current segment is full, it is fenced and writing moves on to the next one, first waiting for
+        // the GPU to finish reading it. The mapping is coherent, so no flush is needed.
         int Write(const void* data, int size)
         {
             int reservedSize = GetReservedSize(size);
@@ -697,6 +715,7 @@ namespace TEN::Renderer::RHI::OpenGL
             _totals.push_back(GpuTiming{ name, milliseconds, 1 });
         }
 
+        // Reads the results of a finished frame; stops at the first scope not available yet and drops the rest.
         void Resolve(Frame& frame)
         {
             frame.IsPending = false;
@@ -764,6 +783,7 @@ namespace TEN::Renderer::RHI::OpenGL
             }
         }
 
+        // Depth 1 is the outermost (frame) group and depth 2 the groups directly inside it; deeper groups are not measured.
         void OnPushGroup(int depth, const char* name)
         {
             if (depth > 2)
@@ -816,6 +836,8 @@ namespace TEN::Renderer::RHI::OpenGL
         bool          IsSrgbWrite  = true;
     };
 
+    // Render pass state is kept in the command buffer and reset at every BeginRenderPass. Binds apply to the
+    // context immediately; vertex and index buffers are remembered because they live in the per-pipeline vertex array.
     class GLRenderPass : public IRenderPass
     {
     public:
@@ -858,6 +880,7 @@ namespace TEN::Renderer::RHI::OpenGL
             g_GL.VertexArrayElementBuffer(glPipeline->VertexArray, IndexBuffer);
         }
 
+        // Viewport and scissor are given with an upper left origin; the window framebuffer needs the Y flipped.
         void SetViewport(const Viewport& viewport) override
         {
             float y = IsWindowTarget ? ((float)TargetHeight - viewport.Y - viewport.Height) : viewport.Y;
@@ -871,6 +894,7 @@ namespace TEN::Renderer::RHI::OpenGL
             g_GL.ScissorIndexed(0, scissor.X, y, scissor.Width, scissor.Height);
         }
 
+        // Remembered per slot so a later BindPipeline can attach them to its own vertex array.
         void BindVertexBuffers(int firstSlot, const BufferBinding* bindings, int count) override
         {
             for (int i = 0; i < count; i++)
@@ -896,6 +920,7 @@ namespace TEN::Renderer::RHI::OpenGL
                 g_GL.VertexArrayElementBuffer(Pipeline->VertexArray, IndexBuffer);
         }
 
+        // Vertex stage texture units start at zero; the pixel stage ones are offset by PIXEL_TEXTURE_UNIT_BASE.
         void BindVertexSamplers(int firstSlot, const TextureSamplerBinding* bindings, int count) override
         {
             BindSamplers(firstSlot, bindings, count);
@@ -1051,6 +1076,7 @@ namespace TEN::Renderer::RHI::OpenGL
         }
     };
 
+    // Copies execute immediately on the context; there is no deferred recording as in SDL GPU.
     class GLCopyPass : public ICopyPass
     {
     public:
@@ -1065,6 +1091,7 @@ namespace TEN::Renderer::RHI::OpenGL
             Counters->UploadBytes += size;
         }
 
+        // Row length and image height are set for this upload only and reset afterwards, so other uploads stay tightly packed.
         void UploadToTexture(const TextureTransferInfo& source, const TextureRegion& destination, bool cycle) override
         {
             auto* texture = (GLTexture*)destination.Texture;
@@ -1173,6 +1200,7 @@ namespace TEN::Renderer::RHI::OpenGL
         }
     };
 
+    // Read-write resources are bound by BeginComputePass; this pass binds the read-only ones and dispatches.
     class GLComputePass : public IComputePass
     {
     public:
@@ -1206,6 +1234,8 @@ namespace TEN::Renderer::RHI::OpenGL
 
     class GLDevice;
 
+    // The single command buffer of the device: owns the pass objects, the uniform ring, the state cache and the GPU profiler.
+    // Methods that need the device (swapchain, present, fences, blit) are defined after GLDevice.
     class GLCommandBuffer : public ICommandBuffer
     {
     public:
@@ -1226,6 +1256,8 @@ namespace TEN::Renderer::RHI::OpenGL
         std::unique_ptr<IFence> SubmitWithFence() override;
         void      BlitTexture(ITexture* source, ITexture* destination) override;
 
+        // A color target with texture id zero is the window framebuffer. The pass size comes from the first color
+        // target, or from the depth target when there is none.
         IRenderPass* BeginRenderPass(const ColorTargetInfo* colorTargets, int colorTargetCount, const DepthTargetInfo* depthTarget) override
         {
             bool isWindowTarget = (colorTargetCount > 0 && GetId(colorTargets[0].Texture) == 0);
@@ -1399,6 +1431,7 @@ namespace TEN::Renderer::RHI::OpenGL
         }
 
     private:
+        // Layered textures (arrays, cube maps, 3D) attach a single layer or face.
         static void AttachTexture(GLuint framebuffer, GLenum attachment, const GLTexture& texture, int mipLevel, int layer)
         {
             if (texture.Target == GL_TEXTURE_2D || texture.Target == GL_TEXTURE_2D_MULTISAMPLE)
@@ -1407,6 +1440,7 @@ namespace TEN::Renderer::RHI::OpenGL
                 g_GL.NamedFramebufferTextureLayer(framebuffer, attachment, texture.Id, mipLevel, layer);
         }
 
+        // Depth targets with stencil use the combined attachment point; a pass without color targets disables draw and read buffers.
         static GLuint CreateFramebuffer(const ColorTargetInfo* colorTargets, int colorTargetCount, const DepthTargetInfo* depthTarget)
         {
             GLuint framebuffer = 0;
@@ -1490,6 +1524,8 @@ namespace TEN::Renderer::RHI::OpenGL
         std::string                _rendererName     = {};
 
     public:
+        // Sets the global context state the rest of the backend assumes: scissor always on, seamless cube maps,
+        // sRGB writes, Direct3D clip control and byte-aligned pixel transfers.
         GLDevice(std::shared_ptr<GLContext> context) :
             _context(context)
         {
@@ -1518,6 +1554,7 @@ namespace TEN::Renderer::RHI::OpenGL
                 TENLog("OpenGL: the driver has " + std::to_string(storageBindings) + " storage buffer bindings, fewer than the " + std::to_string(STORAGE_BINDINGS_REQUIRED) + " used.", LogLevel::Warning);
         }
 
+        // Marks the context dead last, so resources destroyed afterwards skip their GL calls instead of using a deleted context.
         ~GLDevice() override
         {
             if (_context->MakeCurrent())
@@ -1591,6 +1628,7 @@ namespace TEN::Renderer::RHI::OpenGL
             return buffer;
         }
 
+        // Uses immutable storage; array and 3D textures share the 3D storage call with the layer count as depth.
         std::unique_ptr<ITexture> CreateTexture(const TextureDesc& desc) override
         {
             auto format = ToGL(desc.Format);
@@ -1628,6 +1666,7 @@ namespace TEN::Renderer::RHI::OpenGL
             return texture;
         }
 
+        // Anisotropy is applied through the EXT parameter, which is always set (to 1 when disabled).
         std::unique_ptr<ISampler> CreateSampler(const SamplerDesc& desc) override
         {
             if (!_context->MakeCurrent())
@@ -1686,6 +1725,8 @@ namespace TEN::Renderer::RHI::OpenGL
             return shader;
         }
 
+        // The pixel shader is optional (depth only passes). Storage buffer bases depend on how many textures
+        // each stage declares, as storage buffer bindings follow them.
         std::unique_ptr<IGraphicsPipeline> CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) override
         {
             if (!_context->MakeCurrent())
@@ -1744,11 +1785,13 @@ namespace TEN::Renderer::RHI::OpenGL
 
         void UnmapTransferBuffer(ITransferBuffer* buffer) override {}
 
+        // Executes immediately, so the command buffer is not needed.
         void GenerateMipmaps(ICommandBuffer* commandBuffer, ITexture* texture) override
         {
             g_GL.GenerateTextureMipmap(GetId(texture));
         }
 
+        // Also takes the context to the calling thread, which is how the frame thread claims it after ReleaseThread.
         ICommandBuffer* AcquireCommandBuffer() override
         {
             if (!_context->MakeCurrent())
@@ -1763,6 +1806,7 @@ namespace TEN::Renderer::RHI::OpenGL
             return PixelFormat::BGRA8Unorm;
         }
 
+        // Mailbox is unsupported and presents without waiting, like Immediate.
         void SetPresentMode(PresentMode mode) override
         {
             if (_context->MakeCurrent())
@@ -1785,6 +1829,7 @@ namespace TEN::Renderer::RHI::OpenGL
                 g_GL.Finish();
         }
 
+        // A null fence counts as signaled, as the interface requires.
         bool IsFenceSignaled(IFence* fence) override
         {
             if (fence == nullptr || !_context->MakeCurrent())
@@ -1803,6 +1848,7 @@ namespace TEN::Renderer::RHI::OpenGL
                 TENLog("OpenGL: GPU fence wait timed out.", LogLevel::Warning);
         }
 
+        // Queries the driver for the format; render target usage additionally requires framebuffer support.
         bool SupportsTextureFormat(PixelFormat format, TextureType type, unsigned int usage) const override
         {
             auto glFormat = ToGL(format);
@@ -1826,6 +1872,7 @@ namespace TEN::Renderer::RHI::OpenGL
             return true;
         }
 
+        // The context moves between threads, so presenting is not tied to the window thread.
         bool RequiresWindowThreadPresent() const override
         {
             return false;
@@ -1906,6 +1953,7 @@ namespace TEN::Renderer::RHI::OpenGL
 
         // Records the attribute formats and buffer divisors; the buffers themselves are bound per pass. Returns the
         // strides of each slot, given when vertex buffers are bound.
+        // Attribute locations come straight from VertexAttribute::Location, matching the layout locations of the GLSL.
         static GLuint CreateVertexArray(const VertexLayout& layout, int* strides)
         {
             GLuint vertexArray = 0;
@@ -1975,6 +2023,7 @@ namespace TEN::Renderer::RHI::OpenGL
         }
     };
 
+    // Never returns nullptr: the window framebuffer is always available, even when minimized.
     ITexture* GLCommandBuffer::AcquireSwapchainTexture()
     {
         HasSwapchainTexture = true;
@@ -1992,6 +2041,8 @@ namespace TEN::Renderer::RHI::OpenGL
         HasSwapchainTexture = false;
     }
 
+    // The fence is created after presenting and flushed at once, so it signals when all commands of this
+    // submission have finished.
     std::unique_ptr<IFence> GLCommandBuffer::SubmitWithFence()
     {
         Submit();

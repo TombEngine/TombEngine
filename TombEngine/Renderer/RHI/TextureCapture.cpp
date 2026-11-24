@@ -48,6 +48,7 @@ namespace TEN::Renderer::RHI
         return value;
     }
 
+    // Expects tightly packed rows of the capture formats; returns false for other formats or when saving fails.
     static bool WritePng(const TextureDesc& desc, const unsigned char* data, const std::string& path)
     {
         bool isSingleChannel = (desc.Format == PixelFormat::R8Unorm || desc.Format == PixelFormat::R16Float || desc.Format == PixelFormat::R32Float);
@@ -84,6 +85,7 @@ namespace TEN::Renderer::RHI
         return result;
     }
 
+    // Blocking path: the whole GPU is drained before the transfer buffer is mapped.
     bool SaveTextureToPng(IDevice& device, ITexture* texture, const std::string& path, int layer)
     {
         auto* commandBuffer = device.AcquireCommandBuffer();
@@ -143,6 +145,7 @@ namespace TEN::Renderer::RHI
         SubmitWithFence(commandBuffer);
     }
 
+    // One fence is shared by every request recorded since the previous submission.
     std::shared_ptr<IFence> TextureReadback::SubmitWithFence(ICommandBuffer& commandBuffer)
     {
         auto fence = std::shared_ptr<IFence>(commandBuffer.SubmitWithFence());
@@ -178,6 +181,7 @@ namespace TEN::Renderer::RHI
                 continue;
             }
 
+            // The fence has signaled, so mapping without cycle is safe.
             const auto* data = (const unsigned char*)device.MapTransferBuffer(request.Buffer.get(), false);
             if (request.Callback != nullptr)
             {

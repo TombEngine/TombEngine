@@ -10,6 +10,7 @@ using namespace TEN::Renderer::RHI;
 
 namespace TEN::Renderer::Backend
 {
+    // Shared helper for the CPU timers recorded around the render phases.
     float GetMilliseconds(std::chrono::steady_clock::time_point start, std::chrono::steady_clock::time_point end)
     {
         return std::chrono::duration<float, std::milli>(end - start).count();
@@ -36,6 +37,7 @@ namespace TEN::Renderer::Backend
         _frameStats.Passes = std::move(passes);
     }
 
+    // Every draw call goes through here. Triangles are counted per instance, so instanced draws add up.
     void SceneRenderer::CountDraw(DrawCategory category, int triangles)
     {
         _frameStats.DrawCalls++;
@@ -58,6 +60,7 @@ namespace TEN::Renderer::Backend
         stats.Materials = (int)(_materialData.size() / sizeof(GpuMaterial));
         stats.Sprites = (int)(_spriteData.size() / sizeof(GpuSprite));
         stats.SpriteRuns = (int)_spriteDraws.size();
+        // Sky sprites are batched in runs, so their count is summed from the run sizes.
         stats.SkySprites = 0;
         for (const auto& draw : _skySpriteDraws)
             stats.SkySprites += draw.SpriteCount;

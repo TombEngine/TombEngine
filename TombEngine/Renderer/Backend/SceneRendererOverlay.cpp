@@ -151,6 +151,7 @@ namespace TEN::Renderer::Backend
     {
         unsigned int packedColor = PackOverlayColor(color);
         int firstVertex = (int)(_overlayVertexData.size() / sizeof(OverlayVertex));
+        // Corners are given from the top left, in clockwise order; the quad is split into two triangles.
         const int order[6] = { 0, 1, 2, 0, 2, 3 };
         for (int index : order)
         {
@@ -268,10 +269,12 @@ namespace TEN::Renderer::Backend
                 continue;
 
             const auto& glyph = *glyphPointer;
+            // Negative offsets never push a glyph before the start of the line.
             x = std::max(x + glyph.XOffset, 0.0f);
 
             float width = (float)(glyph.Right - glyph.Left);
             float height = (float)(glyph.Bottom - glyph.Top);
+            // Whitespace glyphs with no visible area only advance the pen and emit no quad.
             if (!iswspace(character) || width > 1.0f || height > 1.0f)
             {
                 auto position = Vector2(text.Position.x * scale.x + x * text.Scale * scale.y, (text.Position.y + (y + glyph.YOffset) * text.Scale) * scale.y);
@@ -508,12 +511,14 @@ namespace TEN::Renderer::Backend
                 instance.World = mesh.World;
                 instance.Color = object.Color;
                 instance.AmbientLight = object.AmbientLight;
+                // Skinning packs the bone offset in the low 24 bits and the skinning mode in the high 8 bits.
                 instance.Skinning = ((unsigned int)boneOffset & 0xFFFFFF) | ((unsigned int)((boneCount > 0) ? SKINNING_FULL : SKINNING_NONE) << 24);
 
                 int instanceIndex = (int)(_overlayInstanceData.size() / sizeof(GpuObjectInstance));
                 const auto* bytes = (const unsigned char*)&instance;
                 _overlayInstanceData.insert(_overlayInstanceData.end(), bytes, bytes + sizeof(instance));
 
+                // Two sweeps over the buckets keep static buckets before animated ones.
                 for (int animated = 0; animated < 2; animated++)
                 {
                     for (const auto& bucket : mesh.Mesh->Buckets)
@@ -591,6 +596,7 @@ namespace TEN::Renderer::Backend
             if (draw.IsObjects)
                 break;
 
+            // Bars and the RCAS background have dedicated pipelines; everything else is picked by blend mode.
             auto* pipeline = draw.IsBar ? _overlayBarPipeline.get() : (draw.IsSharpened ? _rcasPipeline.get() : GetOverlayPipeline(draw.BlendMode));
             if (pipeline != lastPipeline)
             {
@@ -658,6 +664,7 @@ namespace TEN::Renderer::Backend
         IBuffer* storageBuffers[4] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _overlayInstanceBuffer.Buffer.get(), _overlayBoneBuffer.Buffer.get() };
 
         const IGraphicsPipeline* lastPipeline = nullptr;
+        // Tracks which object the current frame uniforms belong to, to avoid pushing them again for each bucket.
         int lastObject = NO_VALUE;
         auto state = BucketBindState{};
 
@@ -709,6 +716,7 @@ namespace TEN::Renderer::Backend
         int drawIndex = 0;
         bool isFirstPass = true;
         bool isFirstObjectPass = true;
+        // The loop body always runs once, so an empty overlay still clears the final target in the first pass.
         do
         {
             if (drawIndex < (int)_overlayDraws.size() && _overlayDraws[drawIndex].IsObjects)

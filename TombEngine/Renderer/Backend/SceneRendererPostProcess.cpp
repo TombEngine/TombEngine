@@ -115,6 +115,7 @@ namespace TEN::Renderer::Backend
         const auto& view = *_frameView;
 
         // Slot 2 is shared with the screen space and sky passes: room and object shaders read the shadow uniforms.
+        // It must be pushed again here because the screen space passes push their own uniforms to the same slot.
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
 
         auto colorTarget = ColorTargetInfo{};
@@ -135,6 +136,8 @@ namespace TEN::Renderer::Backend
         const auto& environment = *_frameEnvironment;
         _isColorTargetUpscaled = false;
 
+        // Per frame parameters for the compose shader; the optional layers are gated by the Is*Active flags so that
+        // their textures are only sampled when the corresponding pass actually ran this frame.
         auto uniforms = PostProcessUniforms{};
         uniforms.Tint = environment.Tint;
         uniforms.Gamma = std::max(environment.Gamma, 0.01f);
@@ -151,7 +154,7 @@ namespace TEN::Renderer::Backend
         uniforms.IsGlowActive = _hasVisibleEmissive ? 1 : 0;
         uniforms.IsDofActive = _isDofActive ? (unsigned int)GetDOFLayers(environment) : 0;
 
-        // Flares are projected here; the frontend collection already dropped those behind the camera.
+        // Flares are projected here to normalized device coordinates (w is the clip space divisor); the frontend collection already dropped those behind the camera.
         for (int i = 0; i < environment.LensFlareCount; i++)
         {
             auto clipPosition = Vector4::Transform(Vector4(environment.LensFlarePositions[i].x, environment.LensFlarePositions[i].y, environment.LensFlarePositions[i].z, 1.0f), _viewProjection);
@@ -164,11 +167,14 @@ namespace TEN::Renderer::Backend
         }
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &uniforms, sizeof(uniforms));
 
+        // With antialiasing the compose result goes to an intermediate source and the AA pass writes outputTarget;
+        // the final destination is the upscale source when the FSR 1 pass follows, otherwise the frame target.
         bool isAntialiased = (environment.AntialiasingMode != 0);
         auto* outputTarget = _isUpscaleActive ? _upscaleSource.get() : _colorTarget.get();
 
         auto colorTarget = ColorTargetInfo{};
         colorTarget.Texture = isAntialiased ? _antialiasingSource.get() : outputTarget;
+        // Every pixel is overwritten by the fullscreen triangle, so the previous contents are not loaded.
         colorTarget.Load = LoadOp::DontCare;
 
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);

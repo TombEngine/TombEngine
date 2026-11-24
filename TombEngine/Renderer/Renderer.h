@@ -156,6 +156,7 @@ namespace TEN::Renderer
 
 		// Rooms and collector
 
+		// Parallel to g_Level.Rooms and indexed by room number; rebuilt on level load and swapped by FlipRooms.
 		std::vector<RendererRoom> _rooms;
 		// Cache invalidation forces statics to refresh their cached data on the next collection; the visited rooms
 		// stack holds the rooms on the current portal traversal path, to detect cycles.
@@ -164,21 +165,27 @@ namespace TEN::Renderer
 
 		// Lights
 
+		// Dynamic lights are double buffered: this is the index of the list filled this frame, while the other list holds the
+		// previous frame, from which lights with the same hash take their previous position for interpolation.
 		int _dynamicLightList = 0;
 		std::vector<RendererLight> _dynamicLights[2];
+		// Shadow casting light chosen by CollectLightsForCamera for this frame, or null; points into the room or dynamic lists.
 		RendererLight* _shadowLight;
 
 		// Lines
 
+		// Debug primitives of the frame, cleared by PrepareScene.
 		std::vector<RendererLine3D>		_lines3DToDraw = {};
 		std::vector<RendererTriangle3D> _triangles3DToDraw = {};
 
 		// Textures, objects and sprites
 
+		// Indexed by object ID; an empty slot means the object is not loaded.
 		std::vector<std::optional<RendererObject>>			   _moveableObjects;
 		std::vector<std::optional<RendererObject>>			   _staticObjects; // Key = static ID, value = renderer object.
 		std::vector<RendererSprite>							   _sprites;
 		std::vector<RendererAnimatedTextureSet>				   _animatedTextureSets;
+		// Global mesh list owned by the renderer (freed in FreeRendererData); items refer to meshes by index into it.
 		std::vector<RendererMesh*>							   _meshes;
 		RendererSprite										   _videoSprite; // Video texture is an unique case
 
@@ -195,11 +202,13 @@ namespace TEN::Renderer
 		// Items and effects are safe (can't be more than 1024 items in TR), 
 		// lights should be oversized.
 
+		// Both pools are indexed by item number, so the Prev* state of a slot persists across frames.
 		std::vector<RendererItem> _items;
 		std::vector<RendererEffect> _effects;
 
 		// Debug variables
 
+		// Per-frame counters of the portal traversal, cleared by ResetDebugVariables.
 		int _numDotProducts = 0;
 		int _numCheckPortalCalls = 0;
 		int _numGetVisibleRoomsCalls = 0;
@@ -302,6 +311,7 @@ namespace TEN::Renderer
 
 		// High framerate
 
+		// Fraction of the current game tick elapsed at render time, set by InterpolateCamera (or RenderFreezeMode) and read through GetInterpolationFactor.
 		float _interpolationFactor = 0.0f;
 		bool  _graphicsSettingsChanged = false;
 

@@ -66,6 +66,7 @@ namespace TEN::Renderer
 		nearestSpheres.clear();
 		nearestSpheres.reserve(g_Configuration.ShadowBlobsMax);
 
+		// Collect player spheres (hips, torso and feet) and one ground-level sphere per other shadow-casting item.
 		// Collect player spheres.
 		static const std::array<LARA_MESHES, 4> sphereMeshes = { LM_HIPS, LM_TORSO, LM_LFOOT, LM_RFOOT };
 		static const std::array<float, 4> sphereScaleFactors = { 6.0f, 3.2f, 2.8f, 2.8f };
@@ -80,6 +81,7 @@ namespace TEN::Renderer
 				if (Objects[nativeItem.ObjectNumber].shadowType == ShadowMode::None)
 					continue;
 
+				// Note: the inner loop index below shadows the item reference 'i' of the outer loop.
 				if (nativeItem.IsLara())
 				{
 					for (auto i = 0; i < sphereMeshes.size(); i++)
@@ -113,6 +115,7 @@ namespace TEN::Renderer
 			}
 		}
 
+		// Over budget: keep only the spheres closest to the player, as distant blobs are the least visible.
 		if (nearestSpheres.size() > g_Configuration.ShadowBlobsMax)
 		{
 			std::sort(nearestSpheres.begin(), nearestSpheres.end(), [](const BoundingSphere& a, const BoundingSphere& b)
@@ -134,6 +137,7 @@ namespace TEN::Renderer
 				continue;
 
 			auto translationMatrix = Matrix::CreateTranslation(rope.position.ToVector3());
+			// Joint points are interpolated between the previous and current game tick.
 			auto absolutePoints = std::array<Vector3, 24>{};
 
 			for (int i = 0; i < rope.segment.size(); i++)
@@ -182,6 +186,7 @@ namespace TEN::Renderer
 
 			if (rat->On)
 			{
+				// Each rat picks its animation mesh from the global counter, offset by its index to desynchronize them.\n// Unlike the other swarms, the rat transform is used as is, without interpolation.
 				int index = (GlobalCounter + i) % Objects[ID_RATS_EMITTER].nmeshes;
 				auto* mesh = GetMesh(Objects[ID_RATS_EMITTER].meshIndex + index);
 
@@ -305,6 +310,7 @@ namespace TEN::Renderer
 		if (!Objects[ID_BATS_EMITTER].loaded)
 			return;
 
+		// All bats share the animation mesh of this frame.
 		auto& mesh = *GetMesh(Objects[ID_BATS_EMITTER].meshIndex + (GlobalCounter & 3));
 
 		for (const auto& bat : Bats)
@@ -337,6 +343,7 @@ namespace TEN::Renderer
 		if (!Objects[ID_LITTLE_BEETLE].loaded)
 			return;
 
+		// All beetles share the animation mesh of this frame, flipped by the Wibble counter.
 		auto& mesh = *GetMesh(Objects[ID_LITTLE_BEETLE].meshIndex + ((Wibble >> 2) % 2));
 
 		for (const auto& beetle : TEN::Entities::TR4::BeetleSwarm)
@@ -377,6 +384,7 @@ namespace TEN::Renderer
 			if (!locust.On)
 				continue;
 
+			// The wing animation mesh is selected per locust from its own counter.
 			auto& mesh = *GetMesh(Objects[ID_LOCUSTS].meshIndex + (-locust.Counter & 3));
 			auto transformMatrix = Matrix::Lerp(locust.PrevTransform, locust.Transform, GetInterpolationFactor());
 
@@ -400,6 +408,7 @@ namespace TEN::Renderer
 
 	// Debug primitives: lines and triangles are queued only in debug mode for the current debug page, and passed to the
 	// scene renderer with the frame environment. Shapes are built from lines or triangles.
+	// All debug additions below share one filter: they are dropped while locked or outside debug mode, and are shown\n// only on their own debug page (RendererDebugPage::None shows on every page).
 	void Renderer::AddDebugLine(const Vector3& origin, const Vector3& target, const Color& color, RendererDebugPage page)
 	{
 		if (_isLocked)
@@ -889,6 +898,7 @@ namespace TEN::Renderer
 	// previous frame (for interpolation), and adds its reflection for mirrors that reflect lights.
 	void Renderer::PrepareDynamicLight(RendererLight& light)
 	{
+		// A non-zero hash identifies the same light across frames, which lets its movement be interpolated.
 		// If hash is provided, search for same light in previous buffer.
 		if (light.Hash != 0)
 		{
@@ -942,6 +952,7 @@ namespace TEN::Renderer
 		if (g_GameFlow->CurrentFreezeMode != FreezeMode::Full &&
 			g_Gui.GetInventoryMode() == InventoryMode::None)
 		{
+			// The previous list stays readable by PrepareDynamicLight until the next swap.
 			_dynamicLightList ^= 1;
 			_dynamicLights[_dynamicLightList].clear();
 		}
@@ -964,6 +975,7 @@ namespace TEN::Renderer
 		if (_blinkTime > PI_MUL_2)
 			_blinkTime -= PI_MUL_2;
 
+		// The camera of the last tick becomes the interpolation start; InterpolateCamera blends it towards the new one.
 		_oldGameCamera = _currentGameCamera;
 		Camera.DisableInterpolation = false;
 
@@ -1226,6 +1238,7 @@ namespace TEN::Renderer
 	// Sprites with sorted blend modes were already added by SortAndPrepareSprites.
 	void Renderer::CollectSortedFaces(RenderView& view)
 	{
+		// Collection order only matters for equal sort keys; back-to-front order is established later by SortTransparentFaces.
 		CollectSortedRoomFaces(view);
 		CollectSortedItemFaces(view);
 		CollectSortedEffectFaces(view);
@@ -1599,6 +1612,7 @@ namespace TEN::Renderer
 	{
 		_interpolationFactor = interpFactor;
 
+		// Interpolation is skipped when disabled for the tick (camera cuts), to avoid sweeping between unrelated positions.
 		// Interpolate camera.
 		if (!Camera.DisableInterpolation)
 		{

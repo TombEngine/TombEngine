@@ -9,8 +9,11 @@
 #include "./ShaderInterop.hlsli"
 #include "./Fullscreen.hlsli"
 
+// Used by the Henyey-Greenstein phase function.
 #define PI 3.1415926535897932384626433832795028841971693993751058209749445923
 
+// Camera values used to rebuild view rays and anchor the clouds to the camera. CamPositionWS is the world
+// position of the camera.
 TEN_PS_UNIFORMS(CloudCameraUniforms, 3)
 {
     float4x4 InverseView;
@@ -30,6 +33,7 @@ TEN_PS_TEXTURE(Texture2D<float2>, CloudWorley2D, 2);
 TEN_PS_TEXTURE(Texture2D, SceneColorTexture, 0);
 TEN_PS_TEXTURE(Texture2D, SceneBackgroundTex, 1);
 
+// Names expected by VolumetricCloudsCore.hlsli.
 #define SceneColorSamp      SceneColorTextureSampler
 #define CloudHistorySamp    CloudTextureSampler
 #define SceneBackgroundSamp SceneBackgroundTexSampler

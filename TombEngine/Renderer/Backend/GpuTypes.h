@@ -14,6 +14,7 @@ namespace TEN::Renderer::Backend
     using float4x4 = Matrix;
     using uint     = unsigned int;
 
+    // The include expands inside this namespace, so the structs and TEN_*_UNIFORMS macros below are shared with the HLSL side.
     #include "Shaders/GpuShared.hlsli"
 
     // INSTANCE_INDEX_COUNT is the length of the instance index stream, so no draw can reach a higher instance.
@@ -44,6 +45,7 @@ namespace TEN::Renderer::Backend
         unsigned int   AnimationFrameOffsetIndexHash = 0;
     };
 
+    // Same leading fields as GpuRoomVertex, so both are filled by one packing routine, followed by the skinning data.
     struct GpuObjectVertex
     {
         Vector3        Position                      = Vector3::Zero;
@@ -63,6 +65,7 @@ namespace TEN::Renderer::Backend
 
     // Uniform blocks pushed with ICommandBuffer::PushUniforms into numbered slots per shader stage. Scene shaders use
     // slot 0 for the frame block and slot 1 for the draw block; slots 2 and 3 hold pass specific blocks.
+    // Each struct below wraps the field list of its uniform block macro from GpuShared.hlsli, so the CPU and HLSL layouts cannot drift apart.
     struct FrameVertexUniforms { TEN_FRAME_VERTEX_UNIFORMS };
     struct DrawVertexUniforms  { TEN_DRAW_VERTEX_UNIFORMS };
     struct SkyVertexUniforms   { TEN_SKY_VERTEX_UNIFORMS };
@@ -75,6 +78,7 @@ namespace TEN::Renderer::Backend
     struct WaterPixelUniforms  { TEN_WATER_PIXEL_UNIFORMS };
     struct UnderwaterFogUniforms { TEN_UNDERWATER_FOG_UNIFORMS };
 
+    // Structured buffer element sizes must match the HLSL stride exactly.
     static_assert(sizeof(GpuAnimatedFrame) == 32, "GpuAnimatedFrame size.");
     static_assert(sizeof(GpuAnimatedSet) == 32, "GpuAnimatedSet size.");
     static_assert(sizeof(GpuObjectInstance) == 112, "GpuObjectInstance size.");

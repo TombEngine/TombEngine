@@ -13,6 +13,7 @@ using namespace TEN::Renderer::RHI;
 
 namespace TEN::Renderer::Backend
 {
+    // Glow resolution divisor; the glow is low frequency, so quarter resolution is enough and keeps the blur cheap.
     constexpr auto GLOW_DOWNSCALE_FACTOR = 4;
 
     // Same layout as GlowUniforms in Shaders/Glow.hlsl.
@@ -70,6 +71,7 @@ namespace TEN::Renderer::Backend
     {
         const auto& targetDesc = target->GetDesc();
 
+        // The texel size is that of the destination, the filter taps are spread in its units.
         auto uniforms = GlowUniforms{};
         uniforms.TexelSize = Vector2(1.0f / targetDesc.Width, 1.0f / targetDesc.Height);
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &uniforms, sizeof(uniforms));
@@ -102,6 +104,7 @@ namespace TEN::Renderer::Backend
             RenderFullscreenPass(commandBuffer, pipeline, target, &binding, 1, name);
         };
 
+        // The vertical pass writes back into the glow target, so the final result needs no extra copy.
         auto* blurTarget = _targetPool.Acquire(targetDesc);
         DownscaleTexture(commandBuffer, emissive, glow, "Downscale");
         drawPass(_glowBlurPipeline.get(), blurTarget, glow, Vector2::UnitX, "Blur horizontal");

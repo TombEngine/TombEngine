@@ -192,6 +192,7 @@ namespace TEN::Renderer::Backend
             commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &draw.Uniforms, sizeof(draw.Uniforms));
             commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 3, &cameraUniforms, sizeof(cameraUniforms));
 
+            // Per layer order: optional history reset, raymarch, optional sun occlusion query, then composite over the scene.
             if (draw.IsHistoryReset)
                 ClearColorTarget(commandBuffer, _cloudHistoryTargets[draw.Layer].get());
 
@@ -405,6 +406,7 @@ namespace TEN::Renderer::Backend
         _targetPool.Release(sceneCopy);
     }
 
+    // Alpha blended fullscreen pipeline of the dust storm, compatible with the scene pass depth format.
     bool SceneRenderer::CreateDustStormResources()
     {
         _dustStormVertexShader = LoadShader(*_device, _shaderDirectory, "DustStorm", "VS");
@@ -481,6 +483,7 @@ namespace TEN::Renderer::Backend
     {
         const auto& view = *_frameView;
 
+        // The pass is begun even when no sky is visible, so the scene target is always cleared to the fog color.
         auto* renderPass = BeginSkyRenderPass(commandBuffer, LoadOp::Clear);
         if (!IsSkyVisible(view))
         {
@@ -489,6 +492,7 @@ namespace TEN::Renderer::Backend
         }
 
         DrawSkyBackground(commandBuffer, *renderPass, view, 0);
+        // Cloud, disc and aurora draws start render passes of their own, so the sky pass is closed around them and resumed with a load.
         if (HasCloudDraws(false) || HasSkyDiscsOrAurora())
         {
             commandBuffer.EndRenderPass();

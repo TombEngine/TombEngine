@@ -24,6 +24,7 @@
 #define TEN_PS_UNIFORMS(name, slot) [[vk::binding(slot, 3)]] cbuffer name
 #define TEN_CS_UNIFORMS(name, slot) [[vk::binding(slot, 2)]] cbuffer name
 
+// Every texture macro also declares a sampler named <name>Sampler at the same slot.
 #define TEN_VS_TEXTURE(type, name, slot) \
     [[vk::combinedImageSampler]] [[vk::binding(slot, 0)]] type name; \
     [[vk::combinedImageSampler]] [[vk::binding(slot, 0)]] SamplerState name##Sampler
@@ -79,6 +80,8 @@
 #define TEN_VS_STORAGE_BUFFER(type, name, index) StructuredBuffer<type> name : register(t##index, space0)
 #define TEN_PS_STORAGE_BUFFER(type, name, index) StructuredBuffer<type> name : register(t##index, space2)
 #define TEN_CS_STORAGE_BUFFER(type, name, index) StructuredBuffer<type> name : register(t##index, space0)
+// Byte address buffers are read at an element stride, so the type given to TEN_LOAD_RAW must be the exact element
+// // type of the buffer.
 #define TEN_VS_RAW_BUFFER(type, name, index)     ByteAddressBuffer name : register(t##index, space0)
 #define TEN_PS_RAW_BUFFER(type, name, index)     ByteAddressBuffer name : register(t##index, space2)
 #define TEN_RAW_BUFFER_TYPE(type)                ByteAddressBuffer

@@ -5,5 +5,6 @@
 
 // SMAA for the medium antialiasing mode.
 
+// Medium preset: edge threshold 0.1 and 8 search steps, diagonal and corner detection disabled.
 #define SMAA_PRESET_MEDIUM
 #include "./SMAACommon.hlsli"

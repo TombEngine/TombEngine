@@ -26,6 +26,7 @@ namespace TEN::Renderer::RHI::DirectX11
     constexpr auto SWAPCHAIN_BUFFER_COUNT = 2;
     constexpr auto MAX_SRV_SLOTS         = 32;
 
+    // Maps RHI pixel formats to DXGI. Depth formats map to their DSV format; unsupported values give UNKNOWN.
     static DXGI_FORMAT ToDXGI(PixelFormat format)
     {
         switch (format)
@@ -74,6 +75,8 @@ namespace TEN::Renderer::RHI::DirectX11
         }
     }
 
+    // Format of the shader resource view. Depth formats are read through the single-channel view of the typeless resource
+    // created by ToDXGIResourceFormat; color formats are viewed as they are.
     static DXGI_FORMAT ToDXGIShaderResourceFormat(PixelFormat format)
     {
         switch (format)
@@ -86,6 +89,7 @@ namespace TEN::Renderer::RHI::DirectX11
         }
     }
 
+    // Vertex attribute formats. UByte4 is an integer attribute (UINT), the Norm variants are converted to float by the input assembler.
     static DXGI_FORMAT ToDXGI(VertexElementFormat format)
     {
         switch (format)
@@ -122,6 +126,7 @@ namespace TEN::Renderer::RHI::DirectX11
         }
     }
 
+    // Only the stencil operations the RHI exposes; anything else keeps the stored value.
     static D3D11_STENCIL_OP ToD3D11(StencilOp op)
     {
         switch (op)
@@ -132,6 +137,7 @@ namespace TEN::Renderer::RHI::DirectX11
         }
     }
 
+    // Color blend factors; unknown values fall back to One.
     static D3D11_BLEND ToD3D11(BlendFactor factor)
     {
         switch (factor)
@@ -185,6 +191,7 @@ namespace TEN::Renderer::RHI::DirectX11
         }
     }
 
+    // Unknown primitive types fall back to a triangle list.
     static D3D11_PRIMITIVE_TOPOLOGY ToD3D11(PrimitiveType type)
     {
         switch (type)
@@ -219,12 +226,14 @@ namespace TEN::Renderer::RHI::DirectX11
         return (D3D11_FILTER)filter;
     }
 
+    // Names a resource for graphics debuggers and the debug layer; a no-op for empty names.
     static void SetDebugName(ID3D11DeviceChild* object, const std::string& name)
     {
         if (object != nullptr && !name.empty())
             object->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)name.size(), name.c_str());
     }
 
+    // Buffer with optional views: Srv for storage reads in shaders, Uav when compute shaders write it.
     class DX11Buffer : public IBuffer
     {
     public:
@@ -239,6 +248,7 @@ namespace TEN::Renderer::RHI::DirectX11
         unsigned int GetUsage() const override { return Usage; }
     };
 
+    // Texture resource of any dimension. Srv is only created for sampled textures and Uav for compute writes.
     class DX11Texture : public ITexture
     {
     public:
@@ -261,6 +271,7 @@ namespace TEN::Renderer::RHI::DirectX11
         ComPtr<ID3D11SamplerState> Handle = nullptr;
     };
 
+    // Only the object matching Desc.Stage is created. The bytecode is kept because input layouts are validated against the vertex shader signature.
     class DX11Shader : public IShader
     {
     public:
@@ -273,6 +284,7 @@ namespace TEN::Renderer::RHI::DirectX11
         const ShaderDesc& GetDesc() const override { return Desc; }
     };
 
+    // D3D11 has no monolithic pipeline object: this bundles the shaders and state objects, applied together by DX11RenderPass::BindPipeline.
     class DX11GraphicsPipeline : public IGraphicsPipeline
     {
     public:
@@ -292,6 +304,7 @@ namespace TEN::Renderer::RHI::DirectX11
         int PixelStorageBufferBase  = 0;
     };
 
+    // Compute shader plus the first t register used by its storage buffers.
     class DX11ComputePipeline : public IComputePipeline
     {
     public:
@@ -321,6 +334,7 @@ namespace TEN::Renderer::RHI::DirectX11
         ComPtr<ID3D11Query> Query = nullptr;
     };
 
+    // Null-tolerant accessors: a null binding unbinds the slot, which is how unused slots are cleared.
     static ID3D11ShaderResourceView* GetSrv(ITexture* texture)
     {
         return (texture != nullptr) ? ((DX11Texture*)texture)->Srv.Get() : nullptr;
@@ -340,6 +354,7 @@ namespace TEN::Renderer::RHI::DirectX11
 
     // Timestamp queries around the outermost debug group (the frame) and the groups directly inside it.
     // Results are read a few frames later without stalling; frames still pending when their slot is reused are dropped.
+    // Per-frame GPU timing. Each frame slot owns a disjoint query covering all its timestamp pairs; a ring of slots hides query latency.
     class DX11GpuProfiler
     {
     private:
@@ -368,6 +383,7 @@ namespace TEN::Renderer::RHI::DirectX11
         int                  _openScopes[2] = { -1, -1 };
         std::vector<GpuTiming> _totals     = {};
 
+        // Query creation failure is not handled: a null query makes the scope timings silently invalid.
         ComPtr<ID3D11Query> CreateQuery(D3D11_QUERY type)
         {
             auto desc = D3D11_QUERY_DESC{ type, 0 };
@@ -376,6 +392,7 @@ namespace TEN::Renderer::RHI::DirectX11
             return query;
         }
 
+        // Sums samples per scope name; Consume() turns the sums into averages.
         void Accumulate(const std::string& name, float milliseconds)
         {
             for (auto& total : _totals)
@@ -418,6 +435,7 @@ namespace TEN::Renderer::RHI::DirectX11
             }
         }
 
+        // Level 0 is the outermost group, level 1 the groups directly inside it. Queries are created lazily and reused.
         void BeginScope(Frame& frame, int level, const char* name)
         {
             if (frame.ScopeCount >= SCOPES_MAX)
@@ -487,6 +505,7 @@ namespace TEN::Renderer::RHI::DirectX11
             }
         }
 
+        // Returns the average time per scope since the last call and resets the accumulators.
         std::vector<GpuTiming> Consume()
         {
             auto result = std::move(_totals);
@@ -498,6 +517,7 @@ namespace TEN::Renderer::RHI::DirectX11
         }
     };
 
+    // Render pass on the immediate context. State is applied immediately; only the vertex buffers and the current pipeline are cached here.
     class DX11RenderPass : public IRenderPass
     {
     public:
@@ -511,12 +531,14 @@ namespace TEN::Renderer::RHI::DirectX11
         UINT          VertexBufferOffsets[MAX_VERTEX_BUFFERS] = {};
         int           VertexBufferCount                       = 0;
 
+        // A new pass starts with no pipeline or vertex buffers bound.
         void Reset()
         {
             Pipeline = nullptr;
             VertexBufferCount = 0;
         }
 
+        // Redundant binds are skipped. The blend factor is the default (null) and the sample mask is all ones, since the RHI has no blend constants.
         void BindPipeline(IGraphicsPipeline* pipeline) override
         {
             auto* dxPipeline = (DX11GraphicsPipeline*)pipeline;
@@ -541,6 +563,7 @@ namespace TEN::Renderer::RHI::DirectX11
             Context->RSSetViewports(1, &d3dViewport);
         }
 
+        // The scissor test is always enabled in the rasterizer state, so the full target rectangle is set at pass start.
         void SetScissor(const ScissorRect& scissor) override
         {
             auto rect = D3D11_RECT{ scissor.X, scissor.Y, scissor.X + scissor.Width, scissor.Y + scissor.Height };
@@ -579,6 +602,7 @@ namespace TEN::Renderer::RHI::DirectX11
             Counters->IndexBufferBinds++;
         }
 
+        // Texture and sampler of a binding share the same register index (tN and sN).
         void BindVertexSamplers(int firstSlot, const TextureSamplerBinding* bindings, int count) override
         {
             ID3D11ShaderResourceView* views[MAX_SAMPLER_SLOTS];
@@ -594,6 +618,7 @@ namespace TEN::Renderer::RHI::DirectX11
             Counters->TextureBinds += count;
         }
 
+        // Storage buffers are SRVs placed after the textures of the shader, hence the base register of the pipeline.
         void BindVertexStorageBuffers(int firstSlot, IBuffer* const* buffers, int count) override
         {
             ID3D11ShaderResourceView* views[MAX_STORAGE_SLOTS];
@@ -644,6 +669,7 @@ namespace TEN::Renderer::RHI::DirectX11
         }
     };
 
+    // Copy pass. Uploads use UpdateSubresource, so the data is consumed immediately and the transfer buffer can be reused at once.
     class DX11CopyPass : public ICopyPass
     {
     public:
@@ -661,6 +687,7 @@ namespace TEN::Renderer::RHI::DirectX11
             Counters->UploadBytes += size;
         }
 
+        // Pitches are computed in blocks for compressed formats. For 3D textures the layer is a depth slice, so the array slice is 0.
         void UploadToTexture(const TextureTransferInfo& source, const TextureRegion& destination, bool cycle) override
         {
             auto* texture = (DX11Texture*)destination.Texture;
@@ -686,6 +713,7 @@ namespace TEN::Renderer::RHI::DirectX11
             Counters->Uploads++;
         }
 
+        // GPU to GPU region copy; formats and sample counts must be compatible, as D3D11 requires.
         void CopyTexture(const TextureRegion& source, const TextureRegion& destination) override
         {
             auto* sourceTexture = (DX11Texture*)source.Texture;
@@ -735,6 +763,7 @@ namespace TEN::Renderer::RHI::DirectX11
         }
     };
 
+    // Compute pass. UAVs are bound at pass begin (see BeginComputePass) and removed at the end.
     class DX11ComputePass : public IComputePass
     {
     public:
@@ -748,6 +777,7 @@ namespace TEN::Renderer::RHI::DirectX11
             Context->CSSetShader(Pipeline->Shader.Get(), nullptr, 0);
         }
 
+        // Binds sampled textures and their samplers for the compute stage.
         void BindSamplers(int firstSlot, const TextureSamplerBinding* bindings, int count) override
         {
             ID3D11ShaderResourceView* views[MAX_SAMPLER_SLOTS];
@@ -782,6 +812,7 @@ namespace TEN::Renderer::RHI::DirectX11
     class DX11Device;
 
     // The only command buffer of the device: commands go straight to the immediate context.
+    // Hazard rule: a resource cannot be bound as SRV and as RTV or UAV at once, so passes clear their SRV slots when they begin or end.
     class DX11CommandBuffer : public ICommandBuffer
     {
     public:
@@ -789,6 +820,7 @@ namespace TEN::Renderer::RHI::DirectX11
         ID3D11Device*                        Device     = nullptr;
         ID3D11DeviceContext*                 Context    = nullptr;
         ComPtr<ID3DUserDefinedAnnotation>    Annotation = nullptr;
+        // The stage index of the uniform arrays is the ShaderStage value: vertex, pixel, compute.
         ComPtr<ID3D11Buffer>                 UniformBuffers[3][MAX_UNIFORM_SLOTS] = {}; // Per stage and slot, path without D3D11.1.
 
         // D3D11.1 path, when the driver supports it: one ring of all uniform pushes, bound by range. The last data
@@ -810,6 +842,7 @@ namespace TEN::Renderer::RHI::DirectX11
         void      Submit() override;
         std::unique_ptr<IFence> SubmitWithFence() override;
 
+        // Clears are done on the views when the load op asks for it. The viewport size comes from the last color target, or from the depth target when there are no color targets.
         IRenderPass* BeginRenderPass(const ColorTargetInfo* colorTargets, int colorTargetCount, const DepthTargetInfo* depthTarget) override
         {
             // Unbind every shader resource first, so a texture written by this pass is not still bound as input.
@@ -848,6 +881,7 @@ namespace TEN::Renderer::RHI::DirectX11
                 }
             }
 
+            // Targets are bound after the clears so a clear never needs a rebind.
             Context->OMSetRenderTargets(colorTargetCount, rtvs, dsv);
 
             // Match SDL GPU, which resets viewport and scissor to the full target at pass start.
@@ -864,6 +898,7 @@ namespace TEN::Renderer::RHI::DirectX11
             return &RenderPass;
         }
 
+        // Unbinds the targets so the textures can be sampled by later passes.
         void EndRenderPass() override
         {
             IsRenderPassOpen = false;
@@ -885,6 +920,7 @@ namespace TEN::Renderer::RHI::DirectX11
 
         void EndCopyPass() override {}
 
+        // The UAV slot count is remembered so EndComputePass clears exactly the ones set.
         IComputePass* BeginComputePass(const ComputePassDesc& desc) override
         {
             if (IsRenderPassOpen)
@@ -921,6 +957,7 @@ namespace TEN::Renderer::RHI::DirectX11
             NumComputeUavs = 0;
         }
 
+        // Uniform data is copied at call time. Pushes bigger than the fixed buffer are rejected and logged.
         void PushUniforms(ShaderStage stage, int slot, const void* data, int size) override
         {
             Counters.UniformPushes++;
@@ -937,6 +974,7 @@ namespace TEN::Renderer::RHI::DirectX11
                 PushSlotUniforms(stage, slot, data, size);
         }
 
+        // Size reserved in the ring: rounded up to the offset alignment, at least one alignment unit.
         static int GetRingUniformSize(int size)
         {
             int alignedSize = (size + UNIFORM_RING_ALIGNMENT - 1) / UNIFORM_RING_ALIGNMENT * UNIFORM_RING_ALIGNMENT;
@@ -998,6 +1036,7 @@ namespace TEN::Renderer::RHI::DirectX11
             }
         }
 
+        // Copies into the mapped ring at the current offset and returns that offset. The caller must have checked the space.
         int WriteRingUniforms(const D3D11_MAPPED_SUBRESOURCE& mapped, const void* data, int size)
         {
             int offset = UniformRingOffset;
@@ -1006,6 +1045,7 @@ namespace TEN::Renderer::RHI::DirectX11
             return offset;
         }
 
+        // The *SetConstantBuffers1 calls take the offset and size in units of 16 byte constants.
         void BindRingUniforms(ShaderStage stage, int slot, int offset, int size)
         {
             auto* handle = UniformRing.Get();
@@ -1056,6 +1096,7 @@ namespace TEN::Renderer::RHI::DirectX11
         }
 
         // Same-size copy only; the scene renderer keeps its offscreen target at swapchain size.
+        // Implemented as a copy of mip 0 and layer 0, so it also needs matching formats.
         void BlitTexture(ITexture* source, ITexture* destination) override
         {
             const auto& sourceDesc = source->GetDesc();
@@ -1067,6 +1108,7 @@ namespace TEN::Renderer::RHI::DirectX11
             Counters.Blits++;
         }
 
+        // Feeds both the graphics debugger markers and the GPU profiler, which tracks the nesting depth.
         void PushDebugGroup(const char* name) override
         {
             if (Annotation != nullptr)
@@ -1091,11 +1133,13 @@ namespace TEN::Renderer::RHI::DirectX11
 
     private:
         // Packs the mip level in the upper 16 bits and the layer in the lower ones.
+        // Views are cached per texture and live as long as the texture.
         static int GetViewKey(int mipLevel, int layer)
         {
             return (mipLevel << 16) | layer;
         }
 
+        // Returns the cached view of one mip and layer, creating it on first use. For 3D textures the layer selects a depth slice.
         ID3D11RenderTargetView* GetRenderTargetView(DX11Texture* texture, int mipLevel, int layer)
         {
             int key = GetViewKey(mipLevel, layer);
@@ -1133,6 +1177,7 @@ namespace TEN::Renderer::RHI::DirectX11
             return view.Get();
         }
 
+        // The view uses the depth format even when the resource is typeless for sampling. Depth targets are always mip 0.
         ID3D11DepthStencilView* GetDepthStencilView(DX11Texture* texture, int layer)
         {
             int key = GetViewKey(0, layer);
@@ -1213,6 +1258,7 @@ namespace TEN::Renderer::RHI::DirectX11
             UpdateSwapchainTexture();
         }
 
+        // Clearing the state releases the bindings so the resources can be destroyed.
         ~DX11Device() override
         {
             _context->ClearState();
@@ -1279,6 +1325,7 @@ namespace TEN::Renderer::RHI::DirectX11
             return _commandBuffer.Profiler.Consume();
         }
 
+        // Tearing is only requested without vertical sync, and only if the swapchain was created with the tearing flag.
         void Present()
         {
             _swapChain->Present(_syncInterval, (_syncInterval == 0 && _isTearingSupported) ? DXGI_PRESENT_ALLOW_TEARING : 0);
@@ -1378,6 +1425,7 @@ namespace TEN::Renderer::RHI::DirectX11
             return buffer;
         }
 
+        // Depth textures that are also sampled use a typeless resource with separate DSV and SRV formats.
         std::unique_ptr<ITexture> CreateTexture(const TextureDesc& desc) override
         {
             bool isDepth = IsDepthFormat(desc.Format);
@@ -1482,6 +1530,7 @@ namespace TEN::Renderer::RHI::DirectX11
             return texture;
         }
 
+        // Anisotropy overrides the min, mag and mip filters, as D3D11 has a dedicated filter for it.
         std::unique_ptr<ISampler> CreateSampler(const SamplerDesc& desc) override
         {
             auto samplerDesc = D3D11_SAMPLER_DESC{};
@@ -1506,6 +1555,7 @@ namespace TEN::Renderer::RHI::DirectX11
             return sampler;
         }
 
+        // The code is copied, so the caller can free its buffer.
         std::unique_ptr<IShader> CreateShader(const ShaderDesc& desc) override
         {
             auto shader = std::make_unique<DX11Shader>();
@@ -1541,6 +1591,7 @@ namespace TEN::Renderer::RHI::DirectX11
             return shader;
         }
 
+        // Builds all state objects once; binding a pipeline later is just a set of context calls.
         std::unique_ptr<IGraphicsPipeline> CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) override
         {
             auto* vertexShader = (DX11Shader*)desc.VertexShader;
@@ -1560,6 +1611,7 @@ namespace TEN::Renderer::RHI::DirectX11
 
             if (desc.Layout.NumAttributes > 0)
             {
+                // Per-instance attributes advance once per instance; the step rate is 1 for them.
                 D3D11_INPUT_ELEMENT_DESC elements[MAX_VERTEX_ATTRIBUTES] = {};
                 for (int i = 0; i < desc.Layout.NumAttributes; i++)
                 {
@@ -1610,10 +1662,12 @@ namespace TEN::Renderer::RHI::DirectX11
             rasterizerDesc.FillMode = (desc.Rasterizer.Fill == FillMode::Wireframe) ? D3D11_FILL_WIREFRAME : D3D11_FILL_SOLID;
             rasterizerDesc.CullMode = (desc.Rasterizer.Cull == CullMode::None) ? D3D11_CULL_NONE : ((desc.Rasterizer.Cull == CullMode::Front) ? D3D11_CULL_FRONT : D3D11_CULL_BACK);
             rasterizerDesc.FrontCounterClockwise = (desc.Rasterizer.Front == FrontFace::CounterClockwise);
+            // D3D11 takes an integer bias in depth buffer units, so the constant is truncated; the clamp and slope factor stay floats.
             rasterizerDesc.DepthBias = desc.Rasterizer.EnableDepthBias ? (INT)desc.Rasterizer.DepthBiasConstant : 0;
             rasterizerDesc.DepthBiasClamp = desc.Rasterizer.EnableDepthBias ? desc.Rasterizer.DepthBiasClamp : 0.0f;
             rasterizerDesc.SlopeScaledDepthBias = desc.Rasterizer.EnableDepthBias ? desc.Rasterizer.DepthBiasSlope : 0.0f;
             rasterizerDesc.DepthClipEnable = desc.Rasterizer.EnableDepthClip;
+            // Always on; passes set a full target scissor at their start, so an unset scissor never clips.
             rasterizerDesc.ScissorEnable = true;
             rasterizerDesc.MultisampleEnable = desc.SampleCount > 1;
 
@@ -1625,6 +1679,7 @@ namespace TEN::Renderer::RHI::DirectX11
             depthDesc.DepthFunc = ToD3D11(desc.DepthStencil.DepthCompare);
 
             const auto& depthStencil = desc.DepthStencil;
+            // Stencil is only enabled when the depth format has a stencil plane; both faces share the same operations.
             depthDesc.StencilEnable = depthStencil.EnableStencilTest && HasStencil(desc.DepthFormat);
             depthDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
             depthDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
@@ -1655,6 +1710,7 @@ namespace TEN::Renderer::RHI::DirectX11
         }
 
         // Transfer buffers are system memory, so cycle is not needed; a pending download is read back first.
+        // A pending readback is resolved here, which may block until the GPU copy finished.
         void* MapTransferBuffer(ITransferBuffer* buffer, bool cycle) override
         {
             auto* transferBuffer = (DX11TransferBuffer*)buffer;
@@ -1689,6 +1745,7 @@ namespace TEN::Renderer::RHI::DirectX11
 
         void UnmapTransferBuffer(ITransferBuffer* buffer) override {}
 
+        // Requires a texture created with the generate-mips flag (sampled render target with several mips).
         void GenerateMipmaps(ICommandBuffer* commandBuffer, ITexture* texture) override
         {
             auto* srv = ((DX11Texture*)texture)->Srv.Get();
@@ -1714,6 +1771,7 @@ namespace TEN::Renderer::RHI::DirectX11
         }
 
         // Every reference to the back buffers must be released before ResizeBuffers.
+        // Passing zero buffer count and UNKNOWN format keeps the current ones.
         void ResizeSwapchain(int width, int height) override
         {
             _context->OMSetRenderTargets(0, nullptr, nullptr);
@@ -1726,11 +1784,13 @@ namespace TEN::Renderer::RHI::DirectX11
             UpdateSwapchainTexture();
         }
 
+        // Flush only submits the queued commands to the driver; it does not wait for the GPU to finish.
         void WaitIdle() override
         {
             _context->Flush();
         }
 
+        // A null fence counts as signaled. GetData runs without the do-not-flush flag, so polling also pushes the commands to the GPU.
         bool IsFenceSignaled(IFence* fence) override
         {
             return (fence == nullptr) || (_context->GetData(((DX11Fence*)fence)->Query.Get(), nullptr, 0, 0) == S_OK);
@@ -1743,6 +1803,7 @@ namespace TEN::Renderer::RHI::DirectX11
                 SDL_Delay(0);
         }
 
+        // Compute storage write support is not checked here.
         bool SupportsTextureFormat(PixelFormat format, TextureType type, unsigned int usage) const override
         {
             UINT support = 0;
@@ -1761,12 +1822,14 @@ namespace TEN::Renderer::RHI::DirectX11
             return true;
         }
 
+        // DXGI presents from any thread, unlike the SDL GPU swapchain.
         bool RequiresWindowThreadPresent() const override
         {
             return false;
         }
     };
 
+    // Defined out of line because the command buffer methods need the complete DX11Device type.
     ITexture* DX11CommandBuffer::AcquireSwapchainTexture()
     {
         HasSwapchainTexture = true;
@@ -1784,6 +1847,7 @@ namespace TEN::Renderer::RHI::DirectX11
         HasSwapchainTexture = false;
     }
 
+    // The event query is ended after the present, so it signals when the GPU consumed all earlier commands.
     std::unique_ptr<IFence> DX11CommandBuffer::SubmitWithFence()
     {
         Submit();
@@ -1884,6 +1948,7 @@ namespace TEN::Renderer::RHI::DirectX11
             return nullptr;
         }
 
+        // Disables the default Alt+Enter fullscreen toggle of DXGI.
         factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER);
 
         auto result2 = std::make_unique<DX11Device>(device, context, swapChain, window, adapterName, isTearingSupported);

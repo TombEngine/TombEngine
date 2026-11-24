@@ -6,6 +6,8 @@ namespace TEN::Renderer::Structures
 {
 	using namespace TEN::Math::Library;
 
+	// Room or dynamic light. For spot lights In and Out hold the level length and cutoff, and InRange and OutRange the radii;
+	// other types use In and Out as radii. Hash identifies a dynamic light across frames (0 for none); Luma is the precomputed brightness of the color.
 	struct RendererLight
 	{
 		Vector3 Position;
@@ -24,6 +26,7 @@ namespace TEN::Renderer::Structures
 		bool CastShadows;
 		float Luma;
 
+		// Previous frame position and direction of a dynamic light, for interpolation.
 		Vector3 PrevPosition;
 		Vector3 PrevDirection;
 

@@ -13,6 +13,8 @@ TEN_VS_UNIFORMS(OverlayUniforms, 0)
     TEN_OVERLAY_UNIFORMS
 };
 
+// Status bar: Percent is the filled fraction, PoisonFactor blends the fill toward the poison color, and IsInner selects
+// // the fill (1) or the border (0).
 TEN_PS_UNIFORMS(BarUniforms, 0)
 {
     float2 BarStartUV;   // Sprite rectangle in its atlas page.
@@ -69,6 +71,7 @@ float4 PSBar(PixelInput input) : SV_TARGET
     if (!IsInner)
         return color;
 
+    // Pixels past the filled fraction are discarded.
     clip(Percent - input.UV.x);
     color = lerp(color, float4(214.0f / 512.0f, 241.0f / 512.0f, 18.0f / 512.0f, 1.0f), PoisonFactor);
     return ApplyGlassOverlay(input.UV, color);

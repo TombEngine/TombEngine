@@ -3,6 +3,7 @@
 		
 namespace TEN::Renderer::Structures
 {
+	// Lens flare of a view. Direction is the normalized vector from the camera to the flare; Distance is zero for global (sun) flares.
 	struct RendererLensFlare
 	{
 		int SpriteID = 0;

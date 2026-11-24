@@ -5,5 +5,6 @@
 
 // SMAA for the high antialiasing mode.
 
+// Ultra preset: edge threshold 0.05, 32 search steps and 16 diagonal steps, with corner rounding.
 #define SMAA_PRESET_ULTRA
 #include "./SMAACommon.hlsli"

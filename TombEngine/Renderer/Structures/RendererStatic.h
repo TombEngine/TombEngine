@@ -9,9 +9,11 @@ namespace TEN::Renderer::Structures
 	// Static mesh instance of a room, with interpolated world matrix, culling sphere and cached lights.
 	struct RendererStatic
 	{
+		// Static slot ID and the room of the instance.
 		int ObjectNumber;
 		int RoomNumber;
 
+		// PrevPose and Pose are the poses of the previous and current game tick; Update blends them into World.
 		Pose 	PrevPose;
 		Pose	Pose;
 		Matrix	World;
@@ -20,8 +22,10 @@ namespace TEN::Renderer::Structures
 
 		std::vector<RendererLight*>	   LightsToDraw;
 		std::vector<RendererLightNode> CachedRoomLights;
+		// CachedRoomLights holds the room lights found for the static; CacheLights asks for a new gathering and is set by Update.
 		bool CacheLights;
 
+		// OriginalSphere is in object space; Sphere is its world space version used for culling.
 		BoundingSphere OriginalSphere;
 		BoundingSphere Sphere;
 

@@ -4,6 +4,7 @@
 
 namespace TEN::Renderer::Structures
 {
+	// 2D sprite drawn on top of the scene; Priority orders the sprites.
 	struct RendererDisplaySpriteToDraw
 	{
 		const RendererSprite* SpritePtr = nullptr;

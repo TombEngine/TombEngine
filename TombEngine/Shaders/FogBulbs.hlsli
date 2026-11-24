@@ -28,6 +28,7 @@ float GetFogBulbDensity(float3 position, float3 cameraPosition, GpuFogBulb bulb,
     float3 p0 = cameraPosition;
     float3 p1 = position;
 
+    // Clip the camera to vertex segment to the part inside the sphere.
     if (isCameraInside)
     {
         if (!isVertexInside)

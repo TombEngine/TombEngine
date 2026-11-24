@@ -4,6 +4,9 @@
 #ifndef CB_GOD_RAY_HLSLI
 #define CB_GOD_RAY_HLSLI
 
+// God ray parameters, filled per frame by RendererGodRay.cpp. Positions are in screen UV space. The
+// underwater rows switch the light source from cloud gaps to the brightness of the rendered underwater
+// sky, and are only read while GodRayUnderwaterActive is set.
 TEN_GOD_RAY_BLOCK
 {
     // Row 0 - Sun position and ray parameters

@@ -151,6 +151,7 @@ namespace TEN::Renderer::Backend
         int         DrawCalls = 0;
     };
 
+    // Elapsed time between two steady clock points, used by every CPU timer of the frame statistics.
     float GetMilliseconds(std::chrono::steady_clock::time_point start, std::chrono::steady_clock::time_point end);
 
     // Content of a draw call, as the draw call statistics of the frontend.
@@ -175,6 +176,7 @@ namespace TEN::Renderer::Backend
         Count
     };
 
+    // Display name of a category for the statistics page; out of range values are clamped.
     const char* GetDrawCategoryName(DrawCategory category);
 
     // Statistics of the last scene frame, shown by the graphics statistics debug page.
@@ -239,6 +241,10 @@ namespace TEN::Renderer::Backend
     // Blend state of each blend mode.
     RHI::BlendState GetBlendState(BlendMode blendMode);
 
+    // Threading: the game thread calls RenderFrame and FinishFrame, the window thread calls PresentOnWindowThread, and
+    // _frameMutex serializes them. Private members are grouped by feature, in the order of the SceneRenderer*.cpp files
+    // named in the group comments. Per-frame lists are cleared and refilled by the collection step of each frame and keep
+    // their capacity; level resources are created by LoadLevel and replaced when the next level loads.
     class SceneRenderer
     {
     private:
@@ -337,6 +343,7 @@ namespace TEN::Renderer::Backend
         };
 
         // Draw state of consecutive bucket draws; pushes and binds are skipped when unchanged.
+        // Initial values are sentinels that no real draw has, so the first bucket of a pass always pushes its uniforms.
         struct BucketBindState
         {
             DrawPixelUniforms        PixelUniforms  = { -1.0f };
@@ -806,6 +813,7 @@ namespace TEN::Renderer::Backend
         std::vector<RoomTexture>      _spriteTextures   = {};
         std::vector<std::unique_ptr<TextureArrayGroup>> _textureArrayGroups = {};
         std::unique_ptr<RHI::ITexture> _defaultMapArrays[(int)MaterialMap::Count] = {}; // One layer arrays: white, flat normal, default ORSH, black.
+        // Copy of the pointers given to LoadLevel; the frontend vectors they reference must outlive the level.
         LevelGeometry           _levelGeometry   = {};
 
         // Light counts hold the count in the low 16 bits and the light type mask in the high bits.
@@ -863,6 +871,7 @@ namespace TEN::Renderer::Backend
         std::vector<unsigned char>    _decalData           = {};
 
         // Offset and count of the decals of each visible room, by room number.
+        // Rebuilt by CollectDecals every frame.
         std::unordered_map<int, std::pair<int, int>> _roomDecalSlices = {};
 
         // Light offset and count of the room lights used by effect meshes, by room number, filled on demand; the list
@@ -897,6 +906,8 @@ namespace TEN::Renderer::Backend
         std::unique_ptr<RHI::ITexture>          _cloudTargets[CLOUD_LAYER_COUNT]        = {};
         std::unique_ptr<RHI::ITexture>          _cloudHistoryTargets[CLOUD_LAYER_COUNT] = {};
         std::unique_ptr<RHI::ITexture>          _cloudOcclusionTargets[CLOUD_LAYER_COUNT] = {}; // Sun transmittance, 1x1.
+        // Sun transmittance of each cloud layer, filled asynchronously by the readback of QueryCloudOcclusion. The read flag marks a
+        // fresh value that ReadCloudTransmittance hands out once.
         float                                   _cloudTransmittances[CLOUD_LAYER_COUNT]   = {};
         bool                                    _isCloudTransmittanceRead[CLOUD_LAYER_COUNT] = {};
 
@@ -912,6 +923,7 @@ namespace TEN::Renderer::Backend
 
         // Per-frame sprites, sorted object instances (keyed by their static, effect or item) and materials.
         std::vector<const Structures::RendererSpriteToDraw*> _spriteSources = {}; // One per frame sprite.
+        // Key is the address of the source static, effect or item; the value is its instance index. Cleared by CollectSortedFaces.
         std::unordered_map<const void*, int> _sortedInstances = {};
         std::array<int, 2>            _hairInstances       = { NO_VALUE, NO_VALUE }; // Primary and secondary hair unit instances.
         FrameStorageBuffer            _materialBuffer      = {};
@@ -937,15 +949,21 @@ namespace TEN::Renderer::Backend
         // Scene frame in _colorTarget; with the 2D layer in _finalTarget, handed from the render thread to the window thread.
         std::unique_ptr<RHI::ITexture> _colorTarget  = nullptr;
         std::unique_ptr<RHI::ITexture> _finalTarget  = nullptr;
+        // True once a scene frame was rendered into _colorTarget, so the 2D layer can show it behind menus (UiFrame::BackgroundFade).
+        // Cleared when the frame targets are recreated.
         bool                           _hasScene     = false;
         bool                           _isFramePending = false; // Scene rendered and not yet finished: stats add up.
         std::unique_ptr<RHI::ITexture> _depthTarget  = nullptr;
         std::mutex                     _frameMutex   = {};
+        // Set by FinishFrame when a finished frame waits to be blitted by PresentOnWindowThread; cleared after the blit.
+        // Only used on devices that must present on the window thread.
         std::atomic<bool>              _isFrameReady = false;
+        // Window size in pixels, written by PresentOnWindowThread on the window thread and read by FinishFrame on the game thread.
         std::atomic<int>               _windowWidth  = 0;
         std::atomic<int>               _windowHeight = 0;
         int                            _swapchainWidth  = 0; // Size the swapchain was last created or resized to.
         int                            _swapchainHeight = 0;
+        // Set by RequestScreenshot; the next FinishFrame records the readback and clears it.
         std::string                    _screenshotPath = {};
 
         // Initialization and render targets (SceneRenderer.cpp).
@@ -976,10 +994,12 @@ namespace TEN::Renderer::Backend
         void AppendInstance(const GpuObjectInstance& instance, const InstanceOrigin& origin);
         void PrepareCaustics(FramePixelUniforms& uniforms);
         void BindScenePixelStorage(RHI::IRenderPass& renderPass);
+        // Synchronous upload with a device wait, for load time and rare rewrites only. Per-frame data goes through _uploadRing.
         void UploadBuffer(RHI::IBuffer* buffer, const void* data, int size, int offset = 0);
         void LoadAnimatedTextures(const LevelGeometry& geometry);
         void AddWaterfallSets(const LevelGeometry& geometry, std::vector<GpuAnimatedFrame>& frames, std::vector<GpuAnimatedSet>& sets);
         bool LoadPixelShaderVariants();
+        // Lazily created and cached in _scenePipelines; PrecompileLevelPipelines creates the ones a level can bind at load.
         RHI::IGraphicsPipeline* GetScenePipeline(SceneShader shader, BlendMode blendMode, bool isAlphaTested = true, int missingMaps = 0, bool isAlphaEdge = false);
         int GetMissingMaps(const Structures::RendererBucket& bucket, const std::vector<TexturePage>& pages) const;
         void BindPixelVariant(RHI::IRenderPass& renderPass, SceneShader shader, ScenePass pass, bool isAlphaTested, int missingMaps, int& boundMissingMaps);
@@ -1020,9 +1040,12 @@ namespace TEN::Renderer::Backend
         void CollectObjects(const RenderView& view, float interpolationFactor);
         void CollectPlayer(float interpolationFactor);
         void CollectPlayerHair(const Structures::RendererItem& item, const Vector4& ambientLight, int lightOffset, int lightCount, float interpolationFactor);
+        // Returns the index of the new instance in _instanceData. The instance takes _currentOrigin as its room and category.
         int  AddInstance(const Matrix& world, const Vector4& color, const Vector4& ambientLight, LightMode lightMode, int lightOffset, int lightCount, int boneOffset, int skinningMode);
+        // Returns the offset of the first bone, counted in matrices, to pass as the boneOffset of AddInstance.
         int  AddBones(const Matrix* bones, int count);
         void AddMeshDraws(const Structures::RendererMesh& mesh, int firstInstance, int instanceCount = 1);
+        // Removes the opaque draws added since firstDraw when the object fades, so they are drawn blended with the sorted faces.
         void RemoveFadedDraws(int firstDraw, float alpha);
 
         // Mesh effects, gun shells and swarms (SceneRendererEffects.cpp).
@@ -1071,6 +1094,7 @@ namespace TEN::Renderer::Backend
         void LogGpuTimings();
         void AddGpuTimingTotals(const std::vector<RHI::GpuTiming>& timings);
         void LogMemoryUsage();
+        // Frame pacing: blocks until the oldest of the FRAMES_IN_FLIGHT_MAX frames has finished on the GPU.
         void WaitForFrameInFlight();
 
         // Statistics (SceneRendererStats.cpp).
@@ -1262,12 +1286,15 @@ namespace TEN::Renderer::Backend
         void DrawRoomBuckets(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isAlphaTested);
         static bool IsStateSortedPass(ScenePass pass);
         const std::vector<TexturePage>& GetSourcePages(MeshSource source) const;
+        // Packs the draw state into one integer so that SortDrawKeys orders draws by their most expensive state change first.
         unsigned long long GetBucketSortKey(MeshSource source, const Structures::RendererBucket& bucket) const;
+        // Fills _objectDrawOrder only; _objectDraws keeps its collection order for the passes that depend on it.
         void SortObjectDraws();
         void RenderScenePass(RHI::ICommandBuffer& commandBuffer);
 
     public:
         // Device lifetime and presentation settings.
+        // Creates the device of the requested backend and every device resource, including the pipelines. Returns false on failure.
         bool Initialize(SDL_Window* window, RHI::GraphicsApi backend, const std::string& gameDirectory, bool preferLowPowerGpu);
         void Shutdown();
         bool IsActive() const;
@@ -1275,6 +1302,7 @@ namespace TEN::Renderer::Backend
         bool IsVsyncEnabled() const;
         void SetBenchmarkGpuTimingEnabled(bool enabled) { _isBenchmarkGpuTimingEnabled = enabled; }
         bool IsPresentedOnWindowThread() const;
+        // Called by a thread that stops rendering, so the OpenGL context can become current on another one.
         void ReleaseThread();
 
         // Level load and frame entry points. The game thread calls RenderFrame (scene) and FinishFrame (2D layer and
@@ -1284,14 +1312,20 @@ namespace TEN::Renderer::Backend
         void FinishFrame(const UiFrame& ui);
         void ResizeSwapchainToWindow(int width, int height);
         void PresentOnWindowThread();
+        // Deferred: the file is written once the GPU has rendered the next finished frame.
         void RequestScreenshot(const std::string& path);
+        // Returns true once per completed readback of the layer; used by the lens flares to attenuate the sun.
         bool ReadCloudTransmittance(int layer, float& transmittance);
+        // Development builds only: recompiles the shaders and rebuilds every pipeline after waiting for the GPU.
+// The previous shaders are kept if compilation fails.
         void ReloadShaders();
+        // Rewrites the moveable vertex region in place, for player skin and hair changes; the count must match the loaded level.
         void UpdateMoveableVertices(const std::vector<Structures::Vertex>& vertices);
 
         // Debug statistics.
         const SceneFrameStats& GetFrameStats() const;
         SceneRendererInfo      GetInfo() const;
+        // Averaged GPU pass timings; passing true keeps GPU timing measurement enabled for the next frames.
         const std::vector<RHI::GpuTiming>& SampleGpuTimings(bool isRequested = true);
     };
 

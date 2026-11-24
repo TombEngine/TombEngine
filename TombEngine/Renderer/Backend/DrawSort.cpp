@@ -5,6 +5,7 @@
 
 namespace TEN::Renderer::Backend
 {
+    // Eight bit digits need 256 counters, which stay on the stack and in cache.
     constexpr auto DIGIT_BITS  = 8;
     constexpr auto DIGIT_COUNT = 1 << DIGIT_BITS;
     constexpr auto KEY_BITS    = 64;
@@ -15,6 +16,7 @@ namespace TEN::Renderer::Backend
             return;
 
         scratch.resize(keys.size());
+        // Passes ping-pong between the two vectors; source always points at the latest sorted data.
         auto* source = &keys;
         auto* destination = &scratch;
 

@@ -15,6 +15,9 @@ float GodRayHash(float2 p)
 // PSGodRay - radial light-shaft accumulation (half-res pass)
 // ---------------------------------------------------------------------------
 
+// Half-resolution radial blur toward the projected sun position. Each pixel marches towards the sun and
+// accumulates "light" where the clouds and the horizon leave a gap (or where the virtual sun disc is),
+// attenuated by GodRayDecay per step. Output is the ray color, written with alpha 0 (see composite pass).
 float4 PSGodRay(VSOutput input) : SV_TARGET
 {
     float2 uv = input.UV;
@@ -23,13 +26,16 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
     if (GodRaySunScreenPos.x < -5.0f || GodRayAutoStrength < 0.001f)
         return float4(0.0f, 0.0f, 0.0f, 0.0f);
 
+        // Aspect-corrected centered UV, used only by the final vignette.
     float  aspect     = GodRayViewSize.x / GodRayViewSize.y;
     float2 uvCentered = (uv - 0.5f) * float2(aspect, 1.0f);
 
+        // March step towards the sun, jittered by a per-pixel hash to hide banding at low sample counts.
     float2 toSun     = uv - GodRaySunScreenPos;
     float2 marchStep = toSun * clamp(GodRayLength, 0.01f, 1.5f) / (float)GodRaySampleCount;
     float2 sampleUV  = uv + marchStep * GodRayHash(uv);
 
+        // Higher softness gives a steeper exponential falloff of the sun glow.
     float discScale = GodRaySoftness * 8.0f;
 
     // =========================================================================
@@ -49,6 +55,7 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
         float zenithAtten = 1.0f - smoothstep(0.55f, 0.95f, GodRaySunElevation);
         float lengthScale = lerp(0.22f, 1.0f, zenithAtten);
 
+                // Same march as the normal path, with the underwater length, decay and sample count.
         float2 toSunUW     = uv - GodRaySunScreenPos;
         float2 marchStepUW = toSunUW * clamp(GodRayUnderwaterRayLength, 0.01f, 1.5f) * lengthScale / (float)GodRayUnderwaterSampleCount;
         float2 sampleUVUW  = uv + marchStepUW * GodRayHash(uv);
@@ -64,6 +71,7 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
             float sampleOnScreen = (sampleUVUW.x >= 0.0f && sampleUVUW.x <= 1.0f &&
                                     sampleUVUW.y >= 0.0f && sampleUVUW.y <= 1.0f) ? 1.0f : 0.0f;
 
+                        // Rec. 601 luma of the scene color.
             float3 sceneRgb  = SceneTexture.SampleLevel(GOD_RAY_SAMPLER(SceneTexture), cuv, 0).rgb;
             float  sceneLuma = dot(saturate(sceneRgb), float3(0.299f, 0.587f, 0.114f));
 
@@ -78,6 +86,7 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
 
         accumulated /= (float)GodRayUnderwaterSampleCount;
         float3 col = GodRaySunColor * accumulated * GodRayUnderwaterRayIntensity * GodRayAutoStrength;
+                // Radial vignette fades the rays towards the screen corners. The sqrt curve boosts faint rays.
         col *= smoothstep(1.2f, 0.6f, length(uvCentered));
         return float4(sqrt(saturate(col)), 0.0f);
     }
@@ -88,6 +97,8 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
     // clouds or the horizon cover the sun, more aggressively at sunset.
     // =========================================================================
 
+        // Sun disc visibility: fades out as the sun leaves the screen, and as the clouds or the horizon
+        // cover it. Cloud alpha and horizon mask are sampled at the sun position in the cloud targets.
     float2 sunEdgeDist    = max(abs(GodRaySunScreenPos - 0.5f) - 0.5f, 0.0f);
     float  sunOnScreenFade = 1.0f - saturate(max(sunEdgeDist.x, sunEdgeDist.y) * 6.0f);
     float2 sunUV           = saturate(GodRaySunScreenPos);
@@ -99,6 +110,7 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
     float  sunOcclusion    = saturate(max(sunCloudA, sunCloudB) + sunHorizonMask);
     float3 sunCloudRGB        = (sunCloudA >= sunCloudB) ? sunCloudSampleA.rgb : sunCloudSampleB.rgb;
     float  sunCloudLuma       = dot(saturate(sunCloudRGB), float3(0.299f, 0.587f, 0.114f));
+        // Dark cloud undersides (low luma) and low sun elevation make the occlusion test more aggressive.
     float  cloudPresenceGate  = saturate(sunOcclusion * 20.0f);
     float  darkUndersideBoost = saturate(1.0f - sunCloudLuma / 0.5f) * cloudPresenceGate;
     float sunsetFac       = saturate(1.0f - GodRaySunElevation / 0.25f);
@@ -123,6 +135,7 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
         float cloudAlphaB  = CloudTextureB.SampleLevel(GOD_RAY_SAMPLER(CloudTextureB), cuv, 0).a;
         float horizonMask  = HorizonMaskTexture.SampleLevel(GOD_RAY_SAMPLER(HorizonMaskTexture), cuv, 0).r;
         float cloudOpacity = saturate(max(cloudAlphaA, cloudAlphaB) + horizonMask);
+                // Gap in the cloud cover lets light through. The virtual sun disc adds an exponential glow around the sun.
         float cloudGap     = smoothstep(0.05f, 0.35f, 1.0f - cloudOpacity);
 
         float sunDist = distance(cuv, GodRaySunScreenPos);
@@ -133,6 +146,7 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
         w *= GodRayDecay;
     }
 
+        // Normalize by sample count.
     accumulated /= (float)GodRaySampleCount;
     float3 col = GodRaySunColor * accumulated * GodRayIntensity * GodRayAutoStrength;
     col *= smoothstep(1.2f, 0.6f, length(uvCentered));

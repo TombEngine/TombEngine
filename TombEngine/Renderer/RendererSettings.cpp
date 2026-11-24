@@ -10,6 +10,7 @@
 
 namespace TEN::Renderer 
 {
+	// Applies a new resolution and window mode; resyncWindow is false when the change originates from a window resize by the user.
 	void Renderer::ChangeScreenResolution(int width, int height, bool windowed, bool resyncWindow)
 	{
 		_isWindowed = windowed;

@@ -13,6 +13,7 @@ namespace TEN::Renderer::Backend
 {
     constexpr auto SKY_REFLECTION_MAP_SIZE = 512;
 
+    // Two layer RGBA8 array holding the front and back hemispheres of the paraboloid map.
     bool SceneRenderer::CreateSkyReflectionResources()
     {
         auto desc = TextureDesc{};
@@ -36,9 +37,11 @@ namespace TEN::Renderer::Backend
             auto colorTarget = ColorTargetInfo{};
             colorTarget.Texture = _skyReflectionTarget.get();
             colorTarget.Layer = layer;
+            // Cleared to opaque black where no sky layer covers the hemisphere.
             colorTarget.ClearColor[3] = 1.0f;
 
             auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
+            // The last argument selects the hemisphere: -1 for layer 0, 1 for layer 1.
             DrawSky(commandBuffer, *renderPass, *_frameView, _frameEnvironment->InterpolationFactor, (layer == 0) ? -1 : 1);
             commandBuffer.EndRenderPass();
         }

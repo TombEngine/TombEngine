@@ -14,15 +14,18 @@ using namespace TEN::Renderer::RHI;
 
 namespace TEN::Renderer::Backend
 {
+    // Values of the antialiasing mode setting; any other nonzero value selects the SMAA ultra preset.
     constexpr auto ANTIALIASING_MODE_LOW    = 1;
     constexpr auto ANTIALIASING_MODE_MEDIUM = 2;
 
+    // Stencil reference written by edge detection and tested by the blending weights pass.
     constexpr auto SMAA_EDGE_STENCIL = 1;
 
     // As in the original SMAA, edge detection marks the edge pixels in a stencil, and the blending weights, by far the
     // most expensive pass, are computed only there; the other pixels keep the cleared weights of zero.
     std::unique_ptr<IGraphicsPipeline> SceneRenderer::CreateSMAAPipeline(const SmaaPreset& preset, int pass, const char* name)
     {
+        // Output format per pass: edges, blending weights, and the final blended image in the swapchain format.
         const PixelFormat formats[SMAA_PASS_COUNT] = { PixelFormat::RG8Unorm, PixelFormat::RGBA8Unorm, _device->GetSwapchainFormat() };
 
         auto desc = GetFullscreenPipelineDesc(preset.VertexShader.get(), preset.PixelShaders[pass].get(), formats[pass], name);
@@ -45,6 +48,7 @@ namespace TEN::Renderer::Backend
         const char* shaderNames[SMAA_PRESET_COUNT] = { "SMAAMedium", "SMAAUltra" };
         const char* entryPoints[SMAA_PASS_COUNT] = { "PSEdgeDetection", "PSBlendingWeight", "PSNeighborhoodBlending" };
 
+        // Both candidate formats carry 8 bit stencil; the first one the device supports as a render target is used.
         _smaaStencilFormat = PixelFormat::Unknown;
         for (auto format : { PixelFormat::D24UnormS8Uint, PixelFormat::D32FloatS8Uint })
         {
@@ -138,6 +142,7 @@ namespace TEN::Renderer::Backend
         auto* weightsTarget = _targetPool.Acquire(weightsDesc);
         auto* stencilTarget = (_smaaStencilFormat != PixelFormat::Unknown) ? _targetPool.Acquire(stencilDesc) : nullptr;
 
+        // The stencil is written by edge detection and kept for the weights pass, which loads it and discards it after.
         auto edgeStencil = DepthTargetInfo{};
         edgeStencil.Texture = stencilTarget;
         edgeStencil.Store = StoreOp::Store;
@@ -147,6 +152,8 @@ namespace TEN::Renderer::Backend
         weightStencil.Store = StoreOp::DontCare;
 
         // Edge detection discards texels without edges, so its target and the weights target are cleared.
+        // Edge detection samples the source with point filtering; the other passes rely on bilinear filtering, which
+        // the SMAA lookups and neighborhood blending expect.
         auto* linear = _linearClampSampler.get();
         TextureSamplerBinding edgeBindings[1] = { { source, _pointClampSampler.get() } };
         TextureSamplerBinding weightBindings[3] = { { edgesTarget, linear }, { _smaaAreaTexture.get(), linear }, { _smaaSearchTexture.get(), linear } };

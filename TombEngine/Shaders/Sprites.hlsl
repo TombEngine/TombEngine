@@ -54,6 +54,7 @@ struct PixelInput
     float4 Color    : TEXCOORD1;
     float  Fog      : TEXCOORD2;
     float3 FogBulbs : TEXCOORD3;
+    // ClipPosition gives the screen UV and the depth of the soft particle test.
     float4 ClipPosition : TEXCOORD4;
     float3 WorldDirection : TEXCOORD5; // From the camera, for the moon disc of the sky sprites.
 };
@@ -64,6 +65,7 @@ float4 UnpackColor(uint packedColor)
     return float4(packedColor & 0xFF, (packedColor >> 8) & 0xFF, (packedColor >> 16) & 0xFF, packedColor >> 24) / 255.0f;
 }
 
+// Corner selects one of the four expanded corners of the sprite; UVs are stored per corner.
 PixelInput VS(VertexInput input)
 {
     GpuSprite sprite = TEN_LOAD_RAW(GpuSprite, Sprites, input.InstanceIndex);
@@ -99,6 +101,7 @@ float4 ShadeSprite(PixelInput input, float alphaScale)
         if (particleDepth - sceneDepth > 0.01f)
             discard;
 
+        // The gap between the particle and the scene, as a fraction of the far plane scaled by 1024, limits the alpha.
         color.a = min(color.a, (sceneDepth - particleDepth) * 1024.0f);
     }
 

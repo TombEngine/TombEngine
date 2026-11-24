@@ -27,12 +27,14 @@ float GetDecalMask(float3 position, float3 tangent, float3 binormal, uint decalO
         if (distanceToCenter > decal.Radius * 1.3f)
             continue;
 
+        // Noise coordinates in the surface plane, scaled by the radius so the shape of a stain does not depend on its size.
         float2 uv = float2(dot(offset, tangent), dot(offset, binormal)) * (8.0f / (decal.Pattern + 1) * 2.0f / decal.Radius);
         float noisyRadius = decal.Radius * (1.0f + 0.25f * (NebularNoise(uv, 1.0f, 0.5f, 0.3f) * 2.0f - 1.0f));
         float holeRadius = decal.Radius / 4.0f;
 
         float edge = saturate((noisyRadius - distanceToCenter) / noisyRadius);
         float fade = saturate((decal.Radius - distanceToCenter) / decal.Radius);
+        // Solid core, present for pattern 0 only.
         float hole = saturate((holeRadius - distanceToCenter) / (holeRadius * 1.3f)) * (1 - decal.Pattern);
 
         mask = max(mask, (edge * fade + hole) * decal.Opacity);

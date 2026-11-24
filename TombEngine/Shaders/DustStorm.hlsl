@@ -10,6 +10,7 @@
 #define TEN_DUST_STORM_BLOCK TEN_PS_UNIFORMS(CBDustStorm, 2)
 #include "CBDustStorm.hlsli"
 
+// Scene depth (NDC, 0..1) bounds the raymarch, the alpha of the prepass normals masks outdoor pixels.
 TEN_PS_TEXTURE(Texture2D, DepthTexture, 0);
 TEN_PS_TEXTURE(Texture2D, OutdoorMaskTexture, 1);
 
