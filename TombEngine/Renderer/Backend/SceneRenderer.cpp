@@ -776,6 +776,15 @@ namespace TEN::Renderer::Backend
             desc.DepthStencil.DepthCompare = CompareOp::Equal;
         }
 
+        // Opaque objects get a small depth bias toward the camera, equal in the prepass and the opaque pass so that Equal still matches.
+        // Geometry coplanar with a room surface (floor patches) won the depth tie in the legacy renderer; the finer depth buffer no longer ties.
+        if (isObjects && modeIndex == (int)BlendMode::Opaque)
+        {
+            desc.Rasterizer.EnableDepthBias = true;
+            desc.Rasterizer.DepthBiasConstant = -64.0f;
+            desc.Rasterizer.DepthBiasSlope = -1.0f;
+        }
+
         // Texels the prepass kept are already drawn by the opaque pass: early depth rejects them and only the edges shade.
         if (isAlphaEdge)
             desc.DepthStencil.DepthCompare = CompareOp::Less;
