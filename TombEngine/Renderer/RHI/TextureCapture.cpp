@@ -89,6 +89,9 @@ namespace TEN::Renderer::RHI
     bool SaveTextureToPng(IDevice& device, ITexture* texture, const std::string& path, int layer)
     {
         auto* commandBuffer = device.AcquireCommandBuffer();
+        if (commandBuffer == nullptr)
+            return false;
+
         auto transferBuffer = RecordDownload(device, *commandBuffer->BeginCopyPass(), texture, layer);
         commandBuffer->EndCopyPass();
         commandBuffer->Submit();

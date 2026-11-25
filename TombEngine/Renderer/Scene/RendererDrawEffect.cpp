@@ -399,7 +399,7 @@ namespace TEN::Renderer
 
 			// Disallow sprites out of bounds.
 			int spriteIndex = Objects[firefly.SpriteSeqID].meshIndex + firefly.SpriteID;
-			spriteIndex = std::clamp(spriteIndex, 0, (int)_sprites.size());
+			spriteIndex = std::clamp(spriteIndex, 0, std::max((int)_sprites.size() - 1, 0));
 
 			AddSpriteBillboard(
 				&_sprites[spriteIndex],
@@ -648,7 +648,7 @@ namespace TEN::Renderer
 
 				// Disallow sprites out of bounds.
 				int spriteIndex = Objects[particle.SpriteSeqID].meshIndex + particle.SpriteID;
-				spriteIndex = std::clamp(spriteIndex, 0, (int)_sprites.size());
+				spriteIndex = std::clamp(spriteIndex, 0, std::max((int)_sprites.size() - 1, 0));
 
 				auto* sprite = particle.SpriteID == VIDEO_SPRITE_ID ? &_videoSprite : &_sprites[spriteIndex];
 				
