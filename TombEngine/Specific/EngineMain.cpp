@@ -83,13 +83,13 @@ TEN::Renderer::RHI::GraphicsApi ParseRHIBackend(const std::string& name)
 	return TEN::Renderer::RHI::GraphicsApi::Vulkan;
 }
 
-// Starts the scene renderer on DirectX 11, the only backend of the main window for now. Returns false when it does not start.
-bool StartSceneRenderer(SDL_Window* window, bool preferLowPowerGpu)
+// Starts the scene renderer on the given backend, DirectX 11 unless a benchmark asks otherwise. Returns false when it does not start.
+bool StartSceneRenderer(SDL_Window* window, TEN::Renderer::RHI::GraphicsApi backend, bool preferLowPowerGpu)
 {
-	if (TEN::Renderer::Backend::g_SceneRenderer.Initialize(window, TEN::Renderer::RHI::GraphicsApi::DirectX11, GameDirectory, preferLowPowerGpu))
+	if (TEN::Renderer::Backend::g_SceneRenderer.Initialize(window, backend, GameDirectory, preferLowPowerGpu))
 		return true;
 
-	TENLog("Scene renderer could not start on the DirectX 11 backend.", LogLevel::Error);
+	TENLog("Scene renderer could not start on the requested backend.", LogLevel::Error);
 	return false;
 }
 
@@ -293,6 +293,7 @@ int main(int argc, char* argv[])
 	auto gameDir = std::string();
 	float benchmarkDuration = 0.0f;
 	auto rhiTestBackend = std::string();
+	auto gameBackendName = std::string();
 	bool isOnLowPowerGpu = false;
 	bool isVsyncDisabled = false;
 	bool isFixedStep = false;
@@ -326,6 +327,11 @@ int main(int argc, char* argv[])
 		else if (ArgEquals(arg.c_str(), "benchmark") && i + 1 < argc)
 		{
 			benchmarkDuration = std::stof(argv[++i]);
+		}
+		else if (ArgEquals(arg.c_str(), "backend") && i + 1 < argc)
+		{
+			// Renderer backend of the main window: dx11, vulkan, d3d12 or opengl.
+			gameBackendName = argv[++i];
 		}
 		else if (ArgEquals(arg.c_str(), "rhitest") && i + 1 < argc)
 		{
@@ -501,7 +507,8 @@ int main(int argc, char* argv[])
 	int height = g_Configuration.ScreenHeight;
 
 	// OpenGL needs its window flag at creation, which only the rhitest mode can request.
-	auto windowBackend = rhiTestBackend.empty() ? TEN::Renderer::RHI::GraphicsApi::DirectX11 : ParseRHIBackend(rhiTestBackend);
+	auto windowBackend = !rhiTestBackend.empty() ? ParseRHIBackend(rhiTestBackend) :
+		(!gameBackendName.empty() ? ParseRHIBackend(gameBackendName) : TEN::Renderer::RHI::GraphicsApi::DirectX11);
 	unsigned int windowFlags = SDL_WINDOW_RESIZABLE | TEN::Renderer::RHI::GetWindowFlags(windowBackend);
 	if (!g_Configuration.EnableWindowedMode)
 		windowFlags |= SDL_WINDOW_FULLSCREEN;
@@ -543,7 +550,7 @@ int main(int argc, char* argv[])
 
 		// Initialize renderer.
 		// The scene renderer draws the main window from the frames the renderer frontend prepares.
-		if (!StartSceneRenderer(sdlWindow, isOnLowPowerGpu))
+		if (!StartSceneRenderer(sdlWindow, windowBackend, isOnLowPowerGpu))
 			throw std::runtime_error("The DirectX 11 renderer could not be started.");
 
 		g_IsFixedStep = isFixedStep;
