@@ -8,6 +8,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Bug fixes
 
 * Fixed flyby camera roll persisting after the player dies or leaves the level during a flyby.
+* Fixed bug in Ring Inventory where opening Combine menu multiple times without exiting would cause error.
 
 ## [Version 2.0.2]
 

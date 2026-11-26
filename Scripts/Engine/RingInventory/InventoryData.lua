@@ -5,6 +5,7 @@
 --External Modules
 local Constants = require("Engine.RingInventory.Constants")
 local Ring = require("Engine.RingInventory.Ring")
+local RingLight = require("Engine.RingInventory.RingLight")
 local InventoryItem = require("Engine.RingInventory.InventoryItem")
 local ItemSpin = require("Engine.RingInventory.ItemSpin")
 local Settings = require("Engine.RingInventory.Settings")
@@ -157,7 +158,10 @@ end
 -- Remove a ring
 function InventoryData.RemoveRing(ringType)
     if rings[ringType] then
-        ItemSpin.ClearRingState(rings[ringType])
+        local ring = rings[ringType]
+        ItemSpin.ClearRingState(ring)
+        ring:Clear()
+        RingLight.ClearRing(ringType)
         rings[ringType] = nil
         
         -- If we removed the selected ring, switch to main
