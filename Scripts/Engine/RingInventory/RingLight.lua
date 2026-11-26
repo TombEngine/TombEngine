@@ -143,6 +143,11 @@ function RingLighting.SetRingColors(ring, color, selectedItemColor, fadeSpeed)
     RingLighting.UpdateRingSelection(RingLighting.rings[ringType])
 end
 
+-- Clear lighting state for a single ring.
+function RingLighting.ClearRing(ringType)
+    RingLighting.rings[ringType] = nil
+end
+
 -- Reset all lighting
 function RingLighting.Reset()
     RingLighting.rings = {}
