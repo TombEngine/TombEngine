@@ -13,6 +13,7 @@
 #include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_tests.h"
+#include "Game/Multiplayer/Multiplayer.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Objects/Effects/LensFlare.h"
@@ -269,6 +270,7 @@ void DrawFlare(ItemInfo& laraItem)
 					SFX_TR4_FLARE_IGNITE_DRY,
 					&laraItem.Pose,
 					TestEnvironment(ENV_FLAG_WATER, &laraItem) ? SoundEnvironment::Underwater : SoundEnvironment::Land);
+				TEN::Multiplayer::NotifyLaraSound(laraItem, SFX_TR4_FLARE_IGNITE_DRY, armFrame);
 			}
 
 			g_Renderer.UpdateLaraAnimations(true);

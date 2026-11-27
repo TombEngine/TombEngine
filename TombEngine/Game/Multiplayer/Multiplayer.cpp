@@ -2,6 +2,7 @@
 #include "Game/Multiplayer/Multiplayer.h"
 
 #include "Game/debug/debug.h"
+#include "Game/items.h"
 #include "Game/Multiplayer/RemotePlayer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceGame.h"
@@ -86,5 +87,22 @@ namespace TEN::Multiplayer
 		lua_pushcfunction(luaStatePtr, SocketGateSearcher);
 		lua_rawseti(luaStatePtr, -2, 1);
 		lua_pop(luaStatePtr, 2);
+	}
+
+	void NotifyLaraSound(const ItemInfo& item, int soundID, int frameNumber)
+	{
+		if (!IsRemotePlayerEnabled() || !item.IsLara() || g_GameScript == nullptr)
+			return;
+
+		// FAILSAFE: A script error must not interrupt the sound of the local player.
+		try
+		{
+			g_GameScript->ExecuteString(
+				"if LevelFuncs.OnLaraSoundEffect then LevelFuncs.OnLaraSoundEffect(" +
+				std::to_string(soundID) + ", " + std::to_string(frameNumber) + ") end");
+		}
+		catch (...)
+		{
+		}
 	}
 }

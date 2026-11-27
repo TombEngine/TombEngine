@@ -19,4 +19,7 @@ namespace TEN::Multiplayer
 
 	// Makes require refuse LuaSocket while multiplayer is not in effect.
 	void InstallSocketGate(lua_State* luaStatePtr);
+
+	// Reports a sound of the local player to the level script, which sends it to the other players. Does nothing while multiplayer is off.
+	void NotifyLaraSound(const ItemInfo& item, int soundID, int frameNumber);
 }
