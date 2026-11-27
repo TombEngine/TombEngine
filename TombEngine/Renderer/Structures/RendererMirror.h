@@ -2,6 +2,7 @@
 
 namespace TEN::Renderer::Structures
 {
+	// Mirror of the view, copied from the level mirror; the Reflect flags select which kinds of objects are reflected.
 	struct RendererMirror
 	{
 		int	   RoomNumber		= 0;

@@ -22,6 +22,7 @@ namespace TEN::Renderer::RHI
         _entries.clear();
     }
 
+    // Linear search is fine: the pool holds a handful of targets. Returns nullptr when creation fails.
     ITexture* RenderTargetPool::Acquire(const TextureDesc& desc)
     {
         for (auto& entry : _entries)
@@ -45,6 +46,7 @@ namespace TEN::Renderer::RHI
         return _entries.back().Texture.get();
     }
 
+    // Acquire and release in one step, so the target exists beforehand and no creation hitch happens mid-frame.
     void RenderTargetPool::Reserve(const TextureDesc& desc)
     {
         auto* texture = Acquire(desc);
@@ -68,6 +70,7 @@ namespace TEN::Renderer::RHI
         }
     }
 
+    // Unknown pointers are ignored.
     void RenderTargetPool::Release(ITexture* texture)
     {
         for (auto& entry : _entries)

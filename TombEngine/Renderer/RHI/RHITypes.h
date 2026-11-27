@@ -105,6 +105,7 @@ namespace TEN::Renderer::RHI
         UInt
     };
 
+    // Whether a vertex buffer advances once per vertex or once per instance.
     enum class VertexInputRate
     {
         Vertex,
@@ -262,6 +263,7 @@ namespace TEN::Renderer::RHI
         constexpr auto ComputeStorageWrite = 1 << 4;
     }
 
+    // Flags of BlendState::WriteMask.
     namespace ColorWriteMask
     {
         constexpr auto Red   = 1 << 0;
@@ -280,6 +282,8 @@ namespace TEN::Renderer::RHI
         std::string  Name   = {}; // Debug name shown by graphics debuggers.
     };
 
+    // MipLevels and DepthOrLayers are counts, not indices. Usage must list every way the texture is
+    // used later (sampling, render target, compute storage) because backends pick the allocation flags from it.
     struct TextureDesc
     {
         TextureType  Type          = TextureType::Texture2D;
@@ -293,6 +297,7 @@ namespace TEN::Renderer::RHI
         std::string  Name          = {};
     };
 
+    // Immutable sampling state. Samplers are bound together with a texture (see TextureSamplerBinding).
     struct SamplerDesc
     {
         Filter      MinFilter     = Filter::Linear;
@@ -330,6 +335,7 @@ namespace TEN::Renderer::RHI
         std::string                Name                = {};
     };
 
+    // One vertex buffer slot of a pipeline.
     struct VertexBufferLayout
     {
         int             Slot   = 0; // Slot given to IRenderPass::BindVertexBuffers.
@@ -347,6 +353,7 @@ namespace TEN::Renderer::RHI
         int                 Offset     = 0; // Bytes from the start of the vertex.
     };
 
+    // Complete vertex input of a pipeline; only the first NumBuffers and NumAttributes entries are used.
     struct VertexLayout
     {
         VertexBufferLayout Buffers[MAX_VERTEX_BUFFERS]       = {};
@@ -355,6 +362,7 @@ namespace TEN::Renderer::RHI
         int                NumAttributes                     = 0;
     };
 
+    // Fixed-function rasterization state baked into a graphics pipeline.
     struct RasterizerState
     {
         FillMode  Fill                 = FillMode::Solid;
@@ -367,6 +375,8 @@ namespace TEN::Renderer::RHI
         bool      EnableDepthClip      = true; // When off, depth is clamped to the viewport range instead of clipped.
     };
 
+    // Depth and stencil state baked into a graphics pipeline. The stencil reference is part of the pipeline,
+    // so changing it requires a different pipeline object.
     struct DepthStencilState
     {
         bool      EnableDepthTest  = true;
@@ -380,6 +390,8 @@ namespace TEN::Renderer::RHI
         unsigned char StencilReference  = 0;
     };
 
+    // Blending of one color target. Color and alpha have separate factors and operations; when
+    // EnableBlend is false the factors are ignored and only WriteMask applies.
     struct BlendState
     {
         bool         EnableBlend    = false;
@@ -392,6 +404,7 @@ namespace TEN::Renderer::RHI
         unsigned int WriteMask      = ColorWriteMask::All; // ColorWriteMask flags.
     };
 
+    // Format and blending of one color attachment of a graphics pipeline.
     struct ColorTargetDesc
     {
         PixelFormat     Format = PixelFormat::RGBA8Unorm;
@@ -414,6 +427,7 @@ namespace TEN::Renderer::RHI
         std::string       Name                            = {};
     };
 
+    // Compute pipelines are fully defined by their shader; thread counts come from ShaderDesc.
     struct ComputePipelineDesc
     {
         IShader*    Shader = nullptr;
@@ -466,6 +480,7 @@ namespace TEN::Renderer::RHI
         int       Uploads            = 0;
         long long UploadBytes        = 0;
 
+        // Accumulates one draw call; primitive counts are derived from the vertex or index count.
         void AddDraw(PrimitiveType primitive, int count, int instanceCount, bool isIndexed)
         {
             Draws++;
@@ -504,6 +519,7 @@ namespace TEN::Renderer::RHI
         int         Samples      = 0;    // Measurements since the previous call.
     };
 
+    // Buffer plus byte offset for vertex, index and storage buffer binds.
     struct BufferBinding
     {
         IBuffer* Buffer = nullptr;
@@ -527,6 +543,7 @@ namespace TEN::Renderer::RHI
         float MaxDepth = 1.0f;
     };
 
+    // In pixels, same origin as Viewport.
     struct ScissorRect
     {
         int X      = 0;
@@ -558,6 +575,7 @@ namespace TEN::Renderer::RHI
         int              RowsPerLayer   = 0; // Rows between layers or depth slices.
     };
 
+    // Format helpers, implemented in RHIDevice.cpp.
     int  GetFormatBlockSize(PixelFormat format);      // Bytes per texel, or per 4x4 block of BC formats.
     int  GetFormatBlockDimension(PixelFormat format); // 4 for BC formats, otherwise 1.
     bool IsDepthFormat(PixelFormat format);

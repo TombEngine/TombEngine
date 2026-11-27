@@ -21,9 +21,15 @@ namespace TEN::Renderer::RHI
 
     public:
         void Initialize(IDevice& device);
+
+        // Destroys every target; used when sizes change and the pooled targets no longer match.
         void Clear();
+
+        // Per-frame housekeeping that destroys targets nobody has acquired for a long time.
         void CollectUnused();
 
+        // Pointers returned by Acquire stay valid until Clear or CollectUnused destroys the target; the contents
+        // are undefined, so the first pass must clear the target.
         ITexture* Acquire(const TextureDesc& desc);
         void      Release(ITexture* texture);
         void      Reserve(const TextureDesc& desc); // Creates a free target now, if none matches, for a later Acquire.

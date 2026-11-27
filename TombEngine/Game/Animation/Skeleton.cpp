@@ -174,8 +174,7 @@ namespace TEN::Animation
 		}
 	}
 
-	// Joints that vehicles turn with their wheels, rudders and propellers, and creatures with their head and torso. Minecart
-	// wheels keep spinning from their previous rotation.
+	// Joints that vehicles turn with their wheels, rudders and propellers, and creatures with their head and torso.
 	static void GetItemExtraRotations(const ItemInfo& item, BoneRotations& rotations)
 	{
 		const auto& skeleton = GetSkeleton(item.ObjectNumber);
@@ -184,7 +183,6 @@ namespace TEN::Animation
 
 		for (int j = 0; j < boneCount; j++)
 		{
-			auto prevRotation = rotations[j];
 			auto& rotation = rotations[j];
 			rotation = Quaternion::Identity;
 
@@ -242,8 +240,7 @@ namespace TEN::Animation
 				{
 					if (j >= 1 && j <= 4)
 					{
-						short zRot = (short)std::clamp(cart.Velocity, 0, (int)ANGLE(25.0f)) + EulerAngles(prevRotation).z;
-						rotation = EulerAngles(0, 0, zRot).ToQuaternion();
+						rotation = EulerAngles(0, 0, cart.WheelRotation).ToQuaternion();
 					}
 				},
 				[&](const RubberBoatInfo& boat)
@@ -509,7 +506,7 @@ namespace TEN::Animation
 		}
 	}
 
-	void GetItemPose(const ItemInfo& item, SkeletonPose& pose, BoneRotations* extraRotations)
+	void GetItemPose(const ItemInfo& item, SkeletonPose& pose)
 	{
 		pose.Transforms.fill(Matrix::Identity);
 		pose.Orientations.fill(Quaternion::Identity);
@@ -525,8 +522,7 @@ namespace TEN::Animation
 			return;
 		}
 
-		auto localRotations = BoneRotations{};
-		auto& rotations = (extraRotations != nullptr) ? *extraRotations : localRotations;
+		auto rotations = BoneRotations{};
 		GetItemExtraRotations(item, rotations);
 
 		auto rootMotionCounteract = GetAnimData(item).GetRootMotionCounteraction(item.Animation.FrameNumber);

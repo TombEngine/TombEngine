@@ -117,6 +117,8 @@ static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 	g_Configuration.EnableCaustics = config->enable_caustics();
 	g_Configuration.EnableDecals = config->enable_decals();
 	g_Configuration.AntialiasingMode = (AntialiasingMode)config->antialiasing_mode();
+	g_Configuration.RenderScale = (RenderScaleMode)std::clamp(config->render_scale(), 0, (int)RenderScaleMode::Count - 1);
+	g_Configuration.GraphicsBackend = (GraphicsBackend)std::clamp(config->graphics_backend(), 0, (int)GraphicsBackend::Count - 1);
 	g_Configuration.EnableAmbientOcclusion = config->enable_ambient_occlusion();
 	g_Configuration.EnableHighFramerate = config->enable_high_framerate();
 	g_Configuration.AtmosphericSkyQuality = (AtmosphericSkyQuality)std::clamp(config->atmospheric_sky_quality(), (int)AtmosphericSkyQuality::Low, (int)AtmosphericSkyQuality::High);
@@ -177,6 +179,8 @@ void InitDefaultConfiguration()
 	g_Configuration.EnableCaustics = true;
 	g_Configuration.EnableDecals = true;
 	g_Configuration.AntialiasingMode = AntialiasingMode::Medium;
+	g_Configuration.RenderScale = RenderScaleMode::Native;
+	g_Configuration.GraphicsBackend = GraphicsBackend::Default;
 	g_Configuration.EnableAmbientOcclusion = true;
 	g_Configuration.EnableHighFramerate = true;
 	g_Configuration.Gamma = 1.0f;
@@ -202,7 +206,6 @@ void InitDefaultConfiguration()
 	g_Configuration.Bindings = {};
 
 	g_Configuration.SupportedScreenResolutions = GetAllSupportedScreenResolutions();
-	g_Configuration.AdapterName = g_Renderer.GetDefaultAdapterName();
 
 	g_Configuration.SupportedSoundDevices = Sound_ListDevices();
 }
@@ -255,6 +258,8 @@ static std::vector<unsigned char> BuildConfigurationBuffer()
 	builder.add_enable_ambient_occlusion(g_Configuration.EnableAmbientOcclusion);
 	builder.add_enable_high_framerate(g_Configuration.EnableHighFramerate);
 	builder.add_atmospheric_sky_quality((int)g_Configuration.AtmosphericSkyQuality);
+	builder.add_render_scale((int)g_Configuration.RenderScale);
+	builder.add_graphics_backend((int)g_Configuration.GraphicsBackend);
 	builder.add_adapter_name(adapterNameOffset);
 	builder.add_sound_device(g_Configuration.SoundDevice);
 	builder.add_enable_reverb(g_Configuration.EnableReverb);
@@ -321,4 +326,26 @@ bool SaveConfiguration()
 
 		return false;
 	}
+}
+
+// Backends offered by the display settings on this platform; the first one is the default.
+std::vector<GraphicsBackend> GetSupportedGraphicsBackends()
+{
+#if defined(SDL_PLATFORM_WIN32)
+	return { GraphicsBackend::DirectX11, GraphicsBackend::Vulkan, GraphicsBackend::Direct3D12 };
+#elif defined(SDL_PLATFORM_MACOS)
+	return { GraphicsBackend::Metal };
+#else
+	return { GraphicsBackend::Vulkan, GraphicsBackend::OpenGL };
+#endif
+}
+
+// Resolves Default and backends not offered on this platform to the platform default.
+GraphicsBackend GetEffectiveGraphicsBackend(GraphicsBackend backend)
+{
+	auto backends = GetSupportedGraphicsBackends();
+	if (std::find(backends.begin(), backends.end(), backend) == backends.end())
+		return backends.front();
+
+	return backend;
 }

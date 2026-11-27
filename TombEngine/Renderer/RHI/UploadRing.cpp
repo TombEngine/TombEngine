@@ -26,6 +26,7 @@ namespace TEN::Renderer::RHI
         _device = nullptr;
     }
 
+    // Buffers retired by the previous pass are released here: their copies were recorded and submitted by then.
     void UploadRing::Begin(ICopyPass& copyPass)
     {
         _retiredBuffers.clear();
@@ -56,6 +57,8 @@ namespace TEN::Renderer::RHI
     int UploadRing::Allocate(int size)
     {
         int offset = (_offset + UPLOAD_ALIGNMENT - 1) & ~(UPLOAD_ALIGNMENT - 1);
+
+        // Out of space: the new buffer starts empty, so the allocation lands at offset zero.
         if (offset + size > _capacity)
         {
             Grow(size);
@@ -129,6 +132,8 @@ namespace TEN::Renderer::RHI
         _textureCopies.clear();
     }
 
+    // A pass counts as underused only when the ring did not grow and used at most a quarter of a capacity
+    // above the minimum; any other pass restarts the count that Trim waits for.
     void UploadRing::End()
     {
         Flush();

@@ -3,6 +3,7 @@
 
 namespace TEN::Renderer::RHI
 {
+    // Reads the whole file; returns false when it cannot be opened or read.
     static bool ReadBinaryFile(const std::filesystem::path& path, std::vector<unsigned char>& data)
     {
         auto file = std::ifstream(path, std::ios::binary | std::ios::ate);
@@ -33,6 +34,7 @@ namespace TEN::Renderer::RHI
         return result;
     }
 
+    // Missing keys read as zero.
     static int GetMetadataInt(const std::unordered_map<std::string, std::string>& metadata, const char* key)
     {
         auto it = metadata.find(key);
@@ -120,10 +122,12 @@ namespace TEN::Renderer::RHI
         desc.NumRWStorageBuffers = GetMetadataInt(metadata, "rw_storage_buffers");
         desc.Name = baseName;
 
+        // Compute shaders list their thread group size as X,Y,Z.
         auto threads = metadata["threads"];
         if (!threads.empty())
             sscanf(threads.c_str(), "%d,%d,%d", &desc.ThreadCountX, &desc.ThreadCountY, &desc.ThreadCountZ);
 
+        // The code vector goes out of scope on return; CreateShader copies the bytecode where it needs it.
         return device.CreateShader(desc);
     }
 }

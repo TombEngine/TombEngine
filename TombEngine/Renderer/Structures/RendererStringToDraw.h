@@ -5,6 +5,8 @@ namespace TEN::Renderer::Structures
 {
 	using namespace TEN::Math::Library;
 
+	// Single line of text with its alignment already applied; Position and PrevPosition are in screen pixels and
+	// Flags are PrintStringFlags bits.
 	struct RendererStringToDraw
 	{
 		Vector2 Position;

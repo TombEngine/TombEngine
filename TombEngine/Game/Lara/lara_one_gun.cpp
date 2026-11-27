@@ -11,6 +11,7 @@
 #include "Game/control/los.h"
 #include "Game/effects/bubble.h"
 #include "Game/effects/debris.h"
+#include "Game/effects/Decal.h"
 #include "Game/effects/drip.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/item_fx.h"
@@ -41,6 +42,7 @@
 using namespace TEN::Animation;
 using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
+using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Drip;
 using namespace TEN::Effects::Environment;
@@ -1346,7 +1348,7 @@ void RifleHandler(ItemInfo& laraItem, LaraWeaponType weaponType)
 	{
 		auto& settings = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1];
 		
-		auto color = Color(settings.FlashColor);
+		Color color = settings.FlashColor;
 		color += Color(Random::GenerateFloat(-0.2f, 0.2f));
 
 		if (weaponType == LaraWeaponType::Revolver)

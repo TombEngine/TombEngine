@@ -176,11 +176,6 @@ namespace TEN::Debug
 		g_Renderer.AddDebugString(string, pos, color, scale, page);
 	}
 
-	void DrawDebug2DLine(const Vector2& origin, const Vector2& target, const Color& color, RendererDebugPage page)
-	{
-		g_Renderer.AddLine2D(origin, target, color, page);
-	}
-
 	void DrawDebugLine(const Vector3& origin, const Vector3& target, const Color& color, RendererDebugPage page)
 	{
 		g_Renderer.AddDebugLine(origin, target, color, page);

@@ -14,6 +14,8 @@ namespace TEN::Renderer::RHI
     constexpr auto TEST_INSTANCE_COUNT = 64;
     constexpr auto TEST_TEXTURE_SIZE   = 64;
 
+    // Layouts of the structures below must match the RHITest shader: vertex stream (slot 0), instance
+    // stream (slot 1) and the uniform blocks of slot 0 in each stage.
     struct TestVertex
     {
         float Position[3];
@@ -38,6 +40,7 @@ namespace TEN::Renderer::RHI
         float Fade[4];
     };
 
+    // Everything the test creates. It is destroyed before the device, as resources must not outlive it.
     struct TestResources
     {
         std::unique_ptr<IShader>           VertexShader   = nullptr;
@@ -66,6 +69,7 @@ namespace TEN::Renderer::RHI
         }
     }
 
+    // Instance data is a second vertex buffer advancing per instance; the shaders read attributes by location.
     static bool CreateTestPipeline(IDevice& device, TestResources& resources, const std::string& shaderDirectory)
     {
         resources.VertexShader = LoadShader(device, shaderDirectory, "RHITest", "VS");
@@ -90,6 +94,7 @@ namespace TEN::Renderer::RHI
         desc.DepthStencil.DepthCompare = CompareOp::LessOrEqual;
         desc.NumColorTargets = 1;
         desc.ColorTargets[0].Format = device.GetSwapchainFormat();
+        // Straight alpha blending; the offscreen target uses the swapchain format so one pipeline serves both passes.
         desc.ColorTargets[0].Blend.EnableBlend = true;
         desc.ColorTargets[0].Blend.SrcColor = BlendFactor::SrcAlpha;
         desc.ColorTargets[0].Blend.DstColor = BlendFactor::OneMinusSrcAlpha;
@@ -102,6 +107,8 @@ namespace TEN::Renderer::RHI
         return resources.Pipeline != nullptr;
     }
 
+    // The tint buffer sets a stride because DX11 builds a structured buffer from it. Returns false if any
+    // resource could not be created.
     static bool CreateTestResources(IDevice& device, TestResources& resources, int width, int height)
     {
         resources.VertexBuffer = device.CreateBuffer(BufferDesc{ (int)sizeof(TestVertex) * 4, 0, BufferUsage::Vertex, "RHITest.Vertices" });
@@ -206,6 +213,8 @@ namespace TEN::Renderer::RHI
         device.WaitIdle();
     }
 
+    // Uniforms are pushed before the pass opens; they apply to the draws recorded afterwards. The depth contents
+    // are not needed after the pass, hence StoreOp::DontCare.
     static void DrawTestScene(ICommandBuffer& commandBuffer, TestResources& resources, ITexture* target, float time, float aspect)
     {
         auto colorTarget = ColorTargetInfo{};
@@ -246,8 +255,11 @@ namespace TEN::Renderer::RHI
         commandBuffer.PopDebugGroup();
     }
 
+    // Returns true when the screenshot was written. The swapchain is drawn only when its size matches the
+    // offscreen target, so the image saved is always the offscreen one.
     bool RunRHITest(SDL_Window* window, GraphicsApi backend, const std::string& gameDirectory, int frameCount)
     {
+        // Debug mode is on so validation layers report errors of the tested backend.
         auto device = CreateDevice(backend, window, true);
         if (device == nullptr)
             return false;
