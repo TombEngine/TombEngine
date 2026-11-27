@@ -83,6 +83,28 @@ TEN::Renderer::RHI::GraphicsApi ParseRHIBackend(const std::string& name)
 	return TEN::Renderer::RHI::GraphicsApi::Vulkan;
 }
 
+// Backend of the display settings, used when the command line does not name one.
+TEN::Renderer::RHI::GraphicsApi GetConfiguredRHIBackend(GraphicsBackend backend)
+{
+	switch (GetEffectiveGraphicsBackend(backend))
+	{
+	case GraphicsBackend::Vulkan:
+		return TEN::Renderer::RHI::GraphicsApi::Vulkan;
+
+	case GraphicsBackend::Direct3D12:
+		return TEN::Renderer::RHI::GraphicsApi::Direct3D12;
+
+	case GraphicsBackend::OpenGL:
+		return TEN::Renderer::RHI::GraphicsApi::OpenGL;
+
+	case GraphicsBackend::Metal:
+		return TEN::Renderer::RHI::GraphicsApi::Metal;
+
+	default:
+		return TEN::Renderer::RHI::GraphicsApi::DirectX11;
+	}
+}
+
 // Starts the scene renderer on the given backend, DirectX 11 unless a benchmark asks otherwise. Returns false when it does not start.
 bool StartSceneRenderer(SDL_Window* window, TEN::Renderer::RHI::GraphicsApi backend, bool preferLowPowerGpu)
 {
@@ -508,7 +530,7 @@ int main(int argc, char* argv[])
 
 	// OpenGL needs its window flag at creation, which only the rhitest mode can request.
 	auto windowBackend = !rhiTestBackend.empty() ? ParseRHIBackend(rhiTestBackend) :
-		(!gameBackendName.empty() ? ParseRHIBackend(gameBackendName) : TEN::Renderer::RHI::GraphicsApi::DirectX11);
+		(!gameBackendName.empty() ? ParseRHIBackend(gameBackendName) : GetConfiguredRHIBackend(g_Configuration.GraphicsBackend));
 	unsigned int windowFlags = SDL_WINDOW_RESIZABLE | TEN::Renderer::RHI::GetWindowFlags(windowBackend);
 	if (!g_Configuration.EnableWindowedMode)
 		windowFlags |= SDL_WINDOW_FULLSCREEN;
@@ -551,7 +573,7 @@ int main(int argc, char* argv[])
 		// Initialize renderer.
 		// The scene renderer draws the main window from the frames the renderer frontend prepares.
 		if (!StartSceneRenderer(sdlWindow, windowBackend, isOnLowPowerGpu))
-			throw std::runtime_error("The DirectX 11 renderer could not be started.");
+			throw std::runtime_error("The renderer could not be started.");
 
 		g_IsFixedStep = isFixedStep;
 

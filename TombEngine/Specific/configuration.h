@@ -38,6 +38,7 @@ struct GameConfiguration
 	bool	   EnableHighFramerate    = true;
 	AntialiasingMode AntialiasingMode = AntialiasingMode::None;
 	RenderScaleMode RenderScale = RenderScaleMode::Native;
+	GraphicsBackend GraphicsBackend = GraphicsBackend::Default;
 	AtmosphericSkyQuality AtmosphericSkyQuality = AtmosphericSkyQuality::Medium;
 
 	// Sound
@@ -75,5 +76,7 @@ bool SaveConfiguration();
 void SetAudioConfiguration(const GameConfiguration& config);
 AntialiasingMode GetAntialiasingMode(int value);
 RenderScaleMode GetRenderScaleMode(int value);
+std::vector<GraphicsBackend> GetSupportedGraphicsBackends();
+GraphicsBackend GetEffectiveGraphicsBackend(GraphicsBackend backend);
 
 extern GameConfiguration g_Configuration;

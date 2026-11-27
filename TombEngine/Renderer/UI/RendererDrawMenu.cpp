@@ -283,14 +283,28 @@ namespace TEN::Renderer
 				AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RENDER_SCALE), optionColor, SF(titleOption == 10));
 				AddString(MenuRightSideEntry, y, g_GameFlow->GetString(RENDER_SCALE_STRINGS[renderScale]), plainColor, SF(titleOption == 10));
 			}
+			GetNextLinePosition(&y);
+
+			// Graphics backend, applied at the next start.
+			{
+				constexpr const char* GRAPHICS_BACKEND_STRINGS[(int)GraphicsBackend::Count] =
+				{
+					STRING_GRAPHICS_BACKEND_DIRECTX11, STRING_GRAPHICS_BACKEND_DIRECTX11, STRING_GRAPHICS_BACKEND_VULKAN, STRING_GRAPHICS_BACKEND_DIRECT3D12,
+					STRING_GRAPHICS_BACKEND_OPENGL, STRING_GRAPHICS_BACKEND_METAL
+				};
+
+				int backend = (int)GetEffectiveGraphicsBackend(g_Gui.GetCurrentSettings().Configuration.GraphicsBackend);
+				AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_GRAPHICS_BACKEND), optionColor, SF(titleOption == 11));
+				AddString(MenuRightSideEntry, y, g_GameFlow->GetString(GRAPHICS_BACKEND_STRINGS[backend]), plainColor, SF(titleOption == 11));
+			}
 			GetNextBlockPosition(&y);
 
 			// Apply
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 11));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 12));
 			GetNextLinePosition(&y);
 
 			// Cancel
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 12));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 13));
 			break;
 
 		case Menu::OtherSettings:

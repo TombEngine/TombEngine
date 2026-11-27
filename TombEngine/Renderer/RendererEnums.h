@@ -135,6 +135,20 @@ enum class RenderScaleMode
 	Count
 };
 
+// Graphics API of the renderer, applied at the next start. The values are stored in the configuration; Default picks
+// the first backend supported on the platform.
+enum class GraphicsBackend
+{
+	Default,
+	DirectX11,
+	Vulkan,
+	Direct3D12,
+	OpenGL,
+	Metal,
+
+	Count
+};
+
 // Dynamic meshes are lit by the lights collected for them; static ones keep only their baked vertex colors.
 enum class LightMode
 {
