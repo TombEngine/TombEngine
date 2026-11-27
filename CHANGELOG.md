@@ -10,6 +10,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added Discord integration.
 * Added BATS_EMITTER_TR3 object from TR3.
 * Added the [turn switch and obelisk puzzle from TR4](https://tombengine.com/docs/tr4-obelisk-puzzle-tomb-engine-setup-guide/).
+* Added multiplayer compatibility: remote players and remote vehicles can be created and updated from Lua, and are drawn with their hair and muzzle flashes. The local player can auto-aim at remote players for PvP. It stays inactive until a script calls `Flow.EnableMultiplayer()`.
+* Added a Multiplayer page to the Options menu. It becomes visible only after a script has called `Flow.EnableMultiplayer()`.
 
 ### Bug fixes
 
@@ -27,6 +29,12 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `ParticleGroup:IsActive` method to check if the group's emitter is currently running.
 * Added `ParticleGroup:IsValid` method to check if the group still exists and is usable.
 * Added `Flow.Settings.Effects.waterEffectStrength` and `Flow.Settings.Effects.waterEffectDepth` settings to customize underwater wave effect.
+* Added `Flow.EnableMultiplayer`, `Flow.IsMultiplayerDeclared` and `Flow.IsMultiplayerEnabled` functions to declare multiplayer and to check whether it is in effect.
+* Added `Objects.ObjID.REMOTE_PLAYER` object ID.
+* Added `Moveable:SetLaraDoubleState`, `Moveable:GetLaraDoubleState`, `Moveable:GetFullState`, `Moveable:SetRemoteVehiclePose`, `Moveable:SetPvPTargetable` and `Moveable:GetIndex` methods for remote players.
+* Added `LaraObject:GetExtraTorsoRotation`, `LaraObject:GetExtraHeadRotation`, `LaraObject:GetLeftArmOrientation`, `LaraObject:GetRightArmOrientation`, `LaraObject:GetTargetArmOrientation`, `LaraObject:GetLeftArmLocked` and `LaraObject:GetRightArmLocked` methods.
+* Added `Objects.CreateRemoteVehicle`, `Objects.PopLocalVehicleSounds`, `Objects.PlayRemoteVehicleSound` and `Objects.SetPvPTargetable` functions.
+* Added `LevelFuncs.OnLaraSoundEffect` callback, called with the sound ID and frame number for sounds of the local player while multiplayer is in effect.
 * Fixed `Flow.DoesSaveGameExist` returning false for savegames of other levels, which prevented ring inventory from loading them.
 * Fixed ring inventory menus and `CustomDiary` page turning using movement actions instead of menu navigation actions.
 
