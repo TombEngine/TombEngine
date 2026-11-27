@@ -35,6 +35,8 @@
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_one_gun.h"
 #include "Game/items.h"
+#include "Game/Multiplayer/Multiplayer.h"
+#include "Game/Multiplayer/RemotePlayer.h"
 #include "Game/pickup/pickup.h"
 #include "Game/room.h"
 #include "Game/savegame.h"
@@ -102,6 +104,7 @@ using namespace TEN::Control::Volumes;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
+using namespace TEN::Multiplayer;
 using namespace TEN::Renderer;
 using namespace TEN::Scripting::Properties;
 using namespace TEN::SpotCam;
@@ -214,6 +217,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateBubbles();
 	UpdateDebris();
 	UpdateGunFlashes();
+	UpdateRemotePlayerLights();
 	UpdateGunShells();
 	UpdateDecals();
 	UpdateFootprints();
@@ -665,6 +669,9 @@ void InitializeOrLoadGame(bool loadGame)
 {
 	g_Gui.SetInventoryItemChosen(NO_VALUE);
 	g_Gui.SetEnterInventory(NO_VALUE);
+
+	// Remote players are not saved, so they are cleared on every level entry, also when loading a savegame. -- divezzi, 20.11.26
+	ClearAllRemoteItems();
 
 	// Restore game?
 	if (loadGame)

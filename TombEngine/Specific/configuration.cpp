@@ -135,6 +135,7 @@ static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 	g_Configuration.EnableInteractionHighlighter = config->enable_interaction_highlighter();
 	g_Configuration.EnableRumble = config->enable_rumble();
 	g_Configuration.EnableThumbstickCamera = config->enable_thumbstick_camera();
+	g_Configuration.EnableMultiplayer = config->enable_multiplayer();
 
 	g_Configuration.MouseSensitivity = config->mouse_sensitivity();
 	g_Configuration.MenuOptionLoopingMode = (MenuOptionLoopingMode)config->menu_option_looping_mode();
@@ -193,6 +194,7 @@ void InitDefaultConfiguration()
 	g_Configuration.EnableInteractionHighlighter = true;
 	g_Configuration.EnableRumble = true;
 	g_Configuration.EnableThumbstickCamera = false;
+	g_Configuration.EnableMultiplayer = true;
 
 	g_Configuration.MouseSensitivity = GameConfiguration::DEFAULT_MOUSE_SENSITIVITY;
 	g_Configuration.MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
@@ -268,6 +270,7 @@ static std::vector<unsigned char> BuildConfigurationBuffer()
 	builder.add_menu_option_looping_mode((int)g_Configuration.MenuOptionLoopingMode);
 	builder.add_last_gamepad_type((int)g_Configuration.LastGamepadType);
 	builder.add_bindings(bindingsOffset);
+	builder.add_enable_multiplayer(g_Configuration.EnableMultiplayer);
 
 	auto config = builder.Finish();
 	FinishConfigurationBuffer(fbb, config);

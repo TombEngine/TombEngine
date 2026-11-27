@@ -2581,6 +2581,9 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	// @mem MESHSWAP_WINSTON_ARMY_OUTFIT
 	{ "MESHSWAP_WINSTON_ARMY_OUTFIT", ID_MESHSWAP_WINSTON_ARMY_OUTFIT },
 	/// Object ID.
+	// @mem REMOTE_PLAYER
+	{ "REMOTE_PLAYER", ID_REMOTE_PLAYER },
+	/// Object ID.
 	// @mem ANIMATING1
 	{ "ANIMATING1", ID_ANIMATING1 },
 	/// Object ID.

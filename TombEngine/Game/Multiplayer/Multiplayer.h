@@ -1,0 +1,19 @@
+#pragma once
+
+struct ItemInfo;
+struct lua_State;
+
+namespace TEN::Multiplayer
+{
+	// True when a script has called Flow.EnableMultiplayer() and the option of the player is on.
+	bool IsRemotePlayerEnabled();
+
+	// The option as the player has it now: the saved option after Flow.EnableMultiplayer(true), the choice of this session after false.
+	bool GetMultiplayerOption();
+
+	// Called by the Options page after it copied its switch into g_Configuration. With false the choice is kept for this session and the saved option is restored to previousSavedOption.
+	void ApplyMultiplayerOption(bool previousSavedOption);
+
+	// Makes require refuse LuaSocket while multiplayer is not in effect.
+	void InstallSocketGate(lua_State* luaStatePtr);
+}

@@ -12,6 +12,8 @@
 #include "Game/effects/tomb4fx.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Multiplayer/Multiplayer.h"
+#include "Game/Multiplayer/RemoteItemPool.h"
 #include "Game/pickup/pickup.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
@@ -38,6 +40,7 @@ using namespace TEN::Effects::Items;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Input;
 using namespace TEN::Math;
+using namespace TEN::Multiplayer;
 using namespace TEN::Utils;
 using TEN::Renderer::g_Renderer;
 
@@ -285,6 +288,11 @@ bool ItemInfo::IsLara() const
 	return Data.is<LaraInfo*>();
 }
 
+bool ItemInfo::IsRemotePlayer() const
+{
+	return (ObjectNumber == ID_REMOTE_PLAYER);
+}
+
 bool ItemInfo::IsCreature() const
 {
 	return Data.is<CreatureInfo>();
@@ -299,6 +307,10 @@ ItemInfo* ItemHandler::Get() const
 {
 	if (g_Level.Items.empty() || _index == NO_VALUE)
 		return nullptr;
+
+	// A remote item is not a level item, so it must never fall back to one. -- divezzi, 20.11.26
+	if (auto* poolItem = GetPoolItem(_index))
+		return poolItem;
 
 	if (_index < 0 || _index >= g_Level.Items.size())
 	{
@@ -333,6 +345,9 @@ ItemInfo* ItemHandler::operator->() const
 
 ItemInfo& ItemHandler::operator*() const
 {
+	if (auto* poolItem = GetPoolItem(_index))
+		return *poolItem;
+
 	if (_index < 0 || _index >= g_Level.Items.size())
 	{
 #if _DEBUG

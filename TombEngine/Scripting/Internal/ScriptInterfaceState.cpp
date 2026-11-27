@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Scripting/Include/ScriptInterfaceState.h"
 
+#include "Game/Multiplayer/Multiplayer.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/TEN/Collision/CollisionHandler.h"
 #include "Scripting/Internal/TEN/Effects/EffectsFunctions.h"
@@ -92,6 +93,7 @@ void ScriptInterfaceState::Init(const std::string& assetsDir)
 		sol::lib::table, sol::lib::string, sol::lib::debug);
 
 	SolState.script("package.path=\"" + assetsDir + "Scripts/?.lua\"");
+	TEN::Multiplayer::InstallSocketGate(SolState.lua_state());
 	SolState.set_exception_handler(lua_exception_handler);
 	lua_sethook(SolState, lua_deadlock_handler, LUA_MASKCOUNT, DEADLOCK_HOOK_INSTRUCTION_COUNT);
 

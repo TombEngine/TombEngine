@@ -10,6 +10,7 @@
 #include "Game/effects/ParticleGroup.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/itemdata/creature_info.h"
+#include "Game/Multiplayer/RemotePlayer.h"
 #include "Game/pickup/pickup.h"
 #include "Game/room.h"
 #include "Objects/Effects/effect_objects.h"
@@ -35,6 +36,7 @@ using namespace TEN::Animation;
 using namespace TEN::Effects::Hair;
 using namespace TEN::Entities;
 using namespace TEN::Entities::Switches;
+using namespace TEN::Multiplayer;
 using namespace TEN::Utils;
 
 ObjectHandler Objects;
@@ -253,6 +255,7 @@ void InitializeObjects()
 	InitializeTR2Objects(); // Standard TR2 objects
 	InitializeTR3Objects(); // Standard TR3 objects
 	InitializeTR4Objects(); // Standard TR4 objects
+	InitializeRemotePlayerObject(); // Remote player slot (only after a script has declared multiplayer)
 
 	// User defined objects
 	CustomObjects();

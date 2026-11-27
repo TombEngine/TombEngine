@@ -488,6 +488,9 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Game\Lara\PlayerContextData.h" />
     <ClInclude Include="Game\Lara\PlayerStateMachine.h" />
     <ClInclude Include="Game\misc.h" />
+    <ClInclude Include="Game\Multiplayer\Multiplayer.h" />
+    <ClInclude Include="Game\Multiplayer\RemoteItemPool.h" />
+    <ClInclude Include="Game\Multiplayer\RemotePlayer.h" />
     <ClInclude Include="Game\missile.h" />
     <ClInclude Include="Game\people.h" />
     <ClInclude Include="Game\Hud\DrawItems\DrawItems.h" />
@@ -1146,6 +1149,9 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Game\Lara\PlayerContext.cpp" />
     <ClCompile Include="Game\Lara\PlayerStateMachine.cpp" />
     <ClCompile Include="Game\misc.cpp" />
+    <ClCompile Include="Game\Multiplayer\Multiplayer.cpp" />
+    <ClCompile Include="Game\Multiplayer\RemoteItemPool.cpp" />
+    <ClCompile Include="Game\Multiplayer\RemotePlayer.cpp" />
     <ClCompile Include="Game\missile.cpp" />
     <ClCompile Include="Game\people.cpp" />
     <ClCompile Include="Game\Hud\DrawItems\DrawItems.cpp" />

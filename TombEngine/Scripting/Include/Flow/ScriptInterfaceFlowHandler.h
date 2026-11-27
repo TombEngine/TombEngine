@@ -35,6 +35,8 @@ public:
 	virtual bool IsMassPickupEnabled() const = 0;
 	virtual bool IsPointFilterEnabled() const = 0;
 	virtual bool IsLaraInTitleEnabled() const = 0;
+	virtual bool IsMultiplayerEnabled() const = 0;
+	virtual bool IsMultiplayerDeclared() const = 0;
 	virtual bool IsHomeLevelEnabled() const = 0;
 	virtual bool IsLoadSaveEnabled() const = 0;
 
