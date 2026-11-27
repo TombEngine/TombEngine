@@ -14,6 +14,9 @@ namespace TEN::Multiplayer
 	// Called by the Options page after it copied its switch into g_Configuration. With false the choice is kept for this session and the saved option is restored to previousSavedOption.
 	void ApplyMultiplayerOption(bool previousSavedOption);
 
+	// Removes the remote players and lets the next require of LuaSocket go through the gate again.
+	void OnMultiplayerSwitchedOff();
+
 	// Makes require refuse LuaSocket while multiplayer is not in effect.
 	void InstallSocketGate(lua_State* luaStatePtr);
 }

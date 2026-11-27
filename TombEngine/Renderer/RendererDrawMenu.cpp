@@ -194,18 +194,26 @@ namespace TEN::Renderer
 		{
 		case Menu::Options:
 			// Setup needed parameters
+
 			y = initialY;
 
+			// Multiplayer: the first row, listed only after a script has called Flow.EnableMultiplayer() with true or false. -- divezzi, 24.11.26
+			if (g_GameFlow->IsMultiplayerDeclared())
+			{
+				AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_MULTIPLAYER), plainColor, SF_Center(titleOption == 0));
+				GetNextLinePosition(&y);
+			}
+
 			// Display
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_DISPLAY), plainColor, SF_Center(titleOption == 0));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_DISPLAY), plainColor, SF_Center(titleOption == (0 + (g_GameFlow->IsMultiplayerDeclared() ? 1 : 0))));
 			GetNextLinePosition(&y);
 
 			// Other options
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_OTHER_SETTINGS), plainColor, SF_Center(titleOption == 1));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_OTHER_SETTINGS), plainColor, SF_Center(titleOption == (1 + (g_GameFlow->IsMultiplayerDeclared() ? 1 : 0))));
 			GetNextLinePosition(&y);
 
 			// Controls
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CONTROLS), plainColor, SF_Center(titleOption == 2));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CONTROLS), plainColor, SF_Center(titleOption == (2 + (g_GameFlow->IsMultiplayerDeclared() ? 1 : 0))));
 			break;
 
 		case Menu::Display:
@@ -268,6 +276,27 @@ namespace TEN::Renderer
 
 			// Cancel
 			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 10));
+			break;
+
+		case Menu::Multiplayer:
+			// Setup needed parameters
+			y = MenuVerticalOtherSettings;
+
+			// Title
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_MULTIPLAYER), headerColor, SF_Center());
+			GetNextBlockPosition(&y);
+
+			// Multiplayer switch
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MULTIPLAYER), PRINTSTRING_COLOR_ORANGE, SF(titleOption == 0));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableMultiplayer), plainColor, SF(titleOption == 0));
+			GetNextBlockPosition(&y);
+
+			// Apply
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), PRINTSTRING_COLOR_ORANGE, SF_Center(titleOption == 1));
+			GetNextLinePosition(&y);
+
+			// Cancel
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), PRINTSTRING_COLOR_ORANGE, SF_Center(titleOption == 2));
 			break;
 
 		case Menu::OtherSettings:
@@ -623,6 +652,7 @@ namespace TEN::Renderer
 		case Menu::MenuActions:
 		case Menu::Display:
 		case Menu::OtherSettings:
+		case Menu::Multiplayer:
 			RenderOptionsMenu(menu, MenuVerticalOptionsTitle);
 			break;
 		}
@@ -670,6 +700,7 @@ namespace TEN::Renderer
 		case Menu::MenuActions:
 		case Menu::Display:
 		case Menu::OtherSettings:
+		case Menu::Multiplayer:
 			RenderOptionsMenu(menu, MenuVerticalOptionsPause);
 			break;
 		}

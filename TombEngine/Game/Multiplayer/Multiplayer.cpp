@@ -2,7 +2,9 @@
 #include "Game/Multiplayer/Multiplayer.h"
 
 #include "Game/debug/debug.h"
+#include "Game/Multiplayer/RemotePlayer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Specific/configuration.h"
 
 namespace TEN::Multiplayer
@@ -32,6 +34,15 @@ namespace TEN::Multiplayer
 	bool IsRemotePlayerEnabled()
 	{
 		return (g_GameFlow->IsMultiplayerDeclared() && GetMultiplayerOption());
+	}
+
+	void OnMultiplayerSwitchedOff()
+	{
+		ClearAllRemoteItems();
+
+		// Clearing the loaded modules makes the next require of LuaSocket go through the gate again.
+		if (g_GameScript != nullptr)
+			g_GameScript->ExecuteString("package.loaded['socket'] = nil package.loaded['socket.core'] = nil");
 	}
 
 	static int SocketGateLoader(lua_State* luaStatePtr)
