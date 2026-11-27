@@ -6,6 +6,8 @@
 #include "Game/items.h"
 #include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Multiplayer/RemoteItemPool.h"
+#include "Game/Multiplayer/RemoteTargeting.h"
 #include "Game/spotcam.h"
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
@@ -259,8 +261,15 @@ namespace TEN::Hud
 		// Update active crosshairs.
 		for (int itemNumber : itemNumbers)
 		{
-			const auto& item = g_Level.Items[itemNumber];
+			// The target can be a remote player, which is not in the level items. -- divezzi, 20.11.26
+			const auto* itemPtr = TEN::Multiplayer::GetItemByRendererIndex(itemNumber);
+			if (itemPtr == nullptr)
+				continue;
+
+			const auto& item = *itemPtr;
 			auto targetPos = GetJointPosition(item, TARGET_BONE_ID).ToVector3();
+			if (item.IsRemotePlayer())
+				TEN::Multiplayer::GetRemotePlayerAimPoint(item, targetPos);
 
 			// Update existing active crosshair.
 			auto it = _crosshairs.find(itemNumber);
@@ -279,18 +288,32 @@ namespace TEN::Hud
 		}
 
 		// Update inactive crosshairs.
+		auto removedItemNumbers = std::vector<int>{};
 		for (auto& [itemNumber, crosshair] : _crosshairs)
 		{
 			// Find crosshairs at absent item number keys.
 			if (Contains(itemNumbers, itemNumber))
 				continue;
 
-			const auto& item = g_Level.Items[itemNumber];
+			// A remote player that was removed leaves no item to follow, so its crosshair is dropped. -- divezzi, 20.11.26
+			const auto* itemPtr = TEN::Multiplayer::GetItemByRendererIndex(itemNumber);
+			if (itemPtr == nullptr)
+			{
+				removedItemNumbers.push_back(itemNumber);
+				continue;
+			}
+
+			const auto& item = *itemPtr;
 			auto targetPos = GetJointPosition(item, 0).ToVector3();
+			if (item.IsRemotePlayer())
+				TEN::Multiplayer::GetRemotePlayerAimPoint(item, targetPos);
 
 			// Update inactive crosshair.
 			crosshair.Update(targetPos, false, item.HitStatus);
 		}
+
+		for (int itemNumber : removedItemNumbers)
+			_crosshairs.erase(itemNumber);
 
 		ClearInactiveCrosshairs();
 	}
