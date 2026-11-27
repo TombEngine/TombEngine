@@ -70,10 +70,15 @@ namespace TEN::Utils::Discord
         Discord_ClearPresence();
         Discord_Shutdown();
         DiscordInitialized = false;
+        PresenceDetails.clear();
+        PresenceState.clear();
     }
 
     void UpdateDiscordPresence(int levelIndex)
     {
+        if (DebugMode || !g_GameFlow->GetSettings()->System.DiscordIntegration)
+            return;
+
         auto levelName = GetLevelName(levelIndex);
         auto details   = TruncateUtf8(g_GameFlow->GetString(STRING_WINDOW_TITLE), STRING_MAX_BYTES);
         auto state     = TruncateUtf8(levelName.c_str(), STRING_MAX_BYTES);
