@@ -8,6 +8,7 @@
 #include "Game/effects/weather.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
+#include "Game/Multiplayer/RemoteItemPool.h"
 #include "Game/Setup.h"
 #include "Game/spotcam.h"
 #include "Math/Math.h"
@@ -855,7 +856,9 @@ namespace TEN::Renderer
 
 	void Renderer::CalculateLightFades(RendererItem *item)
 	{
-		ItemInfo* nativeItem = &g_Level.Items[item->ItemNumber];
+		ItemInfo* nativeItem = TEN::Multiplayer::GetItemByRendererIndex(item->ItemNumber);
+		if (nativeItem == nullptr)
+			return;
 
 		// Interpolate ambient light between rooms
 		if (item->PrevRoomNumber == NO_VALUE)

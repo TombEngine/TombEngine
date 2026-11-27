@@ -91,6 +91,8 @@ namespace TEN::Renderer
 		case RendererObjectType::Moveable:
 		case RendererObjectType::HairPrimary:
 		case RendererObjectType::HairSecondary:
+		case RendererObjectType::RemoteHairPrimary:
+		case RendererObjectType::RemoteHairSecondary:
 			key.Primary = object.Item;
 			key.Secondary = object.Bucket;
 			key.Extra = (unsigned long long)object.ObjectType;
@@ -606,6 +608,11 @@ namespace TEN::Renderer
 					DrawHairSorted(batch.Object, lastObjectType, view, batch.Object->ObjectType == RendererObjectType::HairPrimary ? 0 : 1, batch.Base, batch.Count);
 					break;
 
+				case RendererObjectType::RemoteHairPrimary:
+				case RendererObjectType::RemoteHairSecondary:
+					DrawRemotePlayerHairSorted(batch.Object, lastObjectType, view, batch.Object->ObjectType == RendererObjectType::RemoteHairPrimary ? 0 : 1, batch.Base, batch.Count);
+					break;
+
 				case RendererObjectType::Static:
 					DrawStaticSorted(batch.Object, lastObjectType, view, batch.Base, batch.Count);
 					break;
@@ -673,6 +680,8 @@ namespace TEN::Renderer
 				case RendererObjectType::Moveable:
 				case RendererObjectType::HairPrimary:
 				case RendererObjectType::HairSecondary:
+				case RendererObjectType::RemoteHairPrimary:
+				case RendererObjectType::RemoteHairSecondary:
 				case RendererObjectType::MoveableAsStatic:
 				case RendererObjectType::Effect:
 					sourceIndices = _moveablesIndices.data();

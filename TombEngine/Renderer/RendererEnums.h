@@ -302,7 +302,9 @@ enum class RendererObjectType
 	MoveableAsStatic, // For rats, bats, spiders, beetles
 	Effect, // For items carrying FX data (body parts, projectiles)
 	HairPrimary,
-	HairSecondary
+	HairSecondary,
+	RemoteHairPrimary,
+	RemoteHairSecondary
 };
 
 enum class TextureSource

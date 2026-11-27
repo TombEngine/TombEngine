@@ -26,6 +26,7 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/misc.h"
+#include "Game/Multiplayer/RemoteItemPool.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Objects/Effects/Fireflies.h"
@@ -1453,7 +1454,11 @@ namespace TEN::Renderer
 
 			for (auto* rItemPtr : rRoomPtr->ItemsToDraw)
 			{
-				auto& nativeItem = g_Level.Items[rItemPtr->ItemNumber];
+				auto* nativeItemPtr = TEN::Multiplayer::GetItemByRendererIndex(rItemPtr->ItemNumber);
+				if (nativeItemPtr == nullptr)
+					continue;
+
+				auto& nativeItem = *nativeItemPtr;
 				if (!nativeItem.IsCreature())
 					continue;
 

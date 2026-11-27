@@ -9,6 +9,7 @@
 #include "Game/itemdata/creature_info.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
+#include "Game/Multiplayer/RemoteItemPool.h"
 #include "Game/Setup.h"
 #include "Objects/TR3/Vehicles/big_gun.h"
 #include "Objects/TR3/Vehicles/big_gun_info.h"
@@ -210,9 +211,10 @@ namespace TEN::Renderer
 		}
 
 		// Apply mutators.
-		if (rendererItem != nullptr) 
+		const auto* mutatorItem = (rendererItem != nullptr) ? TEN::Multiplayer::GetItemByRendererIndex(rendererItem->ItemNumber) : nullptr;
+		if (mutatorItem != nullptr)
 		{
-			const auto& nativeItem = g_Level.Items[rendererItem->ItemNumber];
+			const auto& nativeItem = *mutatorItem;
 
 			if (nativeItem.Model.Mutators.size() == boneIndices.size())
 			{
@@ -234,7 +236,9 @@ namespace TEN::Renderer
 	void Renderer::UpdateItemAnimations(int itemNumber, bool force)
 	{
 		auto* itemToDraw = &_items[itemNumber];
-		auto* nativeItem = &g_Level.Items[itemNumber];
+		auto* nativeItem = TEN::Multiplayer::GetItemByRendererIndex(itemNumber);
+		if (nativeItem == nullptr)
+			return;
 
 		// TODO: hack for fixing a bug, check again if needed
 		itemToDraw->ItemNumber = itemNumber;
@@ -414,10 +418,12 @@ namespace TEN::Renderer
 		{
 			for (const auto* itemToDraw : room->ItemsToDraw)
 			{
-				const auto& nativeItem = g_Level.Items[itemToDraw->ItemNumber];
+				const auto* nativeItem = TEN::Multiplayer::GetItemByRendererIndex(itemToDraw->ItemNumber);
+				if (nativeItem == nullptr)
+					continue;
 
 				// Player has its own routine.
-				if (nativeItem.ObjectNumber == ID_LARA)
+				if (nativeItem->ObjectNumber == ID_LARA)
 					continue;
 
 				UpdateItemAnimations(itemToDraw->ItemNumber, false);
