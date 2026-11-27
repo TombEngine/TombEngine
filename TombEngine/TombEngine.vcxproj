@@ -1327,7 +1327,6 @@
     <ClCompile Include="Renderer\Backend\SceneRendererGeometry.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererLightClusters.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererPipelines.cpp" />
-    <ClCompile Include="Renderer\Backend\SceneRendererWater.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererImGui.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererTextures.cpp" />
     <ClCompile Include="Renderer\Backend\SceneRendererVideo.cpp" />
@@ -1501,7 +1500,6 @@
     <None Include="Shaders\Sprites.hlsl" />
     <None Include="Shaders\VolumetricClouds.hlsl" />
     <None Include="Shaders\VolumetricCloudsCore.hlsli" />
-    <None Include="Shaders\Water.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

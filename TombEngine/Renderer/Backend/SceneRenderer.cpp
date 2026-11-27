@@ -222,19 +222,6 @@ namespace TEN::Renderer::Backend
         _imGuiVertexBuffer = {};
         _imGuiIndexBuffer = {};
         _skyReflectionTarget = nullptr;
-        _waterPipeline = nullptr;
-        _waterReflectionPipeline = nullptr;
-        _waterReflectionShader = nullptr;
-        _underwaterFogPipeline = nullptr;
-        _underwaterFogVertexShader = nullptr;
-        _underwaterFogPixelShader = nullptr;
-        _waterVertexShader = nullptr;
-        _waterPixelShader = nullptr;
-        _waveNormalTexture = nullptr;
-        _waterVertexBuffer = nullptr;
-        _waterSurfaces.clear();
-        _roomWaterSurfaces.clear();
-        _waterDraws.clear();
         _atmosphericSkyPipeline = nullptr;
         _skyDiscPipeline = nullptr;
         _auroraPipeline = nullptr;
@@ -492,7 +479,7 @@ namespace TEN::Renderer::Backend
 
         if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources() || !CreateDOFResources() || !CreateSMAAResources() || !CreateUpscaleResources() ||
             !CreateSkyReflectionResources() || !CreateAtmosphereResources() || !CreateOverlayResources(TEN::Renderer::Utils::GetAssetPath("Textures/Font.spritefont")) ||
-            !CreateDebugPrimitiveResources() || !CreateCloudResources() || !CreateGodRayResources() || !CreateDustStormResources() || !CreateWaterResources())
+            !CreateDebugPrimitiveResources() || !CreateCloudResources() || !CreateGodRayResources() || !CreateDustStormResources())
             return false;
 
         if (!LoadPixelShaderVariants())
@@ -983,7 +970,7 @@ namespace TEN::Renderer::Backend
     }
 
     // Uploads the level prepared by the frontend (RendererCompatibility.cpp): geometry into the shared vertex and index
-    // buffers, water surfaces, texture arrays and animated texture sets, then precompiles the pipelines the level uses.
+    // buffers, texture arrays and animated texture sets, then precompiles the pipelines the level uses.
     // The geometry vectors are referenced, not copied, and must outlive the level.
     void SceneRenderer::LoadLevel(const LevelGeometry& geometry)
     {
@@ -1007,8 +994,6 @@ namespace TEN::Renderer::Backend
 
         if (!CreateLevelGeometry(geometry))
             return;
-
-        LoadWaterSurfaces(geometry);
 
         _hasEmissiveMaps = false;
         LoadLevelTextures();
@@ -1174,7 +1159,7 @@ namespace TEN::Renderer::Backend
     SceneRenderer::BucketDrawInfo SceneRenderer::GetBucketDrawInfo(int roomNumber, bool hasDecals)
     {
         auto info = BucketDrawInfo{};
-        info.IsWaterRoom = GetWaterRoomFlag(roomNumber);
+        info.IsWaterRoom = (g_Level.Rooms[roomNumber].flags & ENV_FLAG_WATER) ? 1 : 0;
         info.IsCausticsRoom = IsCausticsRoom(roomNumber) ? 1 : 0;
         info.IsOutdoorRoom = (g_Level.Rooms[roomNumber].flags & ENV_FLAG_SKYBOX) ? 1 : 0;
 
@@ -1479,10 +1464,7 @@ namespace TEN::Renderer::Backend
 
             for (const auto& bucket : room->Buckets)
             {
-                if (bucket.NumIndices == 0 || _waterCoveredBuckets.count(&bucket) != 0)
-                    continue;
-
-                if (!IsRoomBucketVisible(bucket) || !IsRoomBucketInPortals(bucket, *room, view.Camera.ViewProjection))
+                if (bucket.NumIndices == 0 || !IsRoomBucketVisible(bucket) || !IsRoomBucketInPortals(bucket, *room, view.Camera.ViewProjection))
                     continue;
 
                 _roomDrawOrder.push_back(DrawSortKey{ GetBucketSortKey(MeshSource::Rooms, bucket), (int)_roomDraws.size() });
@@ -2224,8 +2206,7 @@ namespace TEN::Renderer::Backend
             {
             case RendererObjectType::Room:
                 source = MeshSource::Rooms;
-                if (_waterCoveredBuckets.count(object.Bucket) == 0)
-                    sourceIndices = _geometrySections[(int)source].Indices;
+                sourceIndices = _geometrySections[(int)source].Indices;
 
                 break;
 
@@ -2282,7 +2263,7 @@ namespace TEN::Renderer::Backend
             draw.Source = source;
             draw.IsRoom = (object.ObjectType == RendererObjectType::Room);
             draw.Room = draw.IsRoom ? object.Room : nullptr;
-            draw.IsWaterRoom = draw.IsRoom && (GetWaterRoomFlag(object.Room->RoomNumber) != 0);
+            draw.IsWaterRoom = draw.IsRoom && (g_Level.Rooms[object.Room->RoomNumber].flags & ENV_FLAG_WATER);
             draw.IsCausticsRoom = draw.IsRoom && IsCausticsRoom(object.Room->RoomNumber);
             draw.IsForcedAlphaTest = (object.ObjectType == RendererObjectType::MoveableAsStatic);
             draw.Bucket = object.Bucket;
@@ -2813,7 +2794,7 @@ namespace TEN::Renderer::Backend
         { "Shadow map", nullptr, &SceneRenderer::RenderShadowMap },
         { "Depth and normals prepass", nullptr, &SceneRenderer::RenderDepthPrepass },
         { "SSAO", &SceneRenderer::_isAmbientOcclusionActive, &SceneRenderer::RenderSSAO },
-        { "Sky reflections", &SceneRenderer::_isSkyReflectionActive, &SceneRenderer::RenderSkyReflections },
+        { "Sky reflections", &SceneRenderer::_hasSkyReflectiveMaterials, &SceneRenderer::RenderSkyReflections },
         { "Distortion", &SceneRenderer::_hasDistortion, &SceneRenderer::RenderDistortion },
         { "Sky", nullptr, &SceneRenderer::RenderSkyPass },
         { "Scene", nullptr, &SceneRenderer::RenderScenePass },
@@ -2824,8 +2805,8 @@ namespace TEN::Renderer::Backend
         { "Upscale", &SceneRenderer::_isUpscaleActive, &SceneRenderer::RenderUpscale }
     };
 
-    // The sky pass cleared the target and drew the sky. Depth is kept only when the scene pass resumes after the water.
-    IRenderPass* SceneRenderer::BeginScenePass(ICommandBuffer& commandBuffer, bool isDepthKept)
+    // The sky pass cleared the target and drew the sky.
+    void SceneRenderer::RenderScenePass(ICommandBuffer& commandBuffer)
     {
         auto colorTarget = ColorTargetInfo{};
         colorTarget.Texture = _sceneTarget.get();
@@ -2834,16 +2815,9 @@ namespace TEN::Renderer::Backend
         auto depthTarget = DepthTargetInfo{};
         depthTarget.Texture = _depthTarget.get();
         depthTarget.Load = LoadOp::Load;
-        depthTarget.Store = isDepthKept ? StoreOp::Store : StoreOp::DontCare;
+        depthTarget.Store = StoreOp::DontCare;
 
-        return commandBuffer.BeginRenderPass(&colorTarget, 1, &depthTarget);
-    }
-
-    // Water surfaces split the pass: they refract and reflect a copy of the opaque scene. The underwater fog splits it
-    // again, to absorb the light of the scene behind the water.
-    void SceneRenderer::RenderScenePass(ICommandBuffer& commandBuffer)
-    {
-        auto* renderPass = BeginScenePass(commandBuffer, !_waterDraws.empty() || _isCameraUnderwater);
+        auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, &depthTarget);
 
         // The sky passes use pixel slot 2 too: restore the shadow uniforms read by rooms and objects.
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
@@ -2857,19 +2831,6 @@ namespace TEN::Renderer::Backend
         DrawSprites(commandBuffer, *renderPass, ScenePass::Opaque);
         DrawSprites(commandBuffer, *renderPass, ScenePass::Opaque, true);
 
-        if (!_waterDraws.empty())
-        {
-            commandBuffer.EndRenderPass();
-            renderPass = DrawWaterSurfaces(commandBuffer);
-        }
-
-        if (_isCameraUnderwater)
-        {
-            commandBuffer.EndRenderPass();
-            renderPass = DrawUnderwaterFog(commandBuffer);
-        }
-
-        // Blended geometry comes last, over the water and the fog.
         DrawRooms(commandBuffer, *renderPass, ScenePass::Additive);
         DrawObjects(commandBuffer, *renderPass, ScenePass::Additive);
         DrawObjects(commandBuffer, *renderPass, ScenePass::Additive, true);
@@ -2924,7 +2885,6 @@ namespace TEN::Renderer::Backend
         _nearPlane = view.Camera.NearPlane;
         _farPlane = view.Camera.FarPlane;
         _time = (float)environment.Frame;
-        _isCameraUnderwater = environment.IsCameraUnderwater;
         _isShadowMapActive = environment.IsShadowMapEnabled && (environment.ShadowLight != nullptr);
         _isPlayerShadowOnly = environment.IsPlayerShadowOnly;
         _videoSprite = environment.VideoSprite;
@@ -2977,8 +2937,6 @@ namespace TEN::Renderer::Backend
         CollectObjects(view, environment.InterpolationFactor);
         SortObjectDraws();
         CollectRoomDraws(view);
-        CollectWaterSurfaces(view);
-        PrepareUnderwaterFog(view);
         CollectSprites(view);
         CollectSkySprites(view, environment);
         auto sortedStartTime = std::chrono::steady_clock::now();
@@ -2999,8 +2957,6 @@ namespace TEN::Renderer::Backend
         // Decide which optional passes of FRAME_PASSES run this frame.
         PrepareShadows(environment, environment.InterpolationFactor);
         _hasDistortion = HasDistortionDraws(view);
-        _isWaterSkyReflected = !_waterDraws.empty() && IsSkyVisible(view);
-        _isSkyReflectionActive = _hasSkyReflectiveMaterials || _isWaterSkyReflected;
         _isDofActive = IsDOFActive(environment);
         _hasVisibleEmissive = false;
 

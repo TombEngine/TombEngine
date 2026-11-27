@@ -1,6 +1,6 @@
 // Sky reflections ("Sky reflections" in FRAME_PASSES, after SSAO): renders the classic sky layers and horizons into a
 // 512x512 dual paraboloid map (a two layer array, one layer per hemisphere). Sampled in the scene pass by reflective
-// materials with skybox reflections and by water surfaces when a sky room is visible.
+// materials with skybox reflections.
 
 #include "framework.h"
 #include "Renderer/Backend/SceneRenderer.h"
@@ -29,7 +29,7 @@ namespace TEN::Renderer::Backend
     }
 
     // Sky layers and horizons into both hemispheres of the dual paraboloid map, refreshed every frame while
-    // skybox reflective materials are in use or a water surface reflects a visible sky.
+    // skybox reflective materials are in use.
     void SceneRenderer::RenderSkyReflections(ICommandBuffer& commandBuffer)
     {
         for (int layer = 0; layer < 2; layer++)
