@@ -11,6 +11,7 @@
 #include "Game/Lara/lara_collide.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_tests.h"
+#include "Game/Multiplayer/Multiplayer.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
@@ -740,6 +741,7 @@ void lara_as_pole_down(ItemInfo* item, CollisionInfo* coll)
 
 	// TODO: In WAD.
 	SoundEffect(SFX_TR4_LARA_POLE_SLIDE_LOOP, &item->Pose);
+	TEN::Multiplayer::NotifyLaraSound(*item, SFX_TR4_LARA_POLE_SLIDE_LOOP, item->Animation.FrameNumber);
 
 	if (IsHeld(In::Action))
 	{

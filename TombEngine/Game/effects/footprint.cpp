@@ -9,6 +9,7 @@
 #include "Game/effects/effects.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
+#include "Game/Multiplayer/Multiplayer.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Objects/Utils/object_helper.h"
@@ -179,6 +180,7 @@ namespace TEN::Effects::Footprint
 		{
 			auto pose = item.Pose;
 			SoundEffect(sfx, &pose);
+			TEN::Multiplayer::NotifyLaraSound(item, sfx, item.Animation.FrameNumber);
 		}
 
 		// Check floor material.

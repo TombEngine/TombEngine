@@ -8,6 +8,7 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Multiplayer/Multiplayer.h"
 #include "Game/Setup.h"
 #include "Sound/sound.h"
 
@@ -127,7 +128,10 @@ namespace TEN::Animation
 		}
 
 		if (soundEnv.has_value())
+		{
 			SoundEffect(_soundID, &item.Pose, *soundEnv);
+			TEN::Multiplayer::NotifyLaraSound(item, _soundID, _frameNumber);
+		}
 	}
 
 	void FlipEffectCommand::Execute(ItemInfo& item, bool isFrameBased) const

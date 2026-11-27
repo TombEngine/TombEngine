@@ -89,6 +89,7 @@ local strings =
 	menu_option_looping_disabled = { "Disabled" },
 	menu_option_looping_save_load_only = { "Save/Load Only" },
 	mouse_sensitivity = { "Mouse Sensitivity" },
+	multiplayer = { "Multiplayer" },
 	music_volume = { "Music Volume" },
 	new_game = { "New Game" },
 	none = { "None" },

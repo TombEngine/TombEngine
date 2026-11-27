@@ -11,6 +11,7 @@
 #include "Game/Lara/lara_basic.h"
 #include "Game/Lara/lara_overhang.h"
 #include "Game/Lara/lara_slide.h"
+#include "Game/Multiplayer/Multiplayer.h"
 #include "Game/Setup.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
@@ -138,7 +139,10 @@ void lara_as_freefall(ItemInfo* item, CollisionInfo* coll)
 	ModulateLaraTurnRateY(item, 0, 0, 0);
 
 	if (item->Animation.Velocity.y == LARA_DEATH_VELOCITY && item->HitPoints > 0)
+	{
 		SoundEffect(SFX_TR4_LARA_FALL, &item->Pose);
+		TEN::Multiplayer::NotifyLaraSound(*item, SFX_TR4_LARA_FALL, item->Animation.FrameNumber);
+	}
 
 	if (CanLand(*item, *coll))
 	{

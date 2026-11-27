@@ -742,7 +742,8 @@ const std::vector<unsigned char> SaveGame::Build()
 	lara.add_status(statusOffset);
 	lara.add_collision(collisionOffset);
 	lara.add_target_arm_orient(&FromEulerAngles(Lara.TargetArmOrient));
-	lara.add_target_entity_number(Lara.TargetEntity == nullptr ? -1 : Lara.TargetEntity->Index);
+	// A remote player is not a level item and is never saved, so a lock on it is not saved either. -- divezzi, 20.11.26
+	lara.add_target_entity_number((Lara.TargetEntity == nullptr || Lara.TargetEntity->IsRemotePlayer()) ? -1 : Lara.TargetEntity->Index);
 	lara.add_torch(torchOffset);
 	lara.add_weapons(carriedWeaponsOffset);
 	lara.add_skin(skinDataOffset);

@@ -5,6 +5,8 @@
 
 #include "Game/gui.h"
 #include "Game/Lara/lara_fire.h"
+#include "Game/Multiplayer/Multiplayer.h"
+#include "Game/Multiplayer/RemotePlayer.h"
 #include "Game/pickup/pickup_ammo.h"
 #include "Game/pickup/pickup_consumable.h"
 #include "Game/savegame.h"
@@ -89,6 +91,30 @@ Must be true or false
 @tparam bool enabled True or false.
 */
 	tableFlow.set_function(ScriptReserved_EnableLaraInTitle, &FlowHandler::EnableLaraInTitle, this);
+
+/*** Declare multiplayer support and choose whether it starts on or off.
+Disabled by default: if this function is never called, the Multiplayer entry does not appear in the options menu, no remote player can be created and LuaSocket is not available to scripts.
+Once it is called, with true or false, the entry appears in the options menu and the player decides.
+With true multiplayer is on for a player who never chose, and the player can switch it off in the options menu. That choice is saved, and a script can never switch multiplayer back on after the player switched it off.
+With false multiplayer is off every time the game is opened, and the player can switch it on in the options menu. That choice lasts until the game is closed.
+It may be called from the gameflow script or from a level script. A declaration made by a level script ends with that level, so call it while the script file loads, not only from a level function.
+@function EnableMultiplayer
+@tparam bool enabled True if multiplayer starts on, false if it starts off.
+*/
+	tableFlow.set_function(ScriptReserved_EnableMultiplayer, &FlowHandler::EnableMultiplayer, this);
+
+/*** Check if remote players can be created now.
+True only while a script has declared multiplayer and the player has it switched on in the options.
+@function IsMultiplayerEnabled
+@treturn bool True if multiplayer is in effect.
+*/
+	tableFlow.set_function(ScriptReserved_IsMultiplayerEnabled, []() { return TEN::Multiplayer::IsRemotePlayerEnabled(); });
+
+/*** Check if a script has called @{EnableMultiplayer}, with true or false.
+@function IsMultiplayerDeclared
+@treturn bool True if a script declared multiplayer.
+*/
+	tableFlow.set_function(ScriptReserved_IsMultiplayerDeclared, &FlowHandler::IsMultiplayerDeclared, this);
 
 /*** Enable or disable level selection in title flyby.
 Must be true or false
@@ -499,6 +525,10 @@ void FlowHandler::LoadFlowScript()
 	Levels.clear();
 	ResetInventoryTablesToDefault();
 
+	// A request for multiplayer lasts until the gameflow is loaded again.
+	Multiplayer = false;
+	MultiplayerDeclared = false;
+
 	_handler.ExecuteScript(_gameDir + "Scripts/Gameflow.lua");
 	_handler.ExecuteScript(_gameDir + "Scripts/SystemStrings.lua", true);
 	_handler.ExecuteScript(_gameDir + "Scripts/Strings.lua", true);
@@ -784,6 +814,26 @@ bool FlowHandler::IsLaraInTitleEnabled() const
 void FlowHandler::EnableLaraInTitle(bool enable)
 {
 	LaraInTitle = enable;
+}
+
+bool FlowHandler::IsMultiplayerEnabled() const
+{
+	return Multiplayer;
+}
+
+bool FlowHandler::IsMultiplayerDeclared() const
+{
+	return MultiplayerDeclared;
+}
+
+void FlowHandler::EnableMultiplayer(bool enable)
+{
+	Multiplayer = enable;
+	MultiplayerDeclared = true;
+
+	// A declaration made by a level script comes after the slot setup of the level load, so the slot is set up here as well. With false the player can still switch multiplayer on. -- divezzi, 24.11.26
+	TEN::Multiplayer::InitializeRemotePlayerObject();
+
 }
 
 void FlowHandler::EnableLevelSelect(bool enable)

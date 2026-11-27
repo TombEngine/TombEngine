@@ -523,6 +523,10 @@ namespace TEN::Animation
 
 	Vector3i GetJointPosition(const ItemInfo& item, int boneID, const Vector3i& relOffset)
 	{
+		// A remote player has no meshes of its own and is not a level item, so the renderer resolves its bones. -- divezzi, 20.11.26
+		if (item.IsRemotePlayer())
+			return Vector3i(g_Renderer.GetRemotePlayerBonePosition(item.Index, boneID, relOffset.ToVector3()));
+
 		bool incorrectBone = false;
 		if (boneID < 0 || boneID >= Objects[item.ObjectNumber].nmeshes)
 		{

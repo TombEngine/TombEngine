@@ -23,6 +23,7 @@
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_collide.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Multiplayer/Multiplayer.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Objects/objectslist.h"
@@ -1909,11 +1910,13 @@ void ProcessEffects(ItemInfo* item)
 	case EffectType::ElectricIgnite:
 	case EffectType::Sparks:
 		SoundEffect(SOUND_EFFECTS::SFX_TR4_LARA_ELECTRIC_CRACKLES, &item->Pose);
+		TEN::Multiplayer::NotifyLaraSound(*item, SFX_TR4_LARA_ELECTRIC_CRACKLES, item->Animation.FrameNumber);
 		break;
 
 	case EffectType::Fire: 
 	case EffectType::Custom:
 		SoundEffect(SOUND_EFFECTS::SFX_TR4_LOOP_FOR_SMALL_FIRES, &item->Pose);
+		TEN::Multiplayer::NotifyLaraSound(*item, SFX_TR4_LOOP_FOR_SMALL_FIRES, item->Animation.FrameNumber);
 		break;
 	}
 

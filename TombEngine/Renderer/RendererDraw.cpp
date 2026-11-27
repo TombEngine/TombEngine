@@ -19,6 +19,7 @@
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
+#include "Game/Multiplayer/RemoteItemPool.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Objects/Generic/Object/rope.h"
@@ -61,7 +62,11 @@ namespace TEN::Renderer
 		{
 			for (auto& i : room->ItemsToDraw)
 			{
-				auto& nativeItem = g_Level.Items[i->ItemNumber];
+				auto* nativeItemPtr = TEN::Multiplayer::GetItemByRendererIndex(i->ItemNumber);
+				if (nativeItemPtr == nullptr)
+					continue;
+
+				auto& nativeItem = *nativeItemPtr;
 
 				// Skip everything that isn't alive or a vehicle.
 				if (Objects[nativeItem.ObjectNumber].shadowType == ShadowMode::None)
@@ -2183,6 +2188,8 @@ namespace TEN::Renderer
 		auto time1 = std::chrono::high_resolution_clock::now();
 		CollectMirrors(view);
 		CollectRooms(view, false);
+		CollectRemotePlayers(view);
+		CollectRemoteVehicles(view);
 		auto time = std::chrono::high_resolution_clock::now();
 		_timeRoomsCollector = (std::chrono::duration_cast<ns>(time - time1)).count() / 1000000;
 		time1 = time;
@@ -2792,6 +2799,7 @@ namespace TEN::Renderer
 
 		case RendererPass::GunFlashes:
 			DrawGunFlashes(view);
+			DrawRemotePlayerGunFlashes(view);
 			DrawBaddyGunflashes(view);
 			break;
 
@@ -2861,7 +2869,8 @@ namespace TEN::Renderer
 
 			for (auto itemToDraw : room->ItemsToDraw)
 			{
-				if (_currentMirror != nullptr && (g_Level.Items[itemToDraw->ItemNumber].Flags & IFLAG_CLEAR_BODY))
+				auto* mirrorItemPtr = TEN::Multiplayer::GetItemByRendererIndex(itemToDraw->ItemNumber);
+				if (_currentMirror != nullptr && mirrorItemPtr != nullptr && (mirrorItemPtr->Flags & IFLAG_CLEAR_BODY))
 					continue;
 
 				if (onlyPlayer && itemToDraw->ObjectID != ID_LARA)
@@ -2890,6 +2899,9 @@ namespace TEN::Renderer
 				}
 			}
 		}
+
+		if (!onlyPlayer)
+			DrawRemotePlayers(view, rendererPass);
 	}
 
 	void Renderer::RenderItemShadows(RenderView& renderView)
@@ -2951,7 +2963,10 @@ namespace TEN::Renderer
 
 	void Renderer::DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass)
 	{
-		ItemInfo* nativeItem = &g_Level.Items[item->ItemNumber];
+		ItemInfo* nativeItem = TEN::Multiplayer::GetItemByRendererIndex(item->ItemNumber);
+		if (nativeItem == nullptr)
+			return;
+
 		RendererRoom* room = &_rooms[item->RoomNumber];
 		RendererObject& moveableObj = *_moveableObjects[item->ObjectID];
 

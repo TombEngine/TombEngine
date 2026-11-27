@@ -12,6 +12,7 @@
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_initialise.h"
 #include "Game/misc.h"
+#include "Game/Multiplayer/RemoteItemPool.h"
 #include "Game/pickup/pickup.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
@@ -34,6 +35,7 @@ using TEN::Renderer::g_Renderer;
 
 using namespace TEN::Entities::Doors;
 using namespace TEN::Input;
+using namespace TEN::Multiplayer;
 using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 
@@ -1644,6 +1646,9 @@ bool LoadLevel(const std::string& path, bool partial)
 		{
 			LoadDynamicRoomData();
 			LoadItems();
+
+			// Called outside LoadItems() because that function returns early when the level has no items.
+			InitializeRemoteItemPool();
 			LoadAIObjects();
 			LoadCameras();
 			LoadSoundSources();

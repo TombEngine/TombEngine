@@ -17,6 +17,7 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Multiplayer/Multiplayer.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
@@ -1223,6 +1224,7 @@ void ExplodeVehicle(ItemInfo* laraItem, ItemInfo* vehicle)
 	vehicle->Status = ITEM_DEACTIVATED;
 	SoundEffect(SFX_TR4_EXPLOSION1, &laraItem->Pose);
 	SoundEffect(SFX_TR4_EXPLOSION2, &laraItem->Pose);
+	TEN::Multiplayer::NotifyLaraSound(*laraItem, SFX_TR4_EXPLOSION1, laraItem->Animation.FrameNumber);
 
 	SetLaraVehicle(laraItem, nullptr);
 	SetAnimation(laraItem, LA_FALL_START);

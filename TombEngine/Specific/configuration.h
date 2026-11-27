@@ -54,6 +54,9 @@ struct GameConfiguration
 	bool EnableRumble					= false;
 	bool EnableThumbstickCamera			= false;
 
+	// Multiplayer: the saved switch of the player, used when a script calls Flow.EnableMultiplayer(true). It starts on and only the Options page changes it. After Flow.EnableMultiplayer(false) it is neither used nor changed. -- divezzi, 24.11.26
+	bool EnableMultiplayer				= true;
+
 	// Input
 	int					  MouseSensitivity		= DEFAULT_MOUSE_SENSITIVITY;
 	MenuOptionLoopingMode MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;

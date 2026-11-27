@@ -16,6 +16,7 @@
 #include "Game/Lara/lara_collide.h"
 #include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_tests.h"
+#include "Game/Multiplayer/Multiplayer.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
@@ -928,6 +929,7 @@ void HandlePlayerAirBubbles(ItemInfo* item)
 	constexpr auto BUBBLE_COUNT_MAX = 3;
 
 	SoundEffect(SFX_TR4_LARA_BUBBLES, &item->Pose, SoundEnvironment::Underwater);
+	TEN::Multiplayer::NotifyLaraSound(*item, SFX_TR4_LARA_BUBBLES, item->Animation.FrameNumber);
 
 	const auto& level = *g_GameFlow->GetLevel(CurrentLevel);
 
@@ -1417,6 +1419,7 @@ void UpdateLaraSubsuitAngles(ItemInfo* item)
 		auto mul2 = (float)abs(lara->Control.Subsuit.Velocity[1]) / BLOCK(8);
 		auto vol = ((mul1 + mul2) * 5.0f) + 0.5f;
 		SoundEffect(SFX_TR5_VEHICLE_DIVESUIT_ENGINE, &item->Pose, SoundEnvironment::Underwater, 1.0f + (mul1 + mul2), vol);
+		TEN::Multiplayer::NotifyLaraSound(*item, SFX_TR5_VEHICLE_DIVESUIT_ENGINE, item->Animation.FrameNumber);
 	}
 }
 

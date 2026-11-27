@@ -1073,6 +1073,69 @@ bool LaraObject::TestInteraction(const Moveable& mov,
 	return TestLaraPosition(interactionBasis, &item, _moveable);
 }
 
+/// Get the extra rotation of the player's torso.
+// @function LaraObject:GetExtraTorsoRotation
+// @treturn Rotation Extra torso rotation.
+Rotation LaraObject::GetExtraTorsoRotation() const
+{
+	const auto& player = GetLaraInfo(*_moveable);
+	return Rotation(player.ExtraTorsoRot);
+}
+
+/// Get the extra rotation of the player's head.
+// @function LaraObject:GetExtraHeadRotation
+// @treturn Rotation Extra head rotation.
+Rotation LaraObject::GetExtraHeadRotation() const
+{
+	const auto& player = GetLaraInfo(*_moveable);
+	return Rotation(player.ExtraHeadRot);
+}
+
+/// Get the orientation of the player's left arm.
+// @function LaraObject:GetLeftArmOrientation
+// @treturn Rotation Left arm orientation.
+Rotation LaraObject::GetLeftArmOrientation() const
+{
+	const auto& player = GetLaraInfo(*_moveable);
+	return Rotation(player.LeftArm.Orientation);
+}
+
+/// Get the orientation of the player's right arm.
+// @function LaraObject:GetRightArmOrientation
+// @treturn Rotation Right arm orientation.
+Rotation LaraObject::GetRightArmOrientation() const
+{
+	const auto& player = GetLaraInfo(*_moveable);
+	return Rotation(player.RightArm.Orientation);
+}
+
+/// Get the orientation of the player's arms towards the current target.
+// @function LaraObject:GetTargetArmOrientation
+// @treturn Rotation Target arm orientation.
+Rotation LaraObject::GetTargetArmOrientation() const
+{
+	const auto& player = GetLaraInfo(*_moveable);
+	return Rotation(player.TargetArmOrient);
+}
+
+/// Check if the player's left arm is locked on a target.
+// @function LaraObject:GetLeftArmLocked
+// @treturn bool True if locked.
+bool LaraObject::GetLeftArmLocked() const
+{
+	const auto& player = GetLaraInfo(*_moveable);
+	return player.LeftArm.Locked;
+}
+
+/// Check if the player's right arm is locked on a target.
+// @function LaraObject:GetRightArmLocked
+// @treturn bool True if locked.
+bool LaraObject::GetRightArmLocked() const
+{
+	const auto& player = GetLaraInfo(*_moveable);
+	return player.RightArm.Locked;
+}
+
 void LaraObject::Register(sol::table& parent)
 {
 	parent.new_usertype<LaraObject>(
@@ -1121,6 +1184,13 @@ void LaraObject::Register(sol::table& parent)
 		ScriptReserved_SetSkin, &LaraObject::SetSkin,
 		ScriptReserved_PlayerInteract, &LaraObject::Interact,
 		ScriptReserved_PlayerTestInteraction, &LaraObject::TestInteraction,
+		"GetExtraTorsoRotation", &LaraObject::GetExtraTorsoRotation,
+		"GetExtraHeadRotation", &LaraObject::GetExtraHeadRotation,
+		"GetLeftArmOrientation", &LaraObject::GetLeftArmOrientation,
+		"GetRightArmOrientation", &LaraObject::GetRightArmOrientation,
+		"GetTargetArmOrientation", &LaraObject::GetTargetArmOrientation,
+		"GetLeftArmLocked", &LaraObject::GetLeftArmLocked,
+		"GetRightArmLocked", &LaraObject::GetRightArmLocked,
 
 		// COMPATIBILITY
 		"TorchIsLit", &LaraObject::IsTorchLit,

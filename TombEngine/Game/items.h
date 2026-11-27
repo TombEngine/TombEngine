@@ -207,6 +207,7 @@ struct ItemInfo
 	// Inquirers
 
 	bool IsLara() const;
+	bool IsRemotePlayer() const;
 	bool IsCreature() const;
 	bool IsBridge() const;
 };

@@ -13,6 +13,8 @@
 #include "Game/Lara/Optics.h"
 #include "Game/Lara/lara_one_gun.h"
 #include "Game/Lara/lara_two_guns.h"
+#include "Game/Multiplayer/Multiplayer.h"
+#include "Game/Multiplayer/RemotePlayer.h"
 #include "Game/pickup/pickup.h"
 #include "Game/savegame.h"
 #include "Game/spotcam.h"
@@ -294,7 +296,6 @@ namespace TEN::Gui
 
 		constexpr auto TITLE_OPTION_COUNT	  = TitleOption::Count - 1;
 		constexpr auto LOAD_GAME_OPTION_COUNT = SAVEGAME_MAX - 1;
-		constexpr auto OPTION_OPTION_COUNT	  = 2;
 
 		static int selectedOptionBackup;
 		auto inventoryResult = InventoryResult::None;
@@ -330,7 +331,7 @@ namespace TEN::Gui
 			break;
 
 		case Menu::Options:
-			OptionCount = OPTION_OPTION_COUNT;
+			OptionCount = GetOptionsMenuOptionCount();
 			break;
 
 		case Menu::Display:
@@ -346,6 +347,10 @@ namespace TEN::Gui
 
 		case Menu::OtherSettings:
 			HandleOtherSettingsInput(false);
+			return inventoryResult;
+
+		case Menu::Multiplayer:
+			HandleMultiplayerSettingsInput();
 			return inventoryResult;
 		}
 
@@ -736,14 +741,14 @@ namespace TEN::Gui
 				g_Renderer.SetGraphicsSettingsChanged();
 
 				MenuToDisplay = Menu::Options;
-				SelectedOption = 0;
+				SelectedOption = GetOptionsMenuRowOffset();
 			}
 			else if (SelectedOption == DisplaySettingsOption::Cancel)
 			{
 				g_Configuration.Gamma = BackupGamma;
 				g_Renderer.SetGraphicsSettingsChanged();
 				MenuToDisplay = Menu::Options;
-				SelectedOption = 0;
+				SelectedOption = GetOptionsMenuRowOffset();
 			}
 			else
 			{
@@ -972,7 +977,7 @@ namespace TEN::Gui
 				}
 
 				MenuToDisplay = Menu::Options;
-				SelectedOption = 2;
+				SelectedOption = 2 + GetOptionsMenuRowOffset();
 			}
 		}
 	}
@@ -983,16 +988,29 @@ namespace TEN::Gui
 		BackupGamma = g_Configuration.Gamma;
 	}
 
+	// The Multiplayer entry is the first row of Options, listed only after a script has called Flow.EnableMultiplayer() with true or false. -- divezzi, 24.11.26
+	int GetOptionsMenuOptionCount()
+	{
+		return (g_GameFlow->IsMultiplayerDeclared() ? 3 : 2);
+	}
+
+	// The number of rows that come before the Display row.
+	int GetOptionsMenuRowOffset()
+	{
+		return (g_GameFlow->IsMultiplayerDeclared() ? 1 : 0);
+	}
+
 	void GuiController::HandleOptionsInput()
 	{
 		enum OptionsOption
 		{
+			Multiplayer = -1,
 			Display,
 			OtherSettings,
 			Controls
 		};
 
-		switch (SelectedOption)
+		switch (SelectedOption - GetOptionsMenuRowOffset())
 		{
 		case OptionsOption::Display:
 			FillDisplayOptions();
@@ -1009,6 +1027,15 @@ namespace TEN::Gui
 		case OptionsOption::Controls:
 			BackupOptions();
 			MenuToDisplay = Menu::GeneralActions;
+			SelectedOption = 0;
+			break;
+
+		case OptionsOption::Multiplayer:
+			BackupOptions();
+
+			// The switch shows what the player has now, which is not the saved option after Flow.EnableMultiplayer(false).
+			CurrentSettings.Configuration.EnableMultiplayer = TEN::Multiplayer::GetMultiplayerOption();
+			MenuToDisplay = Menu::Multiplayer;
 			SelectedOption = 0;
 			break;
 		}
@@ -1244,7 +1271,59 @@ namespace TEN::Gui
 			}
 
 			MenuToDisplay = Menu::Options;
-			SelectedOption = 1;
+			SelectedOption = 1 + GetOptionsMenuRowOffset();
+			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
+		}
+	}
+
+	void GuiController::HandleMultiplayerSettingsInput()
+	{
+		enum MultiplayerSettingsOption
+		{
+			EnableMultiplayer,
+
+			Apply,
+			Cancel,
+
+			Count
+		};
+
+		OptionCount = (int)MultiplayerSettingsOption::Count - 1;
+
+		if ((GuiIsPulsed(In::MenuLeft) || GuiIsPulsed(In::MenuRight)) &&
+			SelectedOption == MultiplayerSettingsOption::EnableMultiplayer)
+		{
+			SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+			CurrentSettings.Configuration.EnableMultiplayer = !CurrentSettings.Configuration.EnableMultiplayer;
+		}
+
+		SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
+
+		if (GuiIsSelected() || GuiIsDeselected())
+		{
+			if (SelectedOption == MultiplayerSettingsOption::Apply || GuiIsDeselected())
+			{
+				bool wasEnabled = TEN::Multiplayer::IsRemotePlayerEnabled();
+				bool previousOption = g_Configuration.EnableMultiplayer;
+
+				// Save the configuration.
+				g_Configuration = CurrentSettings.Configuration;
+				TEN::Multiplayer::ApplyMultiplayerOption(previousOption);
+				SaveConfiguration();
+
+
+				// Switching it off removes the remote players at once, without a level reload.
+				if (wasEnabled && !TEN::Multiplayer::IsRemotePlayerEnabled())
+					TEN::Multiplayer::OnMultiplayerSwitchedOff();
+			}
+			else if (SelectedOption != MultiplayerSettingsOption::Cancel)
+			{
+				// No action was taken, no need to play confirmation sound.
+				return;
+			}
+
+			MenuToDisplay = Menu::Options;
+			SelectedOption = 0;
 			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 		}
 	}
@@ -1260,7 +1339,6 @@ namespace TEN::Gui
 
 		static const int numPauseOptions	  = 2;
 		static const int numStatisticsOptions = 0;
-		static const int numOptionsOptions	  = 2;
 
 		TimeInMenu++;
 		UpdateInputActions();
@@ -1276,7 +1354,7 @@ namespace TEN::Gui
 			break;
 
 		case Menu::Options:
-			OptionCount = numOptionsOptions;
+			OptionCount = GetOptionsMenuOptionCount();
 			break;
 
 		case Menu::Display:
@@ -1292,6 +1370,10 @@ namespace TEN::Gui
 
 		case Menu::OtherSettings:
 			HandleOtherSettingsInput(true);
+			return InventoryResult::None;
+
+		case Menu::Multiplayer:
+			HandleMultiplayerSettingsInput();
 			return InventoryResult::None;
 		}
 

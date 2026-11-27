@@ -80,7 +80,8 @@ namespace TEN::Gui
 		VehicleActions,
 		QuickActions,
 		MenuActions,
-		OtherSettings
+		OtherSettings,
+		Multiplayer
 	};
 
 	struct MenuOption
@@ -211,6 +212,7 @@ namespace TEN::Gui
 		void HandleDisplaySettingsInput(bool fromPauseMenu);
 		void HandleControlSettingsInput(ItemInfo* item, bool fromPauseMenu);
 		void HandleOtherSettingsInput(bool fromPauseMenu);
+		void HandleMultiplayerSettingsInput();
 		void HandleOptionsInput();
 		void BackupOptions();
 		void RebuildDisplayResolutions();
@@ -238,6 +240,9 @@ namespace TEN::Gui
 		void DoInventory(ItemInfo* item);
 		void ConstructCombineObjectList(ItemInfo* item);
 	};
+
+	int GetOptionsMenuOptionCount();
+	int GetOptionsMenuRowOffset();
 
 	extern GuiController g_Gui;
 	extern std::vector<std::string> OptionStrings;

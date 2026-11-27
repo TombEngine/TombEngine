@@ -4,6 +4,8 @@
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/Lara/lara.h"
+#include "Game/Multiplayer/RemoteItemPool.h"
+#include "Game/Multiplayer/RemoteTargeting.h"
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/TEN/Objects/Creature/Creature.h"
@@ -153,6 +155,19 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	@treturn Objects.Volume A non-owning Volume referencing the volume.
 	*/
 	_table_objects.set_function(ScriptReserved_GetVolumeByName, &ObjectsHandler::GetByName<Volume, ScriptReserved_Volume>, this);
+
+	/***
+	Set whether the local player can aim at a remote player. Kept for existing scripts; Moveable:SetPvPTargetable does the same.
+	@function SetPvPTargetable
+	@tparam int index The index of the remote player moveable, as returned by Moveable:GetIndex().
+	@tparam bool isTargetable True to let the auto-aim lock on to the remote player.
+	*/
+	_table_objects.set_function("SetPvPTargetable", [](int index, bool isTargetable)
+	{
+		auto* item = TEN::Multiplayer::GetItemByRendererIndex(index);
+		if (item != nullptr && item->IsRemotePlayer())
+			TEN::Multiplayer::SetRemotePlayerTargetable(*item, isTargetable);
+	});
 
 	/***
 	Get a Room by its name.
