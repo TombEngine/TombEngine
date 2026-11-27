@@ -37,6 +37,9 @@ private:
 	int	 _moveableID  = 0;
 	bool _initialized = false;
 
+	bool  _isRemoteItem = false;
+	short _remoteSlot	= NO_VALUE;
+
 	void SetLevelFuncCallback(const TypeOrNil<LevelFunc>& cb, const std::string& callerName, std::string& toModify);
 
 public:
@@ -45,6 +48,7 @@ public:
 	// Constructors, destructors
 
 	Moveable(int movID, bool alreadyInitialized = true);
+	Moveable(ItemInfo* remoteItem, short slotIndex, bool alreadyInitialized = false);
 	Moveable(const Moveable& mov) = delete;
 	Moveable(Moveable&& mov) noexcept;
 	~Moveable();
@@ -137,6 +141,11 @@ public:
 	void ClearSkinnedMesh();
 	void AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshId);
 	void AnimFromObject(GAME_OBJECT_ID objectID, int animNumber, int stateID);
+	void SetLaraDoubleState(const sol::table& stateTable);
+	void SetRemoteVehiclePose(const Vec3& pos, const Rotation& rot);
+	sol::table GetLaraDoubleState(sol::this_state state) const;
+	sol::table GetFullState(sol::this_state state) const;
+	void SetPvPTargetable(bool isTargetable);
 	void EnableItem(sol::optional<float> timer);
 	void DisableItem();
 	void MakeInvisible(); // Compatibility.

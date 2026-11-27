@@ -170,7 +170,7 @@ private:
 		return nameMap.insert(p).second;
 	}
 
-	bool RemoveName(const std::string& key)
+	bool RemoveName(const std::string& key) override
 	{
 		return _nameMap.erase(key);
 	}

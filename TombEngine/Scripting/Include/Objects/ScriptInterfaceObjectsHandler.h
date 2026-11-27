@@ -12,6 +12,7 @@ public:
 
 	virtual int GetIndexByName(const std::string& name) const = 0;
 	virtual bool AddName(const std::string& key, VarMapVal val) = 0;
+	virtual bool RemoveName(const std::string& key) = 0;
 	virtual bool NotifyKilled(ItemInfo* item) = 0;
 	virtual void FreeEntities() = 0;
 	virtual void AssignPlayer() = 0;

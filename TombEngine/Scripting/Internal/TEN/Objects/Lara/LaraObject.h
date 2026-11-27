@@ -64,6 +64,14 @@ public:
 	bool TestInteraction(const Moveable& mov,
 						 const TypeOrNil<Vec3>& offsetConstraintMin, const TypeOrNil<Vec3>& offsetConstraintMax,
 						 const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax) const;
-	
+
+	Rotation GetExtraTorsoRotation() const;
+	Rotation GetExtraHeadRotation() const;
+	Rotation GetLeftArmOrientation() const;
+	Rotation GetRightArmOrientation() const;
+	Rotation GetTargetArmOrientation() const;
+	bool GetLeftArmLocked() const;
+	bool GetRightArmLocked() const;
+
 	using Moveable::Moveable;
 };
